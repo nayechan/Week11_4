@@ -174,10 +174,10 @@ struct FStaticMesh
 
 struct FMeshData
 {
-	// 중복 없는 정점
-	TArray<FVector> Vertices;//also can be billboard world position
-	// 정점 인덱스
-	TArray<uint32> Indices;
+    // 중복 없는 정점
+    TArray<FVector> Vertices;//also can be billboard world position
+    // 정점 인덱스
+    TArray<uint32> Indices;
     // 중복 없는 정점
     TArray<FVector4> Color;//also can be UVRect
     // UV 좌표
@@ -185,7 +185,7 @@ struct FMeshData
     // 노말 좌표
     TArray<FVector> Normal;
     //
-    
+
 };
 enum class EPrimitiveTopology
 {
@@ -250,10 +250,10 @@ enum class EKeyInput : uint8
     Space, Enter, Escape, Tab, Shift, Ctrl, Alt,
     Up, Down, Left, Right,
     F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
-    
+
     // Mouse Buttons
     LeftMouse, RightMouse, MiddleMouse, Mouse4, Mouse5,
-    
+
     // Special
     Unknown
 };
@@ -314,24 +314,25 @@ enum class EPrimitiveType : uint32
 enum class EEngineShowFlags : uint64
 {
     None = 0,
-    
+
     // Primitive rendering
     SF_Primitives = 1ull << 0,    // Show/hide all primitive geometry
     SF_StaticMeshes = 1ull << 1,  // Show/hide static mesh actors
     SF_Wireframe = 1ull << 2,     // Show wireframe overlay
-    
+
     // Debug features
     SF_BillboardText = 1ull << 3, // Show/hide UUID text above objects
     SF_BoundingBoxes = 1ull << 4, // Show/hide collision bounds
     SF_Grid = 1ull << 5,          // Show/hide world grid
-    SF_OctreeDebug  = 1ull << 7,  // Show/hide octree debug bounds
-    
+    SF_OctreeDebug = 1ull << 7,  // Show/hide octree debug bounds
+    SF_BVHDebug = 1ull << 8,  // Show/hide BVH debug bounds
+
     // Lighting
     SF_Lighting = 1ull << 6,      // Enable/disable lighting
-    
+
     // Default enabled flags
     SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid,
-    
+
     // All flags (for initialization/reset)
     SF_All = 0xFFFFFFFFFFFFFFFFull
 };

@@ -17,6 +17,7 @@
 #include "WorldPartitionManager.h"
 #include "PrimitiveComponent.h"
 #include "Octree.h"
+#include "BVHierachy.h"
 #include "Frustum.h"
 
 extern float CLIENTWIDTH;
@@ -397,12 +398,25 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		Renderer->OMSetBlendState(false);
 	}
 
-    // Octree debug draw
-	if (IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug))
+    // Debug draw (exclusive: BVH first, else Octree)
+	if (IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug))
 	{
-		if (FOctree* Octree = UWorldPartitionManager::GetInstance()->GetSceneOctree())
+		if (auto* PM = UWorldPartitionManager::GetInstance())
 		{
-			Octree->DebugDraw(Renderer);
+			if (FBVHierachy* BVH = PM->GetBVH())
+			{
+				BVH->DebugDraw(Renderer);
+			}
+		}
+	}
+	else if (IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug))
+	{
+		if (auto* PM = UWorldPartitionManager::GetInstance())
+		{
+			if (FOctree* Octree = PM->GetSceneOctree())
+			{
+				Octree->DebugDraw(Renderer);
+			}
 		}
 	}
     
@@ -561,9 +575,6 @@ void UWorld::CreateNewScene()
 
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
-
-	// 옥트리 초기화
-	UWorldPartitionManager::GetInstance()->ClearSceneOctree();
 
 	if (UWorldPartitionManager::GetInstance())
 	{

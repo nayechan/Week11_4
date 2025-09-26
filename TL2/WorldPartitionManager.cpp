@@ -5,9 +5,11 @@
 #include "AABoundingBoxComponent.h"
 #include "World.h"
 #include "Octree.h"
+#include "BVHierachy.h"
 #include "StaticMeshActor.h"
 
-namespace {
+namespace 
+{
 	inline bool ShouldIndexActor(const AActor* Actor)
 	{
 		// 현재 Bounding Box가 Primitive Component가 아닌 Actor에 종속
@@ -20,6 +22,8 @@ UWorldPartitionManager::UWorldPartitionManager()
 {
 	FBound WorldBounds(FVector(-25, -25, 0), FVector(25, 25, 20));
 	SceneOctree = new FOctree(WorldBounds, 0, 8, 8);
+	// BVH도 동일 월드 바운드로 초기화 (더 깊고 작은 리프 설정)
+	BVH = new FBVHierachy(FBound(), 0, 12, 8);
 }
 
 UWorldPartitionManager::~UWorldPartitionManager()
@@ -29,10 +33,17 @@ UWorldPartitionManager::~UWorldPartitionManager()
 		delete SceneOctree;
 		SceneOctree = nullptr;
 	}
+	if (BVH)
+	{
+		delete BVH;
+		BVH = nullptr;
+	}
 }
 
 void UWorldPartitionManager::Clear()
 {
+	ClearSceneOctree();
+	ClearBVHierachy();
 }
 
 void UWorldPartitionManager::Register(AActor* Owner)
@@ -48,7 +59,6 @@ void UWorldPartitionManager::Register(AActor* Owner)
 void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 {
 	if (Actors.empty()) return;
-	if (SceneOctree == nullptr) return;
 
 	TArray<std::pair<AActor*, FBound>> ActorsAndBounds;
 	ActorsAndBounds.reserve(Actors.size());
@@ -61,16 +71,18 @@ void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 		}
 	}
 
-	SceneOctree->BulkInsert(ActorsAndBounds);
+	// Octree: 기존 대량 삽입
+	if (SceneOctree) SceneOctree->BulkInsert(ActorsAndBounds);
+	if (BVH) BVH->BulkInsert(ActorsAndBounds);
 }
 
 void UWorldPartitionManager::Unregister(AActor* Owner)
 {
 	if (!Owner) return;
 	if (!ShouldIndexActor(Owner)) return;
-	if (SceneOctree == nullptr) return;
 	
-	SceneOctree->Remove(Owner);
+	if (SceneOctree) SceneOctree->Remove(Owner);
+	if (BVH) BVH->Remove(Owner);
 
 	if (USceneComponent* Root = Owner->GetRootComponent())
 	{
@@ -104,17 +116,19 @@ void UWorldPartitionManager::Update(float DeltaTime, uint32 InBugetCount)
 		}
 
 		if (!Actor) continue;
-
-		if (UWorld* World = Actor->GetWorld())
-		{
-			//if (FOctree* Tree = World->GetOctree())
-			//{
-			SceneOctree->Update(Actor);
-			//}
-		}
+		if (SceneOctree) SceneOctree->Update(Actor);
+		if (BVH) BVH->Update(Actor);
 
 		++processed;
 	}
+}
+
+void UWorldPartitionManager::Query(FRay InRay, OUT TArray<AActor*>& Actors)
+{
+}
+
+void UWorldPartitionManager::Query(FBound InBound, OUT TArray<AActor*>& Actors)
+{
 }
 
 void UWorldPartitionManager::ClearSceneOctree()
@@ -125,11 +139,10 @@ void UWorldPartitionManager::ClearSceneOctree()
 	}
 }
 
-void UWorldPartitionManager::Query(FRay InRay)
+void UWorldPartitionManager::ClearBVHierachy()
 {
-
-}
-
-void UWorldPartitionManager::Query(FBound InBound)
-{
+	if (BVH)
+	{
+		BVH->Clear();
+	}
 }

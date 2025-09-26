@@ -5,7 +5,6 @@
 #include "GizmoActor.h"
 #include "Enums.h"
 // forward declare to avoid heavy include
-class FOctree;
 
 // Forward Declarations
 class UResourceManager;
@@ -79,7 +78,6 @@ public:
     // Partial hooks
     void OnActorSpawned(AActor* Actor);
     void OnActorDestroyed(AActor* Actor);
-    //FOctree* GetOctree() const { return SceneOctree; }
 
     void CreateNewScene();
     void LoadScene(const FString& SceneName);

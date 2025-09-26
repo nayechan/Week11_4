@@ -113,6 +113,7 @@ void UShowFlagWidget::SyncWithWorld(UWorld* World)
     bGrid = World->IsShowFlagEnabled(EEngineShowFlags::SF_Grid);
     bLighting = World->IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
     bOctree = World->IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
+    bBVH = World->IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
 }
 
 void UShowFlagWidget::RenderShowFlagCheckbox(const char* Label, EEngineShowFlags Flag, UWorld* World)
@@ -176,6 +177,10 @@ void UShowFlagWidget::RenderShowFlagCheckbox(const char* Label, EEngineShowFlags
             ImGui::Text("옥트리 디버그 바운드 표시/숨김");
             ImGui::Text("공간 분할 노드의 AABB를 라인으로 렌더링합니다.");
             break;
+        case EEngineShowFlags::SF_BVHDebug:
+            ImGui::Text("BVH 디버그 바운드 표시/숨김");
+            ImGui::Text("BVH 노드의 AABB를 라인으로 렌더링합니다.");
+            break;
         case EEngineShowFlags::SF_Lighting:
             ImGui::Text("조명 효과 활성화/비활성화");
             ImGui::Text("라이팅 계산을 켜거나 끕니다.");
@@ -233,7 +238,33 @@ void UShowFlagWidget::RenderDebugSection(UWorld* World)
         RenderShowFlagCheckbox("Billboard Text", EEngineShowFlags::SF_BillboardText, World);
         RenderShowFlagCheckbox("Bounding Boxes", EEngineShowFlags::SF_BoundingBoxes, World);
         RenderShowFlagCheckbox("Grid", EEngineShowFlags::SF_Grid, World);
-        RenderShowFlagCheckbox("Octree", EEngineShowFlags::SF_OctreeDebug, World);
+
+        // Mutually exclusive toggles: Octree vs BVH
+        bool oct = World->IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
+        bool bvh = World->IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
+        bool octChanged = ImGui::Checkbox("Octree", &oct);
+        ImGui::SameLine();
+        bool bvhChanged = ImGui::Checkbox("BVH", &bvh);
+
+        if (octChanged || bvhChanged)
+        {
+            // Enforce exclusivity
+            if (bvh && bvhChanged)
+            {
+                World->EnableShowFlag(EEngineShowFlags::SF_BVHDebug);
+                World->DisableShowFlag(EEngineShowFlags::SF_OctreeDebug);
+            }
+            else if (oct && octChanged)
+            {
+                World->EnableShowFlag(EEngineShowFlags::SF_OctreeDebug);
+                World->DisableShowFlag(EEngineShowFlags::SF_BVHDebug);
+            }
+            else
+            {
+                if (!oct) World->DisableShowFlag(EEngineShowFlags::SF_OctreeDebug);
+                if (!bvh) World->DisableShowFlag(EEngineShowFlags::SF_BVHDebug);
+            }
+        }
         
         ImGui::TreePop();
     }

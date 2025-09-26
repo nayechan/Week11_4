@@ -4,6 +4,9 @@
 class UPrimitiveComponent;
 class AStaticMeshActor;
 
+class FOctree;
+class FBVHierachy;
+
 struct FRay;
 struct FBound;
 
@@ -34,20 +37,26 @@ public:
 
 	void Update(float DeltaTime, uint32 budgetItems = 256);
 
-	//재시작시 필요 
-	void ClearSceneOctree();
-	void Query(FRay InRay);
-	void Query(FBound InBound);
+	void Query(FRay InRay, OUT TArray<AActor*>& Actors);
+	void Query(FBound InBound, OUT TArray<AActor*>& Actors);
 
 	/** 옥트리 게터 */
 	FOctree* GetSceneOctree() const { return SceneOctree; }
+	/** BVH 게터 */
+	FBVHierachy* GetBVH() const { return BVH; }
 
 private:
 	// 싱글톤 
 	UWorldPartitionManager(const UWorldPartitionManager&) = delete;
 	UWorldPartitionManager& operator=(const UWorldPartitionManager&) = delete;
 
+
+	//재시작시 필요 
+	void ClearSceneOctree();
+	void ClearBVHierachy();
+
 	TQueue<AActor*> DirtyQueue;
 	TSet<AActor*> DirtySet;
 	FOctree* SceneOctree = nullptr;
+	FBVHierachy* BVH = nullptr;
 };
