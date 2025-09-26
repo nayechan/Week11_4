@@ -89,8 +89,7 @@ struct FBound
 };
 
 class ULine;
-class UAABoundingBoxComponent :
-	public UShapeComponent
+class UAABoundingBoxComponent :public UShapeComponent
 {
 	DECLARE_CLASS(UAABoundingBoxComponent, UShapeComponent)
 public:
@@ -107,8 +106,8 @@ public:
     FBound GetWorldBound() const;
 
     // 월드 좌표계에서의 AABB 반환
-    FBound GetWorldBoundFromCube() const;
-    FBound GetWorldBoundFromSphere() const;
+    FBound GetWorldBoundFromCube() ;
+    //FBound GetWorldBoundFromSphere() const;
 
 	TArray<FVector4> GetLocalCorners() const;
 
@@ -126,7 +125,7 @@ private:
 
     FVector LocalMin;
     FVector LocalMax;
-
+	FBound Bound;
     EPrimitiveType PrimitiveType = EPrimitiveType::Default;
 };
 

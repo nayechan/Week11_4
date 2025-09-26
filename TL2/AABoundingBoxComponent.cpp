@@ -75,7 +75,7 @@ FBound UAABoundingBoxComponent::GetWorldBound() const
     return FBound(WorldCenter - WorldExtents, WorldCenter + WorldExtents);
 }
 
-FBound UAABoundingBoxComponent::GetWorldBoundFromCube() const
+FBound UAABoundingBoxComponent::GetWorldBoundFromCube() 
 {
     auto corners = GetLocalCorners();
 
@@ -96,35 +96,35 @@ FBound UAABoundingBoxComponent::GetWorldBoundFromCube() const
 
 
 
-FBound UAABoundingBoxComponent::GetWorldBoundFromSphere() const
-{
-    //중심 이동
-    const FVector WorldCenter = GetOwner()->GetActorLocation();
-    const FMatrix WorldMat = GetOwner()->GetWorldMatrix();
-
-    //월드 축 기준 스케일 값 계산
-    FVector WorldScaleExtents;
-    WorldScaleExtents.X = sqrtf(
-        WorldMat.M[0][0] * WorldMat.M[0][0] +
-        WorldMat.M[1][0] * WorldMat.M[1][0] + 
-        WorldMat.M[2][0] * WorldMat.M[2][0]
-    );
-    WorldScaleExtents.Y = sqrtf(
-        WorldMat.M[0][1] * WorldMat.M[0][1] +
-        WorldMat.M[1][1] * WorldMat.M[1][1] +
-        WorldMat.M[2][1] * WorldMat.M[2][1]
-    );
-    WorldScaleExtents.Z = sqrtf(
-        WorldMat.M[0][2] * WorldMat.M[0][2] +
-        WorldMat.M[1][2] * WorldMat.M[1][2] +
-        WorldMat.M[2][2] * WorldMat.M[2][2]
-    );
-
-    //최종 AABB
-    FVector Min = WorldCenter - WorldScaleExtents;
-    FVector Max = WorldCenter + WorldScaleExtents;
-    return FBound(Min, Max);
-}
+//FBound UAABoundingBoxComponent::() const
+//{
+//    //중심 이동
+//    const FVector WorldCenter = GetOwner()->GetActorLocation();
+//    const FMatrix WorldMat = GetOwner()->GetWorldMatrix();
+//
+//    //월드 축 기준 스케일 값 계산
+//    FVector WorldScaleExtents;
+//    WorldScaleExtents.X = sqrtf(
+//        WorldMat.M[0][0] * WorldMat.M[0][0] +
+//        WorldMat.M[1][0] * WorldMat.M[1][0] + 
+//        WorldMat.M[2][0] * WorldMat.M[2][0]
+//    );
+//    WorldScaleExtents.Y = sqrtf(
+//        WorldMat.M[0][1] * WorldMat.M[0][1] +
+//        WorldMat.M[1][1] * WorldMat.M[1][1] +
+//        WorldMat.M[2][1] * WorldMat.M[2][1]
+//    );
+//    WorldScaleExtents.Z = sqrtf(
+//        WorldMat.M[0][2] * WorldMat.M[0][2] +
+//        WorldMat.M[1][2] * WorldMat.M[1][2] +
+//        WorldMat.M[2][2] * WorldMat.M[2][2]
+//    );
+//
+//    //최종 AABB
+//    FVector Min = WorldCenter - WorldScaleExtents;
+//    FVector Max = WorldCenter + WorldScaleExtents;
+//    return FBound(Min, Max);
+//}
 
 TArray<FVector4> UAABoundingBoxComponent::GetLocalCorners() const
 {
