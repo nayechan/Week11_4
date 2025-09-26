@@ -1,0 +1,906 @@
+﻿#include "pch.h"
+
+#include "Picking.h"
+#include "Actor.h"
+#include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
+#include "StaticMesh.h"
+#include "CameraActor.h"
+#include "MeshLoader.h"
+#include"Vector.h"
+#include "SelectionManager.h"
+#include <cmath>
+
+#include "GizmoActor.h"
+#include "GizmoScaleComponent.h"
+#include "GizmoRotateComponent.h"
+#include "GizmoArrowComponent.h"
+#include "UI/GlobalConsole.h"
+#include "ObjManager.h"
+#include"stdio.h"
+
+FRay MakeRayFromMouse(const FMatrix& InView,
+                      const FMatrix& InProj)
+{
+    // 1) Mouse to NDC (DirectX viewport convention: origin top-left)
+    //    Query current screen size from InputManager
+    FVector2D screen = UInputManager::GetInstance().GetScreenSize();
+    float viewportW = (screen.X > 1.0f) ? screen.X : 1.0f;
+    float viewportH = (screen.Y > 1.0f) ? screen.Y : 1.0f;
+
+    const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+    const float NdcX = (2.0f * MousePosition.X / viewportW) - 1.0f;
+    const float NdcY = 1.0f - (2.0f * MousePosition.Y / viewportH);
+
+    // 2) View-space direction using projection scalars (PerspectiveFovLH)
+    // InProj.M[0][0] = XScale, InProj.M[1][1] = YScale
+    const float XScale = InProj.M[0][0];
+    const float YScale = InProj.M[1][1];
+    const float ViewDirX = NdcX / (XScale == 0.0f ? 1.0f : XScale);
+    const float ViewDirY = NdcY / (YScale == 0.0f ? 1.0f : YScale);
+    const float ViewDirZ = 1.0f; // Forward in view space
+
+    // 3) Extract camera basis/position from InView (row-vector convention: basis in rows)
+    const FVector Right = FVector(InView.M[0][0], InView.M[0][1], InView.M[0][2]);
+    const FVector Up = FVector(InView.M[1][0], InView.M[1][1], InView.M[1][2]);
+    const FVector Forward = FVector(InView.M[2][0], InView.M[2][1], InView.M[2][2]);
+    const FVector t = FVector(InView.M[3][0], InView.M[3][1], InView.M[3][2]);
+    // = (-dot(Right,Eye), -dot(Up,Eye), -dot(Fwd,Eye))
+    const FVector Eye = (Right * (-t.X)) + (Up * (-t.Y)) + (Forward * (-t.Z));
+
+    // 4) To world space
+    const FVector WorldDirection = (Right * ViewDirX + Up * ViewDirY + Forward * ViewDirZ).GetSafeNormal();
+
+    FRay Ray;
+    Ray.Origin = Eye;
+    Ray.Direction = WorldDirection;
+    return Ray;
+}
+
+FRay MakeRayFromMouseWithCamera(const FMatrix& InView,
+                                const FMatrix& InProj,
+                                const FVector& CameraWorldPos,
+                                const FVector& CameraRight,
+                                const FVector& CameraUp,
+                                const FVector& CameraForward)
+{
+    // 1) Mouse to NDC (DirectX viewport convention: origin top-left)
+    FVector2D screen = UInputManager::GetInstance().GetScreenSize();
+    float viewportW = (screen.X > 1.0f) ? screen.X : 1.0f;
+    float viewportH = (screen.Y > 1.0f) ? screen.Y : 1.0f;
+
+    const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+    const float NdcX = (2.0f * MousePosition.X / viewportW) - 1.0f;
+    const float NdcY = 1.0f - (2.0f * MousePosition.Y / viewportH);
+
+    // 2) View-space direction using projection scalars
+    const float XScale = InProj.M[0][0];
+    const float YScale = InProj.M[1][1];
+    const float ViewDirX = NdcX / (XScale == 0.0f ? 1.0f : XScale);
+    const float ViewDirY = NdcY / (YScale == 0.0f ? 1.0f : YScale);
+    const float ViewDirZ = 1.0f; // Forward in view space
+
+    // 3) Use camera's actual world-space orientation vectors
+    // Transform view direction to world space using camera's real orientation
+    const FVector WorldDirection = (CameraRight * ViewDirX + CameraUp * ViewDirY + CameraForward * ViewDirZ).
+        GetSafeNormal();
+
+    FRay Ray;
+    Ray.Origin = CameraWorldPos;
+    Ray.Direction = WorldDirection;
+    return Ray;
+}
+
+FRay MakeRayFromViewport(const FMatrix& InView,
+                         const FMatrix& InProj,
+                         const FVector& CameraWorldPos,
+                         const FVector& CameraRight,
+                         const FVector& CameraUp,
+                         const FVector& CameraForward,
+                         const FVector2D& ViewportMousePos,
+                         const FVector2D& ViewportSize,
+                         const FVector2D& ViewportOffset)
+{
+    // 1) Convert global mouse position to viewport-relative position
+    float localMouseX = ViewportMousePos.X - ViewportOffset.X;
+    float localMouseY = ViewportMousePos.Y - ViewportOffset.Y;
+
+    // 2) Use viewport-specific size for NDC conversion
+    float viewportW = (ViewportSize.X > 1.0f) ? ViewportSize.X : 1.0f;
+    float viewportH = (ViewportSize.Y > 1.0f) ? ViewportSize.Y : 1.0f;
+
+    const float NdcX = (2.0f * localMouseX / viewportW) - 1.0f;
+    const float NdcY = 1.0f - (2.0f * localMouseY / viewportH);
+
+    // Check if this is orthographic projection
+    bool bIsOrthographic = std::fabs(InProj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
+
+    FRay Ray;
+
+    if (bIsOrthographic)
+    {
+        // Orthographic projection
+        // Get orthographic bounds from projection matrix
+        float OrthoWidth = 2.0f / InProj.M[0][0];
+        float OrthoHeight = 2.0f / InProj.M[1][1];
+
+        // Calculate world space offset from camera center
+        float WorldOffsetX = NdcX * OrthoWidth * 0.5f;
+        float WorldOffsetY = NdcY * OrthoHeight * 0.5f;
+
+        // Ray origin is offset from camera position on the viewing plane
+        Ray.Origin = CameraWorldPos + (CameraRight * WorldOffsetX) + (CameraUp * WorldOffsetY);
+
+        // Ray direction is always forward for orthographic
+        Ray.Direction = CameraForward;
+    }
+    else
+    {
+        // Perspective projection (existing code)
+        const float XScale = InProj.M[0][0];
+        const float YScale = InProj.M[1][1];
+        const float ViewDirX = NdcX / (XScale == 0.0f ? 1.0f : XScale);
+        const float ViewDirY = NdcY / (YScale == 0.0f ? 1.0f : YScale);
+        const float ViewDirZ = 1.0f;
+
+        const FVector WorldDirection = (CameraRight * ViewDirX + CameraUp * ViewDirY + CameraForward * ViewDirZ).GetSafeNormal();
+
+        Ray.Origin = CameraWorldPos;
+        Ray.Direction = WorldDirection;
+    }
+
+    return Ray;
+}
+
+bool IntersectRaySphere(const FRay& InRay, const FVector& InCenter, float InRadius, float& OutT)
+{
+    // Solve ||(RayOrigin + T*RayDir) - Center||^2 = Radius^2
+    const FVector OriginToCenter = InRay.Origin - InCenter;
+    const float QuadraticA = FVector::Dot(InRay.Direction, InRay.Direction); // Typically 1 for normalized ray
+    const float QuadraticB = 2.0f * FVector::Dot(OriginToCenter, InRay.Direction);
+    const float QuadraticC = FVector::Dot(OriginToCenter, OriginToCenter) - InRadius * InRadius;
+
+    const float Discriminant = QuadraticB * QuadraticB - 4.0f * QuadraticA * QuadraticC;
+    if (Discriminant < 0.0f)
+    {
+        return false;
+    }
+
+    const float SqrtD = std::sqrt(Discriminant >= 0.0f ? Discriminant : 0.0f);
+    const float Inv2A = 1.0f / (2.0f * QuadraticA);
+    const float T0 = (-QuadraticB - SqrtD) * Inv2A;
+    const float T1 = (-QuadraticB + SqrtD) * Inv2A;
+
+    // Pick smallest positive T
+    const float ClosestT = (T0 > 0.0f) ? T0 : T1;
+    if (ClosestT <= 0.0f)
+    {
+        return false;
+    }
+
+    OutT = ClosestT;
+    return true;
+}
+
+bool IntersectRayTriangleMT(const FRay& InRay,
+                            const FVector& InA,
+                            const FVector& InB,
+                            const FVector& InC,
+                            float& OutT)
+{
+    const float Epsilon = KINDA_SMALL_NUMBER;
+
+    const FVector Edge1 = InB - InA;
+    const FVector Edge2 = InC - InA;
+
+    const FVector Perpendicular = FVector::Cross(InRay.Direction, Edge2);
+    const float Determinant = FVector::Dot(Edge1, Perpendicular);
+
+    if (Determinant > -Epsilon && Determinant < Epsilon)
+        return false; // Parallel to triangle
+
+    const float InvDeterminant = 1.0f / Determinant;
+    const FVector OriginToA = InRay.Origin - InA;
+    const float U = InvDeterminant * FVector::Dot(OriginToA, Perpendicular);
+    if (U < -Epsilon || U > 1.0f + Epsilon)
+        return false;
+
+    const FVector CrossQ = FVector::Cross(OriginToA, Edge1);
+    const float V = InvDeterminant * FVector::Dot(InRay.Direction, CrossQ);
+    if (V < -Epsilon || (U + V) > 1.0f + Epsilon)
+        return false;
+
+    // Compute T to find out where the intersection point is on the ray
+    const float Distance = InvDeterminant * FVector::Dot(Edge2, CrossQ);
+
+    if (Distance > Epsilon) // ray intersection
+    {
+        OutT = Distance;
+        return true;
+    }
+    return false;
+}
+
+// PickingSystem 구현
+AActor* CPickingSystem::PerformPicking(const TArray<AActor*>& Actors, ACameraActor* Camera)
+{
+    if (!Camera) return nullptr;
+
+    // 레이 생성 - 카메라 위치와 방향을 직접 전달
+    const FMatrix View = Camera->GetViewMatrix();
+    const FMatrix Proj = Camera->GetProjectionMatrix();
+    const FVector CameraWorldPos = Camera->GetActorLocation();
+    const FVector CameraRight = Camera->GetRight();
+    const FVector CameraUp = Camera->GetUp();
+    const FVector CameraForward = Camera->GetForward();
+    FRay ray = MakeRayFromMouseWithCamera(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward);
+
+    int pickedIndex = -1;
+    float pickedT = 1e9f;
+
+    // 모든 액터에 대해 피킹 테스트
+    for (int i = 0; i < Actors.Num(); ++i)
+    {
+        AActor* Actor = Actors[i];
+        if (!Actor) continue;
+        
+        // Skip hidden actors for picking
+        if (Actor->GetActorHiddenInGame()) continue;
+
+        float hitDistance;
+        if (CheckActorPicking(Actor, ray, hitDistance))
+        {
+            if (hitDistance < pickedT)
+            {
+                pickedT = hitDistance;
+                pickedIndex = i;
+            }
+        }
+    }
+
+    if (pickedIndex >= 0)
+    {
+        char buf[160];
+        sprintf_s(buf, "[Pick] Hit primitive %d at t=%.3f (Speed=NORMAL)\n", pickedIndex, pickedT);
+        UE_LOG(buf);
+        return Actors[pickedIndex];
+    }
+    else
+    {
+        UE_LOG("[Pick] No hit (Speed=FAST)\n");
+        return nullptr;
+    }
+}
+
+AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
+                                               ACameraActor* Camera,
+                                               const FVector2D& ViewportMousePos,
+                                               const FVector2D& ViewportSize,
+                                               const FVector2D& ViewportOffset)
+{
+    if (!Camera) return nullptr;
+
+    // 뷰포트별 레이 생성 - 각 뷰포트의 로컬 마우스 좌표와 크기, 오프셋 사용
+    const FMatrix View = Camera->GetViewMatrix();
+    const FMatrix Proj = Camera->GetProjectionMatrix();
+    const FVector CameraWorldPos = Camera->GetActorLocation();
+    const FVector CameraRight = Camera->GetRight();
+    const FVector CameraUp = Camera->GetUp();
+    const FVector CameraForward = Camera->GetForward();
+
+    FRay ray = MakeRayFromViewport(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward,
+                                   ViewportMousePos, ViewportSize, ViewportOffset);
+
+    int pickedIndex = -1;
+    float pickedT = 1e9f;
+
+    // 모든 액터에 대해 피킹 테스트
+    for (int i = 0; i < Actors.Num(); ++i)
+    {
+        AActor* Actor = Actors[i];
+        if (!Actor) continue;
+
+        // Skip hidden actors for picking
+        if (Actor->GetActorHiddenInGame()) continue;
+
+        float hitDistance;
+        if (CheckActorPicking(Actor, ray, hitDistance))
+        {
+            if (hitDistance < pickedT)
+            {
+                pickedT = hitDistance;
+                pickedIndex = i;
+            }
+        }
+    }
+
+    if (pickedIndex >= 0)
+    {
+        char buf[160];
+        sprintf_s(buf, "[Viewport Pick] Hit primitive %d at t=%.3f\n", pickedIndex, pickedT);
+        UE_LOG(buf);
+        return Actors[pickedIndex];
+    }
+    else
+    {
+        UE_LOG("[Viewport Pick] No hit\n");
+        return nullptr;
+    }
+}
+
+AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
+                                               ACameraActor* Camera,
+                                               const FVector2D& ViewportMousePos,
+                                               const FVector2D& ViewportSize,
+                                               const FVector2D& ViewportOffset,
+                                               float ViewportAspectRatio, FViewport* Viewport)
+{
+    if (!Camera) return nullptr;
+
+    // 뷰포트별 레이 생성 - 커스텀 aspect ratio 사용
+    const FMatrix View = Camera->GetViewMatrix();
+    const FMatrix Proj = Camera->GetProjectionMatrix(ViewportAspectRatio, Viewport);
+    const FVector CameraWorldPos = Camera->GetActorLocation();
+    const FVector CameraRight = Camera->GetRight();
+    const FVector CameraUp = Camera->GetUp();
+    const FVector CameraForward = Camera->GetForward();
+
+    FRay ray = MakeRayFromViewport(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward,
+                                   ViewportMousePos, ViewportSize, ViewportOffset);
+
+    int pickedIndex = -1;
+    float pickedT = 1e9f;
+
+    // 모든 액터에 대해 피킹 테스트
+    for (int i = 0; i < Actors.Num(); ++i)
+    {
+        AActor* Actor = Actors[i];
+        if (!Actor) continue;
+
+        // Skip hidden actors for picking
+        if (Actor->GetActorHiddenInGame()) continue;
+
+        float hitDistance;
+        if (CheckActorPicking(Actor, ray, hitDistance))
+        {
+            if (hitDistance < pickedT)
+            {
+                pickedT = hitDistance;
+                pickedIndex = i;
+            }
+        }
+    }
+
+    if (pickedIndex >= 0)
+    {
+        char buf[160];
+        sprintf_s(buf, "[Viewport Pick with AspectRatio] Hit primitive %d at t=%.3f\n", pickedIndex, pickedT);
+        UE_LOG(buf);
+        return Actors[pickedIndex];
+    }
+    else
+    {
+        UE_LOG("[Viewport Pick with AspectRatio] No hit\n");
+        return nullptr;
+    }
+}
+
+uint32 CPickingSystem::IsHoveringGizmo(AGizmoActor* GizmoTransActor, const ACameraActor* Camera)
+{
+    if (!GizmoTransActor || !Camera)
+        return 0;
+
+    // 현재 활성 뷰포트 정보 가져오기 (UI 시스템에서)
+    FVector2D ViewportMousePos = UInputManager::GetInstance().GetMousePosition();
+    FVector2D ViewportSize = UInputManager::GetInstance().GetScreenSize();
+    FVector2D ViewportOffset = FVector2D(0, 0);
+
+    // 멀티 뷰포트인 경우 현재 뷰포트의 정보를 사용
+    // 4분할 화면 등에서는 각 뷰포트의 offset과 size를 올바르게 계산해야 함
+
+    // 뷰포트별 레이 생성
+    const FMatrix View = Camera->GetViewMatrix();
+    const FMatrix Proj = Camera->GetProjectionMatrix();
+    const FVector CameraWorldPos = Camera->GetActorLocation();
+    const FVector CameraRight = Camera->GetRight();
+    const FVector CameraUp = Camera->GetUp();
+    const FVector CameraForward = Camera->GetForward();
+    FRay Ray = MakeRayFromViewport(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward,
+                                   ViewportMousePos, ViewportSize, ViewportOffset);
+
+    uint32 ClosestAxis = 0;
+    float ClosestDistance = 1e9f;
+    float HitDistance;
+
+    // X축 화살표 검사
+    //Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowX());
+
+    switch (GizmoTransActor->GetMode())
+    {
+        case EGizmoMode::Translate:
+            if (UStaticMeshComponent* ArrowX = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowX()))
+            {
+                if (CheckGizmoComponentPicking(ArrowX, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 1;
+                    }
+                }
+            }
+
+            // Y축 화살표 검사
+            if (UStaticMeshComponent* ArrowY = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowY()))
+            {
+                if (CheckGizmoComponentPicking(ArrowY, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 2;
+                    }
+                }
+            }
+
+            // Z축 화살표 검사
+            if (UStaticMeshComponent* ArrowZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowZ()))
+            {
+                if (CheckGizmoComponentPicking(ArrowZ, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 3;
+                    }
+                }
+            }
+            break;
+        case EGizmoMode::Scale:
+            if (UStaticMeshComponent* ScaleX = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleX()))
+            {
+                if (CheckGizmoComponentPicking(ScaleX, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 1;
+                    }
+                }
+            }
+
+            // Y축 화살표 검사
+            if (UStaticMeshComponent* ScaleY = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleY()))
+            {
+                if (CheckGizmoComponentPicking(ScaleY, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 2;
+                    }
+                }
+            }
+
+            // Z축 화살표 검사
+            if (UStaticMeshComponent* ScaleZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleZ()))
+            {
+                if (CheckGizmoComponentPicking(ScaleZ, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 3;
+                    }
+                }
+            }
+            break;
+        case EGizmoMode::Rotate:
+            if (UStaticMeshComponent* RotateX = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateX()))
+            {
+                if (CheckGizmoComponentPicking(RotateX, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 1;
+                    }
+                }
+            }
+
+            // Y축 화살표 검사
+            if (UStaticMeshComponent* RotateY = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateY()))
+            {
+                if (CheckGizmoComponentPicking(RotateY, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 2;
+                    }
+                }
+            }
+
+            // Z축 화살표 검사
+            if (UStaticMeshComponent* RotateZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateZ()))
+            {
+                if (CheckGizmoComponentPicking(RotateZ, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 3;
+                    }
+                }
+            }
+            break;
+    default:
+        break;
+    }
+
+
+
+    return ClosestAxis;
+}
+
+uint32 CPickingSystem::IsHoveringGizmoForViewport(AGizmoActor* GizmoTransActor, const ACameraActor* Camera,
+                                                  const FVector2D& ViewportMousePos,
+                                                  const FVector2D& ViewportSize,
+                                                  const FVector2D& ViewportOffset,FViewport* Viewport)
+{
+    if (!GizmoTransActor || !Camera)
+        return 0;
+    float ViewportAspectRatio = ViewportSize.X / ViewportSize.Y;
+    if (ViewportSize.Y == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
+    // 뷰포트별 레이 생성 - 전달받은 뷰포트 정보 사용
+    const FMatrix View = Camera->GetViewMatrix();
+    const FMatrix Proj = Camera->GetProjectionMatrix(ViewportAspectRatio, Viewport);
+    const FVector CameraWorldPos = Camera->GetActorLocation();
+    const FVector CameraRight = Camera->GetRight();
+    const FVector CameraUp = Camera->GetUp();
+    const FVector CameraForward = Camera->GetForward();
+    FRay Ray = MakeRayFromViewport(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward,
+                                   ViewportMousePos, ViewportSize, ViewportOffset);
+    // char debugBuf[512];
+    //sprintf_s(
+    //    debugBuf,
+    //    "Mouse Local: (%.1f, %.1f) | Global: (%.1f, %.1f)\n"
+    //    "Viewport Size: (%.1f, %.1f) | Offset: (%.1f, %.1f)\n"
+    //    "Ray Origin: (%.2f, %.2f, %.2f) | Ray Dir: (%.2f, %.2f, %.2f)\n",
+    //    static_cast<float>(ViewportMousePos.X), static_cast<float>(ViewportMousePos.Y),        // 로컬 마우스 좌표
+    //    ViewportMousePos.X, ViewportMousePos.Y,              // 글로벌 마우스 좌표
+    //    ViewportSize.X, ViewportSize.Y,                      // 뷰포트 크기
+    //    ViewportOffset.X, ViewportOffset.Y,                  // 뷰포트 오프셋
+    //    Ray.Origin.X, Ray.Origin.Y, Ray.Origin.Z,            // 레이 시작점
+    //    Ray.Direction.X, Ray.Direction.Y, Ray.Direction.Z    // 레이 방향
+    //);
+    //UE_LOG(debugBuf);
+    uint32 ClosestAxis = 0;
+    float ClosestDistance = 1e9f;
+    float HitDistance;
+
+    // X축 화살표 검사
+    //Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowX());
+
+    switch (GizmoTransActor->GetMode())
+    {
+        case EGizmoMode::Translate:
+            if (UStaticMeshComponent* ArrowX = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowX()))
+            {
+                if (CheckGizmoComponentPicking(ArrowX, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 1;
+                    }
+                }
+            }
+
+            // Y축 화살표 검사
+            if (UStaticMeshComponent* ArrowY = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowY()))
+            {
+                if (CheckGizmoComponentPicking(ArrowY, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 2;
+                    }
+                }
+            }
+
+            // Z축 화살표 검사
+            if (UStaticMeshComponent* ArrowZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowZ()))
+            {
+                if (CheckGizmoComponentPicking(ArrowZ, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 3;
+                    }
+                }
+            }
+            break;
+        case EGizmoMode::Scale:
+            if (UStaticMeshComponent* ScaleX = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleX()))
+            {
+                if (CheckGizmoComponentPicking(ScaleX, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 1;
+                    }
+                }
+            }
+
+            // Y축 화살표 검사
+            if (UStaticMeshComponent* ScaleY = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleY()))
+            {
+                if (CheckGizmoComponentPicking(ScaleY, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 2;
+                    }
+                }
+            }
+
+            // Z축 화살표 검사
+            if (UStaticMeshComponent* ScaleZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleZ()))
+            {
+                if (CheckGizmoComponentPicking(ScaleZ, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 3;
+                    }
+                }
+            }
+            break;
+        case EGizmoMode::Rotate:
+            if (UStaticMeshComponent* RotateX = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateX()))
+            {
+                if (CheckGizmoComponentPicking(RotateX, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 1;
+                    }
+                }
+            }
+
+            // Y축 화살표 검사
+            if (UStaticMeshComponent* RotateY = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateY()))
+            {
+                if (CheckGizmoComponentPicking(RotateY, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 2;
+                    }
+                }
+            }
+
+            // Z축 화살표 검사
+            if (UStaticMeshComponent* RotateZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateZ()))
+            {
+                if (CheckGizmoComponentPicking(RotateZ, Ray, HitDistance))
+                {
+                    if (HitDistance < ClosestDistance)
+                    {
+                        ClosestDistance = HitDistance;
+                        ClosestAxis = 3;
+                    }
+                }
+            }
+            break;
+    default:
+        break;
+    }
+
+    return ClosestAxis;
+}
+
+
+
+void CPickingSystem::DragActorWithGizmo(AActor* Actor, AGizmoActor*  GizmoActor,uint32 GizmoAxis, const FVector2D& MouseDelta, const ACameraActor* Camera, EGizmoMode InGizmoMode)
+{
+    
+    if (!Actor || !Camera || GizmoAxis == 0) 
+        return;
+    GizmoActor->OnDrag(Actor, GizmoAxis, MouseDelta.X, MouseDelta.Y, Camera,nullptr);
+}
+
+
+bool CPickingSystem::CheckGizmoComponentPicking(const UStaticMeshComponent* Component, const FRay& Ray, float& OutDistance)
+{
+    if (!Component) return false;
+
+    // Gizmo 메시는 FStaticMesh(쿠킹된 데이터)를 사용
+    FStaticMesh* StaticMesh = FObjManager::LoadObjStaticMeshAsset(
+        Component->GetStaticMesh()->GetFilePath()
+    );
+    if (!StaticMesh) return false;
+
+    // 피킹 계산에는 컴포넌트의 월드 변환 행렬 사용
+    FMatrix WorldMatrix = Component->GetWorldMatrix();
+
+    auto TransformPoint = [&](float X, float Y, float Z) -> FVector
+        {
+            // row-vector (v^T) * M 방식으로 월드 변환 (translation 반영)
+            FVector4 V4(X, Y, Z, 1.0f);
+            FVector4 OutV4;
+            OutV4.X = V4.X * WorldMatrix.M[0][0] + V4.Y * WorldMatrix.M[1][0] + V4.Z * WorldMatrix.M[2][0] + V4.W * WorldMatrix.M[3][0];
+            OutV4.Y = V4.X * WorldMatrix.M[0][1] + V4.Y * WorldMatrix.M[1][1] + V4.Z * WorldMatrix.M[2][1] + V4.W * WorldMatrix.M[3][1];
+            OutV4.Z = V4.X * WorldMatrix.M[0][2] + V4.Y * WorldMatrix.M[1][2] + V4.Z * WorldMatrix.M[2][2] + V4.W * WorldMatrix.M[3][2];
+            OutV4.W = V4.X * WorldMatrix.M[0][3] + V4.Y * WorldMatrix.M[1][3] + V4.Z * WorldMatrix.M[2][3] + V4.W * WorldMatrix.M[3][3];
+            return FVector(OutV4.X, OutV4.Y, OutV4.Z);
+        };
+
+    float ClosestT = 1e9f;
+    bool bHasHit = false;
+
+    // 인덱스가 있는 경우: 인덱스 삼각형 집합 검사
+    if (StaticMesh->Indices.Num() >= 3)
+    {
+        uint32 IndexNum = StaticMesh->Indices.Num();
+        for (uint32 Idx = 0; Idx + 2 < IndexNum; Idx += 3)
+        {
+            const FNormalVertex& V0N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 0]];
+            const FNormalVertex& V1N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 1]];
+            const FNormalVertex& V2N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 2]];
+
+            FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
+            FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
+            FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+
+            float THit;
+            if (IntersectRayTriangleMT(Ray, A, B, C, THit))
+            {
+                if (THit < ClosestT)
+                {
+                    ClosestT = THit;
+                    bHasHit = true;
+                }
+            }
+        }
+    }
+    // 인덱스가 없는 경우: 정점 배열을 순차적 삼각형으로 간주
+    else if (StaticMesh->Vertices.Num() >= 3)
+    {
+        uint32 VertexNum = StaticMesh->Vertices.Num();
+        for (uint32 Idx = 0; Idx + 2 < VertexNum; Idx += 3)
+        {
+            const FNormalVertex& V0N = StaticMesh->Vertices[Idx + 0];
+            const FNormalVertex& V1N = StaticMesh->Vertices[Idx + 1];
+            const FNormalVertex& V2N = StaticMesh->Vertices[Idx + 2];
+
+            FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
+            FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
+            FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+
+            float THit;
+            if (IntersectRayTriangleMT(Ray, A, B, C, THit))
+            {
+                if (THit < ClosestT)
+                {
+                    ClosestT = THit;
+                    bHasHit = true;
+                }
+            }
+        }
+    }
+
+    // 가장 가까운 교차가 있으면 거리 반환
+    if (bHasHit)
+    {
+        OutDistance = ClosestT;
+        return true;
+    }
+
+    return false;
+}
+
+bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, float& OutDistance)
+{
+    if (!Actor) return false;
+
+    // 액터의 모든 SceneComponent 순회
+    for (auto SceneComponent : Actor->GetComponents())
+    {
+        if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(SceneComponent))
+        {
+            // Cooked FStaticMesh 사용 (MeshData 대체)
+            FStaticMesh* StaticMesh = FObjManager::LoadObjStaticMeshAsset(
+                StaticMeshComponent->GetStaticMesh()->GetFilePath()
+            );
+
+            if (!StaticMesh) return false;
+
+            // 피킹 계산에는 컴포넌트의 월드 변환 행렬 사용
+            FMatrix WorldMatrix = StaticMeshComponent->GetWorldMatrix();
+
+            auto TransformPoint = [&](float X, float Y, float Z) -> FVector
+                {
+                    // row-vector (v^T) * M 방식으로 월드 변환 (translation 반영)
+                    FVector4 V4(X, Y, Z, 1.0f);
+                    FVector4 OutV4;
+                    OutV4.X = V4.X * WorldMatrix.M[0][0] + V4.Y * WorldMatrix.M[1][0] + V4.Z * WorldMatrix.M[2][0] + V4.W * WorldMatrix.M[3][0];
+                    OutV4.Y = V4.X * WorldMatrix.M[0][1] + V4.Y * WorldMatrix.M[1][1] + V4.Z * WorldMatrix.M[2][1] + V4.W * WorldMatrix.M[3][1];
+                    OutV4.Z = V4.X * WorldMatrix.M[0][2] + V4.Y * WorldMatrix.M[1][2] + V4.Z * WorldMatrix.M[2][2] + V4.W * WorldMatrix.M[3][2];
+                    OutV4.W = V4.X * WorldMatrix.M[0][3] + V4.Y * WorldMatrix.M[1][3] + V4.Z * WorldMatrix.M[2][3] + V4.W * WorldMatrix.M[3][3];
+                    return FVector(OutV4.X, OutV4.Y, OutV4.Z);
+                };
+
+            float ClosestT = 1e9f;
+            bool bHasHit = false;
+
+            // 인덱스가 있는 경우: 인덱스 삼각형 집합 검사
+            if (StaticMesh->Indices.Num() >= 3)
+            {
+                uint32 IndexNum = StaticMesh->Indices.Num();
+                for (uint32 Idx = 0; Idx + 2 < IndexNum; Idx += 3)
+                {
+                    const FNormalVertex& V0N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 0]];
+                    const FNormalVertex& V1N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 1]];
+                    const FNormalVertex& V2N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 2]];
+
+                    FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
+                    FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
+                    FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+
+                    float THit;
+                    if (IntersectRayTriangleMT(Ray, A, B, C, THit))
+                    {
+                        if (THit < ClosestT)
+                        {
+                            ClosestT = THit;
+                            bHasHit = true;
+                        }
+                    }
+                }
+            }
+            // 인덱스가 없는 경우: 정점 배열을 순차적 삼각형으로 간주
+            else if (StaticMesh->Vertices.Num() >= 3)
+            {
+                uint32 VertexNum = StaticMesh->Vertices.Num();
+                for (uint32 Idx = 0; Idx + 2 < VertexNum; Idx += 3)
+                {
+                    const FNormalVertex& V0N = StaticMesh->Vertices[Idx + 0];
+                    const FNormalVertex& V1N = StaticMesh->Vertices[Idx + 1];
+                    const FNormalVertex& V2N = StaticMesh->Vertices[Idx + 2];
+
+                    FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
+                    FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
+                    FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+
+                    float THit;
+                    if (IntersectRayTriangleMT(Ray, A, B, C, THit))
+                    {
+                        if (THit < ClosestT)
+                        {
+                            ClosestT = THit;
+                            bHasHit = true;
+                        }
+                    }
+                }
+            }
+
+            // 가장 가까운 교차가 있으면 거리 반환
+            if (bHasHit)
+            {
+                OutDistance = ClosestT;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}

@@ -1,0 +1,53 @@
+classDiagram
+    class UObject {
+        +uint32 UUID
+        +uint32 InternalIndex
+    }
+
+    class ObjectFactory {
+        <<namespace>>
+        +NewObject()
+        +ConstructObject()
+        +DeleteObject()
+        +RegisterClassType()
+    }
+
+    class GUObjectArray {
+        <<global>>
+        +TArray<UObject*>
+    }
+
+    %% Inheritance from UObject (depth 1)
+    UObject <|-- UWorld
+    UObject <|-- AActor
+    UObject <|-- UActorComponent
+    UObject <|-- UStaticMesh
+
+    %% Depth >= 2 from UObject
+    %% Actor hierarchy
+    AActor <|-- AGridActor
+    AActor <|-- AGizmoActor
+    AActor <|-- ACameraActor
+    AActor <|-- AStaticMeshActor
+
+    %% Component hierarchy
+    UActorComponent <|-- USceneComponent
+    USceneComponent <|-- UPrimitiveComponent
+    UPrimitiveComponent <|-- UMeshComponent
+    UMeshComponent <|-- UStaticMeshComponent
+    USceneComponent <|-- UCameraComponent
+
+    %% StaticMeshComponent specializations
+    UStaticMeshComponent <|-- UGridComponent
+    UStaticMeshComponent <|-- UGizmoComponent
+    UStaticMeshComponent <|-- UGizmoArrowComponent
+    UStaticMeshComponent <|-- UCubeComponent
+    UStaticMeshComponent <|-- USphereComponent
+    UStaticMeshComponent <|-- UTriangleComponent
+    UGizmoArrowComponent <|-- UGizmoRotateComponent
+    UGizmoArrowComponent <|-- UGizmoScaleComponent
+
+    %% Associations around UObject system
+    ObjectFactory --> UObject : NewObject()/ConstructObject()
+    ObjectFactory o-- GUObjectArray : manages
+    GUObjectArray "*" --> "1" UObject : stores

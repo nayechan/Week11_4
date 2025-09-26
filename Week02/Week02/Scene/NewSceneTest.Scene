@@ -1,0 +1,27 @@
+{
+  "Version": 1,
+  "NextUUID": 556,
+  "Primitives": {
+    "544": {
+      "ObjStaticMeshAsset": "Data\apple_mid.obj",
+      "Location": [ 1.813562, -1.760155, 3.745079 ],
+      "Rotation": [ -74.759445, 54.154808, -33.997280 ],
+      "Scale": [ 1.066408, 1.066408, 1.066408 ],
+      "Type": "StaticMeshComp"
+    },
+    "550": {
+      "ObjStaticMeshAsset": "Data\bitten_apple_mid.obj",
+      "Location": [ -1.121708, -3.305002, 1.077456 ],
+      "Rotation": [ -87.191284, -54.827892, -84.442848 ],
+      "Scale": [ 1.227546, 1.227546, 1.227546 ],
+      "Type": "StaticMeshComp"
+    }
+  },
+  "PerspectiveCamera": {
+    "Location": [ -29.205597, 0.225386, 15.245551 ],
+    "Rotation": [ 0.000000, 23.800007, -5.200000 ],
+    "FOV": 60.000000,
+    "NearClip": 0.100000,
+    "FarClip": 4000.000000
+  }
+}

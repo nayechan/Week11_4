@@ -1,0 +1,25 @@
+# Blender 4.5.3 LTS MTL File: 'None'
+# www.blender.org
+
+newmtl Material.001
+Ns 96.078453
+Ka 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 0.375745
+illum 9
+map_Kd E-45_glass_nor_.jpg
+map_Bump E-45_glass_nor_.jpg
+
+newmtl ship.001
+Ns 17.647060
+Ka 1.000000 1.000000 1.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd E-45 _col.jpg
+map_Ks E-45 _col.jpg
+map_refl E-45_REF 1.jpg
+map_Bump E-45-nor_1.jpg

@@ -1,0 +1,13 @@
+{
+  "Version": 1,
+  "NextUUID": 513,
+  "Primitives": {
+    "505": {
+      "ObjStaticMeshAsset": "Data/tree9/trees9.obj",
+      "Location": [ 0.000000, 0.000000, 0.000000 ],
+      "Rotation": [ -26.054173, 0.000001, 90.000008 ],
+      "Scale": [ 1.625813, 1.625813, 1.625813 ],
+      "Type": "StaticMeshComp"
+    }
+  }
+}

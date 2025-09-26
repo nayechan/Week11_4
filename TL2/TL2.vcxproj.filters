@@ -1,0 +1,701 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{95520b77-70ba-47a8-a3c4-364bce265567}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{340a9369-98be-4580-af67-945e0e2bcbef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Math">
+      <UniqueIdentifier>{d0befaf2-bbd6-4030-a2d7-9e6f76b53ca5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Renderer">
+      <UniqueIdentifier>{1e1b6323-1900-4342-80aa-1e8764e95ab2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Models">
+      <UniqueIdentifier>{cc23868c-daf3-4767-bd46-5041b2afedf2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Gizmo">
+      <UniqueIdentifier>{b6251aac-4560-4c88-9b05-afe046a3fdfd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Gizmo">
+      <UniqueIdentifier>{268038a8-b619-4f95-bee7-c383690b3be4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\UI">
+      <UniqueIdentifier>{697e0870-1798-42a4-80b5-ee94b51f6edf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI">
+      <UniqueIdentifier>{89c8263c-8597-4310-a20c-847a033c26d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI\Window">
+      <UniqueIdentifier>{955ed923-1198-4ddc-8ed9-8c6e37023664}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI\Widget">
+      <UniqueIdentifier>{966c5bae-b63e-4ab3-9e2a-1d4af0f9c249}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI\Factory">
+      <UniqueIdentifier>{2baaa24f-1601-45a4-9ef7-5af35382c5a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI\ImGui">
+      <UniqueIdentifier>{b151e95f-3a9b-49f4-aced-dbf6ffba6737}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\UI\Factory">
+      <UniqueIdentifier>{fd5f7ea7-0345-4866-84d2-475c7f4d2937}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\UI\ImGui">
+      <UniqueIdentifier>{a76d0b63-5c59-4ed9-9877-b9fe409cfccd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\UI\Window">
+      <UniqueIdentifier>{8b341fd7-a47d-429e-a561-39644b6d5c03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\UI\Widget">
+      <UniqueIdentifier>{f22ad073-ae7d-4af1-bbdb-b33785621ecc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Resources">
+      <UniqueIdentifier>{6e3dcf0f-cb4b-4399-b35d-d2a158ce16be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Resources">
+      <UniqueIdentifier>{0543b16f-0dd3-4786-9d1c-8930d0580672}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Bounding">
+      <UniqueIdentifier>{10b830a5-341c-4826-b51f-e85ad647962e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Bounding">
+      <UniqueIdentifier>{9d7a6e99-f7e7-42c5-907a-f6c0e5fbff81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Component">
+      <UniqueIdentifier>{53859500-7124-4158-aec2-59a45df76f37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Component">
+      <UniqueIdentifier>{61c8f421-d09b-4e7b-81a1-946a035ea2f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Manager">
+      <UniqueIdentifier>{474972f5-db67-4893-b1af-25c6e684ab6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Manager">
+      <UniqueIdentifier>{61d4ae03-a595-488b-928a-b2599c29c773}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI\SceneManager">
+      <UniqueIdentifier>{3d28b57c-62e7-4c0b-a504-d4eb54611134}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\UI\SceneManager">
+      <UniqueIdentifier>{5ef8f6f5-bfcd-4cb7-9966-97150b8441ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Widget">
+      <UniqueIdentifier>{1c5de82c-0c20-4d73-9021-c29423e6b135}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Widget\Window">
+      <UniqueIdentifier>{944dd88d-c43b-4706-9d88-91e46a374ff3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\SWidget">
+      <UniqueIdentifier>{720bdb67-4c8e-456c-8ac3-7abca66188ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\SWidget\SWindow">
+      <UniqueIdentifier>{660c7cb8-a55e-46c1-834b-94a246e50d57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Archive">
+      <UniqueIdentifier>{163f80df-d568-4e63-8d7a-c54997ff9fd1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_demo.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_draw.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_dx11.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_impl_win32.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_tables.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGui\imgui_widgets.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="RHIDevice.cpp">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D11RHI.cpp">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneLoader.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Actor.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Object.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="World.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraActor.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Picking.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMeshActor.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMesh.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="AllClassesRegistration.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="GizmoActor.cpp">
+      <Filter>소스 파일\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="GizmoArrowComponent.cpp">
+      <Filter>소스 파일\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="GizmoRotateComponent.cpp">
+      <Filter>소스 파일\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="GizmoScaleComponent.cpp">
+      <Filter>소스 파일\Gizmo</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjectFactory.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="GridActor.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\UIManager.cpp">
+      <Filter>소스 파일\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\ImGui\ImGuiHelper.cpp">
+      <Filter>소스 파일\UI\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Window\UIWindow.cpp">
+      <Filter>소스 파일\UI\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Factory\UIWindowFactory.cpp">
+      <Filter>소스 파일\UI\Factory</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Window\ControlPanelWindow.cpp">
+      <Filter>소스 파일\UI\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Window\ExperimentalFeatureWindow.cpp">
+      <Filter>소스 파일\UI\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\ActorTerminationWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\CameraControlWIdget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\FPSWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\PrimitiveSpawnWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\TargetActorTransformWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\Widget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\InputInformationWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Window\ConsoleWindow.cpp">
+      <Filter>소스 파일\UI\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\ConsoleWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\StatsOverlayD2D.cpp">
+      <Filter>소스 파일\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\GlobalConsole.cpp">
+      <Filter>소스 파일\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\SceneIOWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceBase.cpp">
+      <Filter>소스 파일\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>소스 파일\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>소스 파일\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="FName.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UEContainer.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ShapeComponent.cpp">
+      <Filter>소스 파일\Bounding</Filter>
+    </ClCompile>
+    <ClCompile Include="AABoundingBoxComponent.cpp">
+      <Filter>소스 파일\Bounding</Filter>
+    </ClCompile>
+    <ClCompile Include="Line.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="OBoundingBoxComponent.cpp">
+      <Filter>소스 파일\Bounding</Filter>
+    </ClCompile>
+    <ClCompile Include="DynamicMesh.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshLoader.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SelectionManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\SceneManagerWidget.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\ShowFlagWidget.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Window\SceneWindow.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ActorComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="LineComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="LineDynamicMesh.cpp">
+      <Filter>소스 파일\Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="PrimitiveComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="StaticMeshComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="TextRenderComponent.cpp">
+      <Filter>소스 파일\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="InputManager.cpp">
+      <Filter>소스 파일\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="ResourceManager.cpp">
+      <Filter>소스 파일\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryManager.cpp">
+      <Filter>소스 파일\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="FViewportClient.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="FViewport.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjManager.cpp">
+      <Filter>소스 파일\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="SViewportWindow.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Window\PropertyWindow.cpp">
+      <Filter>소스 파일\UI\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="TextQuad.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SSplitter.cpp">
+      <Filter>소스 파일\SWidget\SWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="SMultiViewportWindow.cpp">
+      <Filter>소스 파일\SWidget\SWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="SSplitterH.cpp">
+      <Filter>소스 파일\SWidget\SWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="SSplitterV.cpp">
+      <Filter>소스 파일\SWidget\SWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="SWindow.cpp">
+      <Filter>소스 파일\SWidget\SWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneIOWindow.cpp">
+      <Filter>소스 파일\SWidget\SWindow</Filter>
+    </ClCompile>
+    <ClCompile Include="SDetailsWindow.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="SControlPanel.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderViewportSwitcherWidget.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="MenuBarWidget.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Primitive.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="TextBillboard.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="ShaderLine.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="StaticMeshShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="StaticMeshPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ImGui\imconfig.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_impl_dx11.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_impl_win32.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imgui_internal.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_rectpack.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_textedit.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGui\imstb_truetype.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector.h">
+      <Filter>헤더 파일\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="RHIDevice.h">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D11RHI.h">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Triangle.h">
+      <Filter>헤더 파일\Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Cube.h">
+      <Filter>헤더 파일\Models</Filter>
+    </ClInclude>
+    <ClInclude Include="Sphere.h">
+      <Filter>헤더 파일\Models</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneLoader.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Actor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Object.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Enums.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraActor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Picking.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshActor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMesh.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="GizmoActor.h">
+      <Filter>헤더 파일\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="GizmoArrowComponent.h">
+      <Filter>헤더 파일\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="GizmoRotateComponent.h">
+      <Filter>헤더 파일\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="GizmoScaleComponent.h">
+      <Filter>헤더 파일\Gizmo</Filter>
+    </ClInclude>
+    <ClInclude Include="GridActor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectFactory.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\UIManager.h">
+      <Filter>헤더 파일\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Factory\UIWindowFactory.h">
+      <Filter>헤더 파일\UI\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\ImGui\ImGuiHelper.h">
+      <Filter>헤더 파일\UI\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\Widget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Window\UIWindow.h">
+      <Filter>헤더 파일\UI\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\ActorTerminationWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\CameraControlWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\FPSWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\PrimitiveSpawnWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\TargetActorTransformWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Window\ControlPanelWindow.h">
+      <Filter>헤더 파일\UI\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Window\ExperimentalFeatureWindow.h">
+      <Filter>헤더 파일\UI\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\InputInformationWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Window\ConsoleWindow.h">
+      <Filter>헤더 파일\UI\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\ConsoleWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\StatsOverlayD2D.h">
+      <Filter>헤더 파일\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\GlobalConsole.h">
+      <Filter>헤더 파일\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\SceneIOWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceBase.h">
+      <Filter>헤더 파일\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>헤더 파일\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>헤더 파일\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Name.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UEContainer.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexData.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Line.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="AABoundingBoxComponent.h">
+      <Filter>헤더 파일\Bounding</Filter>
+    </ClInclude>
+    <ClInclude Include="ShapeComponent.h">
+      <Filter>헤더 파일\Bounding</Filter>
+    </ClInclude>
+    <ClInclude Include="OBoundingBoxComponent.h">
+      <Filter>헤더 파일\Bounding</Filter>
+    </ClInclude>
+    <ClInclude Include="DynamicMesh.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="LineDynamicMesh.h">
+      <Filter>헤더 파일\Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshComponent.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneComponent.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshLoader.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\SceneManagerWidget.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\ShowFlagWidget.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Window\SceneWindow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ActorComponent.h">
+      <Filter>헤더 파일\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraComponent.h">
+      <Filter>헤더 파일\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="LineComponent.h">
+      <Filter>헤더 파일\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="PrimitiveComponent.h">
+      <Filter>헤더 파일\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticMeshComponent.h">
+      <Filter>헤더 파일\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="TextRenderComponent.h">
+      <Filter>헤더 파일\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryManager.h">
+      <Filter>헤더 파일\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourceManager.h">
+      <Filter>헤더 파일\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="SelectionManager.h">
+      <Filter>헤더 파일\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="World.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SWindow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SSplitter.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SSplitterH.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SSplitterV.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="FViewport.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="FViewportClient.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjectIterator.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjManager.h">
+      <Filter>헤더 파일\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="SMultiViewportWindow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SViewportWindow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Window\PropertyWindow.h">
+      <Filter>헤더 파일\UI\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="TextQuad.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneIOWindow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SDetailsWindow.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SControlPanel.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderViewportSwitcherWidget.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuBarWidget.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneRotationUtils.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Archive.h">
+      <Filter>헤더 파일\Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsBinWriter.h">
+      <Filter>헤더 파일\Archive</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsBinReader.h">
+      <Filter>헤더 파일\Archive</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+</Project>

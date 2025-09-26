@@ -1,0 +1,90 @@
+# Cube with 3 materials (Grass/Wood/Rock), with vt & vn
+mtllib cube3.mtl
+
+o Cube
+
+# Vertices (unit cube centered at origin)
+v -0.5 -0.5 -0.5  # 1
+v  0.5 -0.5 -0.5  # 2
+v  0.5  0.5 -0.5  # 3
+v -0.5  0.5 -0.5  # 4
+v -0.5 -0.5  0.5  # 5
+v  0.5 -0.5  0.5  # 6
+v  0.5  0.5  0.5  # 7
+v -0.5  0.5  0.5  # 8
+
+# Texture coordinates (4 per face × 6 faces = 24)
+# Front (+Z)
+vt 0.0 0.0  # 1
+vt 1.0 0.0  # 2
+vt 1.0 1.0  # 3
+vt 0.0 1.0  # 4
+# Back (−Z)
+vt 0.0 0.0  # 5
+vt 1.0 0.0  # 6
+vt 1.0 1.0  # 7
+vt 0.0 1.0  # 8
+# Left (−X)
+vt 0.0 0.0  # 9
+vt 1.0 0.0  # 10
+vt 1.0 1.0  # 11
+vt 0.0 1.0  # 12
+# Right (+X)
+vt 0.0 0.0  # 13
+vt 1.0 0.0  # 14
+vt 1.0 1.0  # 15
+vt 0.0 1.0  # 16
+# Top (+Y)
+vt 0.0 0.0  # 17
+vt 1.0 0.0  # 18
+vt 1.0 1.0  # 19
+vt 0.0 1.0  # 20
+# Bottom (−Y)
+vt 0.0 0.0  # 21
+vt 1.0 0.0  # 22
+vt 1.0 1.0  # 23
+vt 0.0 1.0  # 24
+
+# Normals (one per face)
+vn  0.0  0.0  1.0  # 1 front  (+Z)
+vn  0.0  0.0 -1.0  # 2 back   (−Z)
+vn -1.0  0.0  0.0  # 3 left   (−X)
+vn  1.0  0.0  0.0  # 4 right  (+X)
+vn  0.0  1.0  0.0  # 5 top    (+Y)
+vn  0.0 -1.0  0.0  # 6 bottom (−Y)
+
+# --- Front (+Z) & Back (−Z): Grass ---
+usemtl Grass
+g front
+# Front: 5-6-7-8 (CCW when viewed from +Z)
+f 5/1/1 6/2/1 7/3/1
+f 5/1/1 7/3/1 8/4/1
+
+g back
+# Back: 1-2-3-4 (CCW when viewed from −Z)
+f 1/5/2 2/6/2 3/7/2
+f 1/5/2 3/7/2 4/8/2
+
+# --- Left (−X) & Right (+X): Wood ---
+usemtl Wood
+g left
+# Left: 1-4-8-5
+f 1/9/3 4/10/3 8/11/3
+f 1/9/3 8/11/3 5/12/3
+
+g right
+# Right: 2-6-7-3
+f 2/13/4 6/14/4 7/15/4
+f 2/13/4 7/15/4 3/16/4
+
+# --- Top (+Y) & Bottom (−Y): Rock ---
+usemtl Rock
+g top
+# Top: 4-3-7-8
+f 4/17/5 3/18/5 7/19/5
+f 4/17/5 7/19/5 8/20/5
+
+g bottom
+# Bottom: 1-5-6-2
+f 1/21/6 5/22/6 6/23/6
+f 1/21/6 6/23/6 2/24/6
