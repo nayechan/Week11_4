@@ -154,3 +154,107 @@ bool IsAABBVisible(const Frustum& Frustum, const FBound& Bound)
            Intersects(Frustum.NearFace, Center, Extents) &&
            Intersects(Frustum.FarFace, Center, Extents);
 }
+
+
+
+// 추후에 절두체를 VP 행렬에서 바로 추출하는 방법도 필요하다면 아래를 참고.
+// ---------- VP(=View*Proj)에서 평면 추출 ----------
+// row-vector 규약(p' = p * M)에서 클립 경계는
+// Left:   R3 + R0
+// Right:  R3 - R0
+// Bottom: R3 + R1
+// Top:    R3 - R1
+// Near:   R3 + R2
+// Far:    R3 - R2
+// 결합 결과 P=(a,b,c,d)에 대해:  a*x + b*y + c*z + d >= 0  (클립 내부)
+// 우리의 평면식 dot(N,X) - D >= 0 과 맞추려면  N=(a,b,c), D=-d  을 사용.
+// 정규화 스케일도 Distance에 나눠 반영해야 함.
+/*
+static inline Plane MakePlaneFromRowCombo(const FVector4& R3, const FVector4& Ri, int Sign) // +1 or -1
+{
+    // P = R3 + Sign * Ri
+    const FVector4 P(R3.X + Sign * Ri.X,
+        R3.Y + Sign * Ri.Y,
+        R3.Z + Sign * Ri.Z,
+        R3.W + Sign * Ri.W);
+
+    // 법선/거리 추출 및 정규화
+    Plane Out;
+    const FVector4 N(P.X, P.Y, P.Z, 0.0f);
+    const float    Len = Length3(N);
+
+    if (Len > 0.0f)
+    {
+        Out.Normal = FVector4(N.X / Len, N.Y / Len, N.Z / Len, 0.0f);
+        // dot(N,X) - D >= 0  와  a*x+b*y+c*z+d >= 0  을 맞추기 위해 D = -d/Len
+        Out.Distance = -P.W / Len;
+    }
+    else
+    {
+        Out.Normal = FVector4(0, 1, 0, 0);
+        Out.Distance = 0.0f;
+    }
+    return Out;
+}
+
+// 카메라에서 VP를 구할 수 있다면 직접 사용.
+// 주의: row-vector 규약이면 반드시  VP = View * Proj  (이 순서)
+static Frustum CreateFrustumFromVP(const FMatrix& View, const FMatrix& Proj)
+{
+    const FMatrix VP = View * Proj;
+
+    // 행 접근 함수가 있다고 가정 (없다면 직접 구현)
+    const FVector4 R0 = VP.GetRow(0);
+    const FVector4 R1 = VP.GetRow(1);
+    const FVector4 R2 = VP.GetRow(2);
+    const FVector4 R3 = VP.GetRow(3);
+
+    Frustum F;
+    F.LeftFace = MakePlaneFromRowCombo(R3, R0, +1);
+    F.RightFace = MakePlaneFromRowCombo(R3, R0, -1);
+    F.BottomFace = MakePlaneFromRowCombo(R3, R1, +1);
+    F.TopFace = MakePlaneFromRowCombo(R3, R1, -1);
+    F.NearFace = MakePlaneFromRowCombo(R3, R2, +1);
+    F.FarFace = MakePlaneFromRowCombo(R3, R2, -1);
+    return F;
+}
+
+Frustum CreateFrustumFromCamera(const UCameraComponent& Camera, float)  // OverrideAspect
+{
+    // 카메라에서 뷰/프로젝션 행렬을 가져오는 API는 엔진에 맞춰 바꿔줘.
+    // row-vector 규약: p' = p * View * Proj
+    const FMatrix View = Camera.GetViewMatrix();         // 너의 엔진 API
+    const FMatrix Proj = Camera.GetProjectionMatrix();   // 너의 엔진 API
+    return CreateFrustumFromVP(View, Proj);
+}
+
+// ---------- AABB vs 평면 판정(기존 유지, std::abs 권장) ----------
+bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents)
+{
+    const float Distance = Dot3(P.Normal, Center) - P.Distance;
+
+    // AABB의 법선 방향 투영 반경
+    const float Radius =
+        std::abs(P.Normal.X) * Extents.X +
+        std::abs(P.Normal.Y) * Extents.Y +
+        std::abs(P.Normal.Z) * Extents.Z;
+
+    return Distance + Radius >= 0.0f;
+}
+
+bool IsAABBVisible(const Frustum& F, const FBound& B)
+{
+    const FVector  Center3 = (B.Min + B.Max) * 0.5f;
+    const FVector  Extents3 = (B.Max - B.Min) * 0.5f; // 양수
+
+    const FVector4 Center = FVector4(Center3.X, Center3.Y, Center3.Z, 1.0f); // 점
+    const FVector4 Extents = FVector4(Extents3.X, Extents3.Y, Extents3.Z, 0.0f); // 방향
+
+    return Intersects(F.LeftFace, Center, Extents) &&
+        Intersects(F.RightFace, Center, Extents) &&
+        Intersects(F.TopFace, Center, Extents) &&
+        Intersects(F.BottomFace, Center, Extents) &&
+        Intersects(F.NearFace, Center, Extents) &&
+        Intersects(F.FarFace, Center, Extents);
+}
+*/
