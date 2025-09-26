@@ -208,9 +208,6 @@ void SMultiViewportWindow::OnRender()
 	if (RootSplitter)
 	{
 		RootSplitter->OnRender();
-
-
-
 	}
 }
 

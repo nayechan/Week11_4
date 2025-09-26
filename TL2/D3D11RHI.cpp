@@ -251,20 +251,19 @@ HRESULT D3D11RHI::CreateIndexBuffer(ID3D11Device* device, const FStaticMesh* mes
 //이거 두개를 나눔
 void D3D11RHI::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix)
 {
-    // b0 : 모델 행렬
-    {
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        DeviceContext->Map(ModelCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        auto* dataPtr = reinterpret_cast<ModelBufferType*>(mapped.pData);
+    UpdateModelBuffer(ModelMatrix);
+    UpdateViewProjectionBuffers(ViewMatrix, ProjMatrix);
+}
 
-        // HLSL 기본 row-major와 맞추기 위해 전치
-        dataPtr->Model = ModelMatrix;
-
-        DeviceContext->Unmap(ModelCB, 0);
-        DeviceContext->VSSetConstantBuffers(0, 1, &ModelCB); // b0 슬롯
-    }
-
-    // b1 : 뷰/프로젝션 행렬
+// 뷰/프로젝션은 프레임당 한 번만 업데이트
+void D3D11RHI::UpdateViewProjectionBuffers(const FMatrix& ViewMatrix, const FMatrix& ProjMatrix)
+{
+    static FMatrix LastViewMatrix;
+    static FMatrix LastProjMatrix;
+    static bool bFirstTime = true;
+    
+    // 뷰/프로젝션이 변경되었을 때만 업데이트
+    if (bFirstTime || ViewMatrix != LastViewMatrix || ProjMatrix != LastProjMatrix)
     {
         D3D11_MAPPED_SUBRESOURCE mapped;
         DeviceContext->Map(ViewProjCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
@@ -275,7 +274,24 @@ void D3D11RHI::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& 
 
         DeviceContext->Unmap(ViewProjCB, 0);
         DeviceContext->VSSetConstantBuffers(1, 1, &ViewProjCB); // b1 슬롯
+        
+        LastViewMatrix = ViewMatrix;
+        LastProjMatrix = ProjMatrix;
+        bFirstTime = false;
     }
+}
+
+// 모델 행렬만 업데이트
+void D3D11RHI::UpdateModelBuffer(const FMatrix& ModelMatrix)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    DeviceContext->Map(ModelCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    auto* dataPtr = reinterpret_cast<ModelBufferType*>(mapped.pData);
+
+    dataPtr->Model = ModelMatrix;
+
+    DeviceContext->Unmap(ModelCB, 0);
+    DeviceContext->VSSetConstantBuffers(0, 1, &ModelCB); // b0 슬롯
 }
 
 void D3D11RHI::UpdateBillboardConstantBuffers(const FVector& pos, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix,

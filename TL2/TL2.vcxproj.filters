@@ -114,6 +114,9 @@
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="WorldPartitionManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="ImGui\imgui.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
@@ -402,6 +405,9 @@
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
       <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldPartitionManager.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="ImGui\imgui.h">
       <Filter>ImGui</Filter>

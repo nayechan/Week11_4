@@ -14,6 +14,8 @@
 #include "StaticMesh.h"
 #include "ObjManager.h"
 #include "SceneRotationUtils.h"
+#include "WorldPartitionManager.h"
+#include "PrimitiveComponent.h"
 #include "Octree.h"
 
 extern float CLIENTWIDTH;
@@ -61,6 +63,10 @@ UWorld::~UWorld()
 		delete SceneOctree;
 		SceneOctree = nullptr;
 	}
+
+	// Partition manager cleanup
+	delete PartitionManager;
+	PartitionManager = nullptr;
 }
 
 static void DebugRTTI_UObject(UObject* Obj, const char* Title)
@@ -111,6 +117,12 @@ void UWorld::Initialize()
 {
 	FObjManager::Preload();
 
+	// Create partition manager
+	if (!PartitionManager)
+	{
+		PartitionManager = new UWorldPartitionManager();
+	}
+
 	// 새 씬 생성
 	CreateNewScene();
 
@@ -134,8 +146,8 @@ void UWorld::Initialize()
 
 void UWorld::InitializeMainCamera()
 {
-
 	MainCameraActor = NewObject<ACameraActor>();
+	MainCameraActor->SetWorld(this);
 
 	DebugRTTI_UObject(MainCameraActor, "MainCameraActor");
 	UIManager.SetCamera(MainCameraActor);
@@ -146,8 +158,8 @@ void UWorld::InitializeMainCamera()
 void UWorld::InitializeGrid()
 {
 	GridActor = NewObject<AGridActor>();
+	GridActor->SetWorld(this);
 	GridActor->Initialize();
-
 
 	// Add GridActor to Actors array so it gets rendered in the main loop
 	EngineActors.push_back(GridActor);
@@ -314,6 +326,11 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	if (!Renderer) return;
 	FVector rgb(1.0f, 1.0f, 1.0f);
 
+
+	// ============ Culling Logic Dispatch ========= //
+	//TArray<AActor*> CulledActors = PartitionManager.Query(Frustum Data); 
+
+
 	// === Begin Line Batch for all actors ===
 	Renderer->BeginLineBatch();
 
@@ -407,6 +424,12 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 void UWorld::Tick(float DeltaSeconds)
 {
+	// Update spatial indices first so any previous-frame changes are reflected
+	if (PartitionManager)
+	{
+		PartitionManager->Update(DeltaSeconds, /*budget*/256);
+	}
+
 	//순서 바꾸면 안댐
 	for (AActor* Actor : Actors)
 	{
@@ -490,29 +513,18 @@ bool UWorld::DestroyActor(AActor* Actor)
 
 void UWorld::OnActorSpawned(AActor* Actor)
 {
-    if (!Actor) return;
-    if (!SceneOctree) return;
-    FBound B = Actor->GetBounds();
-    if (SceneOctree->Contains(B))
-    {
-        SceneOctree->Insert(Actor, B);
-    }
+	if (PartitionManager && Actor)
+	{
+		PartitionManager->Register(Actor);
+	}
 }
 
 void UWorld::OnActorDestroyed(AActor* Actor)
 {
-    if (!Actor) return;
-    if (!SceneOctree) return;
-    FBound B = Actor->GetBounds();
-    SceneOctree->Remove(Actor, B);
-}
-
-void UWorld::UpdateActorInOctree(AActor* Actor, const FBound& OldBounds, const FBound& NewBounds)
-{
-
-    if (!Actor) return;
-    if (!SceneOctree) return;
-    SceneOctree->Update(Actor, OldBounds, NewBounds);
+	if (PartitionManager && Actor)
+	{
+		PartitionManager->Unregister(Actor);
+	}
 }
 
 inline FString ToObjFileName(const FString& TypeName)
@@ -563,6 +575,11 @@ void UWorld::CreateNewScene()
 	if (SceneOctree)
 	{
 		SceneOctree->Clear();
+	}
+
+	if (PartitionManager)
+	{
+		PartitionManager->Clear();
 	}
 }
 
@@ -800,10 +817,9 @@ void UWorld::LoadScene(const FString& SceneName)
 				BaseName = RemoveObjExtension(LoadedAssetPath);
 			}
 			StaticMeshActor->SetName(GenerateUniqueActorName(BaseName));
-
-			// 옥트리에 등록
-			OnActorSpawned(StaticMeshActor);
 		}
+		//Partition Insert
+		OnActorSpawned(StaticMeshActor);
 	}
 
 	// 3) 최종 보정: 전역 카운터는 절대 하향 금지 + 현재 사용된 최대값 이후로 설정

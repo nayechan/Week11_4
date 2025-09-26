@@ -161,7 +161,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassW(&wndclass);
 
     // 저장된 창 크기 로드 (없으면 기본값 1024x1024)
-    int windowWidth = 1024, windowHeight = 1024;
+    int windowWidth = 1620, windowHeight = 1024;
 
     if (EditorINI.count("WindowWidth"))
     {

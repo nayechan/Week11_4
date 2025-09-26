@@ -268,19 +268,6 @@ void USceneIOWidget::LoadLevel(const FString& InFilePath)
 		UUIManager::GetInstance().ClearTransformWidgetSelection();
 		UUIManager::GetInstance().ResetPickedActor();
 
-		// 1) 선택된 파일 경로에서 NextUUID 읽기
-		// Save 포맷상 NextUUID는 "마지막으로 사용된 UUID" → 다음 값으로 쓰려면 +1 필요
-		uint32 LoadedNextUUID = 0;
-		if (FSceneLoader::TryReadNextUUID(InFilePath, LoadedNextUUID))
-		{
-			UObject::SetNextUUID(LoadedNextUUID + 1);
-		}
-		else
-		{
-			// 실패 시 선택적으로 리셋하거나 유지 (여기선 유지)
-			// UObject::SetNextUUID(1); // 필요하면 활성화
-		}
-
 		// 2) 씬 로드 (World 내부에서 파일명은 SceneName + ".Scene"으로 접근)
 		CurrentWorld->LoadScene(SceneName);
 

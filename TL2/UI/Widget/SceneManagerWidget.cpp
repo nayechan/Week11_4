@@ -42,7 +42,7 @@ void USceneManagerWidget::Update()
         return; // 이번 프레임은 새로고침만 하고 끝
     }
     
-    // Check if we need to refresh (world changed or actors added/removed)
+    // 액터 수 변화 감지만 수행 (최소한의 검사)
     static size_t LastActorCount = 0;
     
     UWorld* World = GetCurrentWorld();
@@ -53,47 +53,40 @@ void USceneManagerWidget::Update()
         {
             RefreshActorTree();
             LastActorCount = CurrentActorCount;
+            return; // 새로고침 후 이번 프레임은 더 이상 처리하지 않음
         }
         
-        // 추가: 트리의 액터들이 실제로 World에 존재하는지 확인
-        bool bNeedRefresh = false;
-        const TArray<AActor*>& WorldActors = World->GetActors();
-        
-        for (auto* RootNode : RootNodes)
+        // 비용이 많이 드는 유효성 검사를 5초마다만 수행
+        static int32 ValidationCounter = 0;
+        ValidationCounter++;
+        if (ValidationCounter % 300 == 0) // 5초마다 (60FPS 기준)
         {
-            if (RootNode && RootNode->IsActor())
+            // 느린 유효성 검사 - 몇 개만 샘플링
+            bool bNeedRefresh = false;
+            const TArray<AActor*>& WorldActors = World->GetActors();
+            
+            // 전체 검사 대신 몇 개만 샘플링
+            int32 CheckCount = 0;
+            for (auto* RootNode : RootNodes)
             {
-                // 노드의 액터가 null이거나, World에 없으면 새로고침
-                if (!RootNode->Actor || 
-                    std::find(WorldActors.begin(), WorldActors.end(), RootNode->Actor) == WorldActors.end())
+                if (++CheckCount > 10) break; // 최대 10개만 검사
+                
+                if (RootNode && RootNode->IsActor())
                 {
-                    bNeedRefresh = true;
-                    break;
+                    if (!RootNode->Actor || 
+                        std::find(WorldActors.begin(), WorldActors.end(), RootNode->Actor) == WorldActors.end())
+                    {
+                        bNeedRefresh = true;
+                        break;
+                    }
                 }
             }
             
-            // 카테고리 노드의 자식들도 확인
-            if (RootNode && RootNode->IsCategory())
+            if (bNeedRefresh)
             {
-                for (auto* Child : RootNode->Children)
-                {
-                    if (Child && Child->IsActor())
-                    {
-                        if (!Child->Actor || 
-                            std::find(WorldActors.begin(), WorldActors.end(), Child->Actor) == WorldActors.end())
-                        {
-                            bNeedRefresh = true;
-                            break;
-                        }
-                    }
-                }
-                if (bNeedRefresh) break;
+                RequestDelayedRefresh();
+                return;
             }
-        }
-        
-        if (bNeedRefresh)
-        {
-            RequestDelayedRefresh();
         }
     }
     else if (LastActorCount != 0)
@@ -137,48 +130,14 @@ void USceneManagerWidget::RenderWidget()
     // Actor tree view
     ImGui::BeginChild("ActorTreeView", ImVec2(0, 240), true);
     
-    // 렌더링 전에 트리 유효성 사전 검사
-    bool bTreeNeedsRefresh = false;
-    if (World)
-    {
-        const TArray<AActor*>& WorldActors = World->GetActors();
-        for (auto* RootNode : RootNodes)
-        {
-            if (RootNode && RootNode->IsActor())
-            {
-                if (!RootNode->Actor || 
-                    std::find(WorldActors.begin(), WorldActors.end(), RootNode->Actor) == WorldActors.end())
-                {
-                    bTreeNeedsRefresh = true;
-                    break;
-                }
-            }
-            if (RootNode && RootNode->IsCategory())
-            {
-                for (auto* Child : RootNode->Children)
-                {
-                    if (Child && Child->IsActor())
-                    {
-                        if (!Child->Actor || 
-                            std::find(WorldActors.begin(), WorldActors.end(), Child->Actor) == WorldActors.end())
-                        {
-                            bTreeNeedsRefresh = true;
-                            break;
-                        }
-                    }
-                }
-                if (bTreeNeedsRefresh) break;
-            }
-        }
-    }
-    
-    if (bTreeNeedsRefresh)
+    // 유효성 검사는 Update()에서 처리했으므로 여기서는 바로 렌더링
+    if (bNeedRefreshNextFrame)
     {
         ImGui::Text("로딩 중...");
-        RequestDelayedRefresh();
     }
     else
     {
+        // 빠른 렌더링 - 중복 검사 없이 바로 출력
         for (auto* RootNode : RootNodes)
         {
             if (RootNode)
@@ -299,14 +258,6 @@ void USceneManagerWidget::RenderActorNode(FActorTreeNode* Node, int32 Depth)
     // Create unique ID for ImGui
     ImGui::PushID(Actor);
     
-    // 액터 유효성 재확인 - 삭제된 액터일 수 있음
-    if (!Actor)
-    {
-        ImGui::PopID();
-        RefreshActorTree();
-        return;
-    }
-    
     // Sync node visibility with actual actor state each frame
     Node->bIsVisible = Actor->IsActorVisible();
     
@@ -322,10 +273,6 @@ void USceneManagerWidget::RenderActorNode(FActorTreeNode* Node, int32 Depth)
     ImGui::SameLine();
     
     // Actor name and tree node
-    if (!Actor)
-    {
-        return;
-    }
 
     bool bNodeOpen = ImGui::TreeNodeEx(Actor->GetName().ToString().c_str(), NodeFlags);
     

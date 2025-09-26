@@ -23,15 +23,11 @@ bool FViewport::Initialize(float InStartX, float InStartY, float InSizeX, float 
     SizeX = static_cast<uint32>(InSizeX);
     SizeY = static_cast<uint32>(InSizeY);
 
-    CreateRenderTargets();
-
-    return IsValid();
+    return true;
 }
 
 void FViewport::Cleanup()
 {
-    ReleaseRenderTargets();
-
     if (D3DDeviceContext)
     {
         D3DDeviceContext->Release();
@@ -73,9 +69,6 @@ void FViewport::Resize(uint32 NewStartX, uint32 NewStartY,uint32 NewSizeX, uint3
     StartY = NewStartY;
     SizeX = NewSizeX;
     SizeY = NewSizeY;
-
-    ReleaseRenderTargets();
-    CreateRenderTargets();
 }
 
 void FViewport::SetMainViewport()
@@ -123,109 +116,5 @@ void FViewport::ProcessKeyUp(int32 KeyCode)
     if (ViewportClient)
     {
         ViewportClient->KeyUp(this, KeyCode);
-    }
-}
-
-void FViewport::CreateRenderTargets()
-{
-    if (!D3DDevice || SizeX == 0 || SizeY == 0)
-        return;
-
-    // 렌더 타겟 텍스처 생성
-    D3D11_TEXTURE2D_DESC rtDesc = {};
-    rtDesc.Width = SizeX;
-    rtDesc.Height = SizeY;
-    rtDesc.MipLevels = 1;
-    rtDesc.ArraySize = 1;
-    rtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    rtDesc.SampleDesc.Count = 1;
-    rtDesc.SampleDesc.Quality = 0;
-    rtDesc.Usage = D3D11_USAGE_DEFAULT;
-    rtDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    rtDesc.CPUAccessFlags = 0;
-    rtDesc.MiscFlags = 0;
-
-    HRESULT hr = D3DDevice->CreateTexture2D(&rtDesc, nullptr, &RenderTargetTexture);
-    if (FAILED(hr))
-        return;
-
-    // 렌더 타겟 뷰 생성
-    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = rtDesc.Format;
-    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Texture2D.MipSlice = 0;
-
-    hr = D3DDevice->CreateRenderTargetView(RenderTargetTexture, &rtvDesc, &RenderTargetView);
-    if (FAILED(hr))
-        return;
-
-    // 셰이더 리소스 뷰 생성 (ImGui에서 사용)
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = rtDesc.Format;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MostDetailedMip = 0;
-    srvDesc.Texture2D.MipLevels = 1;
-
-    hr = D3DDevice->CreateShaderResourceView(RenderTargetTexture, &srvDesc, &ShaderResourceView);
-    if (FAILED(hr))
-        return;
-
-    // 깊이 스텐실 텍스처 생성
-    D3D11_TEXTURE2D_DESC dsDesc = {};
-    dsDesc.Width = SizeX;
-    dsDesc.Height = SizeY;
-    dsDesc.MipLevels = 1;
-    dsDesc.ArraySize = 1;
-    dsDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    dsDesc.SampleDesc.Count = 1;
-    dsDesc.SampleDesc.Quality = 0;
-    dsDesc.Usage = D3D11_USAGE_DEFAULT;
-    dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-    dsDesc.CPUAccessFlags = 0;
-    dsDesc.MiscFlags = 0;
-
-    hr = D3DDevice->CreateTexture2D(&dsDesc, nullptr, &DepthStencilTexture);
-    if (FAILED(hr))
-        return;
-
-    // 깊이 스텐실 뷰 생성
-    D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-    dsvDesc.Format = dsDesc.Format;
-    dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-    dsvDesc.Texture2D.MipSlice = 0;
-
-    hr = D3DDevice->CreateDepthStencilView(DepthStencilTexture, &dsvDesc, &DepthStencilView);
-}
-
-void FViewport::ReleaseRenderTargets()
-{
-    if (ShaderResourceView)
-    {
-        ShaderResourceView->Release();
-        ShaderResourceView = nullptr;
-    }
-
-    if (DepthStencilView)
-    {
-        DepthStencilView->Release();
-        DepthStencilView = nullptr;
-    }
-
-    if (DepthStencilTexture)
-    {
-        DepthStencilTexture->Release();
-        DepthStencilTexture = nullptr;
-    }
-
-    if (RenderTargetView)
-    {
-        RenderTargetView->Release();
-        RenderTargetView = nullptr;
-    }
-
-    if (RenderTargetTexture)
-    {
-        RenderTargetTexture->Release();
-        RenderTargetTexture = nullptr;
     }
 }

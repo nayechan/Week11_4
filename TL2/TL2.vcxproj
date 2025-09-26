@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ActorComponent.cpp" />
+    <ClCompile Include="WorldPartitionManager.cpp" />
     <ClCompile Include="AllClassesRegistration.cpp" />
     <ClCompile Include="AABoundingBoxComponent.cpp" />
     <ClCompile Include="FViewportClient.cpp" />
@@ -322,6 +323,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ActorComponent.h" />
+    <ClInclude Include="WorldPartitionManager.h" />
     <ClInclude Include="AABoundingBoxComponent.h" />
     <ClInclude Include="Archive.h" />
     <ClInclude Include="FViewportClient.h" />

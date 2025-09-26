@@ -2,6 +2,8 @@
 #include "SceneComponent.h"
 #include <algorithm>
 #include "ObjectFactory.h"
+#include "PrimitiveComponent.h"
+#include "WorldPartitionManager.h"
 
 USceneComponent::USceneComponent()
     : RelativeLocation(0, 0, 0)
