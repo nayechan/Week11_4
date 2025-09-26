@@ -4,6 +4,7 @@
 #include "Frustum.h"
 #include "AABoundingBoxComponent.h"
 #include "CameraComponent.h"
+#include <xmmintrin.h>
 
 
 inline FVector4 MakePoint4(const FVector& P) { return FVector4(P.X, P.Y, P.Z, 1.0f); }
@@ -11,26 +12,47 @@ inline FVector4 MakeDir4(const FVector& D) { return FVector4(D.X, D.Y, D.Z, 0.0f
 
 inline float     Dot3(const FVector4& A, const FVector4& B)
 {
-    return A.X * B.X + A.Y * B.Y + A.Z * B.Z; // W는 무시
+    __m128 mul = _mm_mul_ps(A.SimdData, B.SimdData);
+    __m128 shuffle = _mm_shuffle_ps(mul, mul, _MM_SHUFFLE(2, 1, 2, 1));
+    __m128 add = _mm_add_ss(mul, shuffle);
+    shuffle = _mm_shuffle_ps(shuffle, shuffle, _MM_SHUFFLE(0, 0, 0, 1));
+    add = _mm_add_ss(add, shuffle);
+    float result;
+    _mm_store_ss(&result, add);
+    return result;
 }
 
 inline FVector4  Cross3(const FVector4& A, const FVector4& B)
 {
-    return FVector4(
-        A.Y * B.Z - A.Z * B.Y,
-        A.Z * B.X - A.X * B.Z,
-        A.X * B.Y - A.Y * B.X,
-        0.0f // 방향 벡터
-    );
+    __m128 a_yzx = _mm_shuffle_ps(A.SimdData, A.SimdData, _MM_SHUFFLE(3, 0, 2, 1));
+    __m128 b_zxy = _mm_shuffle_ps(B.SimdData, B.SimdData, _MM_SHUFFLE(3, 1, 0, 2));
+    __m128 a_zxy = _mm_shuffle_ps(A.SimdData, A.SimdData, _MM_SHUFFLE(3, 1, 0, 2));
+    __m128 b_yzx = _mm_shuffle_ps(B.SimdData, B.SimdData, _MM_SHUFFLE(3, 0, 2, 1));
+    __m128 mul1 = _mm_mul_ps(a_yzx, b_zxy);
+    __m128 mul2 = _mm_mul_ps(a_zxy, b_yzx);
+    __m128 sub = _mm_sub_ps(mul1, mul2);
+    FVector4 result(sub);
+    result.W = 0.0f;
+    return result;
 }
 inline float     Length3(const FVector4& V)
 {
-    return std::sqrt(Dot3(V, V));
+    float dot = Dot3(V, V);
+    return std::sqrt(dot);
 }
 inline FVector4  Normalize3(const FVector4& V)
 {
-    const float L = Length3(V);
-    if (L > 0.0f) return FVector4(V.X / L, V.Y / L, V.Z / L, 0.0f);
+    float len = Length3(V);
+    if (len > 0.0f)
+    {
+        __m128 v = _mm_load_ps(&V.X);
+        __m128 len_v = _mm_set1_ps(len);
+        __m128 result_v = _mm_div_ps(v, len_v);
+        FVector4 result;
+        _mm_store_ps(&result.X, result_v);
+        result.W = 0.0f;
+        return result;
+    }
     return FVector4(0, 0, 0, 0);
 }
 // ------------------------------------------------------------
@@ -97,7 +119,7 @@ Frustum CreateFrustumFromCamera(const UCameraComponent& Camera, float OverrideAs
     //    Near: +Forward,  Far: -Forward
     // ------------------------------------------------------------
     Result.NearFace = MakePlane(Origin + Forward * NearClip, Forward);
-    Result.FarFace = MakePlane(Origin + FrontMultFar, -Forward);
+    Result.FarFace = MakePlane(Origin + FrontMultFar, Forward * -1.0f);
 
 
     // ------------------------------------------------------------
@@ -131,12 +153,16 @@ bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents)
 	// 평면과 박스사이의 거리 (양수면 평면의 법선 방향, 음수면 반대 방향)
     const float Distance = Dot3(P.Normal, Center) - P.Distance;
     // AABB를 평면 법선 방향으로 투영했을 때의 최대 반경
-    const float Radius =
-        abs(P.Normal.X) * Extents.X +
-        abs(P.Normal.Y) * Extents.Y +
-        abs(P.Normal.Z) * Extents.Z;
+    __m128 abs_normal = _mm_andnot_ps(_mm_set1_ps(-0.0f), P.Normal.SimdData);
+    __m128 mul = _mm_mul_ps(abs_normal, Extents.SimdData);
+    __m128 shuffle = _mm_shuffle_ps(mul, mul, _MM_SHUFFLE(2, 1, 2, 1));
+    __m128 add = _mm_add_ss(mul, shuffle);
+    shuffle = _mm_shuffle_ps(shuffle, shuffle, _MM_SHUFFLE(0, 0, 0, 1));
+    add = _mm_add_ss(add, shuffle);
+    float radius;
+    _mm_store_ss(&radius, add);
 	//  최대 반경은 항상 양수이므로, Distance + Radius < 0 이면 절두체의 바깥
-    return Distance + Radius >= 0.0f;
+    return Distance + radius >= 0.0f;
 }
 
 bool IsAABBVisible(const Frustum& Frustum, const FBound& Bound)

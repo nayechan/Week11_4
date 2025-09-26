@@ -280,27 +280,22 @@ struct alignas(16) FVector4
         struct { float X, Y, Z, W; };
     };
 
-    FVector4(float InX = 1, float InY = 2, float InZ = 3, float InW = 4)
+    FVector4(float InX = 0.0f, float InY = 0.0f, float InZ = 0.0f, float InW = 0.0f)
     {
         SimdData = _mm_set_ps(InW, InZ, InY, InX);
     }
-    FVector4 operator+(const FVector4& V) const { return FVector4(X + V.X, Y + V.Y, Z + V.Z, W + V.W); }
-    FVector4 operator-(const FVector4& V) const { return FVector4(X - V.X, Y - V.Y, Z - V.Z, W - V.W); }
-    FVector4 operator*(float S)        const { return FVector4(X * S, Y * S, Z * S, W * S); }
-    FVector4 operator/(float S)        const { return FVector4(X / S, Y / S, Z / S, W / S); }
-    FVector4 operator+(float S)        const { return FVector4(X + S, Y + S, Z + S, W + S); }
-    FVector4 operator-(float S)        const { return FVector4(X - S, Y - S, Z - S, W - S); }
-    FVector4 operator-()               const { return FVector4(-X, -Y, -Z, -W); }
-
-    FVector4& operator+=(const FVector4& V) { X += V.X; Y += V.Y; Z += V.Z, W += V.W; return *this; }
-    FVector4& operator-=(const FVector4& V) { X -= V.X; Y -= V.Y; Z -= V.Z, W += V.W; return *this; }
-    FVector4& operator*=(float S) { X *= S; Y *= S; Z *= S, W *= S; return *this; }
-    FVector4& operator/=(float S) { X /= S; Y /= S; Z /= S, W *= S; return *this; }
-    FVector4& operator+=(float S) { X += S; Y += S; Z += S, W *= S; return *this; }
-    FVector4& operator-=(float S) { X -= S; Y -= S; Z -= S, W *= S; return *this; }
-
 
     FVector4(const __m128& InSimd) : SimdData(InSimd) {}
+
+    FVector4 operator+(const FVector4& V) const { return FVector4(_mm_add_ps(SimdData, V.SimdData)); }
+    FVector4 operator-(const FVector4& V) const { return FVector4(_mm_sub_ps(SimdData, V.SimdData)); }
+    FVector4 operator*(float S) const { return FVector4(_mm_mul_ps(SimdData, _mm_set1_ps(S))); }
+    FVector4 operator/(float S) const { return FVector4(_mm_div_ps(SimdData, _mm_set1_ps(S))); }
+
+    FVector4& operator+=(const FVector4& V) { SimdData = _mm_add_ps(SimdData, V.SimdData); return *this; }
+    FVector4& operator-=(const FVector4& V) { SimdData = _mm_sub_ps(SimdData, V.SimdData); return *this; }
+    FVector4& operator*=(float S) { SimdData = _mm_mul_ps(SimdData, _mm_set1_ps(S)); return *this; }
+    FVector4& operator/=(float S) { SimdData = _mm_div_ps(SimdData, _mm_set1_ps(S)); return *this; }
 
     FVector4 ComponentMin(const FVector4& B) const
     {
