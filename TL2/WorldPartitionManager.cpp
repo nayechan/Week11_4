@@ -18,7 +18,7 @@ namespace {
 
 UWorldPartitionManager::UWorldPartitionManager()
 {
-	FBound WorldBounds(FVector(-800.f, -800.f, -800.f), FVector(800.f, 800.f, 800.f));
+	FBound WorldBounds(FVector(-800, -800, -800), FVector(800, 800, 800));
 	SceneOctree = new FOctree(WorldBounds, 0, 8, 8);
 }
 
@@ -48,23 +48,8 @@ void UWorldPartitionManager::Register(AActor* Owner)
 void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 {
 	if (Actors.empty()) return;
+	if (SceneOctree == nullptr) return;
 
-	// 첫 번째 액터에서 World 참조 취득
-	UWorld* World = nullptr;
-	for (AActor* Actor : Actors)
-	{
-		if (Actor && ShouldIndexActor(Actor))
-		{
-			World = Actor->GetWorld();
-			break;
-		}
-	}
-
-	if (!World) return;
-	//FOctree* Tree = World->GetOctree();
-	if (!SceneOctree) return;
-
-	// 읽어와 바운드를 한 번에 수집
 	TArray<std::pair<AActor*, FBound>> ActorsAndBounds;
 	ActorsAndBounds.reserve(Actors.size());
 
@@ -76,7 +61,6 @@ void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 		}
 	}
 
-	// 벌크 삽입 사용
 	SceneOctree->BulkInsert(ActorsAndBounds);
 }
 

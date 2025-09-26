@@ -56,17 +56,6 @@ UWorld::~UWorld()
 
 	// ObjManager 정리
 	FObjManager::Clear();
-
-	// Octree 정리
-	//if (SceneOctree)
-	//{
-	//	delete SceneOctree;
-	//	SceneOctree = nullptr;
-	//}
-
-	// Partition manager cleanup
-	//delete PartitionManager;
-	//PartitionManager = nullptr;
 }
 
 static void DebugRTTI_UObject(UObject* Obj, const char* Title)
@@ -85,22 +74,14 @@ static void DebugRTTI_UObject(UObject* Obj, const char* Title)
 		UE_LOG(buf);
 	}
 
-	// 1) 현재 동적 타입 이름
 	std::snprintf(buf, sizeof(buf), "[RTTI] TypeName = %s\r\n", Obj->GetClass()->Name);
 	UE_LOG(buf);
 
-	// 2) IsA 체크 (파생 포함)
 	std::snprintf(buf, sizeof(buf), "[RTTI] IsA<AActor>      = %d\r\n", (int)Obj->IsA<AActor>());
 	UE_LOG(buf);
 	std::snprintf(buf, sizeof(buf), "[RTTI] IsA<ACameraActor> = %d\r\n", (int)Obj->IsA<ACameraActor>());
 	UE_LOG(buf);
 
-	//// 3) 정확한 타입 비교 (파생 제외)
-	//std::snprintf(buf, sizeof(buf), "[RTTI] EXACT ACameraActor = %d\r\n",
-	//    (int)(Obj->GetClass() == ACameraActor::StaticClass()));
-	//UE_LOG(buf);
-
-	// 4) 상속 체인 출력
 	UE_LOG("[RTTI] Inheritance chain: ");
 	for (const UClass* c = Obj->GetClass(); c; c = c->Super)
 	{
@@ -116,13 +97,6 @@ static void DebugRTTI_UObject(UObject* Obj, const char* Title)
 void UWorld::Initialize()
 {
 	FObjManager::Preload();
-
-	// Create partition manager
-	//if (!PartitionManager)
-	//{
-	//	PartitionManager = new UWorldPartitionManager();
-	//}
-	// 새 씬 생성
 	CreateNewScene();
 
 	InitializeMainCamera();
@@ -132,15 +106,6 @@ void UWorld::Initialize()
 	// 액터 간 참조 설정
 	SetupActorReferences();
 
-	//if (SceneOctree)
-	//{
-	//	delete SceneOctree;
-	//	SceneOctree = nullptr;
-	//}
-	//{
-	//	FBound WorldBounds(FVector(-800.f, -800.f, -800.f), FVector(800.f, 800.f, 800.f));
-	//	SceneOctree = new FOctree(WorldBounds, 0, 8, 8);
-	//}
 }
 
 void UWorld::InitializeMainCamera()
@@ -191,15 +156,10 @@ void UWorld::Render()
 	Renderer->BeginFrame();
 	UIManager.Render();
 
-	// UIManager의 뷰포트 전환 상태에 따라 렌더링 변경 SWidget으로 변경해줄거임
-
-
 	if (MultiViewport)
 	{
 		MultiViewport->OnRender();
 	}
-
-
 
 	//프레임 종료 
 	UIManager.EndFrame();

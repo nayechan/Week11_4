@@ -50,6 +50,7 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
     for (const auto& ActorBoundPair : ActorsAndBounds)
     {
         Actors.push_back(ActorBoundPair.first);
+        // Actor ->  Bound 캐싱 , Update 시 빠르게 쓰기 위해서이다. 
         ActorLastBounds[ActorBoundPair.first] = ActorBoundPair.second;
     }
     
@@ -91,6 +92,7 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
                         break;
                     }
                 }
+                // 부모 노드에 남겨두고 넘어가는 것이다. 
                 if (!bMoved) ++It;
             }
         }
@@ -417,32 +419,67 @@ void FOctree::QueryRay(const FRay& Ray, TArray<AActor*>& OutActors) const
         }
     }
 }
-
-void FOctree::DebugDraw(URenderer* Renderer) const
+static const FVector4 LevelColors[8] =
 {
-    if (!Renderer) return;
-
-    struct Item { const FOctree* Node; int D; };
-    TArray<Item> st; st.push_back({ this, Depth });
-    while (!st.empty())
+    FVector4(0.0f, 1.0f, 0.0f, 1.0f),   // 0: 초록
+    FVector4(0.2f, 0.8f, 1.0f, 1.0f),   // 1: 하늘색
+    FVector4(1.0f, 0.6f, 0.1f, 1.0f),   // 2: 주황
+    FVector4(1.0f, 0.0f, 0.0f, 1.0f),   // 3: 빨강
+    FVector4(0.6f, 0.0f, 1.0f, 1.0f),   // 4: 보라
+    FVector4(1.0f, 1.0f, 0.0f, 1.0f),   // 5: 노랑
+    FVector4(0.0f, 0.5f, 1.0f, 1.0f),   // 6: 파랑
+    FVector4(1.0f, 0.0f, 1.0f, 1.0f),   // 7: 핑크
+};
+void FOctree::DebugDraw(URenderer* InRenderer) const
+{
+    if (!InRenderer)
     {
-        Item it = st.back(); st.pop_back();
-        const FOctree* N = it.Node;
+        return;
+    }
 
-        const int di = it.D % 3;
-        FVector4 color(0.0f, 1.0f, 0.0f, 1.0f);
-        if (di == 1) color = FVector4(0.2f, 0.8f, 1.0f, 1.0f);
-        else if (di == 2) color = FVector4(1.0f, 0.6f, 0.1f, 1.0f);
+    struct FStackItem
+    {
+        const FOctree* Node;
+        int32 DepthLevel;
+    };
 
-        TArray<FVector> S, E; TArray<FVector4> C;
-        CreateLineDataFromAABB(N->Bounds.Min, N->Bounds.Max, S, E, C, color);
-        Renderer->AddLines(S, E, C);
+    TArray<FStackItem> Stack;
+    Stack.Add({ this, Depth });
 
-        if (N->Children[0])
+    while (Stack.Num() > 0)
+    {
+        FStackItem Current = Stack.Pop();
+        const FOctree* CurrentNode = Current.Node;
+
+        // 깊이에 따른 색상 변경
+        //const int32 DepthIndex = Current.DepthLevel % 3;
+        //FVector4 NodeColor(0.0f, 1.0f, 0.0f, 1.0f); // 기본 초록
+        //if (DepthIndex == 1)
+        //{
+        //    NodeColor = FVector4(0.2f, 0.8f, 1.0f, 1.0f); // 하늘색
+        //}
+        //else if (DepthIndex == 2)
+        //{
+        //    NodeColor = FVector4(1.0f, 0.6f, 0.1f, 1.0f); // 주황색
+        //}
+        const int32 DepthIndex = Current.DepthLevel % 8;
+        FVector4 NodeColor = LevelColors[DepthIndex];
+        // AABB 박스 라인 그리기
+        TArray<FVector> LineStarts;
+        TArray<FVector> LineEnds;
+        TArray<FVector4> LineColors;
+        CreateLineDataFromAABB(CurrentNode->Bounds.Min, CurrentNode->Bounds.Max, LineStarts, LineEnds, LineColors, NodeColor);
+        InRenderer->AddLines(LineStarts, LineEnds, LineColors);
+
+        // 자식 노드 탐색
+        if (CurrentNode->Children[0])
         {
-            for (int i = 7; i >= 0; --i)
+            for (int32 ChildIdx = 7; ChildIdx >= 0; --ChildIdx)
             {
-                if (N->Children[i]) st.push_back({ N->Children[i], it.D + 1 });
+                if (CurrentNode->Children[ChildIdx])
+                {
+                    Stack.Add({ CurrentNode->Children[ChildIdx], Current.DepthLevel + 1 });
+                }
             }
         }
     }

@@ -7,7 +7,7 @@ class FOctree
 {
 public:
     // 생성자/소멸자
-    FOctree(const FBound& InBounds, int InDepth = 0, int InMaxDepth = 5, int InMaxObjects = 32);
+    FOctree(const FBound& InBounds, int InDepth = 0, int InMaxDepth = 5, int InMaxObjects = 15);
     ~FOctree();
 
 	// 초기화
@@ -30,7 +30,7 @@ public:
     void Update(AActor* InActor);
 
     // Debug draw
-    void DebugDraw(URenderer* Renderer) const;
+    void DebugDraw(URenderer* InRenderer) const;
 
     // Debug/Stats
     int TotalNodeCount() const;
