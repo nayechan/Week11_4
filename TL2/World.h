@@ -69,6 +69,10 @@ public:
 
     template<class T>
     T* SpawnActor(const FTransform& Transform);
+    
+    // 벌크 액터 스폰 - 대량 액터 생성 시 사용
+    template<class T>
+    TArray<T*> BulkSpawnActors(const TArray<FTransform>& Transforms);
 
     bool DestroyActor(AActor* Actor);
 

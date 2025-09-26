@@ -755,10 +755,13 @@ void UWorld::LoadScene(const FString& SceneName)
 	AddUUID(GizmoActor); // Gizmo는 EngineActors에 안 들어갈 수 있으므로 명시 추가
 
 	uint32 MaxAssignedUUID = 0;
+	// 벌크 삽입을 위해 액터들을 먼저 모두 생성
+	TArray<AActor*> SpawnedActors;
+	SpawnedActors.reserve(Primitives.size());
 
 	for (const FPrimitiveData& Primitive : Primitives)
 	{
-		// 스폰 시 필요한 초기 트랜스폼은 그대로 넘김
+		// 스폰 시 필요한 초기 트랜스포은 그대로 넘김
 		AStaticMeshActor* StaticMeshActor = SpawnActor<AStaticMeshActor>(
 			FTransform(Primitive.Location,
 				SceneRotUtil::QuatFromEulerZYX_Deg(Primitive.Rotation),
@@ -818,8 +821,16 @@ void UWorld::LoadScene(const FString& SceneName)
 			}
 			StaticMeshActor->SetName(GenerateUniqueActorName(BaseName));
 		}
-		//Partition Insert
-		OnActorSpawned(StaticMeshActor);
+		
+		// 벌크 삽입을 위해 목록에 추가
+		SpawnedActors.push_back(StaticMeshActor);
+	}
+	
+	// 모든 액터를 한 번에 벌크 등록 하여 성능 최적화
+	if (PartitionManager && !SpawnedActors.empty())
+	{
+		UE_LOG("LoadScene: Using bulk registration for %zu actors\r\n", SpawnedActors.size());
+		PartitionManager->BulkRegister(SpawnedActors);
 	}
 
 	// 3) 최종 보정: 전역 카운터는 절대 하향 금지 + 현재 사용된 최대값 이후로 설정

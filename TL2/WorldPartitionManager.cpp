@@ -50,7 +50,7 @@ void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
     FOctree* Tree = World->GetOctree();
     if (!Tree) return;
     
-    // 읡터와 바운드를 한 번에 수집
+    // 읽어와 바운드를 한 번에 수집
     TArray<std::pair<AActor*, FBound>> ActorsAndBounds;
     ActorsAndBounds.reserve(Actors.size());
     
