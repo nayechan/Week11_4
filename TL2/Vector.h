@@ -249,6 +249,14 @@ struct FVector
     {
         return FVector(1.f, 1.f, 1.f);
     }
+    
+    // 영 벡터 체크
+    bool IsZero() const
+    {
+        return std::fabs(X) < KINDA_SMALL_NUMBER && 
+               std::fabs(Y) < KINDA_SMALL_NUMBER && 
+               std::fabs(Z) < KINDA_SMALL_NUMBER;
+    }
 };
 
 // ─────────────────────────────
@@ -460,6 +468,25 @@ FVector GetUpVector() const
                 A.W + (End.W - A.W) * T);
         Quat.Normalize();
         return Quat;
+    }
+
+    // 비교 연산자
+    bool operator==(const FQuat& Q) const
+    {
+        return std::fabs(X - Q.X) < KINDA_SMALL_NUMBER &&
+               std::fabs(Y - Q.Y) < KINDA_SMALL_NUMBER &&
+               std::fabs(Z - Q.Z) < KINDA_SMALL_NUMBER &&
+               std::fabs(W - Q.W) < KINDA_SMALL_NUMBER;
+    }
+    bool operator!=(const FQuat& Q) const { return !(*this == Q); }
+    
+    // 단위 쿼터니온 체크
+    bool IsIdentity() const
+    {
+        return std::fabs(X) < KINDA_SMALL_NUMBER &&
+               std::fabs(Y) < KINDA_SMALL_NUMBER &&
+               std::fabs(Z) < KINDA_SMALL_NUMBER &&
+               std::fabs(W - 1.0f) < KINDA_SMALL_NUMBER;
     }
 
     // 선언: 행렬 변환
@@ -688,6 +715,15 @@ struct FTransform
         FQuat    TRotation = FQuat::Slerp(A.Rotation, B.Rotation, T);
         return FTransform(TPosition, TRotation, TScale);
     }
+    
+    // 비교 연산자
+    bool operator==(const FTransform& Other) const
+    {
+        return Translation == Other.Translation &&
+               Rotation == Other.Rotation &&
+               Scale3D == Other.Scale3D;
+    }
+    bool operator!=(const FTransform& Other) const { return !(*this == Other); }
 };
 
 // ─────────────────────────────

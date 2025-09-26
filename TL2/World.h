@@ -70,14 +70,11 @@ public:
     template<class T>
     T* SpawnActor(const FTransform& Transform);
 
-    void AddActor(AActor* Actor);
-
     bool DestroyActor(AActor* Actor);
 
-    // Octree hooks
+    // Partial hooks
     void OnActorSpawned(AActor* Actor);
     void OnActorDestroyed(AActor* Actor);
-    void UpdateActorInOctree(AActor* Actor, const FBound& OldBounds, const FBound& NewBounds);
     FOctree* GetOctree() const { return SceneOctree; }
 
     void CreateNewScene();

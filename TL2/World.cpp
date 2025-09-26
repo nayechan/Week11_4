@@ -146,8 +146,8 @@ void UWorld::Initialize()
 
 void UWorld::InitializeMainCamera()
 {
-
 	MainCameraActor = NewObject<ACameraActor>();
+	MainCameraActor->SetWorld(this);
 
 	DebugRTTI_UObject(MainCameraActor, "MainCameraActor");
 	UIManager.SetCamera(MainCameraActor);
@@ -158,8 +158,8 @@ void UWorld::InitializeMainCamera()
 void UWorld::InitializeGrid()
 {
 	GridActor = NewObject<AGridActor>();
+	GridActor->SetWorld(this);
 	GridActor->Initialize();
-
 
 	// Add GridActor to Actors array so it gets rendered in the main loop
 	EngineActors.push_back(GridActor);
@@ -471,22 +471,6 @@ FString UWorld::GenerateUniqueActorName(const FString& ActorType)
 	return UniqueName;
 }
 
-void UWorld::AddActor(AActor* Actor)
-{
-	Actors.Add(Actor);
-	// Register primitive components with partition manager if available
-	if (PartitionManager && Actor)
-	{
-		for (USceneComponent* Comp : Actor->GetComponents())
-		{
-			if (auto* Prim = Cast<UPrimitiveComponent>(Comp))
-			{
-				PartitionManager->Register(Prim);
-			}
-		}
-	}
-}
-
 //
 // 액터 제거
 //
@@ -515,18 +499,6 @@ bool UWorld::DestroyActor(AActor* Actor)
 
 		Actors.erase(it);
 
-		// Before deleting, unregister primitive components from partition manager
-		if (PartitionManager)
-		{
-			for (USceneComponent* Comp : Actor->GetComponents())
-			{
-				if (auto* Prim = Cast<UPrimitiveComponent>(Comp))
-				{
-					PartitionManager->Unregister(Prim);
-				}
-			}
-		}
-
 		// 메모리 해제
 		ObjectFactory::DeleteObject(Actor);
 
@@ -541,29 +513,18 @@ bool UWorld::DestroyActor(AActor* Actor)
 
 void UWorld::OnActorSpawned(AActor* Actor)
 {
-    if (!Actor) return;
-    if (!SceneOctree) return;
-    FBound B = Actor->GetBounds();
-    if (SceneOctree->Contains(B))
-    {
-        SceneOctree->Insert(Actor, B);
-    }
+	if (PartitionManager && Actor)
+	{
+		PartitionManager->Register(Actor);
+	}
 }
 
 void UWorld::OnActorDestroyed(AActor* Actor)
 {
-    if (!Actor) return;
-    if (!SceneOctree) return;
-    FBound B = Actor->GetBounds();
-    SceneOctree->Remove(Actor, B);
-}
-
-void UWorld::UpdateActorInOctree(AActor* Actor, const FBound& OldBounds, const FBound& NewBounds)
-{
-
-    if (!Actor) return;
-    if (!SceneOctree) return;
-    SceneOctree->Update(Actor, OldBounds, NewBounds);
+	if (PartitionManager && Actor)
+	{
+		PartitionManager->Unregister(Actor);
+	}
 }
 
 inline FString ToObjFileName(const FString& TypeName)
@@ -614,6 +575,11 @@ void UWorld::CreateNewScene()
 	if (SceneOctree)
 	{
 		SceneOctree->Clear();
+	}
+
+	if (PartitionManager)
+	{
+		PartitionManager->Clear();
 	}
 }
 
@@ -852,6 +818,8 @@ void UWorld::LoadScene(const FString& SceneName)
 			}
 			StaticMeshActor->SetName(GenerateUniqueActorName(BaseName));
 		}
+		//Partition Insert
+		OnActorSpawned(StaticMeshActor);
 	}
 
 	// 3) 최종 보정: 전역 카운터는 절대 하향 금지 + 현재 사용된 최대값 이후로 설정
