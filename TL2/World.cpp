@@ -327,10 +327,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	FVector rgb(1.0f, 1.0f, 1.0f);
 
 
-
 	// ============ Culling Logic Dispatch ========= //
 	//TArray<AActor*> CulledActors = PartitionManager.Query(Frustum Data); 
-
 
 
 	// === Begin Line Batch for all actors ===

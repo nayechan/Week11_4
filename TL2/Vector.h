@@ -597,6 +597,25 @@ struct alignas(16) FMatrix
         return rot;
     }
 
+    // 비교 연산자
+    bool operator==(const FMatrix& Other) const
+    {
+        for (uint8 i = 0; i < 4; ++i)
+        {
+            for (uint8 j = 0; j < 4; ++j)
+            {
+                if (std::fabs(M[i][j] - Other.M[i][j]) >= KINDA_SMALL_NUMBER)
+                    return false;
+            }
+        }
+        return true;
+    }
+    
+    bool operator!=(const FMatrix& Other) const
+    {
+        return !(*this == Other);
+    }
+
     // View/Proj (L H)
     static FMatrix LookAtLH(const FVector& Eye, const FVector& At, const FVector& Up);
     static FMatrix PerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf);
