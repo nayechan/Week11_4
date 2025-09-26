@@ -9,9 +9,9 @@ class UCameraComponent;
 struct Plane
 {
     // unit vector
-    FVector Normal = { 0.f, 1.f, 0.f };
+    FVector4 Normal = { 0.f, 1.f, 0.f , 0.f };
 
-    // 원점으로부터 평면까지의 거리이다.
+    // 평면이 원점에서 법선 N 방향으로 얼마만큼 떨어져 있는지
     float Distance = 0.f;
 };
 
@@ -27,4 +27,4 @@ struct Frustum
 
 Frustum CreateFrustumFromCamera(const UCameraComponent& Camera, float OverrideAspect = -1.0f);
 bool IsAABBVisible(const Frustum& Frustum, const FBound& Bound);
-bool Intersects(const Plane& P, const FVector& Center, const FVector& Extents);
+bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents);

@@ -269,6 +269,21 @@ struct FVector4
         : X(InX), Y(InY), Z(InZ), W(InW)
     {
     }
+    FVector4 operator+(const FVector4& V) const { return FVector4(X + V.X, Y + V.Y, Z + V.Z, W + V.W); }
+    FVector4 operator-(const FVector4& V) const { return FVector4(X - V.X, Y - V.Y, Z - V.Z, W - V.W); }
+    FVector4 operator*(float S)        const { return FVector4(X * S, Y * S, Z * S, W * S); }
+    FVector4 operator/(float S)        const { return FVector4(X / S, Y / S, Z / S, W / S); }
+    FVector4 operator+(float S)        const { return FVector4(X + S, Y + S, Z + S, W + S); }
+    FVector4 operator-(float S)        const { return FVector4(X - S, Y - S, Z - S, W - S); }
+    FVector4 operator-()               const { return FVector4(-X, -Y, -Z, -W); }
+
+    FVector4& operator+=(const FVector4& V) { X += V.X; Y += V.Y; Z += V.Z, W += V.W; return *this; }
+    FVector4& operator-=(const FVector4& V) { X -= V.X; Y -= V.Y; Z -= V.Z, W += V.W; return *this; }
+    FVector4& operator*=(float S) { X *= S; Y *= S; Z *= S, W *= S; return *this; }
+    FVector4& operator/=(float S) { X /= S; Y /= S; Z /= S, W *= S; return *this; }
+    FVector4& operator+=(float S) { X += S; Y += S; Z += S, W *= S; return *this; }
+    FVector4& operator-=(float S) { X -= S; Y -= S; Z -= S, W *= S; return *this; }
+
 
     FVector4 ComponentMin(const FVector4& B)
     {
@@ -288,6 +303,7 @@ struct FVector4
             (W > B.W) ? W : B.W
         );
     }
+
 };
 
 // ─────────────────────────────
