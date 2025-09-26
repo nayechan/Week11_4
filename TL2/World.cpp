@@ -14,6 +14,7 @@
 #include "StaticMesh.h"
 #include "ObjManager.h"
 #include "SceneRotationUtils.h"
+#include "Frustum.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
@@ -279,15 +280,27 @@ void UWorld::RenderSingleViewport()
 	Renderer->EndFrame();
 }
 
+
 void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 {
+	int32 TotalStaticMeshes = 0;
+	int32 CulledStaticMeshes = 0;
+
 	// 뷰포트의 실제 크기로 aspect ratio 계산
 	float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
 	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
 
 	FMatrix ViewMatrix = Camera->GetViewMatrix();
 	FMatrix ProjectionMatrix = Camera->GetProjectionMatrix(ViewportAspectRatio, Viewport);
+
+	Frustum ViewFrustum;
+	UCameraComponent* CamComp = nullptr;
+	if (CamComp = Camera->GetCameraComponent())
+	{
+		ViewFrustum = CreateFrustumFromCamera(*CamComp, ViewportAspectRatio);
+	}
 	if (!Renderer) return;
+
 	FVector rgb(1.0f, 1.0f, 1.0f);
 
 	// === Begin Line Batch for all actors ===
@@ -307,6 +320,23 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
 				continue;
 
+			if (CamComp)
+			{
+				if (AStaticMeshActor* MeshActor = Cast<AStaticMeshActor>(Actor))
+				{
+					if (UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(MeshActor->CollisionComponent))
+					{
+						++TotalStaticMeshes; // 컬링 전 증가
+						const FBound Bound = Box->GetWorldBound();
+						if (!IsAABBVisible(ViewFrustum, Bound))
+						{
+							++CulledStaticMeshes;
+							continue;
+						}
+					}
+				}
+
+			}
 			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
 			/*if (bIsSelected)
 				Renderer->OMSetDepthStencilState(EComparisonFunc::Always);*/ // 이렇게 하면, 같은 메시에 속한 정점끼리도 뒤에 있는게 앞에 그려지는 경우가 발생해, 이상하게 렌더링 됨.
@@ -365,10 +395,10 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		}
 		Renderer->OMSetBlendState(false);
 	}
-
+	UE_LOG("FrustumCulling: StaticMeshes Drawn=%d, Culled=%d\r\n",
+		TotalStaticMeshes - CulledStaticMeshes,
+		CulledStaticMeshes);
 	Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
-
-
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
 
 }
