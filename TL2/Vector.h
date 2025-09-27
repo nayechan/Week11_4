@@ -988,12 +988,12 @@ inline FMatrix MakeRotationRowMajorFromQuat(const FQuat& Q)
     const float XY = Q.X * Q.Y * S, XZ = Q.X * Q.Z * S, YZ = Q.Y * Q.Z * S;
     const float WX = Q.W * Q.X * S, WY = Q.W * Q.Y * S, WZ = Q.W * Q.Z * S;
 
-    FMatrix M = FMatrix::Identity();
-    // row-major + 행벡터용 회전 블록
-    M.M[0][0] = 1.0f - (YY + ZZ); M.M[0][1] = XY + WZ;          M.M[0][2] = XZ - WY;            M.M[0][3] = 0.0f;
-    M.M[1][0] = XY - WZ;          M.M[1][1] = 1.0f - (XX + ZZ); M.M[1][2] = YZ + WX;            M.M[1][3] = 0.0f;
-    M.M[2][0] = XZ + WY;          M.M[2][1] = YZ - WX;          M.M[2][2] = 1.0f - (XX + YY);   M.M[2][3] = 0.0f;
-    // 마지막 행은 호출부에서 채움(평행이동 등)
+    FMatrix M;
+    M.Rows[0] = _mm_set_ps(0.0f, XZ - WY, XY + WZ, 1.0f - (YY + ZZ));
+    M.Rows[1] = _mm_set_ps(0.0f, YZ + WX, 1.0f - (XX + ZZ), XY - WZ);
+    M.Rows[2] = _mm_set_ps(0.0f, 1.0f - (XX + YY), YZ - WX, XZ + WY);
+    M.Rows[3] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
+    
     return M;
 }
 
