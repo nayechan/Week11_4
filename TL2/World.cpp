@@ -340,24 +340,26 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		const int numMeshActors = MeshActors.size();
 		for (int i = 0; i < numMeshActors; i += 8)
 		{
-			FBound bounds[8];
+			FAlignedBound aligned_bounds[8];
 			int batch_size = std::min(8, numMeshActors - i);
 
-			// Prepare batch of bounds
+			// Prepare batch of aligned bounds using MakePoint4, as you suggested.
 			for (int j = 0; j < batch_size; ++j)
 			{
 				if (UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(MeshActors[i + j]->CollisionComponent))
 				{
-					bounds[j] = Box->GetWorldBound();
+					const FBound& bound = Box->GetWorldBound();
+					aligned_bounds[j].Min = MakePoint4(bound.Min);
+					aligned_bounds[j].Max = MakePoint4(bound.Max);
 				}
 				else
 				{
-					bounds[j] = FBound(); // Default bound if no component
+					aligned_bounds[j] = { FVector4(0,0,0,1), FVector4(0,0,0,1) }; // Default bound
 				}
 			}
 
-			// Cull 8 AABBs at once
-			uint8_t visibility_mask = AreAABBsVisible_8_AVX(ViewFrustum, bounds);
+			// Cull 8 AABBs at once with the aligned data
+			uint8_t visibility_mask = AreAABBsVisible_8_AVX(ViewFrustum, aligned_bounds);
 
 			// Render only visible actors from the batch
 			for (int j = 0; j < batch_size; ++j)

@@ -7,8 +7,7 @@
 #include <immintrin.h> // For SSE, AVX, FMA instructions
 
 
-inline FVector4 MakePoint4(const FVector& P) { return FVector4(P.X, P.Y, P.Z, 1.0f); }
-inline FVector4 MakeDir4(const FVector& D) { return FVector4(D.X, D.Y, D.Z, 0.0f); }
+
 
 inline float     Dot3(const FVector4& A, const FVector4& B)
 {
@@ -296,7 +295,7 @@ bool IsAABBVisible(const Frustum& F, const FBound& B)
 */
 
 // AVX-optimized culling for 8 AABBs
-uint8_t AreAABBsVisible_8_AVX(const Frustum& Frustum, const FBound Bounds[8])
+uint8_t AreAABBsVisible_8_AVX(const Frustum& Frustum, const FAlignedBound Bounds[8])
 {
     // This function performs frustum culling for 8 AABBs simultaneously using AVX2.
     // It works by testing all 8 boxes against each of the 6 frustum planes.

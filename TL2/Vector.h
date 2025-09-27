@@ -1087,3 +1087,7 @@ inline FTransform FTransform::Inverse() const
     Out.Translation = InvTrans;
     return Out;
 }
+
+// Helper functions to convert FVector to FVector4, useful for SIMD padding.
+inline FVector4 MakePoint4(const FVector& P) { return FVector4(P.X, P.Y, P.Z, 1.0f); }
+inline FVector4 MakeDir4(const FVector& D) { return FVector4(D.X, D.Y, D.Z, 0.0f); }
