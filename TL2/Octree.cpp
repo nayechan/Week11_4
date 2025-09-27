@@ -26,8 +26,9 @@ FOctree::~FOctree()
 // 런타임 중에 옥트리 초기화 해야할 때 !
 void FOctree::Clear()  
 {
-	// 액터 배열 정리
-	Actors.Empty();
+    // 액터 배열 정리
+    Actors.Empty();
+    ActorBoundsCache.Empty();
 
 	// 자식들도 재귀적으로 정리
 	for (int i = 0; i < 8; i++)
@@ -47,9 +48,11 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
     
     // 모든 액터를 대상 영역에 바로 추가
     Actors.reserve(Actors.size() + ActorsAndBounds.size());
+    ActorBoundsCache.reserve(ActorBoundsCache.size() + ActorsAndBounds.size());
     for (const auto& ActorBoundPair : ActorsAndBounds)
     {
         Actors.push_back(ActorBoundPair.first);
+        ActorBoundsCache.push_back(ActorBoundPair.second);
         // Actor ->  Bound 캐싱 , Update 시 빠르게 쓰기 위해서이다. 
         ActorLastBounds[ActorBoundPair.first] = ActorBoundPair.second;
     }
@@ -69,18 +72,18 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
         while (It != Actors.end())
         {
             AActor* ActorPtr = *It;
-            auto CachedIt = ActorLastBounds.find(ActorPtr);
-            FBound Box = (CachedIt != ActorLastBounds.end()) ? CachedIt->second : ActorPtr->GetBounds();
+            size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
+            FBound Box = ActorBoundsCache[idx];
             
             int OptimalOctant = GetOctantIndex(Box);
             if (CanFitInOctant(Box, OptimalOctant))
             {
                 OctantGroups[OptimalOctant].push_back({ActorPtr, Box});
                 It = Actors.erase(It);
+                ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
             }
             else
             {
-                // 다른 옥탄트 처리
                 bool bMoved = false;
                 for (int i = 0; i < 8; i++)
                 {
@@ -88,16 +91,15 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
                     {
                         OctantGroups[i].push_back({ActorPtr, Box});
                         It = Actors.erase(It);
+                        ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
                         bMoved = true;
                         break;
                     }
                 }
-                // 부모 노드에 남겨두고 넘어가는 것이다. 
                 if (!bMoved) ++It;
             }
         }
         
-        // 옥탄트별로 재귀 벌크 삽입
         for (int i = 0; i < 8; i++)
         {
             if (!OctantGroups[i].empty())
@@ -136,6 +138,7 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
     // 자식에 못 들어가면 현재 노드에 저장
     // 자식에 넣지 못하는 객체를 가질 수 도 있다. 
     Actors.push_back(InActor);
+    ActorBoundsCache.push_back(ActorBounds);
 
     // 분할 조건 체크
     // 현재 노드에 들어있는 객체 수가 Max초과 , 최대 깊이 보다 얕은 레벨이면 스플릿 
@@ -151,9 +154,8 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
         while (It != Actors.end())
         {
             AActor* ActorPtr = *It;
-            // 캐시된 바운드 사용 (이미 ActorLastBounds에 저장됨)
-            auto CachedIt = ActorLastBounds.find(ActorPtr);
-            FBound Box = (CachedIt != ActorLastBounds.end()) ? CachedIt->second : ActorPtr->GetBounds();
+            size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
+            FBound Box = ActorBoundsCache[idx];
 
             bool bMoved = false;
             // 최적 옥탄트부터 시도
@@ -162,6 +164,7 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
             {
                 Children[OptimalOctant]->Insert(ActorPtr, Box);
                 It = Actors.erase(It);
+                ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
                 bMoved = true;
             }
             else
@@ -173,6 +176,7 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
                     {
                         Children[i]->Insert(ActorPtr, Box);
                         It = Actors.erase(It);
+                        ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
                         bMoved = true;
                         break;
                     }
@@ -194,7 +198,10 @@ bool FOctree::Remove(AActor* InActor, const FBound& ActorBounds)
     auto It = std::find(Actors.begin(), Actors.end(), InActor);
     if (It != Actors.end())
     {
+        size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
         Actors.erase(It);
+        if (idx < ActorBoundsCache.size())
+            ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
         // 캐시 제거
         ActorLastBounds.erase(InActor);
         return true;
@@ -408,31 +415,151 @@ static void CreateLineDataFromAABB(
     Start.Add(v3); End.Add(v7); Color.Add(LineColor);
 }
 
-void FOctree::QueryRayOrdered(const FRay& Ray, TArray<std::pair<AActor*, float>>& OutCandidates) 
+void FOctree::QueryRayOrdered(const FRay& Ray, TArray<std::pair<AActor*, float>>& OutCandidates)
 {
+    float rootTMin, rootTMax;
+    if (!Bounds.RayAABB_IntersectT(Ray, rootTMin, rootTMax))
+        return;
+
+    struct FNodeEntry
+    {
+        FOctree* Node;
+        float TMin;
+    };
+
+    auto Cmp = [](const FNodeEntry& A, const FNodeEntry& B)
+    {
+        return A.TMin > B.TMin; // min-heap
+    };
+
+    std::priority_queue<FNodeEntry, std::vector<FNodeEntry>, decltype(Cmp)> Heap(Cmp);
+    Heap.push({ this, rootTMin });
+
+    // Amortize growth; user is okay with memory usage
+    if (OutCandidates.capacity() < OutCandidates.size() + 64)
+        OutCandidates.Reserve(static_cast<int32>(OutCandidates.size() + 64));
+
+    while (!Heap.empty())
+    {
+        FNodeEntry Entry = Heap.top();
+        Heap.pop();
+        FOctree* Node = Entry.Node;
+        if (!Node)
+            continue;
+
+        // Ensure capacity to append this node's candidates without frequent reallocations
+        if (OutCandidates.capacity() < OutCandidates.size() + Node->Actors.size())
+        {
+            OutCandidates.Reserve(static_cast<int32>(OutCandidates.size() + Node->Actors.size() + 32));
+        }
+
+        // Process local actors first (use contiguous cache to avoid map lookup)
+        for (size_t i = 0; i < Node->Actors.size(); ++i)
+        {
+            AActor* Actor = Node->Actors[i];
+            if (!Actor) continue;
+            FBound box = (i < Node->ActorBoundsCache.size())
+                                 ? Node->ActorBoundsCache[i]
+                                 : (Node->ActorLastBounds.count(Actor) ? Node->ActorLastBounds[Actor] : Actor->GetBounds());
+            float tmin, tmax;
+            if (box.RayAABB_IntersectT(Ray, tmin, tmax))
+            {
+                OutCandidates.Add({ Actor, tmin });
+            }
+        }
+
+        // Push intersecting children ordered by tmin using the heap
+        if (Node->Children[0])
+        {
+            for (int i = 0; i < 8; ++i)
+            {
+                FOctree* Child = Node->Children[i];
+                if (!Child) continue;
+                float cTMin, cTMax;
+                if (Child->Bounds.RayAABB_IntersectT(Ray, cTMin, cTMax))
+                {
+                    Heap.push({ Child, cTMin });
+                }
+            }
+        }
+    }
+}
+
+struct FNodeEntry {
+    FOctree* Node;
+    float TMin;
+    bool operator<(const FNodeEntry& Other) const { return TMin > Other.TMin; } // min-heap
+};
+
+void FOctree::QueryRayClosest(const FRay& Ray, AActor*& OutActor, float& OutBestT)
+{
+    OutActor = nullptr;
+    OutBestT = std::numeric_limits<float>::infinity();
+
     float nodeTMin, nodeTMax;
     if (!Bounds.RayAABB_IntersectT(Ray, nodeTMin, nodeTMax))
         return;
 
-    // Check local actors with cached bounds if possible
-    for (AActor* Actor : Actors)
+    // Best-first traversal of nodes by entry distance
+    std::priority_queue<FNodeEntry> heap;
+    heap.push({ this, nodeTMin });
+
+    const float Epsilon = 1e-3f;
+
+    while (!heap.empty())
     {
-        if (!Actor) continue;
-        auto it = ActorLastBounds.find(Actor);
-        FBound box = (it != ActorLastBounds.end()) ? it->second : Actor->GetBounds();
-        float tmin, tmax;
-        if (box.RayAABB_IntersectT(Ray, tmin, tmax))
+        FNodeEntry e = heap.top();
+        heap.pop();
+
+        // If this node is further than the current best precise hit, we can terminate
+        if (OutActor && e.TMin > OutBestT + Epsilon)
+            break;
+
+        FOctree* node = e.Node;
+        if (!node) continue;
+
+        // Test local actors (coarse using AABB, then precise)
+        for (size_t i = 0; i < node->Actors.size(); ++i)
         {
-            OutCandidates.Add({ Actor, tmin });
-        }
-    }
-    if (Children[0])
-    {
-        for (int i = 0; i < 8; ++i)
-        {
-            if (Children[i])
+            AActor* actor = node->Actors[i];
+            if (!actor) continue;
+            FBound box = (i < node->ActorBoundsCache.size())
+                                ? node->ActorBoundsCache[i]
+                                : (node->ActorLastBounds.count(actor) ? node->ActorLastBounds[actor] : actor->GetBounds());
+
+            float tmin, tmax;
+            if (!box.RayAABB_IntersectT(Ray, tmin, tmax))
+                continue;
+
+            // Early prune by current best precise distance
+            if (OutActor && tmin > OutBestT + Epsilon)
+                continue;
+
+            float hitDistance;
+            if (CPickingSystem::CheckActorPicking(actor, Ray, hitDistance))
             {
-                Children[i]->QueryRayOrdered(Ray, OutCandidates);
+                if (hitDistance < OutBestT)
+                {
+                    OutBestT = hitDistance;
+                    OutActor = actor;
+                }
+            }
+        }
+
+        // Visit children likely to be hit before current best
+        if (node->Children[0])
+        {
+            for (int i = 0; i < 8; ++i)
+            {
+                FOctree* child = node->Children[i];
+                if (!child) continue;
+                float cmin, cmax;
+                if (child->Bounds.RayAABB_IntersectT(Ray, cmin, cmax))
+                {
+                    // If we already have a precise hit, we can skip far children
+                    if (!OutActor || cmin <= OutBestT + Epsilon)
+                        heap.push({ child, cmin });
+                }
             }
         }
     }

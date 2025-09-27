@@ -38,6 +38,7 @@ public:
     void Update(float DeltaTime, uint32 budgetItems = 256);
 
     void RayQueryOrdered(FRay InRay, OUT TArray<std::pair<AActor*, float>>& Candidates);
+    void RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT float& OutBestT);
     void Query(FBound InBound, OUT TArray<AActor*>& Actors);
 
 	/** 옥트리 게터 */

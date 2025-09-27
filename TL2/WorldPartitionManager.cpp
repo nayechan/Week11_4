@@ -23,7 +23,7 @@ UWorldPartitionManager::UWorldPartitionManager()
 {
 	//FBound WorldBounds(FVector(-50, -50, -50), FVector(50, 50, 50));
 	FBound WorldBounds(FVector(-30, -30, -10), FVector(25, 25, 25));
-	SceneOctree = new FOctree(WorldBounds, 0, 8, 8);
+	SceneOctree = new FOctree(WorldBounds, 0, 8, 10);
 	// BVH도 동일 월드 바운드로 초기화 (더 깊고 작은 리프 설정)
 	BVH = new FBVHierachy(FBound(), 0, 12, 8);
 }
@@ -129,6 +129,16 @@ void UWorldPartitionManager::RayQueryOrdered(FRay InRay, OUT TArray<std::pair<AA
     if (SceneOctree)
     {
         SceneOctree->QueryRayOrdered(InRay, Candidates);
+    }
+}
+
+void UWorldPartitionManager::RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT float& OutBestT)
+{
+    OutActor = nullptr;
+    OutBestT = std::numeric_limits<float>::infinity();
+    if (SceneOctree)
+    {
+        SceneOctree->QueryRayClosest(InRay, OutActor, OutBestT);
     }
 }
 

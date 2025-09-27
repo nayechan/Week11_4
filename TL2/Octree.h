@@ -41,6 +41,8 @@ public:
     void Remove(AActor* InActor);
     void Update(AActor* InActor);
 
+    void QueryRayClosest(const FRay& Ray, AActor*& OutActor, float& OutBestT);
+
     // Debug draw
     void DebugDraw(URenderer* InRenderer) const;
 
@@ -72,6 +74,8 @@ private:
 	FOctree* Children[8]; // 8분할 
 
     TMap<AActor*, FBound> ActorLastBounds;
+    // Per-node contiguous cache aligned with Actors to avoid TMap lookups during queries
+    TArray<FBound> ActorBoundsCache;
     
     // 메모리 풀링을 위한 정적 스택
     static TArray<FOctree*> NodePool;

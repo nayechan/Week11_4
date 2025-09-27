@@ -45,7 +45,7 @@ struct FBound
 	FBound CreateOctant(int i) const
 	{
 		FVector Center = GetCenter();
-		FVector Extent = GetExtent() * 0.5f; // 자식은 부모의 절반 크기
+		FVector Extent = GetExtent() * 0.5f; 
 
 		FVector NewMin, NewMax;
 

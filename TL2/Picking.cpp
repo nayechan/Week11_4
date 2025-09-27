@@ -369,38 +369,11 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
     // 전체 Picking 횟수 누적
     ++TotalPickCount;
 
-    // 옥트리에서 후보를 거리순(tmin)으로 수집
-    TArray<std::pair<AActor*, float>> Candidates;
-    PartitionManager->RayQueryOrdered(ray, Candidates);
-    UE_LOG("HIT ACTORS NUM : %d", Candidates.Num());
-    // 가까운 순으로 정렬
-    std::sort(Candidates.begin(), Candidates.end(), [](const auto& a, const auto& b){ return a.second < b.second; });
-
-    // 가까운 것부터 정밀 충돌, 충분히 멀어지면 조기 중단
-    const float Epsilon = 1e-3f;
+    // 베스트 퍼스트 탐색으로 가장 가까운 것을 직접 구한다
     AActor* pickedActor = nullptr;
-    for (size_t i = 0; i < Candidates.size(); ++i)
-    {
-        AActor* Actor = Candidates[i].first;
-        float boxTMin = Candidates[i].second;
-        if (!Actor) continue;
-        if (Actor->GetActorHiddenInGame()) continue;
-
-        // 이미 더 가까운 정밀 히트가 있으면 중단
-        if (pickedActor && boxTMin > pickedT + Epsilon)
-            break;
-
-        float hitDistance;
-        if (CheckActorPicking(Actor, ray, hitDistance))
-        {
-            if (hitDistance < pickedT)
-            {
-                pickedT = hitDistance;
-                pickedIndex = static_cast<int>(i);
-                pickedActor = Actor;
-            }
-        }
-    }
+    PartitionManager->RayQueryClosest(ray, pickedActor, pickedT);
+    int candidatesCount = 0; // 유지: 이전 로깅 호환용
+    UE_LOG("HIT ACTORS NUM : %d", candidatesCount);
     uint64 LastPickTime = pickCounter.Finish();
     double Milliseconds = ((double)LastPickTime * FPlatformTime::GetSecondsPerCycle()) * 1000.0f;
 
