@@ -47,7 +47,7 @@ private:
     // 대량 빌더(가장 긴 축 중앙값 분할)
     static FBVHierachy* Build(const TArray<std::pair<AActor*, FBound>>& Items, int InMaxDepth = 8, int InMaxObjects = 16);
     // 빌더 헬퍼: 아이템과 재귀 빌드
-    struct FBuildItem { AActor* Actor; FBound Box; FVector Centroid; };
+    struct FBuildItem { AActor* Actor; FBound Box; FVector Center; };
     static FBVHierachy* BuildRecursive(TArray<FBuildItem>& Items, int Depth, int InMaxDepth, int InMaxObjects);
 
 private:

@@ -634,6 +634,50 @@ struct alignas(16) FMatrix
         Out.M[3][0] = invT.X; Out.M[3][1] = invT.Y; Out.M[3][2] = invT.Z; Out.M[3][3] = 1.0f;
         return Out;
     }
+    // 회전행렬 
+    FMatrix InverseAffineFast() const
+    {
+        // 상단 3x3
+        const float A00 = M[0][0], A01 = M[0][1], A02 = M[0][2];
+        const float A10 = M[1][0], A11 = M[1][1], A12 = M[1][2];
+        const float A20 = M[2][0], A21 = M[2][1], A22 = M[2][2];
+
+        // 오르소노멀(순수 회전) 빠른 체크: 행(또는 열) 직교 & 단위길이
+        auto dot = [](float x0, float y0, float z0, float x1, float y1, float z1) {
+            return x0 * x1 + y0 * y1 + z0 * z1;
+            };
+        auto len2 = [&](float x, float y, float z) { return dot(x, y, z, x, y, z); };
+
+        const float e = 1e-4f; // 허용 오차
+        const bool ortho =
+            std::fabs(len2(A00, A01, A02) - 1.f) < e &&
+            std::fabs(len2(A10, A11, A12) - 1.f) < e &&
+            std::fabs(len2(A20, A21, A22) - 1.f) < e &&
+            std::fabs(dot(A00, A01, A02, A10, A11, A12)) < e &&
+            std::fabs(dot(A00, A01, A02, A20, A21, A22)) < e &&
+            std::fabs(dot(A10, A11, A12, A20, A21, A22)) < e;
+
+        FMatrix Out = Identity();
+        const FVector t(M[3][0], M[3][1], M[3][2]);
+
+        if (ortho)
+        {
+            // R^T
+            Out.M[0][0] = A00; Out.M[0][1] = A10; Out.M[0][2] = A20;
+            Out.M[1][0] = A01; Out.M[1][1] = A11; Out.M[1][2] = A21;
+            Out.M[2][0] = A02; Out.M[2][1] = A12; Out.M[2][2] = A22;
+
+            // invT = -t * R^T  (행벡터 기준)
+            Out.M[3][0] = -(t.X * Out.M[0][0] + t.Y * Out.M[1][0] + t.Z * Out.M[2][0]);
+            Out.M[3][1] = -(t.X * Out.M[0][1] + t.Y * Out.M[1][1] + t.Z * Out.M[2][1]);
+            Out.M[3][2] = -(t.X * Out.M[0][2] + t.Y * Out.M[1][2] + t.Z * Out.M[2][2]);
+            Out.M[3][3] = 1.f;
+            return Out;
+        }
+
+        // 폴백: 일반 3x3 역행렬 (네가 올린 기존 코드와 동일 로직)
+        return InverseAffine(); // = 너의 일반식 구현 호출
+    }
 
     static FMatrix FromTRS(const FVector& T, const FQuat& R, const FVector& S)
     {

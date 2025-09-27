@@ -305,7 +305,10 @@ void D3D11RHI::UpdateBillboardConstantBuffers(const FVector& pos, const FMatrix&
     dataPtr->pos = pos;
     dataPtr->View = ViewMatrix;
     dataPtr->Proj = ProjMatrix;
-    dataPtr->InverseViewMat = ViewMatrix.InverseAffine();
+
+    // TODO 09/27 11:44 (Dongmin) - 문제 생기면 InverseAffine()으로 수정
+	// 현재 빌보드 안보이게 해둬서 테스트 못함
+    dataPtr->InverseViewMat = ViewMatrix.InverseAffineFast();
     //dataPtr->cameraRight = CameraRight;
     //dataPtr->cameraUp = CameraUp;
 
