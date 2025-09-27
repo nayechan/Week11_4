@@ -63,6 +63,10 @@ private:
     FBVHierachy* Left;
     FBVHierachy* Right;
 
+    // 서브트리 내 모든 액터를 빠르게 덤프하기 위한 리스트 (중복 없음)
+    TArray<AActor*> SubtreeActors;
+    TSet<AActor*>    SubtreeSet;
+
     // 액터의 마지막 바운드 캐시 (루트 호출 기준으로 갱신)
     TMap<AActor*, FBound> ActorLastBounds;
     TArray<AActor*> ActorArray;
