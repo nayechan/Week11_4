@@ -379,6 +379,7 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 
     if (pickedActor)
     {
+        pickedIndex = 0;
         char buf[160];
         sprintf_s(buf, "[Pick] Hit primitive %d at t=%.3f | time=%.6lf ms\n",
             pickedIndex, pickedT, Milliseconds);
@@ -833,20 +834,14 @@ bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, flo
 
             if (!StaticMesh) return false;
 
-            // 피킹 계산에는 컴포넌트의 월드 변환 행렬 사용
-            FMatrix WorldMatrix = StaticMeshComponent->GetWorldMatrix();
-
-            auto TransformPoint = [&](float X, float Y, float Z) -> FVector
-                {
-                    // row-vector (v^T) * M 방식으로 월드 변환 (translation 반영)
-                    FVector4 V4(X, Y, Z, 1.0f);
-                    FVector4 OutV4;
-                    OutV4.X = V4.X * WorldMatrix.M[0][0] + V4.Y * WorldMatrix.M[1][0] + V4.Z * WorldMatrix.M[2][0] + V4.W * WorldMatrix.M[3][0];
-                    OutV4.Y = V4.X * WorldMatrix.M[0][1] + V4.Y * WorldMatrix.M[1][1] + V4.Z * WorldMatrix.M[2][1] + V4.W * WorldMatrix.M[3][1];
-                    OutV4.Z = V4.X * WorldMatrix.M[0][2] + V4.Y * WorldMatrix.M[1][2] + V4.Z * WorldMatrix.M[2][2] + V4.W * WorldMatrix.M[3][2];
-                    OutV4.W = V4.X * WorldMatrix.M[0][3] + V4.Y * WorldMatrix.M[1][3] + V4.Z * WorldMatrix.M[2][3] + V4.W * WorldMatrix.M[3][3];
-                    return FVector(OutV4.X, OutV4.Y, OutV4.Z);
-                };
+            // 월드 <-> 로컬 변환 준비: 로컬 공간에서 삼각형-레이 교차를 수행하기 위해 Ray를 로컬로 변환
+            const FMatrix WorldMatrix = StaticMeshComponent->GetWorldMatrix();
+            const FMatrix InvWorld = WorldMatrix.InverseAffine();
+            const FVector4 RayOrigin4(Ray.Origin.X, Ray.Origin.Y, Ray.Origin.Z, 1.0f);
+            const FVector4 RayDir4(Ray.Direction.X, Ray.Direction.Y, Ray.Direction.Z, 0.0f);
+            const FVector4 LocalOrigin4 = RayOrigin4 * InvWorld;
+            const FVector4 LocalDir4 = RayDir4 * InvWorld;
+            const FRay LocalRay{ FVector(LocalOrigin4.X, LocalOrigin4.Y, LocalOrigin4.Z), FVector(LocalDir4.X, LocalDir4.Y, LocalDir4.Z) };
 
             float ClosestT = 1e9f;
             bool bHasHit = false;
@@ -861,16 +856,26 @@ bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, flo
                     const FNormalVertex& V1N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 1]];
                     const FNormalVertex& V2N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 2]];
 
-                    FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
-                    FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
-                    FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+                    // 로컬 공간 교차 검사
+                    const FVector A(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
+                    const FVector B(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
+                    const FVector C(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
 
-                    float THit;
-                    if (IntersectRayTriangleMT(Ray, A, B, C, THit))
+                    float THitLocal;
+                    if (IntersectRayTriangleMT(LocalRay, A, B, C, THitLocal))
                     {
-                        if (THit < ClosestT)
+                        // 월드 거리로 환산: P_local -> P_world 변환 후 원점과의 거리
+                        const FVector HitLocal = FVector(
+                            LocalOrigin4.X + LocalDir4.X * THitLocal,
+                            LocalOrigin4.Y + LocalDir4.Y * THitLocal,
+                            LocalOrigin4.Z + LocalDir4.Z * THitLocal);
+                        const FVector4 HitLocal4(HitLocal.X, HitLocal.Y, HitLocal.Z, 1.0f);
+                        const FVector4 HitWorld4 = HitLocal4 * WorldMatrix;
+                        const FVector HitWorld(HitWorld4.X, HitWorld4.Y, HitWorld4.Z);
+                        float THitWorld = (HitWorld - Ray.Origin).Size();
+                        if (THitWorld < ClosestT)
                         {
-                            ClosestT = THit;
+                            ClosestT = THitWorld;
                             bHasHit = true;
                         }
                     }
@@ -886,16 +891,24 @@ bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, flo
                     const FNormalVertex& V1N = StaticMesh->Vertices[Idx + 1];
                     const FNormalVertex& V2N = StaticMesh->Vertices[Idx + 2];
 
-                    FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
-                    FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
-                    FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+                    const FVector A(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
+                    const FVector B(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
+                    const FVector C(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
 
-                    float THit;
-                    if (IntersectRayTriangleMT(Ray, A, B, C, THit))
+                    float THitLocal;
+                    if (IntersectRayTriangleMT(LocalRay, A, B, C, THitLocal))
                     {
-                        if (THit < ClosestT)
+                        const FVector HitLocal = FVector(
+                            LocalOrigin4.X + LocalDir4.X * THitLocal,
+                            LocalOrigin4.Y + LocalDir4.Y * THitLocal,
+                            LocalOrigin4.Z + LocalDir4.Z * THitLocal);
+                        const FVector4 HitLocal4(HitLocal.X, HitLocal.Y, HitLocal.Z, 1.0f);
+                        const FVector4 HitWorld4 = HitLocal4 * WorldMatrix;
+                        const FVector HitWorld(HitWorld4.X, HitWorld4.Y, HitWorld4.Z);
+                        const float THitWorld = (HitWorld - Ray.Origin).Size();
+                        if (THitWorld < ClosestT)
                         {
-                            ClosestT = THit;
+                            ClosestT = THitWorld;
                             bHasHit = true;
                         }
                     }

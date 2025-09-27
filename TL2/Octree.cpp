@@ -458,6 +458,7 @@ void FOctree::QueryRayOrdered(const FRay& Ray, TArray<std::pair<AActor*, float>>
         {
             AActor* Actor = Node->Actors[i];
             if (!Actor) continue;
+            if (Actor->GetActorHiddenInGame()) continue;
             FBound box = (i < Node->ActorBoundsCache.size())
                                  ? Node->ActorBoundsCache[i]
                                  : (Node->ActorLastBounds.count(Actor) ? Node->ActorLastBounds[Actor] : Actor->GetBounds());
@@ -523,6 +524,7 @@ void FOctree::QueryRayClosest(const FRay& Ray, AActor*& OutActor, float& OutBest
         {
             AActor* actor = node->Actors[i];
             if (!actor) continue;
+            if (actor->GetActorHiddenInGame()) continue;
             FBound box = (i < node->ActorBoundsCache.size())
                                 ? node->ActorBoundsCache[i]
                                 : (node->ActorLastBounds.count(actor) ? node->ActorLastBounds[actor] : actor->GetBounds());
