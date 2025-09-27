@@ -58,6 +58,9 @@ public:
 
     URHIDevice* GetRHIDevice() { return RHIDevice; }
 
+
+	// ========================= 오클루전 관련 메서드들 ===========================
+    /*
     // Occlusion helpers
     void BeginDepthOnly();
     void EndDepthOnly();
@@ -72,6 +75,8 @@ public:
     ID3D11Device* GetDevice();
     ID3D11DeviceContext* GetDeviceContext();
     void SetDepthOnlyInputLayout(ID3D11InputLayout* IL);
+    */
+    // ===========================================================================
 private:
 	URHIDevice* RHIDevice;
 
@@ -84,7 +89,10 @@ private:
 
     void InitializeLineBatch();
 
+
+    // ========================= 오클루전 관련 멤버들 ===========================
     // Depth-only states
+    /*
     ID3D11DepthStencilState* DepthLEqual = nullptr;
     ID3D11RasterizerState* RS_Solid = nullptr;
     ID3D11BlendState* ColorMaskOff = nullptr;
@@ -105,7 +113,7 @@ private:
     void CreateOcclusionCB();
     ID3D11DepthStencilState* DepthLEqualNoWrite = nullptr;
     ID3D11InputLayout* DepthOnlyIL = nullptr;
-    // Renderer.h (public 메서드에 추가)
-
+    */
+	// ===========================================================================
 };
 

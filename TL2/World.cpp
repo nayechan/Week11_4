@@ -147,7 +147,11 @@ void UWorld::InitializeGizmo()
 
 	UIManager.SetGizmoActor(GizmoActor);
 }
-
+void UWorld::SetRenderer(URenderer* InRenderer)
+{
+	Renderer = InRenderer;
+}
+/*
 void UWorld::SetRenderer(URenderer* InRenderer)
 {
 	Renderer = InRenderer;
@@ -181,9 +185,9 @@ void UWorld::SetRenderer(URenderer* InRenderer)
 	if (VSBlob) VSBlob->Release();
 
 	// 오클루전 링 초기화 (여기서 1번)
-	Occlusion.Initialize(Renderer->GetDevice(), /*MaxQueriesPerFrame*/ 10000);
+	Occlusion.Initialize(Renderer->GetDevice(), 10000);
 }
-
+*/
 void UWorld::Render()
 {
 	Renderer->BeginFrame();
@@ -322,59 +326,87 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 	FMatrix ViewMatrix = Camera->GetViewMatrix();
 	FMatrix ProjectionMatrix = Camera->GetProjectionMatrix(ViewportAspectRatio, Viewport);
-	Frustum ViewFrustum = CreateFrustumFromCamera(*Camera->GetCameraComponent(), ViewportAspectRatio);
 
-	URenderer* Renderer = GetRenderer();
-	
-	// ★ 프레임마다 최신 BVH 루트를 가져온다
-	FBVHierachy* Root = nullptr;
-	if (auto* PM = UWorldPartitionManager::GetInstance())
+	Frustum ViewFrustum;
+	UCameraComponent* CamComp = nullptr;
+	if (CamComp = Camera->GetCameraComponent())
 	{
-		Root = PM->GetBVH();
+		ViewFrustum = CreateFrustumFromCamera(*CamComp, ViewportAspectRatio);
 	}
-	// (원하면 멤버에 캐시도 가능)
-	BVHRoot = Root;
+	if (!Renderer) return;
+
 	FVector rgb(1.0f, 1.0f, 1.0f);
-	
-	Occlusion.BeginFrame();
 
-	// 3) BVH 후보 수집
-	TArray<FBVHNodeCandidate> Candidates;
-	GatherBVHCandidates(BVHRoot, ViewFrustum, CandidateBudget, Candidates);
 
-	// 4) GPU 쿼리 발급
-	Renderer->BeginDepthOnly();
-	ID3D11Device* Dev = Renderer->GetDevice();
-	ID3D11DeviceContext* Ctx = Renderer->GetDeviceContext();
-
-	for (const auto& C : Candidates)
-	{
-		FOcclusionQueryEntry* Q = Occlusion.AllocQuery(Dev);
-		if (!Q) continue;
-		Q->Id = C.Id;
-
-		Ctx->Begin(Q->Predicate);
-		Renderer->DrawOcclusionBox(C.Bounds, ViewMatrix, ProjectionMatrix);
-		Ctx->End(Q->Predicate);
-
-		Occlusion.EnqueueIssued(Q);
-	}
-	Renderer->EndDepthOnly();
-
-	// 5) 실제 드로우: 노드 단위 프레디케이션 래핑
-	DrawBVHWithPredication(BVHRoot, Renderer, ViewMatrix, ProjectionMatrix, ViewFrustum);
-
-	// 6) 프레임 종료: 발급 저장 + 인덱스 회전
-	Occlusion.EndFrame();
 	// ============ Culling Logic Dispatch ========= //
 	//TArray<AActor*> CulledActors = PartitionManager.Query(Frustum Data); 
 
-	
+
 	// === Begin Line Batch for all actors ===
 	Renderer->BeginLineBatch();
 
-    // === Draw Actors with Show Flag checks ===
-    Renderer->SetViewModeType(ViewModeIndex);
+	// === Draw Actors with Show Flag checks ===
+	Renderer->SetViewModeType(ViewModeIndex);
+
+	// 일반 액터들 렌더링
+	if (IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
+	{
+		for (AActor* Actor : Actors)
+		{
+			if (!Actor) continue;
+			if (Actor->GetActorHiddenInGame()) continue;
+
+			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
+				continue;
+
+			if (CamComp)
+			{
+				if (AStaticMeshActor* MeshActor = Cast<AStaticMeshActor>(Actor))
+				{
+					if (UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(MeshActor->CollisionComponent))
+					{
+						const FBound Bound = Box->GetWorldBound();
+						if (!IsAABBVisible(ViewFrustum, Bound))
+						{
+							continue;
+						}
+					}
+				}
+
+			}
+			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
+			/*if (bIsSelected)
+				Renderer->OMSetDepthStencilState(EComparisonFunc::Always);*/ // 이렇게 하면, 같은 메시에 속한 정점끼리도 뒤에 있는게 앞에 그려지는 경우가 발생해, 이상하게 렌더링 됨.
+
+			Renderer->UpdateHighLightConstantBuffer(bIsSelected, rgb, 0, 0, 0, 0);
+
+			for (USceneComponent* Component : Actor->GetComponents())
+			{
+				if (!Component) continue;
+				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
+					if (!ActorComp->IsActive()) continue;
+
+				/*if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText))
+					continue;
+
+				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
+					continue;*/
+
+				if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText))
+					continue;
+
+				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
+					continue;
+				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+				{
+					Renderer->SetViewModeType(ViewModeIndex);
+					Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
+					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+				}
+			}
+			Renderer->OMSetBlendState(false);
+		}
+	}
 
 	// 엔진 액터들 (그리드 등)
 	for (AActor* EngineActor : EngineActors)
@@ -400,8 +432,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		}
 		Renderer->OMSetBlendState(false);
 	}
-	
-    // Debug draw (exclusive: BVH first, else Octree)
+
+	// Debug draw (exclusive: BVH first, else Octree)
 	if (IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug))
 	{
 		if (auto* PM = UWorldPartitionManager::GetInstance())
@@ -425,6 +457,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 	Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
+
 }
 
 
@@ -930,6 +963,10 @@ AGizmoActor* UWorld::GetGizmoActor()
 	return GizmoActor;
 }
 
+
+
+// ================ 오클루전 관련 메소드 ==================
+/*
 // 후보 수집: BVH DFS (+프러스텀 컷 + 예산)
 void UWorld::GatherBVHCandidates(FBVHierachy* Root, const Frustum& ViewFrustum,
 	uint32 Budget, TArray<FBVHNodeCandidate>& Out)
@@ -1060,3 +1097,5 @@ void UWorld::DrawBVHWithPredication(FBVHierachy* N, URenderer* Renderer,
 
 	Renderer->SetPredication(nullptr, FALSE);
 }
+*/
+// ====================================================

@@ -175,7 +175,8 @@ private:
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
 
 
-    // 오클루전 관련 멤버들
+    // ================ 오클루전 관련 멤버들 ==================
+    /*
     FOcclusionRing Occlusion;          // 2프레임 지연 링 버퍼
     uint32         CandidateBudget = 5000;
 
@@ -202,6 +203,8 @@ private:
     void DrawBVHWithPredication(FBVHierachy* Node, URenderer* Renderer,
         const FMatrix& View, const FMatrix& Proj,
         const Frustum& ViewFrustum);
+        */
+	// ====================================================
 };
 template<class T>
 inline T* UWorld::SpawnActor()

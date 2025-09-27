@@ -10,9 +10,11 @@ URenderer::URenderer(URHIDevice* InDevice) : RHIDevice(InDevice)
 {
     InitializeLineBatch();
 
+	/* // 오클루전 관련 초기화
     CreateDepthOnlyStates();
     CreateUnitCube();
     CreateOcclusionCB();
+    */
 }
 
 URenderer::~URenderer()
@@ -21,6 +23,8 @@ URenderer::~URenderer()
     {
         delete LineBatchData;
     }
+	// 오클루전 관련 해제
+    /*
     if (DepthLEqual) 
     { 
         DepthLEqual->Release();  
@@ -62,6 +66,7 @@ URenderer::~URenderer()
         DepthOnlyIL->Release();
         DepthOnlyIL = nullptr; 
     }
+    */
 }
 
 void URenderer::BeginFrame()
@@ -392,8 +397,9 @@ void URenderer::ClearLineBatch()
 }
 
 
-
+// ========================== 오클루전 관련 메소드 ==========================
 // 상태/버퍼 생성
+/*
 void URenderer::CreateDepthOnlyStates()
 {
     ID3D11Device* Dev = RHIDevice->GetDevice();
@@ -552,3 +558,4 @@ void URenderer::SetDepthOnlyInputLayout(ID3D11InputLayout* IL)
 {
     DepthOnlyIL = IL;
 }
+*/

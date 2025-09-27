@@ -77,8 +77,8 @@ void UShader::ReleaseResources()
         PixelShader = nullptr;
     }
 }
-
-
+// ========================== 오클루전 관련 메소드들 ==========================
+/*
 static bool CompileShaderBlob(const wchar_t* FilePath, const char* Entry, const char* Target, ID3DBlob** OutBlob)
 {
     UINT flags = D3DCOMPILE_ENABLE_STRICTNESS;
@@ -152,3 +152,6 @@ bool CompilePS(ID3D11Device* Dev, const wchar_t* FilePath, const char* Entry,
     *OutPS = PS;
     return true;
 }
+*/
+
+// ========================================================================
