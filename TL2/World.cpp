@@ -19,6 +19,7 @@
 #include "Octree.h"
 #include "BVHierachy.h"
 #include "Frustum.h"
+#include "Occlusion.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
@@ -151,43 +152,7 @@ void UWorld::SetRenderer(URenderer* InRenderer)
 {
 	Renderer = InRenderer;
 }
-/*
-void UWorld::SetRenderer(URenderer* InRenderer)
-{
-	Renderer = InRenderer;
-	// ─────────────────────────────────────────────
-	// ① 깊이전용 셰이더 '딱 1번' 컴파일/바인딩
-	// ─────────────────────────────────────────────
-	// ※ 파일 경로/이름은 네 프로젝트 기준으로 맞춰줘.
-	ID3D11VertexShader* DepthVS = nullptr;
-	ID3DBlob* VSBlob = nullptr; // ★ IL 만들려고 blob 받음
-	ID3D11PixelShader* DepthPS = nullptr;
-	const bool okVS = CompileVS(Renderer->GetDevice(),L"ShaderDepthOnly.hlsl", "VSMain", &DepthVS, &VSBlob);
-	bool okPS = CompilePS(Renderer->GetDevice(), L"ShaderDepthOnly.hlsl", "PSMain", &DepthPS);
-	if (okVS && okPS)
-	{
-		// 1) 셰이더 주입
-		Renderer->SetDepthOnlyShaders(DepthVS, DepthPS);
 
-		// 2) ★ InputLayout 생성 (POSITION만)
-		D3D11_INPUT_ELEMENT_DESC IL[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,
-			  0, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-		};
-		ID3D11InputLayout* Layout = nullptr;
-		if (SUCCEEDED(Renderer->GetDevice()->CreateInputLayout(
-			IL, 1, VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), &Layout)))
-		{
-			Renderer->SetDepthOnlyInputLayout(Layout);
-		}
-	}
-	if (VSBlob) VSBlob->Release();
-
-	// 오클루전 링 초기화 (여기서 1번)
-	Occlusion.Initialize(Renderer->GetDevice(), 10000);
-}
-*/
 void UWorld::Render()
 {
 	Renderer->BeginFrame();
@@ -346,9 +311,36 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 	// ============ Culling Logic Dispatch ========= //
 	for (AActor* Actor : Actors)
+	{
 		Actor->SetCulled(true);
+	}
+
 	UWorldPartitionManager::GetInstance()->FrustumQuery(ViewFrustum);
 
+	// ---------------------- CPU HZB Occlusion ----------------------
+	if (bUseCPUOcclusion)
+	{
+		// 1) 그리드 사이즈 보정(해상도 변화 대응)
+		UpdateOcclusionGridSizeForViewport(Viewport);
+
+		// 2) 오클루더/오클루디 수집
+		TArray<FCandidateDrawable> Occluders, Occludees;
+		BuildCpuOcclusionSets(ViewFrustum, ViewMatrix, ProjectionMatrix, Occluders, Occludees);
+
+		// 3) 오클루더로 저해상도 깊이 빌드 + HZB
+		OcclusionCPU.BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
+		OcclusionCPU.BuildHZB();
+
+		// 4) 가시성 판정 → VisibleFlags[UUID] = 0/1
+		//     VisibleFlags 크기 보장
+		uint32_t maxUUID = 0;
+		for (auto& C : Occludees) maxUUID = std::max(maxUUID, C.ActorIndex);
+		if (VisibleFlags.size() <= size_t(maxUUID))
+			VisibleFlags.assign(size_t(maxUUID + 1), 1); // 기본 보임
+
+		OcclusionCPU.TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
+	}
+	// ----------------------------------------------------------------
 
 	// 일반 액터들 렌더링
 	if (IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
@@ -359,8 +351,21 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			if (Actor->GetActorHiddenInGame()) continue;
 			if (Actor->GetCulled()) continue;
 
+			// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
+			if (bUseCPUOcclusion)
+			{
+				uint32_t id = Actor->UUID;
+				if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
+				{
+					continue; // 가려짐 → 스킵
+				}
+			}
+
 			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
+			{
 				continue;
+			}
+
 
 			//if (CamComp)
 			//{
@@ -384,21 +389,28 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 			for (USceneComponent* Component : Actor->GetComponents())
 			{
-				if (!Component) continue;
-				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-					if (!ActorComp->IsActive()) continue;
-
-				/*if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText))
+				if (!Component)
+				{
 					continue;
+				}
+				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
+				{
+					if (!ActorComp->IsActive())
+					{
+						continue;
+					}
+				}
 
-				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
-					continue;*/
 
 				if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText))
+				{
 					continue;
+				}
 
 				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
+				{
 					continue;
+				}
 				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 				{
 					Renderer->SetViewModeType(ViewModeIndex);
@@ -413,17 +425,33 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	// 엔진 액터들 (그리드 등)
 	for (AActor* EngineActor : EngineActors)
 	{
-		if (!EngineActor) continue;
-		if (EngineActor->GetActorHiddenInGame()) continue;
+		if (!EngineActor)
+		{
+			continue;
+		}
+		if (EngineActor->GetActorHiddenInGame())
+		{
+			continue;
+		}
 
 		if (Cast<AGridActor>(EngineActor) && !IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
+		{
 			continue;
+		}
 
 		for (USceneComponent* Component : EngineActor->GetComponents())
 		{
-			if (!Component) continue;
+			if (!Component)
+			{
+				continue;
+			}
 			if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-				if (!ActorComp->IsActive()) continue;
+			{
+				if (!ActorComp->IsActive())
+				{
+					continue;
+				}
+			}
 
 			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 			{
@@ -958,139 +986,54 @@ AGizmoActor* UWorld::GetGizmoActor()
 	return GizmoActor;
 }
 
-
-
-// ================ 오클루전 관련 메소드 ==================
-/*
-// 후보 수집: BVH DFS (+프러스텀 컷 + 예산)
-void UWorld::GatherBVHCandidates(FBVHierachy* Root, const Frustum& ViewFrustum,
-	uint32 Budget, TArray<FBVHNodeCandidate>& Out)
+// === World.cpp 패치: 그리드 리사이즈 ===
+void UWorld::UpdateOcclusionGridSizeForViewport(FViewport* Viewport)
 {
-	Out.Empty();
-	if (!Root) return;
-
-	TArray<FBVHierachy*> Stack;
-	Stack.Add(Root);
-
-	while (!Stack.IsEmpty())
-	{
-		FBVHierachy* N = Stack.Last();
-		Stack.RemoveAt(Stack.Num() - 1);
-
-		const FBound& B = N->GetBounds();
-		if (!IsAABBVisible(ViewFrustum, B))
-			continue; // 서브트리 컷
-
-		FBVHNodeCandidate C;
-		C.Node = N;
-		C.Id = MakeNodeId(N);
-		C.Bounds = B;
-		Out.Add(C);
-
-		if ((uint32)Out.Num() >= Budget) break;
-
-		if (N->GetLeft())  Stack.Add(N->GetLeft());
-		if (N->GetRight()) Stack.Add(N->GetRight());
-	}
+	if (!Viewport) return;
+	int vw = (1 > Viewport->GetSizeX()) ? 1 : Viewport->GetSizeX();
+	int vh = (1 > Viewport->GetSizeY()) ? 1 : Viewport->GetSizeY();
+	int gw = std::max(1, vw / std::max(1, OcclGridDiv));
+	int gh = std::max(1, vh / std::max(1, OcclGridDiv));
+	// 매 프레임 호출해도 싸다. 내부에서 동일크기면 skip
+	OcclusionCPU.Initialize(gw, gh);
 }
 
-// 프레디케이션으로 서브트리 드로우(다음 프레임 결과 사용)
-void UWorld::DrawBVHWithPredication(FBVHierachy* N, URenderer* Renderer,
-	const FMatrix& View, const FMatrix& Proj)
-{	
-	if (!N) return;
-	FVector rgb(1.0f, 1.0f, 1.0f);
-	ID3D11Predicate* Pred = Occlusion.GetPredicateForId(MakeNodeId(N));
-	Renderer->SetPredication(Pred, TRUE);
-
-	// 내부노드 먼저
-	if (N->GetLeft())  DrawBVHWithPredication(N->GetLeft(), Renderer, View, Proj);
-	if (N->GetRight()) DrawBVHWithPredication(N->GetRight(), Renderer, View, Proj);
-
-	// 리프: 여기서 메인 패스 셰이더/상태를 바인딩하고 컴포넌트 렌더
-	if (!N->GetLeft() && !N->GetRight())
-	{
-		for (AActor* Actor : N->GetActors())
-		{
-			if (!Actor || Actor->GetActorHiddenInGame()) continue;
-
-			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
-			// (선택) 하이라이트 상수 업데이트 등 기존과 동일하게
-			Renderer->UpdateHighLightConstantBuffer(bIsSelected, rgb, 0, 0, 0, 0);
-
-			for (USceneComponent* Component : Actor->GetComponents())
-			{
-				if (!Component) continue;
-				if (UActorComponent* AC = Cast<UActorComponent>(Component))
-					if (!AC->IsActive()) continue;
-
-				if (UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>(Component))
-				{
-					// ★ 메인 패스 셰이더 바인딩 (없으면 그려지지 않음)
-					Renderer->SetViewModeType(ViewModeIndex);
-					// ★ 메인 패스 렌더
-					Prim->Render(Renderer, View, Proj);
-
-					// 깊이/블렌드 원복 (프로젝트 규칙대로)
-					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-				}
-			}
-			Renderer->OMSetBlendState(false);
-		}
-	}
-
-	Renderer->SetPredication(nullptr, FALSE);
-}
-
-void UWorld::DrawBVHWithPredication(FBVHierachy* N, URenderer* Renderer,
+// === World.cpp 패치: 후보 수집 ===
+void UWorld::BuildCpuOcclusionSets(
+	const Frustum& ViewFrustum,
 	const FMatrix& View, const FMatrix& Proj,
-	const Frustum& ViewFrustum)
+	TArray<FCandidateDrawable>& OutOccluders,
+	TArray<FCandidateDrawable>& OutOccludees)
 {
-	if (!N) return;
-	FVector rgb(1.0f, 1.0f, 1.0f);
-	// ★ 프러스텀 밖이면 서브트리 통째로 스킵
-	const FBound& B = N->GetBounds();
-	if (!IsAABBVisible(ViewFrustum, B))
-		return;
+	OutOccluders.clear();
+	OutOccludees.clear();
 
-	ID3D11Predicate* Pred = Occlusion.GetPredicateForId(MakeNodeId(N));
-	Renderer->SetPredication(Pred, TRUE); // Pred == nullptr이면 무조건 드로우 (정상 동작)
+	const FMatrix VP = View * Proj;
 
-	// 내부노드 먼저
-	if (N->GetLeft())  DrawBVHWithPredication(N->GetLeft(), Renderer, View, Proj, ViewFrustum);
-	if (N->GetRight()) DrawBVHWithPredication(N->GetRight(), Renderer, View, Proj, ViewFrustum);
-
-	// 리프: 액터 드로우
-	if (!N->GetLeft() && !N->GetRight())
+	// 간단 정책:
+	//  - 화면 투영 면적이 큰 상위 물체를 오클루더로(보수적으로는 '모두'를 오클루더로 써도 됨)
+	//  - 본문은 모두 Occludee에 넣음
+	//  - 둘 다 동일 세트로 써도 동작 (속도-정확도는 씬에 맞춰 조절)
+	for (AActor* Actor : Actors)
 	{
-		Renderer->SetViewModeType(ViewModeIndex);
+		if (!Actor) continue;
+		if (Actor->GetActorHiddenInGame()) continue;
+		if (Actor->GetCulled()) continue; // 프러스텀 제외
 
-		FVector rgb(1, 1, 1);
-		for (AActor* Actor : N->GetActors())
-		{
-			if (!Actor || Actor->GetActorHiddenInGame()) continue;
+		AStaticMeshActor* SMA = Cast<AStaticMeshActor>(Actor);
+		if (!SMA) continue;
 
-			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
-			Renderer->UpdateHighLightConstantBuffer(bIsSelected, rgb, 0, 0, 0, 0);
+		// 충돌/바운딩 박스 컴포넌트
+		UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(SMA->CollisionComponent);
+		if (!Box) continue;
 
-			for (USceneComponent* Component : Actor->GetComponents())
-			{
-				if (!Component) continue;
-				if (UActorComponent* AC = Cast<UActorComponent>(Component))
-					if (!AC->IsActive()) continue;
+		FCandidateDrawable C{};
+		C.ActorIndex = Actor->UUID;          // UUID로 직접 인덱싱
+		C.Bound = Box->GetWorldBound(); // Min/Max 보유
+		C.WorldViewProj = VP;
 
-				if (UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>(Component))
-				{
-					Renderer->SetViewModeType(ViewModeIndex);
-					Prim->Render(Renderer, View, Proj);
-					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-				}
-			}
-			Renderer->OMSetBlendState(false);
-		}
+		// 간단히 모두를 양쪽에 다 넣자(먼저 전체 동작 확인 → 이후 Top-K 정책으로 최적화)
+		OutOccluders.push_back(C);
+		OutOccludees.push_back(C);
 	}
-
-	Renderer->SetPredication(nullptr, FALSE);
 }
-*/
-// ====================================================

@@ -1,8 +1,6 @@
 ﻿#pragma once
 #include "ShapeComponent.h"
 
-#pragma once
-#include "ShapeComponent.h"
 
 struct FBound
 {

@@ -174,37 +174,20 @@ private:
     
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
 
+    // ==================== CPU HZB Occlusion ====================
+    FOcclusionCullingManagerCPU OcclusionCPU;
+    TArray<uint8_t>        VisibleFlags;   // ActorIndex(UUID)로 인덱싱 (0=가려짐, 1=보임)
+    bool                        bUseCPUOcclusion = true;
+    int                         OcclGridDiv = 4; // 화면 크기/이 값 = 오클루전 그리드 해상도(1/6 권장)
 
-    // ================ 오클루전 관련 멤버들 ==================
-    /*
-    FOcclusionRing Occlusion;          // 2프레임 지연 링 버퍼
-    uint32         CandidateBudget = 5000;
-
-    FBVHierachy* BVHRoot = nullptr;  // 이미 있다면 연결만
-
-    struct FBVHNodeCandidate
-    {
-        FBVHierachy* Node = nullptr;
-        FOcclusionId Id = 0;
-        FBound       Bounds;
-    };
-
-    static inline FOcclusionId MakeNodeId(FBVHierachy* N)
-    {
-        // 포인터 하위 32비트 사용(간단/안전). 원하면 FName으로 매핑 가능.
-        return static_cast<FOcclusionId>(reinterpret_cast<uintptr_t>(N) & 0xffffffffu);
-    }
-
-    void GatherBVHCandidates(FBVHierachy* Root, const Frustum& ViewFrustum,
-        uint32 Budget, TArray<FBVHNodeCandidate>& Out);
-
-    void DrawBVHWithPredication(FBVHierachy* Node, URenderer* Renderer,
-        const FMatrix& View, const FMatrix& Proj);
-    void DrawBVHWithPredication(FBVHierachy* Node, URenderer* Renderer,
+    // 헬퍼들
+    void UpdateOcclusionGridSizeForViewport(FViewport* Viewport);
+    void BuildCpuOcclusionSets(
+        const Frustum& ViewFrustum,
         const FMatrix& View, const FMatrix& Proj,
-        const Frustum& ViewFrustum);
-        */
-	// ====================================================
+        TArray<FCandidateDrawable>& OutOccluders,
+        TArray<FCandidateDrawable>& OutOccludees);
+   
 };
 template<class T>
 inline T* UWorld::SpawnActor()
