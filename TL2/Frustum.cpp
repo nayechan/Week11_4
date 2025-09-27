@@ -4,33 +4,66 @@
 #include "Frustum.h"
 #include "AABoundingBoxComponent.h"
 #include "CameraComponent.h"
+#include <immintrin.h> // For SSE, AVX, FMA instructions
 
 
-inline FVector4 MakePoint4(const FVector& P) { return FVector4(P.X, P.Y, P.Z, 1.0f); }
-inline FVector4 MakeDir4(const FVector& D) { return FVector4(D.X, D.Y, D.Z, 0.0f); }
+
 
 inline float     Dot3(const FVector4& A, const FVector4& B)
 {
-    return A.X * B.X + A.Y * B.Y + A.Z * B.Z; // W는 무시
+    // Use SSE4.1's dot product instruction. It's faster than manual shuffling.
+    // 0x71 = (0111 0001b)
+    //   - Low 4 bits (0111): Multiply and sum the first three components (X, Y, Z).
+    //   - High 4 bits (0001): Store the result in the first component of the destination.
+    __m128 dp = _mm_dp_ps(A.SimdData, B.SimdData, 0x71);
+    float result;
+    _mm_store_ss(&result, dp);
+    return result;
 }
 
 inline FVector4  Cross3(const FVector4& A, const FVector4& B)
 {
-    return FVector4(
-        A.Y * B.Z - A.Z * B.Y,
-        A.Z * B.X - A.X * B.Z,
-        A.X * B.Y - A.Y * B.X,
-        0.0f // 방향 벡터
-    );
+    // Use shuffles and FMA (Fused Multiply-Add) for an efficient cross product.
+    // Formula:
+    // C.x = A.y * B.z - A.z * B.y
+    // C.y = A.z * B.x - A.x * B.z
+    // C.z = A.x * B.y - A.y * B.x
+
+    // Shuffle A and B to align components for multiplication
+    __m128 a_yzx = _mm_shuffle_ps(A.SimdData, A.SimdData, _MM_SHUFFLE(3, 0, 2, 1)); // (Ay, Az, Ax, Aw)
+    __m128 b_zxy = _mm_shuffle_ps(B.SimdData, B.SimdData, _MM_SHUFFLE(3, 1, 0, 2)); // (Bz, Bx, By, Bw)
+    __m128 a_zxy = _mm_shuffle_ps(A.SimdData, A.SimdData, _MM_SHUFFLE(3, 1, 0, 2)); // (Az, Ax, Ay, Aw)
+    __m128 b_yzx = _mm_shuffle_ps(B.SimdData, B.SimdData, _MM_SHUFFLE(3, 0, 2, 1)); // (By, Bz, Bx, Bw)
+
+    // term1 = (Ay*Bz, Az*Bx, Ax*By, ...)
+    __m128 term1 = _mm_mul_ps(a_yzx, b_zxy);
+
+    // result = term1 - (a_zxy * b_yzx) using FMA
+    // _mm_fnmadd_ps(a, b, c) computes c - (a * b)
+    __m128 sub = _mm_fnmadd_ps(a_zxy, b_yzx, term1);
+
+    FVector4 result(sub);
+    result.W = 0.0f;
+    return result;
 }
 inline float     Length3(const FVector4& V)
 {
-    return std::sqrt(Dot3(V, V));
+    float dot = Dot3(V, V);
+    return std::sqrt(dot);
 }
 inline FVector4  Normalize3(const FVector4& V)
 {
-    const float L = Length3(V);
-    if (L > 0.0f) return FVector4(V.X / L, V.Y / L, V.Z / L, 0.0f);
+    float len = Length3(V);
+    if (len > 0.0f)
+    {
+        __m128 v = _mm_load_ps(&V.X);
+        __m128 len_v = _mm_set1_ps(len);
+        __m128 result_v = _mm_div_ps(v, len_v);
+        FVector4 result;
+        _mm_store_ps(&result.X, result_v);
+        result.W = 0.0f;
+        return result;
+    }
     return FVector4(0, 0, 0, 0);
 }
 // ------------------------------------------------------------
@@ -97,7 +130,7 @@ Frustum CreateFrustumFromCamera(const UCameraComponent& Camera, float OverrideAs
     //    Near: +Forward,  Far: -Forward
     // ------------------------------------------------------------
     Result.NearFace = MakePlane(Origin + Forward * NearClip, Forward);
-    Result.FarFace = MakePlane(Origin + FrontMultFar, -Forward);
+    Result.FarFace = MakePlane(Origin + FrontMultFar, Forward * -1.0f);
 
 
     // ------------------------------------------------------------
@@ -131,12 +164,13 @@ bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents)
 	// 평면과 박스사이의 거리 (양수면 평면의 법선 방향, 음수면 반대 방향)
     const float Distance = Dot3(P.Normal, Center) - P.Distance;
     // AABB를 평면 법선 방향으로 투영했을 때의 최대 반경
-    const float Radius =
-        abs(P.Normal.X) * Extents.X +
-        abs(P.Normal.Y) * Extents.Y +
-        abs(P.Normal.Z) * Extents.Z;
+    // Radius = abs(Normal.X) * Extents.X + abs(Normal.Y) * Extents.Y + abs(Normal.Z) * Extents.Z
+    __m128 abs_normal = _mm_andnot_ps(_mm_set1_ps(-0.0f), P.Normal.SimdData); // abs for all components
+    __m128 dp = _mm_dp_ps(abs_normal, Extents.SimdData, 0x71);
+    float radius;
+    _mm_store_ss(&radius, dp);
 	//  최대 반경은 항상 양수이므로, Distance + Radius < 0 이면 절두체의 바깥
-    return Distance + Radius >= 0.0f;
+    return Distance + radius >= 0.0f;
 }
 
 bool IsAABBVisible(const Frustum& Frustum, const FBound& Bound)
@@ -257,4 +291,108 @@ bool IsAABBVisible(const Frustum& F, const FBound& B)
         Intersects(F.NearFace, Center, Extents) &&
         Intersects(F.FarFace, Center, Extents);
 }
+
 */
+
+// AVX-optimized culling for 8 AABBs
+uint8_t AreAABBsVisible_8_AVX(const Frustum& Frustum, const FBound Bounds[8])
+{
+    // This function performs frustum culling for 8 AABBs simultaneously using AVX2.
+    // It works by testing all 8 boxes against each of the 6 frustum planes.
+
+    // 1. Transpose AoS to SoA using a combination of SSE and AVX instructions.
+    // This is faster than a scalar loop. The FBound struct (6 floats) is not
+    // naturally aligned for SIMD, so this process is complex but efficient.
+
+    // --- Transpose Part 1: Boxes 0-3 ---
+    __m128 r0 = _mm_loadu_ps(&Bounds[0].Min.X); // {m0x, m0y, m0z, M0x}
+    __m128 r1 = _mm_loadu_ps(&Bounds[1].Min.X); // {m1x, m1y, m1z, M1x}
+    __m128 r2 = _mm_loadu_ps(&Bounds[2].Min.X); // {m2x, m2y, m2z, M2x}
+    __m128 r3 = _mm_loadu_ps(&Bounds[3].Min.X); // {m3x, m3y, m3z, M3x}
+    _MM_TRANSPOSE4_PS(r0, r1, r2, r3);
+    __m128 b0_3_min_x = r0;
+    __m128 b0_3_min_y = r1;
+    __m128 b0_3_min_z = r2;
+    __m128 b0_3_max_x = r3;
+
+    __m128 myz01 = _mm_castpd_ps(_mm_unpacklo_pd(_mm_load_sd((double*)&Bounds[0].Max.Y), _mm_load_sd((double*)&Bounds[1].Max.Y)));
+    __m128 myz23 = _mm_castpd_ps(_mm_unpacklo_pd(_mm_load_sd((double*)&Bounds[2].Max.Y), _mm_load_sd((double*)&Bounds[3].Max.Y)));
+    __m128 b0_3_max_y = _mm_shuffle_ps(myz01, myz23, _MM_SHUFFLE(2, 0, 2, 0));
+    __m128 b0_3_max_z = _mm_shuffle_ps(myz01, myz23, _MM_SHUFFLE(3, 1, 3, 1));
+
+    // --- Transpose Part 2: Boxes 4-7 ---
+    r0 = _mm_loadu_ps(&Bounds[4].Min.X);
+    r1 = _mm_loadu_ps(&Bounds[5].Min.X);
+    r2 = _mm_loadu_ps(&Bounds[6].Min.X);
+    r3 = _mm_loadu_ps(&Bounds[7].Min.X);
+    _MM_TRANSPOSE4_PS(r0, r1, r2, r3);
+    __m128 b4_7_min_x = r0;
+    __m128 b4_7_min_y = r1;
+    __m128 b4_7_min_z = r2;
+    __m128 b4_7_max_x = r3;
+
+    myz01 = _mm_castpd_ps(_mm_unpacklo_pd(_mm_load_sd((double*)&Bounds[4].Max.Y), _mm_load_sd((double*)&Bounds[5].Max.Y)));
+    myz23 = _mm_castpd_ps(_mm_unpacklo_pd(_mm_load_sd((double*)&Bounds[6].Max.Y), _mm_load_sd((double*)&Bounds[7].Max.Y)));
+    __m128 b4_7_max_y = _mm_shuffle_ps(myz01, myz23, _MM_SHUFFLE(2, 0, 2, 0));
+    __m128 b4_7_max_z = _mm_shuffle_ps(myz01, myz23, _MM_SHUFFLE(3, 1, 3, 1));
+
+    // --- Transpose Part 3: Combine into __m256 ---
+    __m256 min_x = _mm256_set_m128(b4_7_min_x, b0_3_min_x);
+    __m256 min_y = _mm256_set_m128(b4_7_min_y, b0_3_min_y);
+    __m256 min_z = _mm256_set_m128(b4_7_min_z, b0_3_min_z);
+    __m256 max_x = _mm256_set_m128(b4_7_max_x, b0_3_max_x);
+    __m256 max_y = _mm256_set_m128(b4_7_max_y, b0_3_max_y);
+    __m256 max_z = _mm256_set_m128(b4_7_max_z, b0_3_max_z);
+
+    // 2. Calculate centers and extents
+    const __m256 half = _mm256_set1_ps(0.5f);
+    __m256 centers_x = _mm256_mul_ps(_mm256_add_ps(max_x, min_x), half);
+    __m256 centers_y = _mm256_mul_ps(_mm256_add_ps(max_y, min_y), half);
+    __m256 centers_z = _mm256_mul_ps(_mm256_add_ps(max_z, min_z), half);
+    __m256 extents_x = _mm256_mul_ps(_mm256_sub_ps(max_x, min_x), half);
+    __m256 extents_y = _mm256_mul_ps(_mm256_sub_ps(max_y, min_y), half);
+    __m256 extents_z = _mm256_mul_ps(_mm256_sub_ps(max_z, min_z), half);
+
+    // 3. Perform Culling (This part was correct before)
+    const Plane* planes = &Frustum.TopFace;
+    uint32_t all_visible_mask = 0xFF;
+
+    const __m256 sign_mask = _mm256_set1_ps(-0.0f);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        const Plane& p = planes[i];
+        __m256 plane_nx = _mm256_set1_ps(p.Normal.X);
+        __m256 plane_ny = _mm256_set1_ps(p.Normal.Y);
+        __m256 plane_nz = _mm256_set1_ps(p.Normal.Z);
+        __m256 plane_d = _mm256_set1_ps(p.Distance);
+
+        __m256 dist = _mm256_sub_ps(
+            _mm256_add_ps(
+                _mm256_add_ps(_mm256_mul_ps(centers_x, plane_nx), _mm256_mul_ps(centers_y, plane_ny)),
+                _mm256_mul_ps(centers_z, plane_nz)
+            ),
+            plane_d
+        );
+
+        __m256 radius = _mm256_add_ps(
+            _mm256_add_ps(
+                _mm256_mul_ps(extents_x, _mm256_andnot_ps(sign_mask, plane_nx)),
+                _mm256_mul_ps(extents_y, _mm256_andnot_ps(sign_mask, plane_ny))
+            ),
+            _mm256_mul_ps(extents_z, _mm256_andnot_ps(sign_mask, plane_nz))
+        );
+
+        __m256 comparison = _mm256_cmp_ps(_mm256_add_ps(dist, radius), _mm256_setzero_ps(), _CMP_GE_OQ);
+        
+        int plane_mask = _mm256_movemask_ps(comparison);
+        all_visible_mask &= plane_mask;
+
+        if (all_visible_mask == 0)
+        {
+            return 0;
+        }
+    }
+
+    return static_cast<uint8_t>(all_visible_mask);
+}

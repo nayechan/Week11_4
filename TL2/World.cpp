@@ -422,8 +422,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			}
 		}
 	}
-    
-    Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
+
+	Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
 }
 
@@ -501,6 +501,16 @@ bool UWorld::DestroyActor(AActor* Actor)
 	auto it = std::find(Actors.begin(), Actors.end(), Actor);
 	if (it != Actors.end())
 	{
+		// 만약 StaticMeshActor라면, 전용 배열에서도 제거
+		if (AStaticMeshActor* MeshActor = Cast<AStaticMeshActor>(Actor))
+		{
+			auto mesh_it = std::find(StaticMeshActors.begin(), StaticMeshActors.end(), MeshActor);
+			if (mesh_it != StaticMeshActors.end())
+			{
+				StaticMeshActors.erase(mesh_it);
+			}
+		}
+
 		// 옥트리에서 제거
 		OnActorDestroyed(Actor);
 
@@ -574,6 +584,7 @@ void UWorld::CreateNewScene()
 		ObjectFactory::DeleteObject(Actor);
 	}
 	Actors.Empty();
+	StaticMeshActors.Empty();
 
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
@@ -767,6 +778,8 @@ void UWorld::LoadScene(const FString& SceneName)
 			FTransform(Primitive.Location,
 				SceneRotUtil::QuatFromEulerZYX_Deg(Primitive.Rotation),
 				Primitive.Scale));
+
+		PushBackToStaticMeshActors(StaticMeshActor);
 
 		// 스폰 시점에 자동 발급된 고유 UUID (충돌 시 폴백으로 사용)
 		uint32 Assigned = StaticMeshActor->UUID;
