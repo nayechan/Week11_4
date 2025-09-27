@@ -395,7 +395,8 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
         sprintf_s(buf, "[Pick] Hit primitive %d at t=%.3f | time=%.6f sec\n",
             pickedIndex, pickedT, elapsedSec);
         UE_LOG(buf);
-        return Actors[pickedIndex];
+        // pickedIndex refers to HitActors
+        return HitActors[pickedIndex];
     }
     else
     {
