@@ -96,7 +96,45 @@ struct FBound
 
 		return FBound(NewMin, NewMax);
 	}
-
+	// Slab Method
+	bool IntersectsRay(const FRay& InRay) const
+	{
+		float TMin = -FLT_MAX;
+		float TMax = FLT_MAX;
+		// X, Y, Z 각각 검사
+		for (int Axis = 0; Axis < 3; ++Axis)
+		{
+			float RayOrigin = InRay.Origin[Axis];
+			float RayDir = InRay.Direction[Axis];
+			float BoundMin = Min[Axis];
+			float BoundMax = Max[Axis];
+			if (fabs(RayDir) < 1e-6f)
+			{
+				// 평행한 경우 → 레이가 박스 영역을 벗어나 있으면 교차 X
+				if (RayOrigin < BoundMin || RayOrigin > BoundMax)
+				{
+					return false;
+				}
+			}
+			else
+			{
+				float InvDir = 1.0f / RayDir;
+				float T1 = (BoundMin - RayOrigin) * InvDir;
+				float T2 = (BoundMax - RayOrigin) * InvDir;
+				if (T1 > T2)
+				{
+					std::swap(T1, T2);
+				}
+				if (T1 > TMin) TMin = T1;
+				if (T2 < TMax) TMax = T2;
+				if (TMin > TMax)
+				{
+					return false; // 레이가 박스에서 벗어남
+				}
+			}
+		}
+		return true;
+	}
 	inline bool RayAABB_IntersectT(const FRay& InRay, float& OutEnterDistance, float& OutExitDistance)
 	{
 		// 레이가 박스를 통과할 수 있는 [Enter, Exit] 구간
