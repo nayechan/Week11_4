@@ -340,78 +340,56 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			VisibleFlags.assign(size_t(maxUUID + 1), 1); // 기본 보임
 
 		OcclusionCPU.TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
+
+		VisibleNow.clear();
+		VisibleNow.reserve(Occludees.size()); // 대충 예상치
+
+		for (AActor* Actor : Actors)
+		{
+			if (!Actor) continue;
+
+			// 1) 프러스텀 밖은 이미 culled(true)일 것
+			if (Actor->GetCulled()) continue;
+
+			// 2) 오클루전 결과 반영
+			if (bUseCPUOcclusion)
+			{
+				const uint32 id = Actor->UUID;
+				const bool isVisible = (id < VisibleFlags.size()) ? (VisibleFlags[id] != 0) : true;
+
+				if (!isVisible)
+				{
+					Actor->SetCulled(true); // 오클루전으로 다시 컷
+					continue;
+				}
+			}
+
+			// 최종 가시
+			VisibleNow.push_back(Actor);
+		}
 	}
 	// ----------------------------------------------------------------
 
 	// 일반 액터들 렌더링
 	if (IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
 	{
-		for (AActor* Actor : Actors)
+		for (AActor* Actor : VisibleNow)
 		{
 			if (!Actor) continue;
 			if (Actor->GetActorHiddenInGame()) continue;
-			if (Actor->GetCulled()) continue;
 
-			// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-			if (bUseCPUOcclusion)
-			{
-				uint32_t id = Actor->UUID;
-				if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-				{
-					continue; // 가려짐 → 스킵
-				}
-			}
-
-			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-			{
-				continue;
-			}
-
-
-			//if (CamComp)
-			//{
-			//	if (AStaticMeshActor* MeshActor = Cast<AStaticMeshActor>(Actor))
-			//	{
-			//		if (UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(MeshActor->CollisionComponent))
-			//		{
-			//			const FBound Bound = Box->GetWorldBound();
-			//			if (!IsAABBVisible(ViewFrustum, Bound))
-			//			{
-			//				continue;
-			//			}
-			//		}
-			//	}
-			//}
 			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
-			/*if (bIsSelected)
-				Renderer->OMSetDepthStencilState(EComparisonFunc::Always);*/ // 이렇게 하면, 같은 메시에 속한 정점끼리도 뒤에 있는게 앞에 그려지는 경우가 발생해, 이상하게 렌더링 됨.
-
 			Renderer->UpdateHighLightConstantBuffer(bIsSelected, rgb, 0, 0, 0, 0);
 
 			for (USceneComponent* Component : Actor->GetComponents())
 			{
-				if (!Component)
-				{
-					continue;
-				}
+				if (!Component) continue;
 				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-				{
-					if (!ActorComp->IsActive())
-					{
-						continue;
-					}
-				}
+					if (!ActorComp->IsActive()) continue;
 
+				if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText)) continue;
+				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes)) continue;
 
-				if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText))
-				{
-					continue;
-				}
-
-				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
-				{
-					continue;
-				}
 				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 				{
 					Renderer->SetViewModeType(ViewModeIndex);
@@ -1011,10 +989,20 @@ void UWorld::BuildCpuOcclusionSets(
 
 	const FMatrix VP = View * Proj;
 
-	// 간단 정책:
-	//  - 화면 투영 면적이 큰 상위 물체를 오클루더로(보수적으로는 '모두'를 오클루더로 써도 됨)
-	//  - 본문은 모두 Occludee에 넣음
-	//  - 둘 다 동일 세트로 써도 동작 (속도-정확도는 씬에 맞춰 조절)
+	if (auto* PM = UWorldPartitionManager::GetInstance())
+	{
+		if (FBVHierachy* BVH = PM->GetBVH())
+		{
+			// BVH가 프러스텀 전처리로 이미 SetCulled(false)를 찍어줬다고 가정
+			// 여기선 오클루전 후보만 따로 수집
+			const int MaxOccNodes = 512;       // 씬에 맞게 조절 가능
+			const int MaxOccludee = INT_MAX;    // 필요 시 상한을 둬도 됨
+			BVH->CollectOcclusionSets(ViewFrustum, VP, OutOccluders, OutOccludees, MaxOccNodes, MaxOccludee);
+			return;
+		}
+	}
+
+	// --- 폴백: BVH 없음 → 기존 방식 ---
 	for (AActor* Actor : Actors)
 	{
 		if (!Actor) continue;
@@ -1024,17 +1012,15 @@ void UWorld::BuildCpuOcclusionSets(
 		AStaticMeshActor* SMA = Cast<AStaticMeshActor>(Actor);
 		if (!SMA) continue;
 
-		// 충돌/바운딩 박스 컴포넌트
 		UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(SMA->CollisionComponent);
 		if (!Box) continue;
 
 		FCandidateDrawable C{};
-		C.ActorIndex = Actor->UUID;          // UUID로 직접 인덱싱
-		C.Bound = Box->GetWorldBound(); // Min/Max 보유
+		C.ActorIndex = Actor->UUID;
+		C.Bound = Box->GetWorldBound();
 		C.WorldViewProj = VP;
 
-		// 간단히 모두를 양쪽에 다 넣자(먼저 전체 동작 확인 → 이후 Top-K 정책으로 최적화)
-		OutOccluders.push_back(C);
 		OutOccludees.push_back(C);
+		OutOccluders.push_back(C);
 	}
 }

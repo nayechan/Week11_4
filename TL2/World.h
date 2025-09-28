@@ -188,6 +188,8 @@ private:
         TArray<FCandidateDrawable>& OutOccluders,
         TArray<FCandidateDrawable>& OutOccludees);
    
+    TArray<AActor*> VisibleNow;     // 이번 프레임 최종 가시 리스트
+
 };
 template<class T>
 inline T* UWorld::SpawnActor()

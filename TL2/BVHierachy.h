@@ -42,7 +42,16 @@ public:
     void DebugDump() const;
     const FBound& GetBounds() const { return Bounds; }
 
-
+    // 프러스텀 기준으로 오클루더(내부노드 AABB) / 오클루디(리프의 액터들) 수집
+// VP는 행벡터 기준(네 컨벤션): p' = p * VP
+    void CollectOcclusionSets(
+        const Frustum& InFrustum,
+        const FMatrix& VP,
+        TArray<FCandidateDrawable>& OutOccluders,
+        TArray<FCandidateDrawable>& OutOccludees,
+        int MaxOccluderNodes = 2048,
+        int MaxOccludees = INT_MAX
+    ) const;
 private:
     static FBound UnionBounds(const FBound& A, const FBound& B);
 

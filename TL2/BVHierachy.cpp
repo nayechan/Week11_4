@@ -299,6 +299,96 @@ void FBVHierachy::DebugDump() const
     UE_LOG("===== BVHierachy (LBVH) DUMP END =====\r\n");
 }
 
+
+void FBVHierachy::CollectOcclusionSets(
+    const Frustum& InFrustum,
+    const FMatrix& VP,
+    TArray<FCandidateDrawable>& OutOccluders,
+    TArray<FCandidateDrawable>& OutOccludees,
+    int MaxOccluderNodes,
+    int MaxOccludees
+) const
+{
+    OutOccluders.clear();
+    OutOccludees.clear();
+
+    if (Nodes.empty()) return;
+
+    // 루트가 프러스텀 밖이면 종료
+    if (!IsAABBVisible(InFrustum, Nodes[0].Bounds)) return;
+
+    struct Item { int Idx; };
+    TArray<Item> stack;
+    stack.push_back({ 0 });
+
+    while (!stack.empty())
+    {
+        const int idx = stack.back().Idx;
+        stack.pop_back();
+
+        const auto& node = Nodes[idx];
+
+        if (!IsAABBVisible(InFrustum, node.Bounds))
+            continue;
+
+        const bool fullyInside = !IsAABBIntersects(InFrustum, node.Bounds);
+
+        if (node.IsLeaf())
+        {
+            // 리프: 액터 레벨로 오클루디 수집
+            for (int i = 0; i < node.Count; ++i)
+            {
+                if ((int)OutOccludees.size() >= MaxOccludees) break;
+
+                AActor* A = ActorArray[node.First + i];
+                if (!A) continue;
+
+                // 액터 바운드 (캐시 우선)
+                const FBound* pB = ActorLastBounds.Find(A);
+                const FBound  B = pB ? *pB : A->GetBounds();
+
+                if (!IsAABBVisible(InFrustum, B)) continue;
+
+                FCandidateDrawable C{};
+                C.ActorIndex = A->UUID;
+                C.Bound = B;      // 월드 AABB
+                C.WorldViewProj = VP;
+                OutOccludees.push_back(C);
+            }
+        }
+        else
+        {
+            // 내부 노드: '오클루더'로 활용 (가능하면 fully-inside 노드 위주로)
+            if (fullyInside && (int)OutOccluders.size() < MaxOccluderNodes)
+            {
+                FCandidateDrawable C{};
+                C.ActorIndex = UINT32_MAX; // 의미 없음
+                C.Bound = node.Bounds;
+                C.WorldViewProj = VP;
+                OutOccluders.push_back(C);
+                // 내부노드를 오클루더로 썼다면 더 쪼개지 않아도 충분
+                continue;
+            }
+
+            // 더 쪼개서 하위에서 inside 노드 찾기
+            if (node.Left >= 0) stack.push_back({ node.Left });
+            if (node.Right >= 0) stack.push_back({ node.Right });
+        }
+    }
+
+    // 예외: fully-inside 오클루더가 거의 없을 때, 교차 노드에서도 약간 보충(옵션)
+    if (OutOccluders.empty())
+    {
+        // 루트를 그대로 오클루더로 써도 보수적 깊이맵엔 안전함
+        FCandidateDrawable C{};
+        C.ActorIndex = UINT32_MAX;
+        C.Bound = Nodes[0].Bounds;
+        C.WorldViewProj = VP;
+        OutOccluders.push_back(C);
+    }
+}
+
+
 FBound FBVHierachy::UnionBounds(const FBound& A, const FBound& B)
 {
     FBound out;
@@ -391,6 +481,9 @@ void FBVHierachy::BuildLBVHFromMap()
     Nodes.clear();
     BuildRange(0, N);
 }
+
+
+
 
 int FBVHierachy::BuildRange(int s, int e)
 {
