@@ -463,21 +463,21 @@ void FOctree::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& Out
 
 
             FBound ActorBounds;
-            // 1. 배열 캐시에서 찾기 (빠름)
+            //// 1. 배열 캐시에서 찾기 (빠름)
             if (i < Node->ActorBoundsCache.size())
             {
                 ActorBounds = Node->ActorBoundsCache[i];
             }
-            // 2. 맵 캐시에서 찾기 (조금 느림)
-            else if (Node->ActorLastBounds.count(Actor) > 0)
-            {
-                ActorBounds = Node->ActorLastBounds[Actor];
-            }
-            // 3. 최후 수단: Actor 객체에서 직접 얻기 (가장 느림)
-            else
-            {
-                ActorBounds = Actor->GetBounds();
-            }
+            //// 2. 맵 캐시에서 찾기 (조금 느림)
+            //else if (Node->ActorLastBounds.count(Actor) > 0)
+            //{
+            //    ActorBounds = Node->ActorLastBounds[Actor];
+            //}
+            //// 3. 최후 수단: Actor 객체에서 직접 얻기 (가장 느림)
+            //else
+            //{
+                //ActorBounds = Actor->GetBounds();
+            //}
 
             float Tmin, Tmax;
             if (!ActorBounds.RayAABB_IntersectT(Ray, Tmin, Tmax))

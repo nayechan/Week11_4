@@ -86,7 +86,5 @@ private:
     
     // 메모리 풀링을 위한 정적 스택
     static TArray<FOctree*> NodePool;
-    static FOctree* AllocateNode(const FBound& InBounds, int InDepth, int InMaxDepth, int InMaxObjects);
-    static void DeallocateNode(FOctree* Node);
 };
 

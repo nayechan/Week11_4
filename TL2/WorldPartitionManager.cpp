@@ -142,10 +142,10 @@ void UWorldPartitionManager::RayQueryClosest(FRay InRay, OUT AActor*& OutActor, 
     {
         SceneOctree->QueryRayClosest(InRay, OutActor, OutBestT);
     }
-//	if (BVH)
-//	{
-//		BVH->QueryRayClosest(InRay, OutActor, OutBestT);
-//	}
+	//if (BVH)
+	//{
+	//	BVH->QueryRayClosest(InRay, OutActor, OutBestT);
+	//}
 }
 
 void UWorldPartitionManager::FrustumQuery(Frustum InFrustum)
