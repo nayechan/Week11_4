@@ -3,6 +3,28 @@
 #include "AABoundingBoxComponent.h"
 #include "Renderer.h"
 #include "Picking.h"
+
+class FOctree;
+
+struct FNodeEntry {
+    FOctree* Node;
+    float TMin;
+    bool operator<(const FNodeEntry& Other) const { return TMin > Other.TMin; } // min-heap
+};
+
+static const FVector4 LevelColors[8] =
+{
+    FVector4(0.0f, 1.0f, 0.0f, 1.0f),   // 0: 초록
+    FVector4(0.2f, 0.8f, 1.0f, 1.0f),   // 1: 하늘색
+    FVector4(1.0f, 0.6f, 0.1f, 1.0f),   // 2: 주황
+    FVector4(1.0f, 0.0f, 0.0f, 1.0f),   // 3: 빨강
+    FVector4(0.6f, 0.0f, 1.0f, 1.0f),   // 4: 보라
+    FVector4(1.0f, 1.0f, 0.0f, 1.0f),   // 5: 노랑
+    FVector4(0.0f, 0.5f, 1.0f, 1.0f),   // 6: 파랑
+    FVector4(1.0f, 0.0f, 1.0f, 1.0f),   // 7: 핑크
+};
+
+
 class FOctree
 {
 public:
@@ -21,15 +43,12 @@ public:
 	bool Remove(AActor* InActor, const FBound& ActorBounds);
     void Update(AActor* InActor, const FBound& OldBounds, const FBound& NewBounds);
 
-    //void QueryRay(const Ray& InRay, std::vector<Actor*>& OutActors) const;
-    //void QueryFrustum(const Frustum& InFrustum, std::vector<Actor*>& OutActors) const;
-	//쿼리
-	void QueryRay(const FRay& Ray, TArray<AActor*>& OutActors) const;
-    // Ordered query: returns pairs (Actor, AABB tmin) for early-out pruning
-    void QueryRayOrdered(const FRay& Ray, TArray<std::pair<AActor*, float>>& OutCandidates) const;
+    //void QueryRayOrdered(const FRay& Ray, TArray<std::pair<AActor*, float>>& OutCandidates) ;
     // for Partition Manager Query
     void Remove(AActor* InActor);
     void Update(AActor* InActor);
+
+    void QueryRayClosest(const FRay& Ray, AActor*& OutActor,OUT float& OutBestT);
 
     // Debug draw
     void DebugDraw(URenderer* InRenderer) const;
@@ -55,10 +74,14 @@ private:
 	int MaxObjects;
 	FBound Bounds;
 
+	// Loose octree factor: expand child bounds to reduce parent crowding
+	float LooseFactor = 1.25f;
+
 	TArray<AActor*> Actors;
 	FOctree* Children[8]; // 8분할 
-
+    // TODO 리팩토링 -> 하나의 TMAP으로 관리하던 , 해야할 것 같다 . 
     TMap<AActor*, FBound> ActorLastBounds;
+    TArray<FBound> ActorBoundsCache;
     TArray<AActor*> ActorArray;
     
     // 메모리 풀링을 위한 정적 스택

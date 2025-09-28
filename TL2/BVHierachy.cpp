@@ -8,6 +8,7 @@
 #include <cfloat>
 #include <cmath>
 #include <functional>
+#include <queue>
 
 namespace {
     inline bool RayAABB_IntersectT(const FRay& ray, const FBound& box, float& outTMin, float& outTMax)
@@ -128,52 +129,6 @@ void FBVHierachy::Update(AActor* InActor)
         Insert(InActor, InActor->GetBounds());
     }
     FlushRebuild();
-}
-
-void FBVHierachy::QueryRay(const FRay& InRay, OUT TArray<AActor*>& OutActors)
-{
-    OutActors = TArray<AActor*>();
-    if (Nodes.empty()) return;
-
-    // 루트 박스로 빠른 탈출
-    float tminRoot, tmaxRoot;
-    if (!RayAABB_IntersectT(InRay, Nodes[0].Bounds, tminRoot, tmaxRoot)) return;
-
-    struct StackItem { int Idx; float TMin; };
-    TArray<StackItem> stack;
-    stack.push_back({ 0, tminRoot });
-
-    while (!stack.empty())
-    {
-        StackItem it = stack.back();
-        stack.pop_back();
-        const FLBVHNode& node = Nodes[it.Idx];
-        if (node.IsLeaf())
-        {
-            for (int i = 0; i < node.Count; ++i)
-            {
-                AActor* A = ActorArray[node.First + i];
-                if (!A) continue;
-                const FBound* Cached = ActorLastBounds.Find(A);
-                const FBound Box = Cached ? *Cached : A->GetBounds();
-                if (Box.IntersectsRay(InRay))
-                {
-                    OutActors.Add(A);
-                }
-            }
-            continue;
-        }
-        float tminL, tmaxL, tminR, tmaxR;
-        bool hitL = (node.Left >= 0) && RayAABB_IntersectT(InRay, Nodes[node.Left].Bounds, tminL, tmaxL);
-        bool hitR = (node.Right >= 0) && RayAABB_IntersectT(InRay, Nodes[node.Right].Bounds, tminR, tmaxR);
-        if (hitL && hitR)
-        {
-            if (tminL < tminR) { stack.push_back({ node.Right, tminR }); stack.push_back({ node.Left, tminL }); }
-            else { stack.push_back({ node.Left, tminL }); stack.push_back({ node.Right, tminR }); }
-        }
-        else if (hitL) stack.push_back({ node.Left, tminL });
-        else if (hitR) stack.push_back({ node.Right, tminR });
-    }
 }
 
 void FBVHierachy::QueryFrustum(const Frustum& InFrustum)
@@ -517,47 +472,85 @@ int FBVHierachy::BuildRange(int s, int e)
     return nodeIdx;
 }
 
-void FBVHierachy::QueryRayOrdered(const FRay& InRay, OUT TArray<std::pair<AActor*, float>>& OutCandidates) const
+void FBVHierachy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const
 {
-    OutCandidates = TArray<std::pair<AActor*, float>>();
+    OutActor = nullptr;
+    OutBestT = std::numeric_limits<float>::infinity();
+
     if (Nodes.empty()) return;
+
     float tminRoot, tmaxRoot;
-    if (!RayAABB_IntersectT(InRay, Nodes[0].Bounds, tminRoot, tmaxRoot)) return;
+    if (!RayAABB_IntersectT(Ray, Nodes[0].Bounds, tminRoot, tmaxRoot)) return;
 
-    struct StackItem { int Idx; float TMin; };
-    TArray<StackItem> stack;
-    stack.push_back({ 0, tminRoot });
+    struct HeapItem {
+        int Idx;
+        float TMin;
+        bool operator<(const HeapItem& other) const { return TMin > other.TMin; } // min-heap behavior
+    };
 
-    while (!stack.empty())
+    std::priority_queue<HeapItem> heap;
+    heap.push({ 0, tminRoot });
+
+    const float Epsilon = 1e-3f;
+
+    while (!heap.empty())
     {
-        StackItem it = stack.back();
-        stack.pop_back();
-        const FLBVHNode& node = Nodes[it.Idx];
+        HeapItem entry = heap.top();
+        heap.pop();
+
+        if (OutActor && entry.TMin > OutBestT + Epsilon)
+            break;
+
+        const FLBVHNode& node = Nodes[entry.Idx];
         if (node.IsLeaf())
         {
             for (int i = 0; i < node.Count; ++i)
             {
                 AActor* A = ActorArray[node.First + i];
                 if (!A) continue;
-                const FBound* b = ActorLastBounds.Find(A);
+                if (A->GetActorHiddenInGame()) continue;
+
+                const FBound* Cached = ActorLastBounds.Find(A);
+                const FBound Box = Cached ? *Cached : A->GetBounds();
+
                 float tmin, tmax;
-                if (b && RayAABB_IntersectT(InRay, *b, tmin, tmax))
+                if (!RayAABB_IntersectT(Ray, Box, tmin, tmax))
+                    continue;
+                if (OutActor && tmin > OutBestT + Epsilon)
+                    continue;
+
+                float hitDistance;
+                if (CPickingSystem::CheckActorPicking(A, Ray, hitDistance))
                 {
-                    OutCandidates.Add({ A, tmin });
+                    if (hitDistance < OutBestT)
+                    {
+                        OutBestT = hitDistance;
+                        OutActor = A;
+                    }
                 }
             }
             continue;
         }
-        float tminL, tmaxL, tminR, tmaxR;
-        bool hitL = (node.Left >= 0) && RayAABB_IntersectT(InRay, Nodes[node.Left].Bounds, tminL, tmaxL);
-        bool hitR = (node.Right >= 0) && RayAABB_IntersectT(InRay, Nodes[node.Right].Bounds, tminR, tmaxR);
-        if (hitL && hitR)
+
+        // Internal node: push children if intersected and promising
+        if (node.Left >= 0)
         {
-            if (tminL < tminR) { stack.push_back({ node.Right, tminR }); stack.push_back({ node.Left, tminL }); }
-            else { stack.push_back({ node.Left, tminL }); stack.push_back({ node.Right, tminR }); }
+            float tminL, tmaxL;
+            if (RayAABB_IntersectT(Ray, Nodes[node.Left].Bounds, tminL, tmaxL))
+            {
+                if (!OutActor || tminL <= OutBestT + Epsilon)
+                    heap.push({ node.Left, tminL });
+            }
         }
-        else if (hitL) stack.push_back({ node.Left, tminL });
-        else if (hitR) stack.push_back({ node.Right, tminR });
+        if (node.Right >= 0)
+        {
+            float tminR, tmaxR;
+            if (RayAABB_IntersectT(Ray, Nodes[node.Right].Bounds, tminR, tmaxR))
+            {
+                if (!OutActor || tminR <= OutBestT + Epsilon)
+                    heap.push({ node.Right, tminR });
+            }
+        }
     }
 }
 

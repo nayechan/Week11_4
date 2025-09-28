@@ -10,6 +10,7 @@
 #include "LineDynamicMesh.h"
 
 class UStaticMesh;
+class FMeshBVH;
 
 class UResourceBase;
 class UStaticMesh;
@@ -76,6 +77,10 @@ public:
     TArray<D3D11_INPUT_ELEMENT_DESC>& GetProperInputLayout(const FString& InShaderName);
     FString& GetProperShader(const FString& InTextureName);
 
+    // Mesh BVH cache (OBJ path -> built BVH)
+    FMeshBVH* GetMeshBVH(const FString& ObjPath);
+    FMeshBVH* GetOrBuildMeshBVH(const FString& ObjPath, const struct FStaticMesh* StaticMeshAsset);
+
 public:
     UResourceManager() = default;
 protected:
@@ -104,6 +109,9 @@ protected:
 
 private:
     TMap<FString, UMaterial*> MaterialMap;
+
+    // Cache for per-mesh BVHs to avoid rebuilding for identical OBJ assets
+    TMap<FString, FMeshBVH*> MeshBVHCache;
 };
 //-----definition
 template<typename T>

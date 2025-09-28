@@ -26,8 +26,9 @@ FOctree::~FOctree()
 // 런타임 중에 옥트리 초기화 해야할 때 !
 void FOctree::Clear()  
 {
-	// 액터 배열 정리
-	Actors.Empty();
+    // 액터 배열 정리
+    Actors.Empty();
+    ActorBoundsCache.Empty();
 
 	// 자식들도 재귀적으로 정리
 	for (int i = 0; i < 8; i++)
@@ -47,9 +48,11 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
     
     // 모든 액터를 대상 영역에 바로 추가
     Actors.reserve(Actors.size() + ActorsAndBounds.size());
+    ActorBoundsCache.reserve(ActorBoundsCache.size() + ActorsAndBounds.size());
     for (const auto& ActorBoundPair : ActorsAndBounds)
     {
         Actors.push_back(ActorBoundPair.first);
+        ActorBoundsCache.push_back(ActorBoundPair.second);
         // Actor ->  Bound 캐싱 , Update 시 빠르게 쓰기 위해서이다. 
         ActorLastBounds[ActorBoundPair.first] = ActorBoundPair.second;
     }
@@ -69,18 +72,18 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
         while (It != Actors.end())
         {
             AActor* ActorPtr = *It;
-            auto CachedIt = ActorLastBounds.find(ActorPtr);
-            FBound Box = (CachedIt != ActorLastBounds.end()) ? CachedIt->second : ActorPtr->GetBounds();
+            size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
+            FBound Box = ActorBoundsCache[idx];
             
             int OptimalOctant = GetOctantIndex(Box);
             if (CanFitInOctant(Box, OptimalOctant))
             {
                 OctantGroups[OptimalOctant].push_back({ActorPtr, Box});
                 It = Actors.erase(It);
+                ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
             }
             else
             {
-                // 다른 옥탄트 처리
                 bool bMoved = false;
                 for (int i = 0; i < 8; i++)
                 {
@@ -88,16 +91,15 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
                     {
                         OctantGroups[i].push_back({ActorPtr, Box});
                         It = Actors.erase(It);
+                        ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
                         bMoved = true;
                         break;
                     }
                 }
-                // 부모 노드에 남겨두고 넘어가는 것이다. 
                 if (!bMoved) ++It;
             }
         }
         
-        // 옥탄트별로 재귀 벌크 삽입
         for (int i = 0; i < 8; i++)
         {
             if (!OctantGroups[i].empty())
@@ -136,6 +138,7 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
     // 자식에 못 들어가면 현재 노드에 저장
     // 자식에 넣지 못하는 객체를 가질 수 도 있다. 
     Actors.push_back(InActor);
+    ActorBoundsCache.push_back(ActorBounds);
 
     // 분할 조건 체크
     // 현재 노드에 들어있는 객체 수가 Max초과 , 최대 깊이 보다 얕은 레벨이면 스플릿 
@@ -151,9 +154,8 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
         while (It != Actors.end())
         {
             AActor* ActorPtr = *It;
-            // 캐시된 바운드 사용 (이미 ActorLastBounds에 저장됨)
-            auto CachedIt = ActorLastBounds.find(ActorPtr);
-            FBound Box = (CachedIt != ActorLastBounds.end()) ? CachedIt->second : ActorPtr->GetBounds();
+            size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
+            FBound Box = ActorBoundsCache[idx];
 
             bool bMoved = false;
             // 최적 옥탄트부터 시도
@@ -162,6 +164,7 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
             {
                 Children[OptimalOctant]->Insert(ActorPtr, Box);
                 It = Actors.erase(It);
+                ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
                 bMoved = true;
             }
             else
@@ -173,6 +176,7 @@ void FOctree::Insert(AActor* InActor, const FBound& ActorBounds)
                     {
                         Children[i]->Insert(ActorPtr, Box);
                         It = Actors.erase(It);
+                        ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
                         bMoved = true;
                         break;
                     }
@@ -194,7 +198,10 @@ bool FOctree::Remove(AActor* InActor, const FBound& ActorBounds)
     auto It = std::find(Actors.begin(), Actors.end(), InActor);
     if (It != Actors.end())
     {
+        size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
         Actors.erase(It);
+        if (idx < ActorBoundsCache.size())
+            ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
         // 캐시 제거
         ActorLastBounds.erase(InActor);
         return true;
@@ -278,8 +285,12 @@ void FOctree::Split()
     for (int i = 0; i < 8; i++)
     {
         FBound ChildBounds = Bounds.CreateOctant(i);
+        FVector ChildCenter = ChildBounds.GetCenter();
+        FVector ChildExtent = ChildBounds.GetExtent() * LooseFactor;
+        FBound LooseChildBounds(ChildCenter - ChildExtent, ChildCenter + ChildExtent);
 
-        Children[i] = new FOctree(ChildBounds, Depth + 1, MaxDepth, MaxObjects);
+        Children[i] = new FOctree(LooseChildBounds, Depth + 1, MaxDepth, MaxObjects);
+        Children[i]->LooseFactor = this->LooseFactor; // propagate
     }
 }
 
@@ -404,105 +415,104 @@ static void CreateLineDataFromAABB(
     Start.Add(v3); End.Add(v7); Color.Add(LineColor);
 }
 
-void FOctree::QueryRay(const FRay& Ray, TArray<AActor*>& OutActors) const
+// 해당 함수 사용 
+void FOctree::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT)
 {
-    if (!Bounds.IntersectsRay(Ray))
+    OutBestT = std::numeric_limits<float>::infinity();
+
+    float NodeTMin, NodeTMax;
+    // 먼저 레이가 박스에 교차하지 않으면 함수 바로 종료 
+    if (!Bounds.RayAABB_IntersectT(Ray, NodeTMin, NodeTMax))
         return;
 
-    for (AActor* Actor : Actors)
-    {
-        if (!Actor) continue;
-        FBound Box = Actor->GetBounds();
-        if (Box.IntersectsRay(Ray))
-        {
-            OutActors.Add(Actor);
-        }
-    }
-    if (Children[0])
-    {
-        for (int i = 0; i < 8; i++)
-        {
-            if (Children[i])
-            {
-                Children[i]->QueryRay(Ray, OutActors);
-            }
-        }
-    }
-}
+    // BFS 사용해서 가까운 노드부터 탐색 시작 
+    std::priority_queue<FNodeEntry> Heap;
+    // 레이가 가장 먼저 도착한 노드 부터 탐색 
+    Heap.push({ this, NodeTMin });
 
-namespace {
-    inline bool RayAABB_IntersectT(const FRay& ray, const FBound& box, float& outTMin, float& outTMax)
+    const float Epsilon = 1e-3f;
+
+    while (!Heap.empty())
     {
-        float tmin = -FLT_MAX;
-        float tmax =  FLT_MAX;
-        for (int axis = 0; axis < 3; ++axis)
+        FNodeEntry Entry = Heap.top();
+        Heap.pop();
+
+        // 이미 더 가까운 정확한 교차가 있으면, 더 먼 노드는 굳이 탐색하지 않고 중단 
+        if (OutActor && Entry.TMin > OutBestT + Epsilon)
         {
-            const float ro = ray.Origin[axis];
-            const float rd = ray.Direction[axis];
-            const float bmin = box.Min[axis];
-            const float bmax = box.Max[axis];
-            if (std::abs(rd) < 1e-6f)
+            break;
+        }
+
+        FOctree* Node = Entry.Node;
+        if (!Node) // 없으면 Stop! 
+        {
+            continue;
+        }
+
+        for (size_t i = 0; i < Node->Actors.size(); ++i)
+        {
+            AActor* Actor = Node->Actors[i];
+            if (!Actor)
             {
-                if (ro < bmin || ro > bmax)
-                    return false;
+                continue;
             }
+            if (Actor->GetActorHiddenInGame())
+            {
+                continue;
+            }
+
+
+            FBound ActorBounds;
+            // 1. 배열 캐시에서 찾기 (빠름)
+            if (i < Node->ActorBoundsCache.size())
+            {
+                ActorBounds = Node->ActorBoundsCache[i];
+            }
+            // 2. 맵 캐시에서 찾기 (조금 느림)
+            else if (Node->ActorLastBounds.count(Actor) > 0)
+            {
+                ActorBounds = Node->ActorLastBounds[Actor];
+            }
+            // 3. 최후 수단: Actor 객체에서 직접 얻기 (가장 느림)
             else
             {
-                const float inv = 1.0f / rd;
-                float t1 = (bmin - ro) * inv;
-                float t2 = (bmax - ro) * inv;
-                if (t1 > t2) std::swap(t1, t2);
-                if (t1 > tmin) tmin = t1;
-                if (t2 < tmax) tmax = t2;
-                if (tmin > tmax) return false;
+                ActorBounds = Actor->GetBounds();
             }
-        }
-        outTMin = tmin < 0.0f ? 0.0f : tmin;
-        outTMax = tmax;
-        return true;
-    }
-}
 
-void FOctree::QueryRayOrdered(const FRay& Ray, TArray<std::pair<AActor*, float>>& OutCandidates) const
-{
-    float nodeTMin, nodeTMax;
-    if (!RayAABB_IntersectT(Ray, Bounds, nodeTMin, nodeTMax))
-        return;
+            float Tmin, Tmax;
+            if (!ActorBounds.RayAABB_IntersectT(Ray, Tmin, Tmax))
+                continue;
 
-    // Check local actors with cached bounds if possible
-    for (AActor* Actor : Actors)
-    {
-        if (!Actor) continue;
-        auto it = ActorLastBounds.find(Actor);
-        const FBound box = (it != ActorLastBounds.end()) ? it->second : Actor->GetBounds();
-        float tmin, tmax;
-        if (RayAABB_IntersectT(Ray, box, tmin, tmax))
-        {
-            OutCandidates.Add({ Actor, tmin });
-        }
-    }
-    if (Children[0])
-    {
-        for (int i = 0; i < 8; ++i)
-        {
-            if (Children[i])
+            if (OutActor && Tmin > OutBestT + Epsilon)
+                continue;
+
+            float hitDistance;
+            if (CPickingSystem::CheckActorPicking(Actor, Ray, hitDistance))
             {
-                Children[i]->QueryRayOrdered(Ray, OutCandidates);
+                if (hitDistance < OutBestT)
+                {
+                    OutBestT = hitDistance;
+                    OutActor = Actor;
+                }
+            }
+        }
+        if (Node->Children[0])
+        {
+            for (int i = 0; i < 8; ++i)
+            {
+                FOctree* Child = Node->Children[i];
+                if (!Child) continue;
+                float Cmin, Cmax;
+                if (Child->Bounds.RayAABB_IntersectT(Ray, Cmin, Cmax))
+                {
+                    if (!OutActor || Cmin <= OutBestT + Epsilon)
+                        Heap.push({ Child, Cmin });
+                }
             }
         }
     }
 }
-static const FVector4 LevelColors[8] =
-{
-    FVector4(0.0f, 1.0f, 0.0f, 1.0f),   // 0: 초록
-    FVector4(0.2f, 0.8f, 1.0f, 1.0f),   // 1: 하늘색
-    FVector4(1.0f, 0.6f, 0.1f, 1.0f),   // 2: 주황
-    FVector4(1.0f, 0.0f, 0.0f, 1.0f),   // 3: 빨강
-    FVector4(0.6f, 0.0f, 1.0f, 1.0f),   // 4: 보라
-    FVector4(1.0f, 1.0f, 0.0f, 1.0f),   // 5: 노랑
-    FVector4(0.0f, 0.5f, 1.0f, 1.0f),   // 6: 파랑
-    FVector4(1.0f, 0.0f, 1.0f, 1.0f),   // 7: 핑크
-};
+
 void FOctree::DebugDraw(URenderer* InRenderer) const
 {
     if (!InRenderer)
@@ -523,18 +533,6 @@ void FOctree::DebugDraw(URenderer* InRenderer) const
     {
         FStackItem Current = Stack.Pop();
         const FOctree* CurrentNode = Current.Node;
-
-        // 깊이에 따른 색상 변경
-        //const int32 DepthIndex = Current.DepthLevel % 3;
-        //FVector4 NodeColor(0.0f, 1.0f, 0.0f, 1.0f); // 기본 초록
-        //if (DepthIndex == 1)
-        //{
-        //    NodeColor = FVector4(0.2f, 0.8f, 1.0f, 1.0f); // 하늘색
-        //}
-        //else if (DepthIndex == 2)
-        //{
-        //    NodeColor = FVector4(1.0f, 0.6f, 0.1f, 1.0f); // 주황색
-        //}
         const int32 DepthIndex = Current.DepthLevel % 8;
         FVector4 NodeColor = LevelColors[DepthIndex];
         // AABB 박스 라인 그리기

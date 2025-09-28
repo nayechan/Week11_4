@@ -29,8 +29,7 @@ public:
 
     void FlushRebuild();
 
-    void QueryRay(const FRay& InRay, OUT TArray<AActor*>& Actors);
-    void QueryRayOrdered(const FRay& InRay, OUT TArray<std::pair<AActor*, float>>& OutCandidates) const;
+    void QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const;
     void QueryFrustum(const Frustum& InFrustum);
 
     void DebugDraw(URenderer* Renderer) const;

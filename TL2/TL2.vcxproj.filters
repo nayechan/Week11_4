@@ -390,6 +390,9 @@
     <ClCompile Include="BVHierachy.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="MeshBVH.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="Occlusion.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -722,6 +725,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="BVHierachy.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshBVH.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Occlusion.h">

@@ -5,6 +5,8 @@
 #include "ObjManager.h"
 #include "d3dtk/WICTextureLoader.h"
 #include "TextQuad.h"
+#include "MeshBVH.h"
+#include "Enums.h"
 
 #define GRIDNUM 100
 #define AXISLENGTH 100
@@ -129,6 +131,13 @@ void UResourceManager::Clear()
             }
         }
         MaterialMap.clear();
+
+        // Mesh BVH cache clear
+        for (auto& Pair : MeshBVHCache)
+        {
+            delete Pair.second;
+        }
+        MeshBVHCache.clear();
     }
 
     for (auto& Array : Resources)
@@ -146,6 +155,27 @@ void UResourceManager::Clear()
     Resources.Empty();
 
     // Instance lifetime is managed by ObjectFactory
+}
+
+FMeshBVH* UResourceManager::GetMeshBVH(const FString& ObjPath)
+{
+    if (auto* Found = MeshBVHCache.Find(ObjPath))
+        return *Found;
+    return nullptr;
+}
+
+FMeshBVH* UResourceManager::GetOrBuildMeshBVH(const FString& ObjPath, const FStaticMesh* StaticMeshAsset)
+{
+    if (auto* Found = MeshBVHCache.Find(ObjPath))
+        return *Found;
+
+    if (!StaticMeshAsset)
+        return nullptr;
+
+    FMeshBVH* NewBVH = new FMeshBVH();
+    NewBVH->Build(StaticMeshAsset->Vertices, StaticMeshAsset->Indices);
+    MeshBVHCache.Add(ObjPath, NewBVH);
+    return NewBVH;
 }
 
 void UResourceManager::CreateAxisMesh(float Length, const FString& FilePath)

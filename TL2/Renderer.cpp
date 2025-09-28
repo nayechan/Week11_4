@@ -40,6 +40,13 @@ void URenderer::BeginFrame()
     //OM
     //RHIDevice->OMSetBlendState();
     RHIDevice->OMSetRenderTargets();
+
+    // TODO - 한 종류 메쉬만 스폰했을 때 깨지는 현상 방지 임시이므로 고쳐야합니다
+    // ★ 캐시 무효화
+    PreShader = nullptr;
+    PreUMaterial = nullptr;
+    PreStaticMesh = nullptr;
+    PreViewModeIndex = EViewModeIndex::VMI_Wireframe; // 어차피 SetViewModeType이 다시 셋
 }
 
 void URenderer::PrepareShader(FShader& InShader)

@@ -334,8 +334,8 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 }
 
 uint32 CPickingSystem::TotalPickCount = 0;
-uint64 CPickingSystem::LastPickTime = 0;
-uint64 CPickingSystem::TotalPickTime = 0;
+uint64 CPickingSystem::LastPickTime = 0ull;
+uint64 CPickingSystem::TotalPickTime = 0ull;
 
 AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
                                                ACameraActor* Camera,
@@ -376,8 +376,7 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
     // 베스트 퍼스트 탐색으로 가장 가까운 것을 직접 구한다
     AActor* PickedActor = nullptr;
     PartitionManager->RayQueryClosest(ray, PickedActor, PickedT);
-    LastPickTime = PickCounter.Finish();
-    TotalPickTime += LastPickTime;
+    uint64 LastPickTime = PickCounter.Finish();
     double Milliseconds = ((double)LastPickTime * FPlatformTime::GetSecondsPerCycle()) * 1000.0f;
 
     if (PickedActor)

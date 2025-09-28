@@ -285,7 +285,6 @@ void UWorld::RenderSingleViewport()
 
 void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 {
-
 	// 뷰포트의 실제 크기로 aspect ratio 계산
 	float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
 	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
@@ -309,13 +308,9 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	// === Draw Actors with Show Flag checks ===
 	Renderer->SetViewModeType(ViewModeIndex);
 
-
 	// ============ Culling Logic Dispatch ========= //
 	for (AActor* Actor : Actors)
-	{
 		Actor->SetCulled(true);
-	}
-
 	UWorldPartitionManager::GetInstance()->FrustumQuery(ViewFrustum);
 
 	// ---------------------- CPU HZB Occlusion ----------------------
@@ -350,6 +345,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 			// 1) 프러스텀 밖은 이미 culled(true)일 것
 			if (Actor->GetCulled()) continue;
+			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
+				continue;
 
 			// 2) 오클루전 결과 반영
 			if (bUseCPUOcclusion)
@@ -394,10 +391,9 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 				{
 					Renderer->SetViewModeType(ViewModeIndex);
 					Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual); // 상태 원복 유지
 				}
 			}
-			Renderer->OMSetBlendState(false);
 		}
 	}
 
