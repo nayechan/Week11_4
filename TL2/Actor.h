@@ -60,7 +60,8 @@ public:
     void SetIsPicked(bool picked) { bIsPicked = picked; }
     bool GetIsPicked() { return bIsPicked; }
 
-
+    void SetCulled(bool InCulled) { bIsCulled = InCulled; }
+    bool GetCulled() { return bIsCulled; }
 
     //-----------------------------
     //----------Getter------------
@@ -97,4 +98,5 @@ protected:
     bool bIsPicked = false;
     bool bCanEverTick = true;
     bool bHiddenInGame = false;
+    bool bIsCulled = false;
 };

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "StatsOverlayD2D.h"
 
 #include <d2d1_1.h>
@@ -6,6 +6,8 @@
 #include <dxgi1_2.h>
 #include "UI/UIManager.h"
 #include "MemoryManager.h"
+#include "Picking.h"
+#include "PlatformTime.h"
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
@@ -83,7 +85,7 @@ static void DrawTextBlock(
 
 void UStatsOverlayD2D::Draw()
 {
-    if (!bInitialized || (!bShowFPS && !bShowMemory) || !SwapChain)
+    if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking) || !SwapChain)
         return;
 
     ID2D1Factory1* d2dFactory = nullptr;
@@ -184,6 +186,27 @@ void UStatsOverlayD2D::Draw()
         nextY += panelHeight + 8.0f;
     }
 
+    if (bShowPicking)
+    {
+        // Build the entire block in one buffer to avoid overwriting previous lines
+        wchar_t buf[256];
+        double lastMs = FWindowsPlatformTime::ToMilliseconds(CPickingSystem::GetLastPickTime());
+        double totalMs = FWindowsPlatformTime::ToMilliseconds(CPickingSystem::GetTotalPickTime());
+        uint32 count = CPickingSystem::GetPickCount();
+        double avgMs = (count > 0) ? (totalMs / (double)count) : 0.0;
+        swprintf_s(buf, L"Pick Count: %u\nLast: %.3f ms\nAvg: %.3f ms\nTotal: %.3f ms", count, lastMs, avgMs, totalMs);
+
+        // Increase panel height to fit multiple lines
+        const float pickPanelHeight = 96.0f;
+        D2D1_RECT_F rc = D2D1::RectF(margin, nextY, margin + panelWidth, nextY + pickPanelHeight);
+        DrawTextBlock(
+            d2dCtx, dwrite, buf, rc, 16.0f,
+            D2D1::ColorF(0, 0, 0, 0.6f),
+            D2D1::ColorF(D2D1::ColorF::SkyBlue));
+
+        nextY += pickPanelHeight + 8.0f;
+    }
+
     if (bShowMemory)
     {
         double mb = static_cast<double>(CMemoryManager::TotalAllocationBytes) / (1024.0 * 1024.0);
@@ -196,6 +219,8 @@ void UStatsOverlayD2D::Draw()
             d2dCtx, dwrite, buf, rc, 16.0f,
             D2D1::ColorF(0, 0, 0, 0.6f),
             D2D1::ColorF(D2D1::ColorF::LightGreen));
+
+        nextY += panelHeight + 8.0f;
     }
 
     d2dCtx->EndDraw();
@@ -220,6 +245,11 @@ void UStatsOverlayD2D::SetShowMemory(bool b)
     bShowMemory = b;
 }
 
+void UStatsOverlayD2D::SetShowPicking(bool b)
+{
+    bShowPicking = b;
+}
+
 void UStatsOverlayD2D::ToggleFPS()
 {
     bShowFPS = !bShowFPS;
@@ -228,4 +258,9 @@ void UStatsOverlayD2D::ToggleFPS()
 void UStatsOverlayD2D::ToggleMemory()
 {
     bShowMemory = !bShowMemory;
+}
+
+void UStatsOverlayD2D::TogglePicking()
+{
+    bShowPicking = !bShowPicking;
 }

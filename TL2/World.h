@@ -2,7 +2,9 @@
 #include "GizmoActor.h"
 #include "Object.h"
 #include "GridActor.h"
-#include "GizmoActor.h"
+#include "Occlusion.h"
+#include "BVHierachy.h"
+#include "Frustum.h"
 #include "Enums.h"
 // forward declare to avoid heavy include
 
@@ -21,6 +23,7 @@ struct FTransform;
 struct FPrimitiveData;
 class SViewportWindow;
 class UWorldPartitionManager;
+class AStaticMeshActor;
 
 /**
  * UWorld
@@ -94,8 +97,6 @@ public:
     void DisableShowFlag(EEngineShowFlags Flag) { ShowFlags &= ~Flag; }
     void ToggleShowFlag(EEngineShowFlags Flag) { ShowFlags = HasShowFlag(ShowFlags, Flag) ? (ShowFlags & ~Flag) : (ShowFlags | Flag); }
     bool IsShowFlagEnabled(EEngineShowFlags Flag) const { return HasShowFlag(ShowFlags, Flag); }
-
-  
     
     /** Generate unique name for actor based on type */
     FString GenerateUniqueActorName(const FString& ActorType);
@@ -119,7 +120,7 @@ public:
     AGizmoActor* GetGizmoActor();
     AGridActor* GetGridActor() { return GridActor; }
 
-    
+    void PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor) { StaticMeshActors.push_back(InStaticMeshActor); }
 
     
     /** === 레벨 / 월드 구성 === */
@@ -158,6 +159,9 @@ private:
     TArray<AActor*> EngineActors;
     /** === 액터 관리 === */
     TArray<AActor*> Actors;
+
+    /** A dedicated array for static mesh actors to optimize culling. */
+    TArray<class AStaticMeshActor*> StaticMeshActors;
     
     // Object naming system
     std::map<FString, int32> ObjectTypeCounts;
@@ -170,7 +174,20 @@ private:
     
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
 
+    // ==================== CPU HZB Occlusion ====================
+    FOcclusionCullingManagerCPU OcclusionCPU;
+    TArray<uint8_t>        VisibleFlags;   // ActorIndex(UUID)로 인덱싱 (0=가려짐, 1=보임)
+    bool                        bUseCPUOcclusion = true;
+    int                         OcclGridDiv = 4; // 화면 크기/이 값 = 오클루전 그리드 해상도(1/6 권장)
 
+    // 헬퍼들
+    void UpdateOcclusionGridSizeForViewport(FViewport* Viewport);
+    void BuildCpuOcclusionSets(
+        const Frustum& ViewFrustum,
+        const FMatrix& View, const FMatrix& Proj,
+        TArray<FCandidateDrawable>& OutOccluders,
+        TArray<FCandidateDrawable>& OutOccludees);
+   
 };
 template<class T>
 inline T* UWorld::SpawnActor()

@@ -269,18 +269,31 @@ void UConsoleWidget::ExecCommand(const char* command_line)
     }
     else if (Stricmp(command_line, "STAT FPS") == 0)
     {
-        UStatsOverlayD2D::Get().SetShowFPS(true);
-        AddLog("STAT FPS: ON");
+        UStatsOverlayD2D::Get().ToggleFPS();
+        AddLog("STAT FPS TOGGLED");
     }
     else if (Stricmp(command_line, "STAT MEMORY") == 0)
     {
+        UStatsOverlayD2D::Get().ToggleMemory();
+        AddLog("STAT MEMORY TOGGLED");
+    }
+    else if (Stricmp(command_line, "STAT PICKING") == 0)
+    {
+        UStatsOverlayD2D::Get().TogglePicking();
+        AddLog("STAT PICKING TOGGLED");
+    }
+    else if (Stricmp(command_line, "STAT ALL") == 0)
+    {
+        UStatsOverlayD2D::Get().SetShowFPS(true);
         UStatsOverlayD2D::Get().SetShowMemory(true);
-        AddLog("STAT MEMORY: ON");
+        UStatsOverlayD2D::Get().SetShowPicking(true);
+        AddLog("STAT: ON");
     }
     else if (Stricmp(command_line, "STAT NONE") == 0)
     {
         UStatsOverlayD2D::Get().SetShowFPS(false);
         UStatsOverlayD2D::Get().SetShowMemory(false);
+        UStatsOverlayD2D::Get().SetShowPicking(false);
         AddLog("STAT: OFF");
     }
     else

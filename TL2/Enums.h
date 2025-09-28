@@ -115,6 +115,11 @@ struct FGroupInfo
     }
 };
 
+// Helper serialization operators for math types to ensure safe, member-wise serialization
+inline FArchive& operator<<(FArchive& Ar, FVector& V) { Ar.Serialize(&V.X, sizeof(float) * 3); return Ar; }
+inline FArchive& operator<<(FArchive& Ar, FVector2D& V) { Ar.Serialize(&V.X, sizeof(float) * 2); return Ar; }
+inline FArchive& operator<<(FArchive& Ar, FVector4& V) { Ar.Serialize(&V.X, sizeof(float) * 4); return Ar; }
+
 struct FNormalVertex
 {
     FVector pos;
@@ -124,10 +129,32 @@ struct FNormalVertex
 
     friend FArchive& operator<<(FArchive& Ar, FNormalVertex& Vtx)
     {
-        Ar.Serialize(&Vtx, sizeof(FNormalVertex));
+        // Serialize member by member to avoid issues with struct padding and alignment
+        Ar << Vtx.pos;
+        Ar << Vtx.normal;
+        Ar << Vtx.color;
+        Ar << Vtx.tex;
         return Ar;
     }
 };
+
+// Template specialization for TArray<FNormalVertex> to force element-by-element serialization
+namespace Serialization {
+    template<>
+    inline void WriteArray<FNormalVertex>(FArchive& Ar, const TArray<FNormalVertex>& Arr) {
+        uint32 Count = (uint32)Arr.size();
+        Ar << Count;
+        for (const auto& Vtx : Arr) Ar << const_cast<FNormalVertex&>(Vtx);
+    }
+
+    template<>
+    inline void ReadArray<FNormalVertex>(FArchive& Ar, TArray<FNormalVertex>& Arr) {
+        uint32 Count;
+        Ar << Count;
+        Arr.resize(Count);
+        for (auto& Vtx : Arr) Ar << Vtx;
+    }
+}
 
 //// Cooked Data
 struct FStaticMesh

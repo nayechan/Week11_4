@@ -333,6 +333,10 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
     }
 }
 
+uint32 CPickingSystem::TotalPickCount = 0;
+uint64 CPickingSystem::LastPickTime = 0ull;
+uint64 CPickingSystem::TotalPickTime = 0ull;
+
 AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
                                                ACameraActor* Camera,
                                                const FVector2D& ViewportMousePos,
@@ -341,7 +345,6 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
                                                float ViewportAspectRatio, FViewport* Viewport)
 {
     if (!Camera) return nullptr;
-    static uint32 TotalPickCount = 0;
 
     // 뷰포트별 레이 생성 - 커스텀 aspect ratio 사용
     const FMatrix View = Camera->GetViewMatrix();

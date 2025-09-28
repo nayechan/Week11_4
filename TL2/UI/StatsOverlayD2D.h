@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <d3d11.h>
 #include <dxgi.h>
@@ -13,8 +13,10 @@ public:
 
     void SetShowFPS(bool b); 
     void SetShowMemory(bool b);
+    void SetShowPicking(bool b);
     void ToggleFPS();
     void ToggleMemory();
+    void TogglePicking();
     bool IsFPSVisible() const { return bShowFPS; }
     bool IsMemoryVisible() const { return bShowMemory; }
 
@@ -31,6 +33,7 @@ private:
     bool bInitialized = false;
     bool bShowFPS = false;
     bool bShowMemory = false;
+    bool bShowPicking = false;
 
     ID3D11Device* D3DDevice = nullptr;
     ID3D11DeviceContext* D3DContext = nullptr;

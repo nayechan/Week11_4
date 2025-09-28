@@ -82,6 +82,7 @@ private:
     // TODO 리팩토링 -> 하나의 TMAP으로 관리하던 , 해야할 것 같다 . 
     TMap<AActor*, FBound> ActorLastBounds;
     TArray<FBound> ActorBoundsCache;
+    TArray<AActor*> ActorArray;
     
     // 메모리 풀링을 위한 정적 스택
     static TArray<FOctree*> NodePool;

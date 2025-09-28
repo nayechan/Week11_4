@@ -9,6 +9,7 @@ class FBVHierachy;
 
 struct FRay;
 struct FBound;
+struct Frustum;
 
 class UWorldPartitionManager : public UObject
 {
@@ -35,7 +36,7 @@ public:
 	void Unregister(AActor* Actor);
 	void MarkDirty(AActor* Actor);
 
-    void Update(float DeltaTime, uint32 budgetItems = 256);
+	void Update(float DeltaTime, uint32 budgetItems = 256);
 
     //void RayQueryOrdered(FRay InRay, OUT TArray<std::pair<AActor*, float>>& Candidates);
     void RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT float& OutBestT);

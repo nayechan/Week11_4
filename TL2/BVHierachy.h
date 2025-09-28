@@ -2,6 +2,9 @@
 
 #include <vector>
 
+struct Frustum;
+struct FRay; // forward declaration for ray type
+
 class FBVHierachy
 {
 public:
@@ -14,20 +17,22 @@ public:
 
     // 삽입 / 제거 / 갱신
     void Insert(AActor* InActor, const FBound& ActorBounds);
-    // 벌크 삽입 최적화 - 대량 액터 처리용
     void BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBounds);
-    bool Contains(const FBound& Box) const;
     bool Remove(AActor* InActor, const FBound& ActorBounds);
     void Update(AActor* InActor, const FBound& OldBounds, const FBound& NewBounds);
 
-    // for Partition Manager Query
+    bool Contains(const FBound& Box) const;
+
+    // Partition Manager Interface
     void Remove(AActor* InActor);
     void Update(AActor* InActor);
 
-    void Query(FRay InRay, OUT TArray<AActor*>& Actors);
-    void Query(FBound InBound, OUT TArray<AActor*>& Actors);
+    void FlushRebuild();
 
-    // Debug draw
+    void QueryRay(const FRay& InRay, OUT TArray<AActor*>& Actors);
+    void QueryRayOrdered(const FRay& InRay, OUT TArray<std::pair<AActor*, float>>& OutCandidates) const;
+    void QueryFrustum(const Frustum& InFrustum);
+
     void DebugDraw(URenderer* Renderer) const;
 
     // Debug/Stats
@@ -37,31 +42,39 @@ public:
     void DebugDump() const;
     const FBound& GetBounds() const { return Bounds; }
 
+
 private:
-    // 내부 함수 (BVH)
-    void Split();
-    void Refit();
     static FBound UnionBounds(const FBound& A, const FBound& B);
-    int ChooseSplitAxis() const; // 0:X, 1:Y, 2:Z
 
-    // 대량 빌더(가장 긴 축 중앙값 분할)
-    static FBVHierachy* Build(const TArray<std::pair<AActor*, FBound>>& Items, int InMaxDepth = 8, int InMaxObjects = 16);
-    // 빌더 헬퍼: 아이템과 재귀 빌드
-    struct FBuildItem { AActor* Actor; FBound Box; FVector Center; };
-    static FBVHierachy* BuildRecursive(TArray<FBuildItem>& Items, int Depth, int InMaxDepth, int InMaxObjects);
+    // === LBVH data ===
+    struct FLBVHNode
+    {
+        FBound Bounds;
+        int32 Left = -1;
+        int32 Right = -1;
+        int32 First = -1;
+        int32 Count = 0;
+        bool IsLeaf() const { return Count > 0; }
+    };
+    void BuildLBVHFromMap();
 
 private:
+    int BuildRange(int s, int e);
+
     int Depth;
     int MaxDepth;
     int MaxObjects;
     FBound Bounds;
 
-    // 리프는 Actors 보유, 내부 노드는 Left/Right 보유
+    // 리프 페이로드(호환용): 유지하지만 트리 구조는 사용 안 함
     TArray<AActor*> Actors;
-    FBVHierachy* Left;
-    FBVHierachy* Right;
 
-    // 액터의 마지막 바운드 캐시 (루트 호출 기준으로 갱신)
+    // 액터의 마지막 바운드 캐시
     TMap<AActor*, FBound> ActorLastBounds;
+    TArray<AActor*> ActorArray;
 
+    // LBVH nodes
+    TArray<FLBVHNode> Nodes;
+
+    bool bPendingRebuild = false;
 };

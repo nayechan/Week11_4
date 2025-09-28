@@ -68,5 +68,12 @@ private:
     static const uint32 MAX_LINES = 200000;  // Maximum lines per batch (safety headroom)
 
     void InitializeLineBatch();
+
+    // 이전 drawCall에서 이미 썼던 RnderState면, 다시 Set 하지 않기 위해 만든 변수들
+    UShader* PreShader = nullptr; // Shaders, Inputlayout
+    EViewModeIndex PreViewModeIndex = EViewModeIndex::VMI_Wireframe; // RSSetState, UpdateColorConstantBuffers
+    UMaterial* PreUMaterial = nullptr; // SRV, UpdatePixelConstantBuffers
+    UStaticMesh* PreStaticMesh = nullptr; // VertexBuffer, IndexBuffer
+
 };
 

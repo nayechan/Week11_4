@@ -21,7 +21,7 @@ public:
     // Getters
     const FVector& GetStartPoint() const { return StartPoint; }
     const FVector& GetEndPoint() const { return EndPoint; }
-    const FVector4& GetColor() const { return Color; }
+    FVector4 GetColor() const { return Color; }
     float GetThickness() const { return Thickness; }
     
     // Setters
