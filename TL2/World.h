@@ -5,6 +5,7 @@
 #include "BVHierachy.h"
 #include "Frustum.h"
 #include "Enums.h"
+#include "Occlusion.h"
 // forward declare to avoid heavy include
 
 // Forward Declarations
@@ -173,6 +174,21 @@ private:
     
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
 
+    // ==================== CPU HZB Occlusion ====================
+    FOcclusionCullingManagerCPU OcclusionCPU;
+    TArray<uint8_t>        VisibleFlags;   // ActorIndex(UUID)로 인덱싱 (0=가려짐, 1=보임)
+    bool                        bUseCPUOcclusion = true; // False 하면 오클루전 컬링 안씁니다.
+    int                         OcclGridDiv = 4; // 화면 크기/이 값 = 오클루전 그리드 해상도(1/6 권장)
+
+    // 헬퍼들
+    void UpdateOcclusionGridSizeForViewport(FViewport* Viewport);
+    void BuildCpuOcclusionSets(
+        const Frustum& ViewFrustum,
+        const FMatrix& View, const FMatrix& Proj,
+        float ZNear, float ZFar,                       // ★ 추가
+        TArray<FCandidateDrawable>& OutOccluders,
+        TArray<FCandidateDrawable>& OutOccludees);
+   
 };
 template<class T>
 inline T* UWorld::SpawnActor()

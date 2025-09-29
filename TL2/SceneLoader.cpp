@@ -53,6 +53,37 @@ static bool ParsePerspectiveCamera(const JSON& Root, FPerspectiveCameraData& Out
     return true;
 }
 
+TArray<FPrimitiveData> FSceneLoader::LoadWithUUID(const FString& FileName, FPerspectiveCameraData& OutCameraData, uint32& OutNextUUID)
+{
+    std::ifstream file(FileName);
+    if (!file.is_open())
+    {
+        UE_LOG("Scene load failed. Cannot open file: %s", FileName.c_str());
+        return {};
+    }
+
+    std::stringstream Buffer;
+    Buffer << file.rdbuf();
+    std::string content = Buffer.str();
+
+    try {
+        JSON j = JSON::Load(content);
+
+        OutNextUUID = 0;
+        if (j.hasKey("NextUUID"))
+        {
+            OutNextUUID = static_cast<uint32>(j.at("NextUUID").ToInt());
+        }
+
+        ParsePerspectiveCamera(j, OutCameraData);
+        return Parse(j);
+    }
+    catch (const std::exception& e) {
+        UE_LOG("Scene load failed. JSON parse error: %s", e.what());
+        return {};
+    }
+}
+
 TArray<FPrimitiveData> FSceneLoader::Load(const FString& FileName, FPerspectiveCameraData* OutCameraData)
 {
     std::ifstream file(FileName);

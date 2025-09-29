@@ -67,36 +67,49 @@ void FOctree::BulkInsert(const TArray<std::pair<AActor*, FBound>>& ActorsAndBoun
         
         // 대량 데이터를 옥탄트별로 그룹화
         TArray<std::pair<AActor*, FBound>> OctantGroups[8];
-        
-        auto It = Actors.begin();
-        while (It != Actors.end())
+        const size_t EstimatedPerOctant = (Actors.size() / 8) + 1;
+        for (int i = 0; i < 8; i++)
         {
-            AActor* ActorPtr = *It;
-            size_t idx = static_cast<size_t>(std::distance(Actors.begin(), It));
-            FBound Box = ActorBoundsCache[idx];
+            OctantGroups[i].reserve(EstimatedPerOctant);
+        }
+        
+        // 인덱스 기반 역방향 순회로 swap-and-pop
+        for (int idx = static_cast<int>(Actors.size()) - 1; idx >= 0; --idx)
+        {
+            AActor* ActorPtr = Actors[idx];
+            const FBound& Box = ActorBoundsCache[idx];
             
             int OptimalOctant = GetOctantIndex(Box);
+            int TargetOctant = -1;
+            
             if (CanFitInOctant(Box, OptimalOctant))
             {
-                OctantGroups[OptimalOctant].push_back({ActorPtr, Box});
-                It = Actors.erase(It);
-                ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
+                TargetOctant = OptimalOctant;
             }
             else
             {
-                bool bMoved = false;
                 for (int i = 0; i < 8; i++)
                 {
                     if (i != OptimalOctant && Children[i]->Contains(Box))
                     {
-                        OctantGroups[i].push_back({ActorPtr, Box});
-                        It = Actors.erase(It);
-                        ActorBoundsCache.erase(ActorBoundsCache.begin() + idx);
-                        bMoved = true;
+                        TargetOctant = i;
                         break;
                     }
                 }
-                if (!bMoved) ++It;
+            }
+            
+            // swap-and-pop 삭제 (O(n) 삭제 배제)
+            if (TargetOctant != -1)
+            {
+                OctantGroups[TargetOctant].emplace_back(ActorPtr, Box);
+                
+                if (idx != static_cast<int>(Actors.size()) - 1)
+                {
+                    Actors[idx] = Actors.back();
+                    ActorBoundsCache[idx] = ActorBoundsCache.back();
+                }
+                Actors.pop_back();
+                ActorBoundsCache.pop_back();
             }
         }
         
