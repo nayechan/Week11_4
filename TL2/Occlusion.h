@@ -43,7 +43,7 @@ public:
     }
 
 
-    void RasterizeRectDepthMin(int MinPX, int MinPY, int MaxPX, int MaxPY, float MinZ)
+    void RasterizeRectDepthMax(int MinPX, int MinPY, int MaxPX, int MaxPY, float MinZ)
     {
         MinPX = std::max(0, MinPX); MinPY = std::max(0, MinPY);
         MaxPX = std::min(Width - 1, MaxPX); MaxPY = std::min(Height - 1, MaxPY);
