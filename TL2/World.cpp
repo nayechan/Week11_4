@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SelectionManager.h"
 #include "Picking.h"
 #include "SceneLoader.h"
@@ -446,6 +446,16 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 					{
 						if (Component->GetCulled() == false)
 						{
+							// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
+							if (bUseCPUOcclusion)
+							{
+								uint32_t id = Component->GetOwner()->UUID;
+								if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
+								{
+									continue; // 가려짐 → 스킵
+								}
+							}
+
 							Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
 							Renderer->PrepareShader(Component->GetMaterial()->GetShader());
 							RHIDevice->GetDeviceContext()->DrawIndexed(GroupInfo.IndexCount, GroupInfo.StartIndex, 0);
@@ -460,6 +470,16 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 				{
 					if (!Component->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
 					{
+						// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
+						if (bUseCPUOcclusion)
+						{
+							uint32_t id = Component->GetOwner()->UUID;
+							if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
+							{
+								continue; // 가려짐 → 스킵
+							}
+						}
+
 						FObjMaterialInfo ObjMaterialInfo;
 						RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
 
