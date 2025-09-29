@@ -1,4 +1,4 @@
-  # TL2 🚀
+# 📘 KRAFTON TechLab Week05 – Unreal Engine Style 3D Editor & Rendering System
 
   ## 프로젝트 개요 ✨
   TL2는 Direct3D 11과 ImGui를 기반으로 한 실시간 렌더링 & 씬 편집기입니다.
@@ -15,7 +15,6 @@
   - 🎯 입력 & 기즈모: `UInputManager`가 키보드/마우스를 통합하고, 이동/회전/스케일 기즈모와 UV 스크롤을 제어합니다.
 
   ## 프로젝트 구조 🗃️
-  ```text
   TL2/
   ├─ Data/                 # OBJ/텍스처/미리 빌드된 바이너리 자산
   ├─ Scene/                # JSON 기반 장면 스냅샷 (Default.scene, QuickSave 등)
