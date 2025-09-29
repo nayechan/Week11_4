@@ -387,7 +387,11 @@ int FBVHierachy::BuildRange(int s, int e)
 void FBVHierachy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const
 {
     OutActor = nullptr;
-    OutBestT = std::numeric_limits<float>::infinity();
+    // Respect caller-provided initial cap (e.g., far plane) if valid
+    if (!(std::isfinite(OutBestT) && OutBestT > 0.0f))
+    {
+        OutBestT = std::numeric_limits<float>::infinity();
+    }
 
     if (Nodes.empty()) return;
 

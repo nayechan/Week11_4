@@ -42,6 +42,6 @@ private:
 	//삼각형 ID(번호) 목록 , 삼각형의 인덱스를 의미한다. 
 	//삼각형 순서만 재배치  , 정점 좌표와 인덱스 버퍼를 직접적으로 건들면 안되기 때문이다.
 	TArray<uint32> TriIndices;
-	const uint32 LeafSize = 8;
+	const uint32 LeafSize = 4;
 };
 
