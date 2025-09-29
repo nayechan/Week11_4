@@ -320,7 +320,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	UWorldPartitionManager::GetInstance()->FrustumQuery(ViewFrustum);
 
 	// ---------------------- CPU HZB Occlusion ----------------------
-	if (false)
+	if (bUseCPUOcclusion)
 	{
 		// 1) 그리드 사이즈 보정(해상도 변화 대응)
 		UpdateOcclusionGridSizeForViewport(Viewport);
@@ -355,7 +355,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			if (Actor->GetCulled()) continue; // 컬링된 액터는 스킵
 
 			// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-			if (false)
+			if (bUseCPUOcclusion)
 			{
 				uint32_t id = Actor->UUID;
 				if (id < VisibleFlags.size() && VisibleFlags[id] == 0)

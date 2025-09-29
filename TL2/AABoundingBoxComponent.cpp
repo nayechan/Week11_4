@@ -61,18 +61,45 @@ FBound UAABoundingBoxComponent::GetWorldBound() const
     // 2) 월드 행렬
     const FMatrix WorldMat = GetOwner()->GetWorldMatrix();
 
-    // 3) 월드 중심 (행벡터: p' = p * M)
-    const FVector WorldCenter(
-        LocalCenter.X * WorldMat.M[0][0] + LocalCenter.Y * WorldMat.M[1][0] + LocalCenter.Z * WorldMat.M[2][0] + WorldMat.M[3][0],
-        LocalCenter.X * WorldMat.M[0][1] + LocalCenter.Y * WorldMat.M[1][1] + LocalCenter.Z * WorldMat.M[2][1] + WorldMat.M[3][1],
-        LocalCenter.X * WorldMat.M[0][2] + LocalCenter.Y * WorldMat.M[1][2] + LocalCenter.Z * WorldMat.M[2][2] + WorldMat.M[3][2]
-    );
+    // 3) SIMD 최적화된 월드 중심 계산 (행벡터: p' = p * M)
+    const FVector WorldCenter = TransformVectorSIMD(LocalCenter, WorldMat);
 
     // 4) 월드 익스텐트 (Arvo)
     const FVector WorldExtents = ComputeWorldExtentsArvo(LocalExtents, WorldMat);
 
     // 5) AABB 재조립
     return FBound(WorldCenter - WorldExtents, WorldCenter + WorldExtents);
+}
+
+FVector UAABoundingBoxComponent::TransformVectorSIMD(const FVector& v, const FMatrix& M) const
+{
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+    // SSE 구현 (행벡터: p' = p * M)
+    const __m128 vx = _mm_set1_ps(v.X);
+    const __m128 vy = _mm_set1_ps(v.Y);
+    const __m128 vz = _mm_set1_ps(v.Z);
+
+    const __m128 m0 = _mm_loadu_ps(&M.M[0][0]); // [m00 m01 m02 m03]
+    const __m128 m1 = _mm_loadu_ps(&M.M[1][0]); // [m10 m11 m12 m13]
+    const __m128 m2 = _mm_loadu_ps(&M.M[2][0]); // [m20 m21 m22 m23]
+    const __m128 m3 = _mm_loadu_ps(&M.M[3][0]); // [m30 m31 m32 m33]
+
+    __m128 r = _mm_mul_ps(vx, m0);
+    r = _mm_add_ps(r, _mm_mul_ps(vy, m1));
+    r = _mm_add_ps(r, _mm_mul_ps(vz, m2));
+    r = _mm_add_ps(r, m3);
+
+    alignas(16) float out[4];
+    _mm_store_ps(out, r);
+    return FVector(out[0], out[1], out[2]);
+#else
+    // Fallback: 스칼라 버전
+    return FVector(
+        v.X * M.M[0][0] + v.Y * M.M[1][0] + v.Z * M.M[2][0] + M.M[3][0],
+        v.X * M.M[0][1] + v.Y * M.M[1][1] + v.Z * M.M[2][1] + M.M[3][1],
+        v.X * M.M[0][2] + v.Y * M.M[1][2] + v.Z * M.M[2][2] + M.M[3][2]
+    );
+#endif
 }
 
 FBound UAABoundingBoxComponent::GetWorldBoundFromCube() 
