@@ -143,8 +143,8 @@ public:
             };
 
         // 샘플 밀도: 화면 픽셀 크기에 비례 (최대 5x5)
-        const int grid = ((MaxX01 - MinX01) * Width + (MaxY01 - MinY01) * Height > 60) ? 5 :
-            ((MaxX01 - MinX01) * Width + (MaxY01 - MinY01) * Height > 20) ? 4 : 3;
+        const int grid = ((MaxX01 - MinX01) * Width + (MaxY01 - MinY01) * Height > 80) ? 5 :
+            ((MaxX01 - MinX01) * Width + (MaxY01 - MinY01) * Height > 30) ? 4 : 3;
 
         float best = 0.0f; // MAX 피라미드이므로 최댓값을 모음
         for (int j = 0; j < grid; j++)

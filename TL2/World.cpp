@@ -287,7 +287,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 {
 	int objCount = static_cast<int>(Actors.size());
 	int visibleCount = 0;
-	float zNear = 0.1f, zFar = 1000.f;
+	float zNear = 0.1f, zFar = 100.f;
 	// 뷰포트의 실제 크기로 aspect ratio 계산
 	float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
 	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지

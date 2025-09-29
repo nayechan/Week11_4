@@ -103,7 +103,7 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 		int maxPY = (int)std::ceil(R.MaxY * GH) - 1;
 
 		// 경계 틈새 방지: 1픽셀 팽창(옵션)
-		const int dilate = 1;
+		const int dilate = 0;
 		minPX -= dilate; minPY -= dilate;
 		maxPX += dilate; maxPY += dilate;
 
@@ -114,6 +114,8 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 // 2) 후보 가시성 판정(HZB 샘플)
 void FOcclusionCullingManagerCPU::TestOcclusion(const TArray<FCandidateDrawable>& Candidates, int ViewW, int ViewH, TArray<uint8_t>& OutVisibleFlags)
 {
+	const float eps = 2e-3f;  // 1차 바이어스
+	const float eps2 = 2 * eps;  // 레벨0 재검증 바이어스(조금 더 큼)
 	// --- 크기 보장 ---
 	uint32_t maxId = 0;
 	for (auto& c : Candidates) maxId = std::max(maxId, c.ActorIndex);
@@ -156,20 +158,9 @@ void FOcclusionCullingManagerCPU::TestOcclusion(const TArray<FCandidateDrawable>
 
 		// --- 보수적 mip 선택 ---
 		int mip = std::max(0, Grid.ChooseMip(rw, rh) - 1);
-		if (pxW < 24.0f || pxH < 24.0f)
+		if (pxW < 48.0f || pxH < 48.0f)
 			mip = std::max(0, mip - 1);
 
-		// ★★★ 가변 eps 계산 (mip/화면크기/거리 기반)
-	    // 튜닝 상수
-		const float kBase = 1.0e-3f;   // 기본 바이어스
-		const float kPerMip = 7.5e-4f;   // mip 하나 올라갈 때마다 가산
-		const float kPerPxMax = 1.0e-5f;   // 화면상 큰 변(px)에 비례 가산
-		const float kPerDepth = 2.5e-3f;   // 선형 깊이(R.MinZ: 0..1)에 비례 가산
-
-		const float pxMax = std::max(pxW, pxH);
-		float eps = kBase + kPerMip * float(mip) + kPerPxMax * pxMax + kPerDepth * R.MinZ;
-		eps = std::min(eps, 2.0e-2f);  // 상한 클램프 (과도한 바이어스 방지)
-		float eps2 = std::min(eps * 2.0f, 4.0e-2f); // 레벨0 재검증은 조금 더 큼
 
 		// --- MAX HZB 적응형 샘플 ---
 		const float hzbMax = Grid.SampleMaxRectAdaptive(R.MinX, R.MinY, R.MaxX, R.MaxY, mip);
