@@ -32,7 +32,7 @@ void URenderer::BeginFrame()
     // 백버퍼/깊이버퍼를 클리어
     RHIDevice->ClearBackBuffer();  // 배경색
     RHIDevice->ClearDepthBuffer(1.0f, 0);                 // 깊이값 초기화
-    RHIDevice->CreateBlendState();
+    //RHIDevice->CreateBlendState();
     RHIDevice->IASetPrimitiveTopology();
     // RS
     RHIDevice->RSSetViewport();
