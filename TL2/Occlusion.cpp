@@ -91,6 +91,12 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 	const int GW = Grid.GetWidth();
 	const int GH = Grid.GetHeight();
 
+	// --- 튜닝 파라미터 ---
+	const float ErodeScale = 0.5f;     // 0.8배 축소
+	const int   Dilate = 1;        // 경계 1px 팽창
+	const int   MinPxEdge = 8;        // 너무 작은 사각형은 erosion 스킵
+	const float MaxCover = 0.6f;     // 화면의 60% 이상 덮으면 erosion 스킵
+
 	for (const auto& D : Occluders)
 	{
 		FOcclusionRect R;
@@ -102,12 +108,36 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 		int maxPX = (int)std::ceil(R.MaxX * GW) - 1;
 		int maxPY = (int)std::ceil(R.MaxY * GH) - 1;
 
-		// 경계 틈새 방지: 1픽셀 팽창(옵션)
-		const int dilate = 0;
-		minPX -= dilate; minPY -= dilate;
-		maxPX += dilate; maxPY += dilate;
+		// --- 화면 사각형 erosion(오클루더 영향 완화) ---
+		int w = std::max(0, maxPX - minPX + 1);
+		int h = std::max(0, maxPY - minPY + 1);
+		const bool bigCover =
+			(w >= int(MaxCover * GW)) || (h >= int(MaxCover * GH));
+		if (ErodeScale < 1.0f && w >= MinPxEdge && h >= MinPxEdge && !bigCover)
+		{
+			const float cx = 0.5f * float(minPX + maxPX);
+			const float cy = 0.5f * float(minPY + maxPY);
+			const float hw = 0.5f * float(w) * ErodeScale;
+			const float hh = 0.5f * float(h) * ErodeScale;
 
-		Grid.RasterizeRectDepthMin(minPX, minPY, maxPX, maxPY, R.MinZ);
+			minPX = int(std::floor(cx - hw));
+			maxPX = int(std::ceil(cx + hw));
+			minPY = int(std::floor(cy - hh));
+			maxPY = int(std::ceil(cy + hh));
+		}
+
+		// --- 경계 팽창(틈 방지)(옵션) ---
+		//minPX -= Dilate; minPY -= Dilate;
+		//maxPX += Dilate; maxPY += Dilate;
+
+		// 화면 경계 클램프
+		minPX = std::max(0, std::min(GW - 1, minPX));
+		minPY = std::max(0, std::min(GH - 1, minPY));
+		maxPX = std::max(0, std::min(GW - 1, maxPX));
+		maxPY = std::max(0, std::min(GH - 1, maxPY));
+		if (minPX > maxPX || minPY > maxPY) continue;
+
+		Grid.RasterizeRectDepthMax(minPX, minPY, maxPX, maxPY, R.MaxZ);
 	}
 }
 
