@@ -170,8 +170,8 @@ void FOcclusionCullingManagerCPU::TestOcclusion(const TArray<FCandidateDrawable>
 
 		const float rw = std::max(0.0f, R.MaxX - R.MinX);
 		const float rh = std::max(0.0f, R.MaxY - R.MinY);
-		const float pxW = rw * ViewW;
-		const float pxH = rh * ViewH;
+		const float pxW = rw * GetGrid().GetWidth();
+		const float pxH = rh * GetGrid().GetHeight();
 
 		// --- 작은 사각형 가드: 한 변이라도 2px 미만이면 컬링하지 않음 ---
 		if (std::min(pxW, pxH) < 2.0f)
