@@ -217,6 +217,9 @@ private:
 
     // Arvo 익스텐트 계산 헬퍼
     FVector ComputeWorldExtentsArvo(const FVector& LocalExtents, const FMatrix& World) const;
+    
+    // 🚀 SIMD 최적화된 벡터-매트릭스 변환
+    FVector TransformVectorSIMD(const FVector& vector, const FMatrix& matrix) const;
 
     FVector LocalMin;
     FVector LocalMax;

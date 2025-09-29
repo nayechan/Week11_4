@@ -396,6 +396,9 @@
     <ClCompile Include="PlatformTime.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="Occlusion.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="PipelineStateObject.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -734,6 +737,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="PlatformTime.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Occlusion.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="PipelineStateManager.h">

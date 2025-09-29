@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SelectionManager.h"
 #include "Picking.h"
 #include "SceneLoader.h"
@@ -19,6 +19,7 @@
 #include "Octree.h"
 #include "BVHierachy.h"
 #include "Frustum.h"
+#include "Occlusion.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
@@ -284,6 +285,9 @@ void UWorld::Render()
 
 void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 {
+	int objCount = static_cast<int>(Actors.size());
+	int visibleCount = 0;
+	float zNear = 0.1f, zFar = 100.f;
 	// 뷰포트의 실제 크기로 aspect ratio 계산
 	float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
 	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
@@ -296,6 +300,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	if (CamComp = Camera->GetCameraComponent())
 	{
 		ViewFrustum = CreateFrustumFromCamera(*CamComp, ViewportAspectRatio);
+		zNear = CamComp->GetNearClip();
+		zFar = CamComp->GetFarClip();
 	}
 	if (!Renderer) return;
 
@@ -312,6 +318,32 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		Actor->SetCulled(true);
 	UWorldPartitionManager::GetInstance()->FrustumQuery(ViewFrustum);
 
+	// ---------------------- CPU HZB Occlusion ----------------------
+	if (bUseCPUOcclusion)
+	{
+		// 1) 그리드 사이즈 보정(해상도 변화 대응)
+		UpdateOcclusionGridSizeForViewport(Viewport);
+
+		// 2) 오클루더/오클루디 수집
+		TArray<FCandidateDrawable> Occluders, Occludees;
+		BuildCpuOcclusionSets(ViewFrustum, ViewMatrix, ProjectionMatrix, zNear, zFar,
+			Occluders, Occludees);
+
+		// 3) 오클루더로 저해상도 깊이 빌드 + HZB
+		OcclusionCPU.BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
+		OcclusionCPU.BuildHZB();
+
+		// 4) 가시성 판정 → VisibleFlags[UUID] = 0/1
+		//     VisibleFlags 크기 보장
+		uint32_t maxUUID = 0;
+		for (auto& C : Occludees) maxUUID = std::max(maxUUID, C.ActorIndex);
+		if (VisibleFlags.size() <= size_t(maxUUID))
+			VisibleFlags.assign(size_t(maxUUID + 1), 1); // 기본 보임
+
+		OcclusionCPU.TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
+	}
+	// ----------------------------------------------------------------
+
 	// 일반 액터들 렌더링
 	if (IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
 	{
@@ -321,9 +353,20 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			if (Actor->GetActorHiddenInGame()) continue;
 			if (Actor->GetCulled()) continue; // 컬링된 액터는 스킵
 
-			// StaticMesh Show Flag 체크
+			// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
+			if (bUseCPUOcclusion)
+			{
+				uint32_t id = Actor->UUID;
+				if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
+				{
+					continue; // 가려짐 → 스킵
+				}
+			}
+
 			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
+			{
 				continue;
+			}
 
 			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
 			Renderer->UpdateHighLightConstantBuffer(bIsSelected, rgb, 0, 0, 0, 0);
@@ -349,7 +392,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 					// StatcMeshCmp면 이것의 dirtyflag를 보고, dirtyflag가 true면 tree탐색(이미 바꼇는데 그거 기반으로 어떻게 탐색해?)으로 state tree의 해당 cmp를 다른 곳으로 옮기기
 					Renderer->SetViewModeType(ViewModeIndex);
 					Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual); // 상태 원복 유지
+					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+					visibleCount++;
 				}
 			}
 		}
@@ -497,7 +541,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 	Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
-
+	//UE_LOG("Obj count: %d, Visible count: %d\r\n", objCount, visibleCount);
 }
 
 
@@ -994,4 +1038,66 @@ void UWorld::SaveScene(const FString& SceneName)
 AGizmoActor* UWorld::GetGizmoActor()
 {
 	return GizmoActor;
+}
+
+// === World.cpp 패치: 그리드 리사이즈 ===
+void UWorld::UpdateOcclusionGridSizeForViewport(FViewport* Viewport)
+{
+	if (!Viewport) return;
+	int vw = (1 > Viewport->GetSizeX()) ? 1 : Viewport->GetSizeX();
+	int vh = (1 > Viewport->GetSizeY()) ? 1 : Viewport->GetSizeY();
+	int gw = std::max(1, vw / std::max(1, OcclGridDiv));
+	int gh = std::max(1, vh / std::max(1, OcclGridDiv));
+	// 매 프레임 호출해도 싸다. 내부에서 동일크기면 skip
+	OcclusionCPU.Initialize(gw, gh);
+}
+
+// === World.cpp 패치: 후보 수집 ===
+void UWorld::BuildCpuOcclusionSets(
+	const Frustum& ViewFrustum,
+	const FMatrix& View, const FMatrix& Proj,
+	float ZNear, float ZFar,                       // ★ 추가
+	TArray<FCandidateDrawable>& OutOccluders,
+	TArray<FCandidateDrawable>& OutOccludees)
+{
+	OutOccluders.clear();
+	OutOccludees.clear();
+
+	size_t estimatedCount = 0;
+	for (AActor* Actor : Actors)
+	{
+		if (Actor && !Actor->GetActorHiddenInGame() && !Actor->GetCulled())
+		{
+			if (Actor->IsA<AStaticMeshActor>()) estimatedCount++;
+		}
+	}
+	OutOccluders.reserve(estimatedCount);
+	OutOccludees.reserve(estimatedCount);
+	//
+
+	const FMatrix VP = View * Proj; // 행벡터: p_world * View * Proj
+
+	for (AActor* Actor : Actors)
+	{
+		if (!Actor) continue;
+		if (Actor->GetActorHiddenInGame()) continue;
+		if (Actor->GetCulled()) continue;
+
+		AStaticMeshActor* SMA = Cast<AStaticMeshActor>(Actor);
+		if (!SMA) continue;
+
+		UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(SMA->CollisionComponent);
+		if (!Box) continue;
+
+		OutOccluders.emplace_back();
+		FCandidateDrawable& occluder = OutOccluders.back();
+		occluder.ActorIndex = Actor->UUID;
+		occluder.Bound = Box->GetWorldBound();
+		occluder.WorldViewProj = VP;
+		occluder.WorldView = View;
+		occluder.ZNear = ZNear;
+		occluder.ZFar = ZFar;
+
+		OutOccludees.emplace_back(occluder);
+	}
 }
