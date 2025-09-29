@@ -96,7 +96,15 @@ public:
     /** === 헬퍼 함수들 === */
     static bool CheckActorPicking(const AActor* Actor, const FRay& Ray, float& OutDistance);
 
+
+    static uint32 GetPickCount() { return TotalPickCount; }
+    static uint64 GetLastPickTime() { return LastPickTime; }
+    static uint64 GetTotalPickTime() { return TotalPickTime; }
 private:
     /** === 내부 헬퍼 함수들 === */
     static bool CheckGizmoComponentPicking(const UStaticMeshComponent* Component, const FRay& Ray, float& OutDistance);
+
+    static uint32 TotalPickCount;
+    static uint64 LastPickTime;
+    static uint64 TotalPickTime;
 };

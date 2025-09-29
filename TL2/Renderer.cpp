@@ -15,6 +15,8 @@ URenderer::URenderer(URHIDevice* InDevice) : RHIDevice(InDevice)
     CreateUnitCube();
     CreateOcclusionCB();
     */
+    //RHIDevice->OMSetRenderTargets();
+
 }
 
 URenderer::~URenderer()
@@ -38,6 +40,13 @@ void URenderer::BeginFrame()
     //OM
     //RHIDevice->OMSetBlendState();
     RHIDevice->OMSetRenderTargets();
+
+    // TODO - 한 종류 메쉬만 스폰했을 때 깨지는 현상 방지 임시이므로 고쳐야합니다
+    // ★ 캐시 무효화
+    //PreShader = nullptr;
+    //PreUMaterial = nullptr; // 이거 주석 처리 시: 피킹하면 그 UStatucjMesh의 텍스쳐가 전부 사라짐
+    //PreStaticMesh = nullptr; // 이거 주석 처리 시: 메시가 이상해짐
+    //PreViewModeIndex = EViewModeIndex::VMI_Wireframe; // 어차피 SetViewModeType이 다시 셋
 }
 
 void URenderer::PrepareShader(FShader& InShader)
@@ -49,9 +58,18 @@ void URenderer::PrepareShader(FShader& InShader)
 
 void URenderer::PrepareShader(UShader* InShader)
 {
-    RHIDevice->GetDeviceContext()->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
+    if (PreShader != InShader)
+    {
+        /*const FString& ShaderFilePath = InShader->GetFilePath();
+        UE_LOG("change to new Shader: \'%s\'", ShaderFilePath);*/
+        RHIDevice->GetDeviceContext()->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
+        RHIDevice->GetDeviceContext()->PSSetShader(InShader->GetPixelShader(), nullptr, 0);
+        RHIDevice->GetDeviceContext()->IASetInputLayout(InShader->GetInputLayout());
+        PreShader = InShader;
+    }
+    /*RHIDevice->GetDeviceContext()->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
     RHIDevice->GetDeviceContext()->PSSetShader(InShader->GetPixelShader(), nullptr, 0);
-    RHIDevice->GetDeviceContext()->IASetInputLayout(InShader->GetInputLayout());
+    RHIDevice->GetDeviceContext()->IASetInputLayout(InShader->GetInputLayout());*/
 }
 
 void URenderer::OMSetBlendState(bool bIsChecked)
@@ -144,7 +162,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITI
         const uint32 NumMeshGroupInfos = static_cast<uint32>(MeshGroupInfos.size());
         for (uint32 i = 0; i < NumMeshGroupInfos; ++i)
         {
-            const UMaterial* const Material = UResourceManager::GetInstance().Get<UMaterial>(InComponentMaterialSlots[i].MaterialName);
+            UMaterial* const Material = UResourceManager::GetInstance().Get<UMaterial>(InComponentMaterialSlots[i].MaterialName);
             const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
             bool bHasTexture = !(MaterialInfo.DiffuseTextureFileName.empty());
             if (bHasTexture)
@@ -154,6 +172,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITI
                 RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &(TextureData->TextureSRV));
             }
             RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // PSSet도 해줌
+            
             RHIDevice->GetDeviceContext()->DrawIndexed(MeshGroupInfos[i].IndexCount, MeshGroupInfos[i].StartIndex, 0);
         }
     }
@@ -173,7 +192,6 @@ void URenderer::DrawIndexedPrimitiveComponent(UTextRenderComponent* Comp, D3D11_
 
     RHIDevice->GetDeviceContext()->IASetInputLayout(Comp->GetMaterial()->GetShader()->GetInputLayout());
 
-    
     UINT offset = 0;
     RHIDevice->GetDeviceContext()->IASetVertexBuffers(
         0, 1, &VertexBuff, &Stride, &offset
@@ -181,6 +199,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UTextRenderComponent* Comp, D3D11_
     RHIDevice->GetDeviceContext()->IASetIndexBuffer(
         IndexBuff, DXGI_FORMAT_R32_UINT, 0
     );
+    
 
     ID3D11ShaderResourceView* TextureSRV = Comp->GetMaterial()->GetTexture()->GetShaderResourceView();
     RHIDevice->PSSetDefaultSampler(0);
@@ -191,11 +210,16 @@ void URenderer::DrawIndexedPrimitiveComponent(UTextRenderComponent* Comp, D3D11_
 
 void URenderer::SetViewModeType(EViewModeIndex ViewModeIndex)
 {
-    RHIDevice->RSSetState(ViewModeIndex);
-    if(ViewModeIndex == EViewModeIndex::VMI_Wireframe)
-        RHIDevice->UpdateColorConstantBuffers(FVector4{ 1.f, 0.f, 0.f, 1.f });
-    else
-        RHIDevice->UpdateColorConstantBuffers(FVector4{ 1.f, 1.f, 1.f, 0.f });
+    if (PreViewModeIndex != ViewModeIndex)
+    {
+        //UE_LOG("Change ViewMode");
+        RHIDevice->RSSetState(ViewModeIndex);
+        if (ViewModeIndex == EViewModeIndex::VMI_Wireframe)
+            RHIDevice->UpdateColorConstantBuffers(FVector4{ 1.f, 0.f, 0.f, 1.f });
+        else
+            RHIDevice->UpdateColorConstantBuffers(FVector4{ 1.f, 1.f, 1.f, 0.f });
+        PreViewModeIndex = ViewModeIndex;
+    }
 }
 
 void URenderer::EndFrame()
@@ -224,6 +248,8 @@ void URenderer::InitializeLineBatch()
     
     // Load line shader
     LineShader = UResourceManager::GetInstance().Load<UShader>("ShaderLine.hlsl", EVertexLayoutType::PositionColor);
+    //LineShader = UResourceManager::GetInstance().Load<UShader>("StaticMeshShader.hlsl", EVertexLayoutType::PositionColorTexturNormal);
+
 }
 
 void URenderer::BeginLineBatch()

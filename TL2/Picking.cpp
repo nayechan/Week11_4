@@ -18,6 +18,7 @@
 #include "GizmoArrowComponent.h"
 #include "UI/GlobalConsole.h"
 #include "ObjManager.h"
+#include "ResourceManager.h"
 #include"stdio.h"
 #include "WorldPartitionManager.h"
 #include "PlatformTime.h"
@@ -332,6 +333,10 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
     }
 }
 
+uint32 CPickingSystem::TotalPickCount = 0;
+uint64 CPickingSystem::LastPickTime = 0;
+uint64 CPickingSystem::TotalPickTime = 0;
+
 AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
                                                ACameraActor* Camera,
                                                const FVector2D& ViewportMousePos,
@@ -340,7 +345,6 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
                                                float ViewportAspectRatio, FViewport* Viewport)
 {
     if (!Camera) return nullptr;
-    static uint32 TotalPickCount = 0;
 
     // 뷰포트별 레이 생성 - 커스텀 aspect ratio 사용
     const FMatrix View = Camera->GetViewMatrix();
@@ -353,8 +357,8 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
     FRay ray = MakeRayFromViewport(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward,
                                    ViewportMousePos, ViewportSize, ViewportOffset);
 
-    int pickedIndex = -1;
-    float pickedT = 1e9f;
+    int PickedIndex = -1;
+    float PickedT = 1e9f;
 
     UWorldPartitionManager* PartitionManager = UWorldPartitionManager::GetInstance();
     if (PartitionManager == nullptr)
@@ -364,53 +368,26 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
     }
 
     // 퍼포먼스 측정용 카운터 시작
-    FScopeCycleCounter pickCounter;
+    FScopeCycleCounter PickCounter;
 
     // 전체 Picking 횟수 누적
     ++TotalPickCount;
 
-    // 옥트리에서 후보를 거리순(tmin)으로 수집
-    TArray<std::pair<AActor*, float>> Candidates;
-    PartitionManager->RayQueryOrdered(ray, Candidates);
-    UE_LOG("HIT ACTORS NUM : %d", Candidates.Num());
-    // 가까운 순으로 정렬
-    std::sort(Candidates.begin(), Candidates.end(), [](const auto& a, const auto& b){ return a.second < b.second; });
-
-    // 가까운 것부터 정밀 충돌, 충분히 멀어지면 조기 중단
-    const float Epsilon = 1e-3f;
-    AActor* pickedActor = nullptr;
-    for (size_t i = 0; i < Candidates.size(); ++i)
-    {
-        AActor* Actor = Candidates[i].first;
-        float boxTMin = Candidates[i].second;
-        if (!Actor) continue;
-        if (Actor->GetActorHiddenInGame()) continue;
-
-        // 이미 더 가까운 정밀 히트가 있으면 중단
-        if (pickedActor && boxTMin > pickedT + Epsilon)
-            break;
-
-        float hitDistance;
-        if (CheckActorPicking(Actor, ray, hitDistance))
-        {
-            if (hitDistance < pickedT)
-            {
-                pickedT = hitDistance;
-                pickedIndex = static_cast<int>(i);
-                pickedActor = Actor;
-            }
-        }
-    }
-    uint64 LastPickTime = pickCounter.Finish();
+    // 베스트 퍼스트 탐색으로 가장 가까운 것을 직접 구한다
+    AActor* PickedActor = nullptr;
+    PartitionManager->RayQueryClosest(ray, PickedActor, PickedT);
+    LastPickTime = PickCounter.Finish();
+    TotalPickTime += LastPickTime;
     double Milliseconds = ((double)LastPickTime * FPlatformTime::GetSecondsPerCycle()) * 1000.0f;
 
-    if (pickedActor)
+    if (PickedActor)
     {
+        PickedIndex = 0;
         char buf[160];
         sprintf_s(buf, "[Pick] Hit primitive %d at t=%.3f | time=%.6lf ms\n",
-            pickedIndex, pickedT, Milliseconds);
+            PickedIndex, PickedT, Milliseconds);
         UE_LOG(buf);
-        return pickedActor;
+        return PickedActor;
     }
     else
     {
@@ -853,87 +830,39 @@ bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, flo
     {
         if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(SceneComponent))
         {
-            // Cooked FStaticMesh 사용 (MeshData 대체)
-            FStaticMesh* StaticMesh = FObjManager::LoadObjStaticMeshAsset(
-                StaticMeshComponent->GetStaticMesh()->GetFilePath()
-            );
+            UStaticMesh* MeshRes = StaticMeshComponent->GetStaticMesh();
+            if (!MeshRes) continue;
 
-            if (!StaticMesh) return false;
+            FStaticMesh* StaticMesh = MeshRes->GetStaticMeshAsset();
+            if (!StaticMesh) continue;
 
-            // 피킹 계산에는 컴포넌트의 월드 변환 행렬 사용
-            FMatrix WorldMatrix = StaticMeshComponent->GetWorldMatrix();
+            // 로컬 공간에서의 레이로 변환
+            const FMatrix WorldMatrix = StaticMeshComponent->GetWorldMatrix();
+            const FMatrix InvWorld = WorldMatrix.InverseAffine();
+            const FVector4 RayOrigin4(Ray.Origin.X, Ray.Origin.Y, Ray.Origin.Z, 1.0f);
+            const FVector4 RayDir4(Ray.Direction.X, Ray.Direction.Y, Ray.Direction.Z, 0.0f);
+            const FVector4 LocalOrigin4 = RayOrigin4 * InvWorld;
+            const FVector4 LocalDir4 = RayDir4 * InvWorld;
+            const FRay LocalRay{ FVector(LocalOrigin4.X, LocalOrigin4.Y, LocalOrigin4.Z), FVector(LocalDir4.X, LocalDir4.Y, LocalDir4.Z) };
 
-            auto TransformPoint = [&](float X, float Y, float Z) -> FVector
-                {
-                    // row-vector (v^T) * M 방식으로 월드 변환 (translation 반영)
-                    FVector4 V4(X, Y, Z, 1.0f);
-                    FVector4 OutV4;
-                    OutV4.X = V4.X * WorldMatrix.M[0][0] + V4.Y * WorldMatrix.M[1][0] + V4.Z * WorldMatrix.M[2][0] + V4.W * WorldMatrix.M[3][0];
-                    OutV4.Y = V4.X * WorldMatrix.M[0][1] + V4.Y * WorldMatrix.M[1][1] + V4.Z * WorldMatrix.M[2][1] + V4.W * WorldMatrix.M[3][1];
-                    OutV4.Z = V4.X * WorldMatrix.M[0][2] + V4.Y * WorldMatrix.M[1][2] + V4.Z * WorldMatrix.M[2][2] + V4.W * WorldMatrix.M[3][2];
-                    OutV4.W = V4.X * WorldMatrix.M[0][3] + V4.Y * WorldMatrix.M[1][3] + V4.Z * WorldMatrix.M[2][3] + V4.W * WorldMatrix.M[3][3];
-                    return FVector(OutV4.X, OutV4.Y, OutV4.Z);
-                };
-
-            float ClosestT = 1e9f;
-            bool bHasHit = false;
-
-            // 인덱스가 있는 경우: 인덱스 삼각형 집합 검사
-            if (StaticMesh->Indices.Num() >= 3)
+            // 캐시된 BVH 사용 (동일 OBJ 경로는 동일 BVH 공유)
+            FMeshBVH* BVH = UResourceManager::GetInstance().GetOrBuildMeshBVH(MeshRes->GetAssetPathFileName(), StaticMesh);
+            if (BVH)
             {
-                uint32 IndexNum = StaticMesh->Indices.Num();
-                for (uint32 Idx = 0; Idx + 2 < IndexNum; Idx += 3)
+                float THitLocal;
+                if (BVH->IntersectRay(LocalRay, StaticMesh->Vertices, StaticMesh->Indices, THitLocal))
                 {
-                    const FNormalVertex& V0N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 0]];
-                    const FNormalVertex& V1N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 1]];
-                    const FNormalVertex& V2N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 2]];
-
-                    FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
-                    FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
-                    FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
-
-                    float THit;
-                    if (IntersectRayTriangleMT(Ray, A, B, C, THit))
-                    {
-                        if (THit < ClosestT)
-                        {
-                            ClosestT = THit;
-                            bHasHit = true;
-                        }
-                    }
+                    const FVector HitLocal = FVector(
+                        LocalOrigin4.X + LocalDir4.X * THitLocal,
+                        LocalOrigin4.Y + LocalDir4.Y * THitLocal,
+                        LocalOrigin4.Z + LocalDir4.Z * THitLocal);
+                    const FVector4 HitLocal4(HitLocal.X, HitLocal.Y, HitLocal.Z, 1.0f);
+                    const FVector4 HitWorld4 = HitLocal4 * WorldMatrix;
+                    const FVector HitWorld(HitWorld4.X, HitWorld4.Y, HitWorld4.Z);
+                    const float THitWorld = (HitWorld - Ray.Origin).Size();
+                    OutDistance = THitWorld;
+                    return true;
                 }
-            }
-            // 인덱스가 없는 경우: 정점 배열을 순차적 삼각형으로 간주
-            else if (StaticMesh->Vertices.Num() >= 3)
-            {
-                uint32 VertexNum = StaticMesh->Vertices.Num();
-                for (uint32 Idx = 0; Idx + 2 < VertexNum; Idx += 3)
-                {
-                    const FNormalVertex& V0N = StaticMesh->Vertices[Idx + 0];
-                    const FNormalVertex& V1N = StaticMesh->Vertices[Idx + 1];
-                    const FNormalVertex& V2N = StaticMesh->Vertices[Idx + 2];
-
-                    FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
-                    FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
-                    FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
-
-                    float THit;
-                    if (IntersectRayTriangleMT(Ray, A, B, C, THit))
-                    {
-                        if (THit < ClosestT)
-                        {
-                            ClosestT = THit;
-                            bHasHit = true;
-                        }
-                    }
-                }
-            }
-
-            // 가장 가까운 교차가 있으면 거리 반환
-            if (bHasHit)
-            {
-                OutDistance = ClosestT;
-                return true;
             }
         }
     }

@@ -7,20 +7,6 @@
 #include "CameraActor.h"
 UTextRenderComponent::UTextRenderComponent()
 {
-    TArray<uint32> Indices;
-    for (uint32 i = 0;i < 100;i++)
-    {
-        Indices.push_back(i * 4 + 0);
-        Indices.push_back(i * 4 + 1);
-        Indices.push_back(i * 4 + 2);
-
-        Indices.push_back(i * 4 + 2);
-        Indices.push_back(i * 4 + 1);
-        Indices.push_back(i * 4 + 3);
-    }
-	
-
-    //if(UResourceManager::GetInstance().Get<UMaterial>())
     auto& RM = UResourceManager::GetInstance();
     TextQuad = RM.Get<UTextQuad>("TextBillboard");
     if (auto* M = RM.Get<UMaterial>("TextBillboard"))
@@ -38,13 +24,15 @@ UTextRenderComponent::UTextRenderComponent()
 
 UTextRenderComponent::~UTextRenderComponent()
 {
-    CharInfoMap.clear();
 }
 
-
+// static storage for shared glyph UVs
+TMap<char, FBillboardVertexInfo> UTextRenderComponent::CharInfoMap;
 
 void UTextRenderComponent::InitCharInfoMap()
 {
+    if (!CharInfoMap.empty()) return; // already built once
+
     const float TEXTURE_WH = 512.f;
     const float SUBTEX_WH = 32.f;
     const int COLROW = 16;
@@ -157,9 +145,9 @@ void UTextRenderComponent::Render(URenderer* Renderer, const FMatrix& View, cons
         Renderer->PrepareShader(Material->GetShader());
         TArray<FBillboardVertexInfo_GPU> vertices = CreateVerticesForString(FString("UUID : ") + FString(std::to_string(Owner->UUID)), Owner->GetActorLocation());//TODO : HELLOWORLD를 멤버변수 TEXT로바꾸기
         UResourceManager::GetInstance().UpdateDynamicVertexBuffer("TextBillboard", vertices);
-        Renderer->OMSetBlendState(true);
+
+        Renderer->OMSetDepthStencilState(EComparisonFunc::Always);
         Renderer->RSSetState(EViewModeIndex::VMI_Unlit);
         Renderer->DrawIndexedPrimitiveComponent(this, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        Renderer->OMSetBlendState(false);
     }
 }

@@ -21,7 +21,7 @@ public:
 
 private:
 	FString Text;
-	TMap<char, FBillboardVertexInfo> CharInfoMap;
+	static TMap<char, FBillboardVertexInfo> CharInfoMap; // shared per-process, built once
 	FString TextureFilePath;
 
 	// TODO: UStaticMesh는 UStaticMeshComponent만 사용하도록 바꿔야 한다

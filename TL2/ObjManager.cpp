@@ -168,6 +168,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
     return NewFStaticMesh;
 }
 
+// 여기서 BVH 정보 담아주기 작업을 해야 함 
 UStaticMesh* FObjManager::LoadObjStaticMesh(const FString& PathFileName)
 {
     // 0) 경로 정규화

@@ -38,9 +38,9 @@ public:
 
 	void Update(float DeltaTime, uint32 budgetItems = 256);
 
-	void RayQuery(FRay InRay, OUT TArray<AActor*>& Actors);
+    //void RayQueryOrdered(FRay InRay, OUT TArray<std::pair<AActor*, float>>& Candidates);
+    void RayQueryClosest(FRay InRay, OUT AActor*& OutActor, OUT float& OutBestT);
 	void FrustumQuery(Frustum InFrustum);
-	void RayQueryOrdered(FRay InRay, OUT TArray<std::pair<AActor*, float>>& Candidates);
 
 	/** 옥트리 게터 */
 	FOctree* GetSceneOctree() const { return SceneOctree; }
@@ -51,7 +51,6 @@ private:
 	// 싱글톤 
 	UWorldPartitionManager(const UWorldPartitionManager&) = delete;
 	UWorldPartitionManager& operator=(const UWorldPartitionManager&) = delete;
-
 
 	//재시작시 필요 
 	void ClearSceneOctree();

@@ -390,10 +390,13 @@
     <ClCompile Include="BVHierachy.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Occlusion.cpp">
+    <ClCompile Include="MeshBVH.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="PlatformTime.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Occlusion.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -724,10 +727,13 @@
     <ClInclude Include="BVHierachy.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Occlusion.h">
+    <ClInclude Include="MeshBVH.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="PlatformTime.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Occlusion.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
