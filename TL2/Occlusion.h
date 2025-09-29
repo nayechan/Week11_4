@@ -42,8 +42,17 @@ public:
         BuildLevels.clear();
     }
 
+    /*
+        왜 R.MaxZ를 쓰는데 min 누적을 하나?
 
-    void RasterizeRectDepthMax(int MinPX, int MinPY, int MaxPX, int MaxPY, float MinZ)
+        오클루더 AABB가 두껍거나 경계 근사 때문에 일부 픽셀이 원래보다 더 멀게 잡힐 수 있다.
+
+        레벨0은 per-pixel 가장 가까운 오클루더가 들어가야 하므로, 여러 오클루더가 겹칠 때 **min(current, MaxZ)**로 더 가까운 값으로만 낮춘다.
+
+        이렇게 해야 상위 레벨의 MAX 피라미드가 보수적이 됨(=오버컬링 방지).
+    */
+
+    void RasterizeRectDepthMin(int MinPX, int MinPY, int MaxPX, int MaxPY, float MaxZ)
     {
         MinPX = std::max(0, MinPX); MinPY = std::max(0, MinPY);
         MaxPX = std::min(Width - 1, MaxPX); MaxPY = std::min(Height - 1, MaxPY);
@@ -52,7 +61,7 @@ public:
             float* Row = &Depth[size_t(y) * Width];
             for (int x = MinPX; x <= MaxPX; ++x)
             {
-                Row[x] = std::min(Row[x], MinZ); // 가장 가까운 깊이로 갱신
+                Row[x] = std::min(Row[x], MaxZ); // 가장 가까운 깊이로 갱신
             }
         }
     }

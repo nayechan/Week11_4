@@ -452,3 +452,6 @@ TL2/Scene/*
 !TL2/d3dtk**
 
 WARP.md
+
+# Ignore bin files in TL2/Data
+/TL2/Data/**/*.bin

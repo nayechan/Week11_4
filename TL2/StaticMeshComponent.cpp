@@ -96,6 +96,8 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
     {
         MaterailSlots[InMaterialSlotIndex].MaterialName = InMaterialName;
         MaterailSlots[InMaterialSlotIndex].bChangedByUser = true;
+
+        bChangedMaterialByUser = true;
     }
     else
     {

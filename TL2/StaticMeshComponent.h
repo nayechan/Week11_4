@@ -37,9 +37,16 @@ public:
     void SetMaterialByUser(const uint32 InMaterialSlotIndex, const FString& InMaterialName);
 
     const TArray<FMaterialSlot>& GetMaterailSlots() const { return MaterailSlots; }
+
+    bool IsChangedMaterialByUser() const
+    {
+        return bChangedMaterialByUser;
+    }
     
 protected:
     UStaticMesh* StaticMesh = nullptr;
     TArray<FMaterialSlot> MaterailSlots;
+
+    bool bChangedMaterialByUser = false;
 };
 

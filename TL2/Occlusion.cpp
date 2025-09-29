@@ -92,7 +92,7 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 	const int GH = Grid.GetHeight();
 
 	// --- 튜닝 파라미터 ---
-	const float ErodeScale = 0.5f;     // 0.8배 축소
+	const float ErodeScale = 0.5f;     // 0.5배 축소
 	const int   Dilate = 1;        // 경계 1px 팽창
 	const int   MinPxEdge = 8;        // 너무 작은 사각형은 erosion 스킵
 	const float MaxCover = 0.6f;     // 화면의 60% 이상 덮으면 erosion 스킵
@@ -126,9 +126,6 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 			maxPY = int(std::ceil(cy + hh));
 		}
 
-		// --- 경계 팽창(틈 방지)(옵션) ---
-		//minPX -= Dilate; minPY -= Dilate;
-		//maxPX += Dilate; maxPY += Dilate;
 
 		// 화면 경계 클램프
 		minPX = std::max(0, std::min(GW - 1, minPX));
@@ -137,7 +134,7 @@ void FOcclusionCullingManagerCPU::BuildOccluderDepth(
 		maxPY = std::max(0, std::min(GH - 1, maxPY));
 		if (minPX > maxPX || minPY > maxPY) continue;
 
-		Grid.RasterizeRectDepthMax(minPX, minPY, maxPX, maxPY, R.MaxZ);
+		Grid.RasterizeRectDepthMin(minPX, minPY, maxPX, maxPY, R.MaxZ);
 	}
 }
 
@@ -173,8 +170,8 @@ void FOcclusionCullingManagerCPU::TestOcclusion(const TArray<FCandidateDrawable>
 
 		const float rw = std::max(0.0f, R.MaxX - R.MinX);
 		const float rh = std::max(0.0f, R.MaxY - R.MinY);
-		const float pxW = rw * ViewW;
-		const float pxH = rh * ViewH;
+		const float pxW = rw * GetGrid().GetWidth();
+		const float pxH = rh * GetGrid().GetHeight();
 
 		// --- 작은 사각형 가드: 한 변이라도 2px 미만이면 컬링하지 않음 ---
 		if (std::min(pxW, pxH) < 2.0f)

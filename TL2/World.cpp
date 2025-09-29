@@ -381,9 +381,10 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 				{
-					if (Cast<UStaticMeshComponent>(Primitive))
+					const UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Primitive);
+					if (SMC && SMC->IsChangedMaterialByUser() == false)
 					{
-						// UStaticMeshComponent는 따로 sorting rendering
+						// 유저에 의해 Material이 안 바뀐 UStaticMeshComponent는 따로 sorting rendering
 						continue;
 					}
 					// Actor가 textCmp도 가지고 있고, bounding box도 가지고 있고,
@@ -446,7 +447,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 						for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
 						{
-							if (Component->GetOwner()->GetCulled() == false)
+							if (Component->GetOwner()->GetCulled() == false && Component->IsChangedMaterialByUser() == false)
 							{
 								// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
 								if (bUseCPUOcclusion)
@@ -470,7 +471,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 					for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
 					{
-						if (!Component->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
+						if (!Component->GetOwner()->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
 						{
 							// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
 							if (bUseCPUOcclusion)
@@ -558,7 +559,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 			{
-				if (Cast<UStaticMeshComponent>(Primitive))
+				UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Primitive);
+				if (SMC && SMC->IsChangedMaterialByUser() == false)
 				{
 					continue;
 				}
