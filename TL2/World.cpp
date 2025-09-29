@@ -742,33 +742,25 @@ void UWorld::LoadScene(const FString& SceneName)
 
 	const FString FilePath = path.make_preferred().string();
 
-
 	// [1] 로드 시작 전 현재 카운터 백업
 	const uint32 PreLoadNext = UObject::PeekNextUUID();
 
-	// 한번의 JSON 파싱으로 처리
-	//// [2] 파일 NextUUID는 현재보다 클 때만 반영(절대 하향 설정 금지)
-	//uint32 LoadedNextUUID = 0;
-	//if (FSceneLoader::TryReadNextUUID(FilePath, LoadedNextUUID))
-	//{
-	//	if (LoadedNextUUID > UObject::PeekNextUUID())
-	//	{
-	//		UObject::SetNextUUID(LoadedNextUUID);
-	//	}
-	//}
+	// [2] 파일 NextUUID는 현재보다 클 때만 반영(절대 하향 설정 금지)
+	uint32 LoadedNextUUID = 0;
+	if (FSceneLoader::TryReadNextUUID(FilePath, LoadedNextUUID))
+	{
+		if (LoadedNextUUID > UObject::PeekNextUUID())
+		{
+			UObject::SetNextUUID(LoadedNextUUID);
+		}
+	}
 
 	// [3] 기존 씬 비우기
 	CreateNewScene();
 
     // [4] 로드
     FPerspectiveCameraData CamData{};
-	uint32 LoadedNextUUID = 0;
-    const TArray<FPrimitiveData>& Primitives = FSceneLoader::LoadWithUUID(FilePath, CamData, LoadedNextUUID);
-	if (LoadedNextUUID > UObject::PeekNextUUID())
-	{
-		//NextUUID는 현재보다 클 때만 반영(절대 하향 설정 금지)
-		UObject::SetNextUUID(LoadedNextUUID);
-	}
+    const TArray<FPrimitiveData>& Primitives = FSceneLoader::Load(FilePath, &CamData);
 
     // 마우스 델타 초기화
     const FVector2D CurrentMousePos = UInputManager::GetInstance().GetMousePosition();
@@ -811,7 +803,6 @@ void UWorld::LoadScene(const FString& SceneName)
 	// 벌크 삽입을 위해 액터들을 먼저 모두 생성
 	TArray<AActor*> SpawnedActors;
 	SpawnedActors.reserve(Primitives.size());
-	StaticMeshActors.reserve(Primitives.size());
 
 	for (const FPrimitiveData& Primitive : Primitives)
 	{
@@ -821,7 +812,7 @@ void UWorld::LoadScene(const FString& SceneName)
 				SceneRotUtil::QuatFromEulerZYX_Deg(Primitive.Rotation),
 				Primitive.Scale));
 
-		StaticMeshActors.emplace_back(StaticMeshActor);
+		PushBackToStaticMeshActors(StaticMeshActor);
 
 		// 스폰 시점에 자동 발급된 고유 UUID (충돌 시 폴백으로 사용)
 		uint32 Assigned = StaticMeshActor->UUID;

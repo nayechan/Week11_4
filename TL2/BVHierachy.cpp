@@ -141,7 +141,7 @@ void FBVHierachy::QueryFrustum(const Frustum& InFrustum)
     {
         for (AActor* A : ActorArray)
         {
-            if (A) A->SetCulled(false);
+            if (A && ActorLastBounds.find(A) != ActorLastBounds.end()) A->SetCulled(false);
         }
         return;
     }
@@ -159,7 +159,8 @@ void FBVHierachy::QueryFrustum(const Frustum& InFrustum)
             for (int32 i = 0; i < node.Count; ++i)
             {
                 AActor* A = ActorArray[node.First + i];
-                if (!A) continue;
+                if (!A || ActorLastBounds.find(A) == ActorLastBounds.end())
+                    continue;
                 const FBound* Cached = ActorLastBounds.Find(A);
                 const FBound Box = Cached ? *Cached : A->GetBounds();
                 if (IsAABBVisible(InFrustum, Box))
