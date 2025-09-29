@@ -399,52 +399,78 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		}
 
 		// TODO: StaticCmp를 State tree 이용해서 렌더(showFlag 확인 필요)
-		for (UStaticMesh* StaticMesh : StaticMeshs)
+		if (IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
 		{
-			UINT stride = 0;
-			stride = sizeof(FVertexDynamic);
-			UINT offset = 0;
-
-			ID3D11Buffer* VertexBuffer = StaticMesh->GetVertexBuffer();
-			ID3D11Buffer* IndexBuffer = StaticMesh->GetIndexBuffer();
-			uint32 VertexCount = StaticMesh->GetVertexCount();
-			uint32 IndexCount = StaticMesh->GetIndexCount();
-
-			URHIDevice* RHIDevice = Renderer->GetRHIDevice();
-
-			RHIDevice->GetDeviceContext()->IASetVertexBuffers(
-				0, 1, &VertexBuffer, &stride, &offset
-			);
-
-			RHIDevice->GetDeviceContext()->IASetIndexBuffer(
-				IndexBuffer, DXGI_FORMAT_R32_UINT, 0
-			);
-
-			RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			RHIDevice->PSSetDefaultSampler(0);
-
-			if (StaticMesh->HasMaterial())
+			for (UStaticMesh* StaticMesh : StaticMeshs)
 			{
-				for (const FGroupInfo& GroupInfo : StaticMesh->GetMeshGroupInfo())
+				UINT stride = 0;
+				stride = sizeof(FVertexDynamic);
+				UINT offset = 0;
+
+				ID3D11Buffer* VertexBuffer = StaticMesh->GetVertexBuffer();
+				ID3D11Buffer* IndexBuffer = StaticMesh->GetIndexBuffer();
+				uint32 VertexCount = StaticMesh->GetVertexCount();
+				uint32 IndexCount = StaticMesh->GetIndexCount();
+
+				URHIDevice* RHIDevice = Renderer->GetRHIDevice();
+
+				RHIDevice->GetDeviceContext()->IASetVertexBuffers(
+					0, 1, &VertexBuffer, &stride, &offset
+				);
+
+				RHIDevice->GetDeviceContext()->IASetIndexBuffer(
+					IndexBuffer, DXGI_FORMAT_R32_UINT, 0
+				);
+
+				RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				RHIDevice->PSSetDefaultSampler(0);
+
+				if (StaticMesh->HasMaterial())
 				{
-					if (StaticMesh->GetUsingComponents().empty())
+					for (const FGroupInfo& GroupInfo : StaticMesh->GetMeshGroupInfo())
 					{
-						continue;
+						if (StaticMesh->GetUsingComponents().empty())
+						{
+							continue;
+						}
+						UMaterial* const Material = UResourceManager::GetInstance().Get<UMaterial>(GroupInfo.InitialMaterialName);
+						const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
+						bool bHasTexture = !(MaterialInfo.DiffuseTextureFileName.empty());
+						if (bHasTexture)
+						{
+							FWideString WTextureFileName(MaterialInfo.DiffuseTextureFileName.begin(), MaterialInfo.DiffuseTextureFileName.end()); // 단순 ascii라고 가정
+							FTextureData* TextureData = UResourceManager::GetInstance().CreateOrGetTextureData(WTextureFileName);
+							RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &(TextureData->TextureSRV));
+						}
+						RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // PSSet도 해줌
+
+						for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
+						{
+							if (Component->GetCulled() == false)
+							{
+								// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
+								if (bUseCPUOcclusion)
+								{
+									uint32_t id = Component->GetOwner()->UUID;
+									if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
+									{
+										continue; // 가려짐 → 스킵
+									}
+								}
+
+								Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
+								Renderer->PrepareShader(Component->GetMaterial()->GetShader());
+								RHIDevice->GetDeviceContext()->DrawIndexed(GroupInfo.IndexCount, GroupInfo.StartIndex, 0);
+							}
+						}
 					}
-					UMaterial* const Material = UResourceManager::GetInstance().Get<UMaterial>(GroupInfo.InitialMaterialName);
-					const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
-					bool bHasTexture = !(MaterialInfo.DiffuseTextureFileName.empty());
-					if (bHasTexture)
-					{
-						FWideString WTextureFileName(MaterialInfo.DiffuseTextureFileName.begin(), MaterialInfo.DiffuseTextureFileName.end()); // 단순 ascii라고 가정
-						FTextureData* TextureData = UResourceManager::GetInstance().CreateOrGetTextureData(WTextureFileName);
-						RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &(TextureData->TextureSRV));
-					}
-					RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // PSSet도 해줌
+				}
+				else
+				{
 
 					for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
 					{
-						if (Component->GetCulled() == false)
+						if (!Component->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
 						{
 							// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
 							if (bUseCPUOcclusion)
@@ -456,44 +482,22 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 								}
 							}
 
+							FObjMaterialInfo ObjMaterialInfo;
+							RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
+
 							Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
 							Renderer->PrepareShader(Component->GetMaterial()->GetShader());
-							RHIDevice->GetDeviceContext()->DrawIndexed(GroupInfo.IndexCount, GroupInfo.StartIndex, 0);
+							RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
 						}
 					}
+					//FObjMaterialInfo ObjMaterialInfo;
+					//RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
+					//RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
 				}
-			}
-			else
-			{
-				
-				for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
-				{
-					if (!Component->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
-					{
-						// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-						if (bUseCPUOcclusion)
-						{
-							uint32_t id = Component->GetOwner()->UUID;
-							if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-							{
-								continue; // 가려짐 → 스킵
-							}
-						}
 
-						FObjMaterialInfo ObjMaterialInfo;
-						RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
-
-						Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
-						Renderer->PrepareShader(Component->GetMaterial()->GetShader());
-						RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
-					}
-				}
-				//FObjMaterialInfo ObjMaterialInfo;
-				//RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
-				//RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
 			}
-			
 		}
+		
 	}
 
 	// 엔진 액터들 (그리드 등)
