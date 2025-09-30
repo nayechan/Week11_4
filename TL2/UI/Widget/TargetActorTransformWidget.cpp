@@ -113,6 +113,7 @@ namespace
 		{
 			NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 		}
+		// 선택 하이라이트: 현재 선택된 컴포넌트와 같으면 Selected 플래그
 		if (Component == SelectedComponent)
 		{
 			NodeFlags |= ImGuiTreeNodeFlags_Selected;
@@ -127,6 +128,11 @@ namespace
 		// 트리 노드 그리기 직전에 ID 푸시
 		ImGui::PushID(Component);
 		const bool bNodeOpen = ImGui::TreeNodeEx(Component, NodeFlags, "%s", Label.c_str());
+		// ✓ 좌클릭 시 컴포넌트 선택으로 전환(액터 Row 선택 해제)
+		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+		{
+			SelectedComponent = Component;
+		}
 
 		if (ImGui::BeginPopupContextItem("ComponentContext"))
 		{
@@ -352,17 +358,20 @@ void UTargetActorTransformWidget::RenderWidget()
 
 		AActor* ActorPendingRemoval = nullptr;
 		USceneComponent* ComponentPendingRemoval = nullptr;
+
+		USceneComponent* RootComponent = SelectedActor->GetRootComponent();
+		const bool bActorSelected = (SelectedActor != nullptr && SelectedComponent == nullptr);
+
 		ImGui::PushID("ActorDisplay");
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.3f, 1.0f));
 		// 액터 이름 표시 (캐시된 이름 사용)
 		const bool bActorClicked =
-			ImGui::Selectable(CachedActorName.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick |
-				ImGuiSelectableFlags_SpanAvailWidth);
+			ImGui::Selectable(CachedActorName.c_str(), bActorSelected, ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_SpanAvailWidth);
 		ImGui::PopStyleColor();
 
-		if (bActorClicked && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && SelectedActor)
+		if (bActorClicked && SelectedActor)
 		{
-			SelectedComponent = SelectedActor->GetRootComponent();
+			SelectedComponent = nullptr;
 		}
 
 		if (ImGui::BeginPopupContextItem("ActorContextMenu"))
@@ -375,8 +384,6 @@ void UTargetActorTransformWidget::RenderWidget()
 		}
 		ImGui::PopID();
 
-
-		USceneComponent* RootComponent = SelectedActor->GetRootComponent();
 		if (!RootComponent)
 		{
 			ImGui::BulletText("Root component not found.");
@@ -400,13 +407,13 @@ void UTargetActorTransformWidget::RenderWidget()
 				const bool bSelected = (Component == SelectedComponent);
 				if (ImGui::Selectable(Component->GetClass()->Name, bSelected))
 				{
-					SelectedComponent = Component;
+					SelectedComponent = Component; // 하이라이트 유지
 				}
 
 				if (ImGui::BeginPopupContextItem("ComponentContext"))
 				{
 					// 루트 컴포넌트가 아닌 경우에만 제거 가능
-					const bool bCanRemove = (Component != SelectedActor->GetRootComponent());
+					const bool bCanRemove = (Component != RootComponent);
 					if (ImGui::MenuItem("Remove", "Delete", false, bCanRemove))
 					{
 						ComponentPendingRemoval = Component;
@@ -415,16 +422,38 @@ void UTargetActorTransformWidget::RenderWidget()
 				}
 				ImGui::PopID();
 			}
+		}
+		const bool bDeletePressed =
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+			ImGui::IsKeyPressed(ImGuiKey_Delete);
 
-			if (ComponentPendingRemoval)
+		if (bDeletePressed && SelectedActor)
+		{
+			if (SelectedComponent == nullptr)
 			{
-				SelectedActor->RemoveComponent(ComponentPendingRemoval);
-				if (SelectedComponent == ComponentPendingRemoval)
-				{
-					SelectedComponent = nullptr;
-				}
+				// 액터 Row가 선택된 상태 → 액터 삭제
+				ActorPendingRemoval = SelectedActor;
+			}
+			else if (SelectedComponent != RootComponent)
+			{
+				// 컴포넌트 선택 상태(루트 아님) → 해당 컴포넌트 삭제
+				ComponentPendingRemoval = SelectedComponent;
+			}
+			else
+			{
+				// 루트 컴포넌트가 선택된 상태면 삭제 불가
 			}
 		}
+
+		if (ComponentPendingRemoval)
+		{
+			SelectedActor->RemoveComponent(ComponentPendingRemoval);
+			if (SelectedComponent == ComponentPendingRemoval)
+			{
+				SelectedComponent = nullptr;
+			}
+		}
+
 		if (ActorPendingRemoval)
 		{
 			UWorld* World = ActorPendingRemoval->GetWorld();
@@ -440,14 +469,7 @@ void UTargetActorTransformWidget::RenderWidget()
 			return; // 방금 제거된 액터에 대한 나머지 UI 갱신 건너뜀
 		}
 
-		if (SelectedComponent &&
-			SelectedComponent != SelectedActor->GetRootComponent() &&
-			ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-			ImGui::IsKeyPressed(ImGuiKey_Delete))
-		{
-			SelectedActor->RemoveComponent(SelectedComponent);
-			SelectedComponent = nullptr;
-		}
+
 		ImGui::Separator();
 		ImGui::Spacing();
 		
