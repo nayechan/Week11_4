@@ -86,29 +86,6 @@ void UWorld::InitializeGizmo()
 	UI.SetGizmoActor(GizmoActor);
 }
 
-void UWorld::SetRenderer(URenderer* InRenderer)
-{
-	Renderer = InRenderer;
-}
-
-void UWorld::Render()
-{
-	Renderer->BeginFrame();
-
-	UI.Render();
-
-	if (SlateManager)
-	{
-		//실제 렌더 호출 (Slate Viewport Render)
-		SlateManager->OnRender();
-	}
-
-	//프레임 종료 
-	UI.EndFrame();
-
-	Renderer->EndFrame();
-}
-
 void UWorld::Tick(float DeltaSeconds)
 {
 	PARTITION.Update(DeltaSeconds, /*budget*/256);
@@ -124,13 +101,6 @@ void UWorld::Tick(float DeltaSeconds)
 	}
 	GizmoActor->Tick(DeltaSeconds);
 
-	// 뷰포트 업데이트 - UIManager의 뷰포트 전환 상태에 따라
-	if (SlateManager)
-	{
-		SlateManager->OnUpdate(DeltaSeconds);
-	}
-
-	INPUT.Update();
 	UI.Update(DeltaSeconds);
 }
 
@@ -171,16 +141,6 @@ bool UWorld::DestroyActor(AActor* Actor)
 	auto it = std::find(Actors.begin(), Actors.end(), Actor);
 	if (it != Actors.end())
 	{
-		// 만약 StaticMeshActor라면, 전용 배열에서도 제거
-		if (AStaticMeshActor* MeshActor = Cast<AStaticMeshActor>(Actor))
-		{
-			auto mesh_it = std::find(StaticMeshActors.begin(), StaticMeshActors.end(), MeshActor);
-			if (mesh_it != StaticMeshActors.end())
-			{
-				StaticMeshActors.erase(mesh_it);
-			}
-		}
-
 		// 옥트리에서 제거
 		OnActorDestroyed(Actor);
 
@@ -249,7 +209,6 @@ void UWorld::CreateNewScene()
 		ObjectFactory::DeleteObject(Actor);
 	}
 	Actors.Empty();
-	StaticMeshActors.Empty();
 
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
@@ -337,8 +296,6 @@ void UWorld::LoadScene(const FString& SceneName)
 			FTransform(Primitive.Location,
 				SceneRotUtil::QuatFromEulerZYX_Deg(Primitive.Rotation),
 				Primitive.Scale));
-
-		PushBackToStaticMeshActors(StaticMeshActor);
 
 		// 스폰 시점에 자동 발급된 고유 UUID (충돌 시 폴백으로 사용)
 		uint32 Assigned = StaticMeshActor->UUID;
@@ -486,10 +443,6 @@ AGizmoActor* UWorld::GetGizmoActor()
 	return GizmoActor;
 }
 
-void UWorld::PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor)
-{
-	StaticMeshActors.push_back(InStaticMeshActor);
-}
 
 void UWorld::SetStaticMeshs()
 {

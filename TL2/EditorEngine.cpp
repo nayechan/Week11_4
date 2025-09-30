@@ -5,6 +5,8 @@
 float UEditorEngine::ClientWidth = 1024.0f;
 float UEditorEngine::ClientHeight = 1024.0f;
 
+UEditorEngine GEngine;
+
 static void LoadIniFile()
 {
     std::ifstream infile("editor.ini");
@@ -69,7 +71,7 @@ void UEditorEngine::GetViewportSize(HWND hWnd)
 LRESULT CALLBACK UEditorEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     // Input first
-    UInputManager::GetInstance().ProcessMessage(hWnd, message, wParam, lParam);
+    INPUT.ProcessMessage(hWnd, message, wParam, lParam);
 
     // ImGui next
     if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
@@ -84,21 +86,18 @@ LRESULT CALLBACK UEditorEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
         {
             GetViewportSize(hWnd);
 
-            if (auto world = UUIManager::GetInstance().GetWorld())
-            {
-                if (auto renderer = world->GetRenderer())
-                {
-                    UINT newWidth = static_cast<UINT>(ClientWidth);
-                    UINT newHeight = static_cast<UINT>(ClientHeight);
-                    static_cast<D3D11RHI*>(renderer->GetRHIDevice())->ResizeSwapChain(newWidth, newHeight);
-                    EditorINI["WindowWidth"] = std::to_string(newWidth);
-                    EditorINI["WindowHeight"] = std::to_string(newHeight);
-                }
+            UINT newWidth = static_cast<UINT>(ClientWidth);
+            UINT newHeight = static_cast<UINT>(ClientHeight);
+            GEngine.RHIDevice.ResizeSwapChain(newWidth, newHeight);
+            EditorINI["WindowWidth"] = std::to_string(newWidth);
+            EditorINI["WindowHeight"] = std::to_string(newHeight);
 
+            if (ImGui::GetCurrentContext() != nullptr) 
+            {
                 ImGuiIO& io = ImGui::GetIO();
-                if (io.DisplaySize.x > 0 && io.DisplaySize.y > 0)
+                if (io.DisplaySize.x > 0 && io.DisplaySize.y > 0) 
                 {
-                    UUIManager::GetInstance().RepositionImGuiWindows();
+                    UI.RepositionImGuiWindows();
                 }
             }
         }
@@ -160,21 +159,16 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     UI.Initialize(HWnd, RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
     INPUT.Initialize(HWnd);
 
-
-
+    ///////////////////////////////////
     //@TODO 월드 수정 필
     World = &UWorld::GetInstance();
-    World->SetRenderer(Renderer.get());
     World->Initialize();
     ///////////////////////////////////
 
 
-
-    // 슬레이트 매니저
-    SlateManager = NewObject<USlateManager>();
+    // 슬레이트 매니저 (singleton)
     FRect ScreenRect(0, 0, ClientWidth, ClientHeight);
-    SlateManager->Initialize(RHIDevice.GetDevice(), World, ScreenRect);
-    World->SetSlateManager(SlateManager);
+    SLATE.Initialize(RHIDevice.GetDevice(), World, ScreenRect);
 
     //스폰을 위한 월드셋
     UI.SetWorld(World);
@@ -189,7 +183,20 @@ void UEditorEngine::Tick(float DeltaSeconds)
     HandleUVInput(DeltaSeconds);
 
     World->Tick(DeltaSeconds);
-    World->Render();
+
+    SLATE.OnUpdate(DeltaSeconds);
+    INPUT.Update();
+}
+
+void UEditorEngine::Render()
+{
+    Renderer->BeginFrame();
+
+    UI.Render();
+    SLATE.OnRender();
+    UI.EndFrame();
+
+    Renderer->EndFrame();
 }
 
 void UEditorEngine::HandleUVInput(float DeltaSeconds)
@@ -249,6 +256,7 @@ void UEditorEngine::MainLoop()
         }
 
         Tick(DeltaSeconds);
+        Render();
     }
 }
 

@@ -1,6 +1,10 @@
 ﻿#pragma once
 #include "pch.h"
 
+class URenderer;
+class D3D11RHI;
+class UWorld;
+
 class UEditorEngine final {
 public:
     UEditorEngine();
@@ -11,6 +15,9 @@ public:
     void Shutdown();
 
     HWND GetHWND() const { return HWnd; }
+    
+    URenderer* GetRenderer() const { return Renderer.get(); }
+    D3D11RHI* GetRHIDevice() { return &RHIDevice; }
 
 private:
     bool CreateMainWindow(HINSTANCE hInstance);
@@ -18,6 +25,8 @@ private:
     static void GetViewportSize(HWND hWnd);
 
     void Tick(float DeltaSeconds);
+    void Render();
+
     void HandleUVInput(float DeltaSeconds);
 
 private:
@@ -28,11 +37,8 @@ private:
     D3D11RHI RHIDevice; 
     std::unique_ptr<URenderer> Renderer;
     
-    //월드 로직 수정 필요
+    //월드 핸들
     UWorld* World = nullptr;
-
-    //에디터 전용?
-    USlateManager* SlateManager = nullptr;
 
     //틱 상태
     bool bRunning = false;
@@ -44,3 +50,5 @@ private:
     static float ClientWidth;
     static float ClientHeight;
 };
+
+extern UEditorEngine GEngine;

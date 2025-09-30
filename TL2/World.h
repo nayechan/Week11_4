@@ -40,13 +40,6 @@ public:
     void InitializeGrid();
     void InitializeGizmo();
 
-    void SetRenderer(URenderer* InRenderer);
-    URenderer* GetRenderer() { return Renderer; }
-    URenderManager* GetRenderManager() const { return RenderManager; }
-
-    void SetSlateManager(USlateManager* InSlateManager) { SlateManager = InSlateManager; }
-    USlateManager* GetSlateManager() const { return SlateManager; }
-
     template<class T>
     T* SpawnActor();
 
@@ -83,28 +76,18 @@ public:
     virtual void Tick(float DeltaSeconds);
     float GetTimeSeconds() const;
 
-    /** === 렌더 === */
-    void Render();
-    // Rendering is orchestrated by URenderManager now
-
     /** === 필요한 엑터 게터 === */
     const TArray<AActor*>& GetActors() { return Actors; }
     const TArray<AActor*>& GetEditorActors() { return EditorActors; }
     AGizmoActor* GetGizmoActor();
     AGridActor* GetGridActor() { return GridActor; }
 
-    void PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor);
     void SetStaticMeshs();
     const TArray<UStaticMesh*>& GetStaticMeshs() { return StaticMeshs; }
     
     /** === 레벨 / 월드 구성 === */
     // TArray<ULevel*> Levels;
 private:
-    // 엔진 오브젝트
-    URenderer* Renderer = nullptr;
-    URenderManager* RenderManager = nullptr;
-    USlateManager* SlateManager = nullptr;
-
     /** === 액터 관리 === */
     TArray<AActor*> EditorActors;
     ACameraActor* MainCameraActor = nullptr;
@@ -116,7 +99,6 @@ private:
     TArray<FPrimitiveData> Primitives;
 
     /** A dedicated array for static mesh actors to optimize culling. */
-    TArray<class AStaticMeshActor*> StaticMeshActors;
     TArray<UStaticMesh*> StaticMeshs;
 
     // Object naming system
@@ -127,6 +109,7 @@ private:
 
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
 };
+
 template<class T>
 inline T* UWorld::SpawnActor()
 {

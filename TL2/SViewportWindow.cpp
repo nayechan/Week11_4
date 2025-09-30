@@ -170,7 +170,7 @@ void SViewportWindow::RenderToolbar()
 				{
 					ViewportClient->SetViewportType(ViewportType);
 					ViewportClient->SetupCameraMode();
-					
+
 				}
 
 				// 뷰포트 이름 업데이트
@@ -205,7 +205,7 @@ void SViewportWindow::RenderToolbar()
 		if (ImGui::Button("Reset")) { /* TODO: 카메라 Reset */ }
 
 		const char* viewModes[] = { "Lit", "Unlit", "Wireframe" };
-		int currentViewMode = static_cast<int>(ViewportClient-> GetViewModeIndex())-1; // 0=Lit, 1=Unlit, 2=Wireframe -1이유 1부터 시작이여서 
+		int currentViewMode = static_cast<int>(ViewportClient->GetViewModeIndex()) - 1; // 0=Lit, 1=Unlit, 2=Wireframe -1이유 1부터 시작이여서 
 
 		ImGui::SameLine();
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 2)); // 버튼/콤보 내부 여백 축소
@@ -233,10 +233,9 @@ void SViewportWindow::RenderToolbar()
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - btnW));
 		}
 
-if (ImGui::Button("Switch##ToThis", btnSize))
+		if (ImGui::Button("Switch##ToThis", btnSize))
 		{
-			if (auto* MVP = UWorld::GetInstance().GetSlateManager())
-				MVP->SwitchPanel(this);
+			SLATE.SwitchPanel(this);
 		}
 
 		//ImGui::PopStyleVar();

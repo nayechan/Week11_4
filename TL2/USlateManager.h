@@ -15,12 +15,18 @@ class USlateManager : public UObject
 public:
     DECLARE_CLASS(USlateManager, UObject)
 
+    // Singleton accessor
+    static USlateManager& GetInstance();
+
     // 구성 저장/로드
     void SaveSplitterConfig();
     void LoadSplitterConfig();
 
     USlateManager();
     virtual ~USlateManager() override;
+
+    USlateManager(const USlateManager&) = delete;
+    USlateManager& operator=(const USlateManager&) = delete;
 
     void Initialize(ID3D11Device* Device, UWorld* World, const FRect& InRect);
     void SwitchLayout(EViewportLayoutMode NewMode);
