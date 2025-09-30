@@ -4,7 +4,7 @@
 #include "FViewportClient.h"
 #include "SSplitterH.h"
 #include "SSplitterV.h"
-#include "SMultiViewportWindow.h"
+#include "USlateManager.h"
 // TODO: Delete it, just Test
 
 float CLIENTWIDTH = 1024.0f;
@@ -197,12 +197,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         d3d11RHI.Initialize(hWnd);
         URenderer renderer(&d3d11RHI); //렌더러 생성이 가장 먼저 되어야 합니다.
 
-    //UResourceManager::GetInstance().Initialize(d3d11RHI.GetDevice(),d3d11RHI.GetDeviceContext()); //리소스매니저 이니셜라이즈
+    // UResourceManager::GetInstance().Initialize(d3d11RHI.GetDevice(),d3d11RHI.GetDeviceContext()); //리소스매니저 이니셜라이즈
     // UI Manager Initialize
     UUIManager::GetInstance().Initialize(hWnd, d3d11RHI.GetDevice(), d3d11RHI.GetDeviceContext()); //유아이매니저 이니셜라이즈
-    UUIWindowFactory::CreateDefaultUILayout();
-    
-    // InputManager 초기화 (TUUIManager 이후)
     UInputManager::GetInstance().Initialize(hWnd); //인풋 매니저 이니셜라이즈
 
         //======================================================================================================================
@@ -211,17 +208,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         World->SetRenderer(&renderer);//렌더러 설정
         World->Initialize(); 
 
-        //메인 뷰포트 생성
-        SViewportWindow* MainViewport = new SViewportWindow();
-        MainViewport->Initialize(0, 0, 1000, 1000, World, renderer.GetRHIDevice()->GetDevice(), EViewportType::Perspective);
-        // 멀티 뷰포트 생성
-        SMultiViewportWindow* MultiViewportWindow = nullptr;
-        MultiViewportWindow = new SMultiViewportWindow();
+        // Slate 매니저 생성
+        USlateManager* SlateManager = NewObject<USlateManager>();
         FRect ScreenRect(0, 0, static_cast<float>(windowWidth), static_cast<float>(windowHeight));
-        MultiViewportWindow->Initialize(renderer.GetRHIDevice()->GetDevice(),World, ScreenRect,MainViewport);
-        //월드에 뷰포드 설정
-        World->SetMultiViewportWindow(MultiViewportWindow);
-        World->SetMainViewport(MainViewport);
+        SlateManager->Initialize(renderer.GetRHIDevice()->GetDevice(), World, ScreenRect);
+        // 월드에 설정
+        World->SetSlateManager(SlateManager);
 
         //스폰을 위한 월드셋
         UUIManager::GetInstance().SetWorld(World);
@@ -254,27 +246,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 );
             PrevTime = CurrTime;
 
-
-
             if (InputMgr.IsKeyPressed('T'))
             {
                 bUVScrollPaused = !bUVScrollPaused;
                 if (bUVScrollPaused)
                 {
-                    // reset when paused
                     UVScrollTime = 0.0f;
                     renderer.UpdateUVScroll(UVScrollSpeed, UVScrollTime);
                 }
             }
-
-
             if (!bUVScrollPaused)
             {
                 UVScrollTime += DeltaSeconds;
+                renderer.UpdateUVScroll(UVScrollSpeed, UVScrollTime);
             }
-
-
-            renderer.UpdateUVScroll(UVScrollSpeed, UVScrollTime);
 
             // 이제 Tick 호출
             World->Tick(DeltaSeconds);
@@ -300,19 +285,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 bIsExit = true;
             }
 
-            // 마우스 위치 실시간 출력 (매 60프레임마다)
             static int frameCount = 0;
             frameCount++;
-            if (frameCount % 60 == 0) // 60프레임마다 출력
-            {
-                FVector2D mousePos = InputMgr.GetMousePosition();
-                FVector2D mouseDelta = InputMgr.GetMouseDelta();
-                // char debugMsg[128];
-            }
         }
-
-        delete MultiViewportWindow;
-     
         UUIManager::GetInstance().Release();
         ObjectFactory::DeleteAll(true);
     }

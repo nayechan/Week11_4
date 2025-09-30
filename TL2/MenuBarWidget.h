@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "UI/Widget/Widget.h"
-class SMultiViewportWindow;
+class USlateManager;
 
 /**
  * 상단 메인 메뉴바 위젯 (File / Edit / Window / Help)
- * - 오너(SMultiViewportWindow)를 주입받아 레이아웃 스위칭 등 제어
+ * - 오너(USlateManager)를 주입받아 레이아웃 스위칭 등 제어
  * - 필요 시 외부 콜백으로 기본 동작 오버라이드 가능
  */
 class UMenuBarWidget : public UWidget
@@ -13,7 +13,7 @@ public:
     DECLARE_CLASS(UMenuBarWidget, UWidget)
 
     UMenuBarWidget();
-    explicit UMenuBarWidget(SMultiViewportWindow* InOwner);
+    explicit UMenuBarWidget(USlateManager* InOwner);
 
     // UWidget 인터페이스
     void Initialize() override;
@@ -21,7 +21,7 @@ public:
     void RenderWidget() override;
 
     // 오너 설정
-    void SetOwner(SMultiViewportWindow* InOwner) { Owner = InOwner; }
+    void SetOwner(USlateManager* InOwner) { Owner = InOwner; }
 
     // 선택: 액션 콜백 핸들러 (설정하면 내부 기본 동작 대신 콜백 호출)
     void SetFileActionHandler(std::function<void(const char*)> Fn) { FileAction = std::move(Fn); }
@@ -37,7 +37,7 @@ private:
     void OnHelpMenuAction(const char* action);
 
 private:
-    SMultiViewportWindow* Owner = nullptr;
+    USlateManager* Owner = nullptr;
 
     // 외부 주도 액션을 위한 선택적 콜백
     std::function<void(const char*)> FileAction;

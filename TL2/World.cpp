@@ -10,7 +10,7 @@
 #include "AABoundingBoxComponent.h"
 #include "FViewport.h"
 #include "SViewportWindow.h"
-#include "SMultiViewportWindow.h"
+#include "USlateManager.h"
 #include "StaticMesh.h"
 #include "ObjManager.h"
 #include "SceneRotationUtils.h"
@@ -62,42 +62,7 @@ UWorld::~UWorld()
 
 	// ObjManager 정리
 	FObjManager::Clear();
-}
-
-static void DebugRTTI_UObject(UObject* Obj, const char* Title)
-{
-	if (!Obj)
-	{
-		UE_LOG("[RTTI] Obj == null\r\n");
-		return;
-	}
-
-	char buf[256];
-	UE_LOG("========== RTTI CHECK ==========\r\n");
-	if (Title)
-	{
-		std::snprintf(buf, sizeof(buf), "[RTTI] %s\r\n", Title);
-		UE_LOG(buf);
-	}
-
-	std::snprintf(buf, sizeof(buf), "[RTTI] TypeName = %s\r\n", Obj->GetClass()->Name);
-	UE_LOG(buf);
-
-	std::snprintf(buf, sizeof(buf), "[RTTI] IsA<AActor>      = %d\r\n", (int)Obj->IsA<AActor>());
-	UE_LOG(buf);
-	std::snprintf(buf, sizeof(buf), "[RTTI] IsA<ACameraActor> = %d\r\n", (int)Obj->IsA<ACameraActor>());
-	UE_LOG(buf);
-
-	UE_LOG("[RTTI] Inheritance chain: ");
-	for (const UClass* c = Obj->GetClass(); c; c = c->Super)
-	{
-		std::snprintf(buf, sizeof(buf), "%s%s", c->Name, c->Super ? " <- " : "\r\n");
-		UE_LOG(buf);
-	}
-	//FString Name = Obj->GetName();
-	std::snprintf(buf, sizeof(buf), "[RTTI] TypeName = %s\r\n", Obj->GetName().c_str());
-	OutputDebugStringA(buf);
-	OutputDebugStringA("================================\r\n");
+	delete OcclusionCPU;
 }
 
 void UWorld::Initialize()
@@ -119,7 +84,6 @@ void UWorld::InitializeMainCamera()
 	MainCameraActor = NewObject<ACameraActor>();
 	MainCameraActor->SetWorld(this);
 
-	DebugRTTI_UObject(MainCameraActor, "MainCameraActor");
 	UI.SetCamera(MainCameraActor);
 
 	EngineActors.Add(MainCameraActor);
@@ -161,9 +125,9 @@ void UWorld::Render()
 	Renderer->BeginFrame();
 	UI.Render();
 
-	if (MultiViewport)
+if (SlateManager)
 	{
-		MultiViewport->OnRender();
+		SlateManager->OnRender();
 	}
 
 	//프레임 종료 
@@ -483,8 +447,6 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	}
 }
 
-
-
 void UWorld::Tick(float DeltaSeconds)
 {
 	PARTITION.Update(DeltaSeconds, /*budget*/256);
@@ -504,9 +466,9 @@ void UWorld::Tick(float DeltaSeconds)
 	//Input Manager가 카메라 후에 업데이트 되어야함
 
 	// 뷰포트 업데이트 - UIManager의 뷰포트 전환 상태에 따라
-	if (MultiViewport)
+if (SlateManager)
 	{
-		MultiViewport->OnUpdate(DeltaSeconds);
+		SlateManager->OnUpdate(DeltaSeconds);
 	}
 
 	INPUT.Update();
@@ -659,9 +621,9 @@ void UWorld::ProcessActorSelection()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseDown(MousePosition,0);
+				SlateManager->OnMouseDown(MousePosition,0);
 			}
 		}
 	}
@@ -669,9 +631,9 @@ void UWorld::ProcessActorSelection()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseDown(MousePosition, 0);
+				SlateManager->OnMouseDown(MousePosition, 0);
 			}
 		}
 	}
@@ -679,9 +641,9 @@ void UWorld::ProcessActorSelection()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseDown(MousePosition,1);
+				SlateManager->OnMouseDown(MousePosition,1);
 			}
 		}
 	}
@@ -689,14 +651,14 @@ void UWorld::ProcessActorSelection()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseUp(MousePosition,1);
+				SlateManager->OnMouseUp(MousePosition,1);
 			}
 		}
 	}
-
 }
+
 void UWorld::ProcessViewportInput()
 {
 	const FVector2D MousePosition = INPUT.GetMousePosition();
@@ -705,9 +667,9 @@ void UWorld::ProcessViewportInput()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseDown(MousePosition, 0);
+				SlateManager->OnMouseDown(MousePosition, 0);
 			}
 		}
 	}
@@ -715,9 +677,9 @@ void UWorld::ProcessViewportInput()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseDown(MousePosition, 1);
+				SlateManager->OnMouseDown(MousePosition, 1);
 			}
 		}
 	}
@@ -725,9 +687,9 @@ void UWorld::ProcessViewportInput()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseUp(MousePosition, 0);
+				SlateManager->OnMouseUp(MousePosition, 0);
 			}
 		}
 	}
@@ -735,13 +697,13 @@ void UWorld::ProcessViewportInput()
 	{
 		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
-			if (MultiViewport)
+			if (SlateManager)
 			{
-				MultiViewport->OnMouseUp(MousePosition, 1);
+				SlateManager->OnMouseUp(MousePosition, 1);
 			}
 		}
 	}
-	MultiViewport->OnMouseMove(MousePosition);
+	SlateManager->OnMouseMove(MousePosition);
 }
 
 void UWorld::LoadScene(const FString& SceneName)

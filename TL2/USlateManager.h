@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include "SWindow.h"
+#include "Object.h"
+#include "SWindow.h" // for FRect and SWindow types used by children
 #include "SSplitterV.h"
 #include "SSplitterH.h"
 #include "SViewportWindow.h"
@@ -7,33 +8,44 @@
 class SSceneIOWindow; // 새로 추가할 UI
 class SDetailsWindow;
 class UMenuBarWidget;
-class SMultiViewportWindow : public SWindow
+
+// 중앙 레이아웃/입력 라우팅/뷰포트 관리 매니저 (위젯 아님)
+class USlateManager : public UObject
 {
 public:
+    DECLARE_CLASS(USlateManager, UObject)
+
+    // 구성 저장/로드
     void SaveSplitterConfig();
     void LoadSplitterConfig();
-    SMultiViewportWindow();
-    virtual ~SMultiViewportWindow();
 
-    void Initialize(ID3D11Device* Device, UWorld* World, const FRect& InRect, SViewportWindow* MainViewport);
+    USlateManager();
+    virtual ~USlateManager() override;
+
+    void Initialize(ID3D11Device* Device, UWorld* World, const FRect& InRect);
     void SwitchLayout(EViewportLayoutMode NewMode);
 
     void SwitchPanel(SWindow* SwitchPanel);
 
-
-    virtual void OnRender() override;
-    virtual void OnUpdate(float deltaSecond) override;
-    virtual void OnMouseMove(FVector2D MousePos) override;
-    virtual void OnMouseDown(FVector2D MousePos, uint32 Button) override;
-    virtual void OnMouseUp(FVector2D MousePos, uint32 Button) override;
-
-    void SetMainViewPort();
-
+    // 렌더/업데이트/입력 전달
+    void OnRender();
+    void OnUpdate(float deltaSecond);
+    void OnMouseMove(FVector2D MousePos);
+    void OnMouseDown(FVector2D MousePos, uint32 Button);
+    void OnMouseUp(FVector2D MousePos, uint32 Button);
 
     void OnShutdown();
 
+    // 상태
     static SViewportWindow* ActiveViewport; // 현재 드래그 중인 뷰포트
+
+    // 매니저 자체 위치/크기 (상위 윈도우 크기 기준)
+    void SetRect(const FRect& InRect) { Rect = InRect; }
+    const FRect& GetRect() const { return Rect; }
+
 private:
+    FRect Rect; // 이전엔 SWindow로부터 상속받던 영역 정보
+
     UWorld* World = nullptr;
     ID3D11Device* Device = nullptr;
 
@@ -46,9 +58,9 @@ private:
     // 뷰포트
     SViewportWindow* Viewports[4];
     SViewportWindow* MainViewport;
- 
+
     SSplitterH* LeftTop;
-    SSplitterH* LeftBottom ;
+    SSplitterH* LeftBottom;
     // 오른쪽 고정 UI
     SWindow* SceneIOPanel = nullptr;
     // 아래쪽 UI
@@ -58,9 +70,7 @@ private:
     SSplitterV* TopPanel = nullptr;
     SSplitterV* LeftPanel = nullptr;
 
-    SSplitterV* BottomPanel ;
-    
-   
+    SSplitterV* BottomPanel;
 
     // 현재 모드
     EViewportLayoutMode CurrentMode = EViewportLayoutMode::FourSplit;

@@ -13,10 +13,9 @@ class ACameraActor;
 class AGizmoActor;
 class AGridActor;
 class FViewport;
-class SMultiViewportWindow;
+class USlateManager;
 struct FTransform;
 struct FPrimitiveData;
-class SViewportWindow;
 class UWorldPartitionManager;
 class AStaticMeshActor;
 class BVHierachy;
@@ -55,11 +54,8 @@ public:
     void SetRenderer(URenderer* InRenderer);
     URenderer* GetRenderer() { return Renderer; }
 
-    void SetMainViewport(SViewportWindow* InViewport) { MainViewport = InViewport; }
-    SViewportWindow* GetMainViewport() const { return MainViewport; }
-
-    void SetMultiViewportWindow(SMultiViewportWindow* InMultiViewport) { MultiViewport = InMultiViewport; }
-    SMultiViewportWindow* GetMultiViewportWindow() const { return MultiViewport; }
+void SetSlateManager(USlateManager* InSlateManager) { SlateManager = InSlateManager; }
+    USlateManager* GetSlateManager() const { return SlateManager; }
 
     template<class T>
     T* SpawnActor();
@@ -123,10 +119,8 @@ private:
     // 렌더러 (월드가 소유)
     URenderer* Renderer = nullptr;
 
-    // 메인 뷰포트
-    SViewportWindow* MainViewport = nullptr;
-    // 멀티 뷰포트 윈도우
-    SMultiViewportWindow* MultiViewport = nullptr;
+// Slate 매니저
+    USlateManager* SlateManager = nullptr;
 
     /** === 액터 관리 === */
     TArray<AActor*> EngineActors;

@@ -324,7 +324,7 @@ static FVector2D GetStableAxisDirection(const FVector& WorldAxis, const ACameraA
 
 		if (RightComponent > UpComponent)
 		{
-			// Right 성분이 더 클 때: X축 우선
+			// Right 성분이 더 클 때: X축 우선 (원래 부호 유지)
 			float Sign = FVector::Dot(WorldAxis, CameraRight) > 0 ? 1.0f : -1.0f;
 			return FVector2D(Sign, 0.0f);
 		}
@@ -390,7 +390,8 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
 	case EGizmoMode::Translate:
 	{
         FVector2D ScreenAxis = GetStableAxisDirection(Axis, Camera);
-        float px = (MouseDelta.X * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
+        // X축 드래그일 때만 수평 기여 부호 보정
+        float px = (((GizmoAxis == 1) ? -MouseDelta.X : MouseDelta.X) * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
         float h = Viewport ? static_cast<float>(Viewport->GetSizeY()) : UInputManager::GetInstance().GetScreenSize().Y;
         if (h <= 0.0f) h = 1.0f;
         float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;
@@ -413,9 +414,6 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
             if (z < 1.0f) z = 1.0f;
             worldPerPixel = (2.0f * z) / (h * yScale);
         }
-	/*	float zoomFactor = Camera->GetCameraComponent()->GetZoomFactor();
-worldPerPixel *= zoomFactor;*/ 
-
         float Movement = px * worldPerPixel;
         FVector CurrentLocation = Target->GetActorLocation();
         Target->SetActorLocation(CurrentLocation + Axis * Movement);
@@ -445,7 +443,8 @@ worldPerPixel *= zoomFactor;*/
 		}
 
 		FVector2D ScreenAxis = GetStableAxisDirection(Axis, Camera);
-		float px = (MouseDelta.X * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
+		// X축 드래그일 때만 수평 기여 부호 보정
+		float px = (((GizmoAxis == 1) ? -MouseDelta.X : MouseDelta.X) * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
 		float h = Viewport ? static_cast<float>(Viewport->GetSizeY()) : UInputManager::GetInstance().GetScreenSize().Y;
 		if (h <= 0.0f) h = 1.0f;
 		float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;

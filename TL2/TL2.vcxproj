@@ -254,7 +254,7 @@
     <ClCompile Include="SDetailsWindow.cpp" />
     <ClCompile Include="ShapeComponent.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="SMultiViewportWindow.cpp" />
+    <ClCompile Include="USlateManager.cpp" />
     <ClCompile Include="SSplitter.cpp" />
     <ClCompile Include="SSplitterH.cpp" />
     <ClCompile Include="SSplitterV.cpp" />
@@ -392,7 +392,7 @@
     <ClInclude Include="SDetailsWindow.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShapeComponent.h" />
-    <ClInclude Include="SMultiViewportWindow.h" />
+    <ClInclude Include="USlateManager.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="SSplitter.h" />
     <ClInclude Include="SSplitterH.h" />

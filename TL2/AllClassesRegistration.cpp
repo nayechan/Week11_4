@@ -3,6 +3,7 @@
 #include "MemoryManager.h"
 #include "WorldPartitionManager.h"
 #include "SelectionManager.h"
+#include "USlateManager.h"
 
 #include "SceneLoader.h"
 #include "MeshLoader.h"
@@ -83,6 +84,7 @@ IMPLEMENT_CLASS(USelectionManager)
 IMPLEMENT_CLASS(UMeshLoader)
 IMPLEMENT_CLASS(UResourceManager)
 IMPLEMENT_CLASS(UWorldPartitionManager)
+IMPLEMENT_CLASS(USlateManager)
 
 //UI Class
 IMPLEMENT_CLASS(UUIWindowFactory)

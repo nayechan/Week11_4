@@ -2,13 +2,14 @@
 #include "SViewportWindow.h"
 #include "World.h"
 #include "ImGui/imgui.h"
-#include"SMultiViewportWindow.h"
+#include"USlateManager.h"
 
 #include "FViewport.h"
 #include "FViewportClient.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
+
 SViewportWindow::SViewportWindow()
 {
 	ViewportType = EViewportType::Perspective;
@@ -251,9 +252,9 @@ void SViewportWindow::RenderToolbar()
 			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - btnW));
 		}
 
-		if (ImGui::Button("Switch##ToThis", btnSize))
+if (ImGui::Button("Switch##ToThis", btnSize))
 		{
-			if (auto* MVP = UWorld::GetInstance().GetMultiViewportWindow())
+			if (auto* MVP = UWorld::GetInstance().GetSlateManager())
 				MVP->SwitchPanel(this);
 		}
 
