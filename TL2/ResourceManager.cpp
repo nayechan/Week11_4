@@ -243,7 +243,7 @@ void UResourceManager::CreateTextBillboardMesh()
     }
 
 
-    //if(UResourceManager::GetInstance().Get<UMaterial>())
+    //if(UResourceManager::GetInstance().GetInstance<UMaterial>())
     const uint32 MaxQuads = 100; // capacity
     FMeshData* BillboardData = new FMeshData;
     BillboardData->Indices = Indices;

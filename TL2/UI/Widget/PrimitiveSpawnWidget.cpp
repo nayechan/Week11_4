@@ -14,6 +14,7 @@
 #include "BVHierachy.h"
 #include "../../Octree.h"
 #include "WorldPartitionManager.h"
+#include "StaticMeshComponent.h"
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -270,7 +271,7 @@ void UPrimitiveSpawnWidget::RenderWidget()
         ImGui::Text("World Status: Connected");
         ImGui::Text("Current Actors: %zu", World->GetActors().size());
 
-        if (FOctree* Oct = UWorldPartitionManager::GetInstance()->GetSceneOctree())
+        if (FOctree* Oct = PARTITION.GetSceneOctree())
         {
             ImGui::Text("Octree Nodes: %d", Oct->TotalNodeCount());
             ImGui::Text("Octree Actors: %d", Oct->TotalActorCount());
@@ -280,7 +281,7 @@ void UPrimitiveSpawnWidget::RenderWidget()
                 Oct->DebugDump();
             }
         }
-        if (FBVHierachy* BVH = UWorldPartitionManager::GetInstance()->GetBVH())
+        if (FBVHierachy* BVH = PARTITION.GetBVH())
         {
             ImGui::Text("BVH Nodes: %d", BVH->TotalNodeCount());
             ImGui::Text("BVH Actors: %d", BVH->TotalActorCount());

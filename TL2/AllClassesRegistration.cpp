@@ -1,17 +1,27 @@
 ﻿#include "pch.h"
 
 #include "MemoryManager.h"
-#include "MeshComponent.h"
-#include "SceneLoader.h"
+#include "WorldPartitionManager.h"
 #include "SelectionManager.h"
+#include "USlateManager.h"
+#include "RenderManager.h"
+
+#include "SceneLoader.h"
+#include "MeshLoader.h"
+
+#include "StaticMeshActor.h"
+#include "CameraActor.h"
+#include "GizmoActor.h"
+#include "GridActor.h"
+
+#include "MeshComponent.h"
 #include "GizmoRotateComponent.h"
 #include "GizmoScaleComponent.h"
 #include "CameraComponent.h"
-#include "CameraActor.h"
-#include "StaticMeshActor.h"
-#include "MeshLoader.h"
 #include "LineComponent.h"
 #include "Line.h"
+#include "TextRenderComponent.h"
+#include "AABoundingBoxComponent.h"
 
 #include "UI/Factory/UIWindowFactory.h"
 #include "UI/ImGui/ImGuiHelper.h"
@@ -32,8 +42,10 @@
 #include "UI/Window/ExperimentalFeatureWindow.h"
 #include "UI/Window/SceneWindow.h"
 #include "UI/Window/UIWindow.h"
-#include "TextRenderComponent.h"
-#include "AABoundingBoxComponent.h"
+#include "RenderViewportSwitcherWidget.h"
+#include "MenuBarWidget.h"
+
+//RESORUCES
 #include "StaticMesh.h"
 #include "Shader.h"
 #include "Texture.h"
@@ -41,9 +53,6 @@
 #include "DynamicMesh.h"
 #include "LineDynamicMesh.h"
 #include "TextQuad.h"
-#include"RenderViewportSwitcherWidget.h"
-#include "MenuBarWidget.h"
-#include "WorldPartitionManager.h"
 // ... (rest of the file)
 IMPLEMENT_CLASS(UWorld)
 
@@ -76,6 +85,8 @@ IMPLEMENT_CLASS(USelectionManager)
 IMPLEMENT_CLASS(UMeshLoader)
 IMPLEMENT_CLASS(UResourceManager)
 IMPLEMENT_CLASS(UWorldPartitionManager)
+IMPLEMENT_CLASS(USlateManager)
+IMPLEMENT_CLASS(URenderManager)
 
 //UI Class
 IMPLEMENT_CLASS(UUIWindowFactory)

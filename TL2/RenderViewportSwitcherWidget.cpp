@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "RenderViewportSwitcherWidget.h"
-#include "SMultiViewportWindow.h"
+#include "USlateManager.h"
 #include "World.h"
 #include "ImGui/imgui.h"
 
@@ -44,7 +44,7 @@ void URenderViewportSwitcherWidget::RenderWidget()
 
         if (ImGui::Button("Single View", ImVec2(120, 35)))
         {
-            UWorld::GetInstance().GetMultiViewportWindow()->SwitchLayout(EViewportLayoutMode::SingleMain);
+UWorld::GetInstance().GetSlateManager()->SwitchLayout(EViewportLayoutMode::SingleMain);
             bUseMainViewport = true;
             UE_LOG("UIManager: Switched to Main Viewport mode");
         }
@@ -71,7 +71,7 @@ void URenderViewportSwitcherWidget::RenderWidget()
 
         if (ImGui::Button("Multi View", ImVec2(120, 35)))
         {
-            UWorld::GetInstance().GetMultiViewportWindow()->SwitchLayout(EViewportLayoutMode::FourSplit);
+UWorld::GetInstance().GetSlateManager()->SwitchLayout(EViewportLayoutMode::FourSplit);
             bUseMainViewport = false;
             UE_LOG("UIManager: Switched to Multi Viewport mode");
         }

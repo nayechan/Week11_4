@@ -50,15 +50,20 @@ void FViewport::BeginRenderFrame()
     D3DDeviceContext->RSSetViewports(1, &viewport);
 }
 
+void FViewport::Render()
+{
+    if (!ViewportClient) return;
+    BeginRenderFrame();
+
+    ViewportClient->Draw(this);
+
+    EndRenderFrame();
+}
+
+
 void FViewport::EndRenderFrame()
 {
     // 렌더링 완료 후 처리할 작업이 있다면 여기에 추가
-}
-
-void FViewport::Present()
-{
-    // 스왑체인이 있다면 Present 호출
-    // 현재는 오프스크린 렌더링이므로 생략
 }
 
 void FViewport::Resize(uint32 NewStartX, uint32 NewStartY,uint32 NewSizeX, uint32 NewSizeY)
@@ -71,14 +76,8 @@ void FViewport::Resize(uint32 NewStartX, uint32 NewStartY,uint32 NewSizeX, uint3
     SizeY = NewSizeY;
 }
 
-void FViewport::SetMainViewport()
-{
-    MainViewport = true;
-}
-
 void FViewport::ProcessMouseMove(int32 X, int32 Y)
 {
-
     if (ViewportClient)
     {
         ViewportMousePosition.X = static_cast<float>(X);

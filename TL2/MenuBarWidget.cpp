@@ -1,13 +1,13 @@
 ﻿#include "pch.h"
 #include "MenuBarWidget.h"
-#include "SMultiViewportWindow.h"
+#include "USlateManager.h"
 #include "ImGui/imgui.h"
 
 // 필요하다면 외부 free 함수 사용 가능 (동일 TU가 아닐 경우 extern 선언이 필요)
 // extern void LoadSplitterConfig(SSplitter* RootSplitter);
 
 UMenuBarWidget::UMenuBarWidget() {}
-UMenuBarWidget::UMenuBarWidget(SMultiViewportWindow* InOwner) : Owner(InOwner) {}
+UMenuBarWidget::UMenuBarWidget(USlateManager* InOwner) : Owner(InOwner) {}
 
 void UMenuBarWidget::Initialize() {}
 void UMenuBarWidget::Update() {}

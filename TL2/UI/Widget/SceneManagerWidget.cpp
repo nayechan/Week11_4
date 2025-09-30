@@ -8,6 +8,7 @@
 #include "../../Actor.h"
 #include "../../StaticMeshActor.h"
 #include "../../SelectionManager.h"
+#include "GizmoActor.h"
 #include <algorithm>
 #include <string>
 
@@ -848,3 +849,9 @@ void USceneManagerWidget::CollapseAllCategories()
     UE_LOG("SceneManager: Collapsed all categories");
 }
 
+FString USceneManagerWidget::FActorTreeNode::GetDisplayName() const
+{
+    if (IsCategory()) return CategoryName;
+    if (IsActor() && Actor) return Actor->GetName().ToString();
+    return "Unknown";
+}

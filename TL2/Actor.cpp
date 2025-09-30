@@ -102,11 +102,7 @@ FVector AActor::GetActorLocation() const
 
 void AActor::MarkPartitionDirty()
 {
-	auto* PartitionManager = UWorldPartitionManager::GetInstance();
-	if (PartitionManager)
-	{
-		PartitionManager->MarkDirty(this);
-	}
+	PARTITION.MarkDirty(this);
 }
 
 void AActor::SetActorRotation(const FVector& EulerDegree)
@@ -210,11 +206,7 @@ void AActor::AddActorLocalRotation(const FQuat& DeltaRotation)
 		RootComponent->AddLocalRotation(DeltaRotation);
 		if (World)
 		{
-			auto* PM = UWorldPartitionManager::GetInstance();
-			if (PM)
-			{
-				PM->MarkDirty(this);
-			}
+			PARTITION.MarkDirty(this);
 		}
 	}
 }

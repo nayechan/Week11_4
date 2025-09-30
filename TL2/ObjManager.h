@@ -576,7 +576,7 @@ private:
                     VertexNormalIndexTemp -= 1;		//subtract one since c++ arrays start with 0, and obj start with 1
                 }
 
-                vertPart = "";	//Get ready for next vertex part
+                vertPart = "";	//GetInstance ready for next vertex part
                 whichPart++;	//Move on to next vertex part					
             }
         }

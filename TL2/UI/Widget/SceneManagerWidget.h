@@ -72,12 +72,7 @@ private:
         // Helper methods
         bool IsCategory() const { return NodeType == ETreeNodeType::Category; }
         bool IsActor() const { return NodeType == ETreeNodeType::Actor; }
-        FString GetDisplayName() const 
-        {
-            if (IsCategory()) return CategoryName;
-            if (IsActor() && Actor) return Actor->GetName().ToString();
-            return "Unknown";
-        }
+        FString GetDisplayName() const;
     };
     
     TArray<FActorTreeNode*> RootNodes;

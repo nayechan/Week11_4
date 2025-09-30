@@ -2,6 +2,7 @@
 #include "AABoundingBoxComponent.h"
 #include "SelectionManager.h"
 #include "Line.h"   
+#include "Actor.h"
 
 UAABoundingBoxComponent::UAABoundingBoxComponent()
     : LocalMin(FVector{}), LocalMax(FVector{})

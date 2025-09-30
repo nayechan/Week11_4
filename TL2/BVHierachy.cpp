@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "BVHierachy.h"
+#include "Actor.h"
 #include "AABoundingBoxComponent.h" // FBound helpers
 #include "Vector.h"
 #include <algorithm>

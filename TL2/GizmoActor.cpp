@@ -147,8 +147,9 @@ void AGizmoActor::Tick(float DeltaSeconds)
 	}
 	UpdateComponentVisibility();
 }
-void AGizmoActor::Render(ACameraActor* Camera, FViewport* Viewport) {
 
+void AGizmoActor::Render(ACameraActor* Camera, FViewport* Viewport) 
+{
 UpdateConstantScreenScale(Camera, Viewport);
 
 TArray<USceneComponent*>* Components = GetGizmoComponents();
@@ -324,7 +325,7 @@ static FVector2D GetStableAxisDirection(const FVector& WorldAxis, const ACameraA
 
 		if (RightComponent > UpComponent)
 		{
-			// Right 성분이 더 클 때: X축 우선
+			// Right 성분이 더 클 때: X축 우선 (원래 부호 유지)
 			float Sign = FVector::Dot(WorldAxis, CameraRight) > 0 ? 1.0f : -1.0f;
 			return FVector2D(Sign, 0.0f);
 		}
@@ -413,9 +414,6 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
             if (z < 1.0f) z = 1.0f;
             worldPerPixel = (2.0f * z) / (h * yScale);
         }
-	/*	float zoomFactor = Camera->GetCameraComponent()->GetZoomFactor();
-worldPerPixel *= zoomFactor;*/ 
-
         float Movement = px * worldPerPixel;
         FVector CurrentLocation = Target->GetActorLocation();
         Target->SetActorLocation(CurrentLocation + Axis * Movement);
@@ -644,7 +642,7 @@ void AGizmoActor::ProcessGizmoDragging(ACameraActor* Camera, FViewport* Viewport
 		FVector2D MouseDelta = InputManager->GetMouseDelta();
 		if ((MouseDelta.X * MouseDelta.X + MouseDelta.Y * MouseDelta.Y) > 0.0f)
 		{
-            OnDrag(TargetActor, GizmoAxis, MouseDelta.X, MouseDelta.Y, CameraActor, Viewport);
+            OnDrag(TargetActor, GizmoAxis, MouseDelta.X, MouseDelta.Y, Camera, Viewport);
 			bIsDragging = true;
 			SetActorLocation(TargetActor->GetActorLocation());
 		}

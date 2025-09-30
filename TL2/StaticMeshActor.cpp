@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "AABoundingBoxComponent.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "ObjectFactory.h"
 
 AStaticMeshActor::AStaticMeshActor()
