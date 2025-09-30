@@ -249,6 +249,7 @@
     <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RenderManager.cpp" />
     <ClCompile Include="RHIDevice.cpp" />
     <ClCompile Include="SControlPanel.cpp" />
     <ClCompile Include="SDetailsWindow.cpp" />
@@ -386,6 +387,7 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="InputManager.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="RenderManager.h" />
     <ClInclude Include="RHIDevice.h" />
     <ClInclude Include="SceneRotationUtils.h" />
     <ClInclude Include="SControlPanel.h" />

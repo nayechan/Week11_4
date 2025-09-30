@@ -4,6 +4,7 @@
 #include "WorldPartitionManager.h"
 #include "SelectionManager.h"
 #include "USlateManager.h"
+#include "RenderManager.h"
 
 #include "SceneLoader.h"
 #include "MeshLoader.h"
@@ -85,6 +86,7 @@ IMPLEMENT_CLASS(UMeshLoader)
 IMPLEMENT_CLASS(UResourceManager)
 IMPLEMENT_CLASS(UWorldPartitionManager)
 IMPLEMENT_CLASS(USlateManager)
+IMPLEMENT_CLASS(URenderManager)
 
 //UI Class
 IMPLEMENT_CLASS(UUIWindowFactory)

@@ -88,7 +88,7 @@ void UImGuiHelper::BeginFrame() const
 		return;
 	}
 
-	// Get New Frame
+	// GetInstance New Frame
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();

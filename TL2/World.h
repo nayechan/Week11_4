@@ -14,13 +14,14 @@ class AGizmoActor;
 class AGridActor;
 class FViewport;
 class USlateManager;
+class URenderManager;
 struct FTransform;
 struct FPrimitiveData;
+class SViewportWindow;
 class UWorldPartitionManager;
 class AStaticMeshActor;
 class BVHierachy;
 class UStaticMesh;
-
 class FOcclusionCullingManagerCPU;
 class Frustum;
 struct FCandidateDrawable;
@@ -39,22 +40,14 @@ protected:
 public:
     /** 초기화 */
     void Initialize();
-    void InitializeMainCamera();
     void InitializeGrid();
     void InitializeGizmo();
 
-    // 액터 인터페이스 관리
-    void SetupActorReferences();
-
-    // 선택 및 피킹 처리
-    void ProcessActorSelection();
-
-    void ProcessViewportInput();
-
     void SetRenderer(URenderer* InRenderer);
     URenderer* GetRenderer() { return Renderer; }
+    URenderManager* GetRenderManager() const { return RenderManager; }
 
-void SetSlateManager(USlateManager* InSlateManager) { SlateManager = InSlateManager; }
+    void SetSlateManager(USlateManager* InSlateManager) { SlateManager = InSlateManager; }
     USlateManager* GetSlateManager() const { return SlateManager; }
 
     template<class T>
@@ -72,6 +65,7 @@ void SetSlateManager(USlateManager* InSlateManager) { SlateManager = InSlateMana
     void CreateNewScene();
     void LoadScene(const FString& SceneName);
     void SaveScene(const FString& SceneName);
+    void SetCameraActor(ACameraActor* InCameraActor);
     ACameraActor* GetCameraActor() { return MainCameraActor; }
 
     EViewModeIndex GetViewModeIndex() { return ViewModeIndex; }
@@ -94,36 +88,28 @@ void SetSlateManager(USlateManager* InSlateManager) { SlateManager = InSlateMana
 
     /** === 렌더 === */
     void Render();
-    void RenderViewports(ACameraActor* Camera, FViewport* Viewport);
-    //void GameRender(ACameraActor* Camera, FViewport* Viewport);
-
-    // Partition manager
-    //UWorldPartitionManager* GetPartitionManager() const { return PartitionManager; }
-
+    // Rendering is orchestrated by URenderManager now
 
     /** === 필요한 엑터 게터 === */
     const TArray<AActor*>& GetActors() { return Actors; }
+    const TArray<AActor*>& GetEditorActors() { return EditorActors; }
     AGizmoActor* GetGizmoActor();
     AGridActor* GetGridActor() { return GridActor; }
 
     void PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor);
     void SetStaticMeshs();
-
+    const TArray<UStaticMesh*>& GetStaticMeshs() { return StaticMeshs; }
+    
     /** === 레벨 / 월드 구성 === */
     // TArray<ULevel*> Levels;
-
-    /** === 플레이어 / 컨트롤러 === */
-    // APlayerController* GetFirstPlayerController() const;
-    // TArray<APlayerController*> GetPlayerControllerIterator() const;
 private:
-    // 렌더러 (월드가 소유)
+    // 엔진 오브젝트
     URenderer* Renderer = nullptr;
-
-// Slate 매니저
+    URenderManager* RenderManager = nullptr;
     USlateManager* SlateManager = nullptr;
 
     /** === 액터 관리 === */
-    TArray<AActor*> EngineActors;
+    TArray<AActor*> EditorActors;
     ACameraActor* MainCameraActor = nullptr;
     AGridActor* GridActor = nullptr;
     AGizmoActor* GizmoActor = nullptr;
@@ -143,22 +129,6 @@ private:
     EEngineShowFlags ShowFlags = EEngineShowFlags::SF_DefaultEnabled;
 
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
-
-    // ==================== CPU HZB Occlusion ====================
-    FOcclusionCullingManagerCPU* OcclusionCPU = nullptr;
-    TArray<uint8_t>        VisibleFlags;   // ActorIndex(UUID)로 인덱싱 (0=가려짐, 1=보임)
-    bool                        bUseCPUOcclusion = true; // False 하면 오클루전 컬링 안씁니다.
-    int                         OcclGridDiv = 2; // 화면 크기/이 값 = 오클루전 그리드 해상도(1/6 권장)
-
-    // 헬퍼들
-    void UpdateOcclusionGridSizeForViewport(FViewport* Viewport);
-    void BuildCpuOcclusionSets(
-        const Frustum& ViewFrustum,
-        const FMatrix& View, const FMatrix& Proj,
-        float ZNear, float ZFar,                       // ★ 추가
-        TArray<FCandidateDrawable>& OutOccluders,
-        TArray<FCandidateDrawable>& OutOccludees);
-
 };
 template<class T>
 inline T* UWorld::SpawnActor()

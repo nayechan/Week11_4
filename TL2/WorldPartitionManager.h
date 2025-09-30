@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Object.h"
 #include "Vector.h"
 
 class UPrimitiveComponent;

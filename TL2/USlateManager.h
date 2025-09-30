@@ -30,6 +30,8 @@ public:
     // 렌더/업데이트/입력 전달
     void OnRender();
     void OnUpdate(float deltaSecond);
+    void ProcessInput();
+
     void OnMouseMove(FVector2D MousePos);
     void OnMouseDown(FVector2D MousePos, uint32 Button);
     void OnMouseUp(FVector2D MousePos, uint32 Button);
@@ -76,10 +78,10 @@ private:
     EViewportLayoutMode CurrentMode = EViewportLayoutMode::FourSplit;
 
     // 메뉴바 관련
-    void OnFileMenuAction(const char* action);
-    void OnEditMenuAction(const char* action);
-    void OnWindowMenuAction(const char* action);
-    void OnHelpMenuAction(const char* action);
+    //void OnFileMenuAction(const char* action);
+    //void OnEditMenuAction(const char* action);
+    //void OnWindowMenuAction(const char* action);
+    //void OnHelpMenuAction(const char* action);
 
     UMenuBarWidget* MenuBar;
 };

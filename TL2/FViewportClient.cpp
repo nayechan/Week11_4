@@ -7,6 +7,7 @@
 #include "Picking.h"
 #include "SelectionManager.h"
 #include"GizmoActor.h"
+#include "RenderManager.h"
 FVector FViewportClient::CameraAddPosition{};
 
 FViewportClient::FViewportClient()
@@ -49,8 +50,7 @@ void FViewportClient::Draw(FViewport* Viewport)
           if (World)
           {
               World->SetViewModeIndex(ViewModeIndex);
-              World->RenderViewports(Camera, Viewport);
-              World->GetGizmoActor()->Render(Camera, Viewport);
+              RENDER.Render(World, Viewport);
           }
         break;
     }
@@ -64,12 +64,10 @@ void FViewportClient::Draw(FViewport* Viewport)
         Camera = ViewPortCamera;
         Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Orthographic);
         SetupCameraMode();
-        // 월드의 모든 액터들을 렌더링
         if (World)
         {
             World->SetViewModeIndex(ViewModeIndex);
-            World->RenderViewports(Camera, Viewport);
-            World->GetGizmoActor()->Render(Camera, Viewport);
+            RENDER.Render(World, Viewport);
         }
         break;
     }
@@ -129,9 +127,8 @@ void FViewportClient::SetupCameraMode()
         break;
     }
 }
-void FViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y) {
-
-
+void FViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y) 
+{
     World->GetGizmoActor()->ProcessGizmoInteraction(Camera, Viewport, static_cast<float>(X), static_cast<float>(Y));
 
     if ( !bIsMouseButtonDown && !World->GetGizmoActor()->GetbIsHovering()&& bIsMouseRightButtonDown) // 직교투영이고 마우스 버튼이 눌려있을 때
@@ -177,7 +174,7 @@ void FViewportClient::MouseButtonDown(FViewport* Viewport, int32 X, int32 Y, int
 
 
 
-    // Get viewport size
+    // GetInstance viewport size
     FVector2D ViewportSize(static_cast<float>(Viewport->GetSizeX()), static_cast<float>(Viewport->GetSizeY()));
     FVector2D ViewportOffset(static_cast<float>(Viewport->GetStartX()), static_cast<float>(Viewport->GetStartY()));
 

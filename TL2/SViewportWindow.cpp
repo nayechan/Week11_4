@@ -70,18 +70,10 @@ bool SViewportWindow::Initialize(float StartX, float StartY, float Width, float 
 
 void SViewportWindow::OnRender()
 {
-	if (!Viewport)
-		return;
-
-	Viewport->BeginRenderFrame();
+	// Slate(UI)만 처리하고 렌더는 FViewport에 위임
 	RenderToolbar();
-	if (ViewportClient)
-		ViewportClient->Draw(Viewport);
-	// 툴바 렌더링
-	
-	Viewport->EndRenderFrame();
-
-
+	if (Viewport)
+		Viewport->Render();
 }
 
 void SViewportWindow::OnUpdate(float DeltaSeconds)
@@ -107,11 +99,8 @@ void SViewportWindow::OnMouseMove(FVector2D MousePos)
 	if (!Viewport) return;
 
 	// 툴바 영역 아래에서만 마우스 이벤트 처리
-	
-	
-		FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top );
-		Viewport->ProcessMouseMove((int32)LocalPos.X, (int32)LocalPos.Y);
-	
+	FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top );
+	Viewport->ProcessMouseMove((int32)LocalPos.X, (int32)LocalPos.Y);
 }
 
 void SViewportWindow::OnMouseDown(FVector2D MousePos, uint32 Button)
@@ -129,17 +118,9 @@ void SViewportWindow::OnMouseUp(FVector2D MousePos, uint32 Button)
 {
 	if (!Viewport) return;
 
-	// 툴바 영역 아래에서만 마우스 이벤트 처리
-
-		bIsMouseDown = false;
-		FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top );
-		Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, Button);
-	
-}
-
-void SViewportWindow::SetMainViewPort()
-{
-	Viewport->SetMainViewport();
+	bIsMouseDown = false;
+	FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top);
+	Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, Button);
 }
 
 void SViewportWindow::RenderToolbar()

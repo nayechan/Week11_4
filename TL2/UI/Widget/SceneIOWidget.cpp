@@ -289,7 +289,7 @@ void USceneIOWidget::CreateNewLevel()
 {
 	try
 	{
-		// Get World reference
+		// GetInstance World reference
 		UWorld* CurrentWorld = UUIManager::GetInstance().GetWorld();
 		if (!CurrentWorld)
 		{

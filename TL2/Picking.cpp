@@ -124,7 +124,7 @@ FRay MakeRayFromViewport(const FMatrix& InView,
 	if (bIsOrthographic)
 	{
 		// Orthographic projection
-		// Get orthographic bounds from projection matrix
+		// GetInstance orthographic bounds from projection matrix
 		float OrthoWidth = 2.0f / InProj.M[0][0];
 		float OrthoHeight = 2.0f / InProj.M[1][1];
 

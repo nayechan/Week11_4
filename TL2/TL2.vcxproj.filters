@@ -147,6 +147,9 @@
     <ClCompile Include="Renderer.cpp">
       <Filter>소스 파일\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="RenderManager.cpp">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="SceneLoader.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -461,6 +464,9 @@
       <Filter>소스 파일\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer.h">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager.h">
       <Filter>소스 파일\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Triangle.h">

@@ -8,6 +8,7 @@
 #include "SControlPanel.h"
 #include "MenuBarWidget.h"
 #include "SViewportWindow.h"
+#include "FViewportClient.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
@@ -138,6 +139,8 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
         Rect.GetWidth(), Rect.GetHeight(),
         World, Device, EViewportType::Orthographic_Top);
 
+    InWorld->SetCameraActor(MainViewport->GetViewportClient()->GetCamera());
+
     // 뷰포트들을 2x2로 연결
     LeftTop->SideLT = Viewports[0];
     LeftTop->SideRB = Viewports[1];
@@ -187,12 +190,49 @@ void USlateManager::OnRender()
 
 void USlateManager::OnUpdate(float DeltaSeconds)
 {
-    if (RootSplitter) {
+    ProcessInput();
+    if (RootSplitter) 
+    {
         // 메뉴바 높이만큼 아래로 이동
         float menuBarHeight = ImGui::GetFrameHeight();
         RootSplitter->Rect = FRect(0, menuBarHeight, CLIENTWIDTH, CLIENTHEIGHT);
         RootSplitter->OnUpdate(DeltaSeconds);
     }
+}
+
+void USlateManager::ProcessInput()
+{
+    const FVector2D MousePosition = INPUT.GetMousePosition();
+
+    if (INPUT.IsMouseButtonPressed(LeftButton))
+    {
+        const FVector2D MousePosition = INPUT.GetMousePosition();
+        {
+            OnMouseDown(MousePosition, 0);
+        }
+    }
+    if (INPUT.IsMouseButtonPressed(RightButton))
+    {
+        const FVector2D MousePosition = INPUT.GetMousePosition();
+        {
+            OnMouseDown(MousePosition, 1);
+        }
+    }
+    if (INPUT.IsMouseButtonReleased(LeftButton))
+    {
+        const FVector2D MousePosition = INPUT.GetMousePosition();
+        {
+            OnMouseUp(MousePosition, 0);
+        }
+    }
+    if (INPUT.IsMouseButtonReleased(RightButton))
+    {
+        const FVector2D MousePosition = INPUT.GetMousePosition();
+        {
+            OnMouseUp(MousePosition, 1);
+        }
+    }
+    OnMouseMove(MousePosition);
 }
 
 void USlateManager::OnMouseMove(FVector2D MousePos)

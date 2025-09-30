@@ -28,11 +28,6 @@
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
 
-UWorld::UWorld()
-{
-	OcclusionCPU = new FOcclusionCullingManagerCPU();
-}
-
 UWorld& UWorld::GetInstance()
 {
 	static UWorld* Instance = nullptr;
@@ -43,6 +38,9 @@ UWorld& UWorld::GetInstance()
 	return *Instance;
 }
 
+UWorld::UWorld()
+{
+}
 
 UWorld::~UWorld()
 {
@@ -52,17 +50,12 @@ UWorld::~UWorld()
 	}
 	Actors.clear();
 
-	// 카메라 정리
-	ObjectFactory::DeleteObject(MainCameraActor);
-	MainCameraActor = nullptr;
-
 	// Grid 정리 
 	ObjectFactory::DeleteObject(GridActor);
 	GridActor = nullptr;
 
 	// ObjManager 정리
 	FObjManager::Clear();
-	delete OcclusionCPU;
 }
 
 void UWorld::Initialize()
@@ -70,24 +63,10 @@ void UWorld::Initialize()
 	FObjManager::Preload();
 	CreateNewScene();
 
-	InitializeMainCamera();
 	InitializeGrid();
 	InitializeGizmo();
-
-	// 액터 간 참조 설정
-	SetupActorReferences();
-
 }
 
-void UWorld::InitializeMainCamera()
-{
-	MainCameraActor = NewObject<ACameraActor>();
-	MainCameraActor->SetWorld(this);
-
-	UI.SetCamera(MainCameraActor);
-
-	EngineActors.Add(MainCameraActor);
-}
 
 void UWorld::InitializeGrid()
 {
@@ -95,23 +74,15 @@ void UWorld::InitializeGrid()
 	GridActor->SetWorld(this);
 	GridActor->Initialize();
 
-	// Add GridActor to Actors array so it gets rendered in the main loop
-	EngineActors.push_back(GridActor);
-	//EngineActors.push_back(GridActor);
+	EditorActors.push_back(GridActor);
 }
 
 void UWorld::InitializeGizmo()
 {
-	// === 기즈모 엑터 초기화 ===
 	GizmoActor = NewObject<AGizmoActor>();
 	GizmoActor->SetWorld(this);
 	GizmoActor->SetActorTransform(FTransform(FVector{ 0, 0, 0 }, FQuat::MakeFromEuler(FVector{ 0, -90, 0 }),
 		FVector{ 1, 1, 1 }));
-	// 기즈모에 카메라 참조 설정
-	if (MainCameraActor)
-	{
-		GizmoActor->SetCameraActor(MainCameraActor);
-	}
 
 	UI.SetGizmoActor(GizmoActor);
 }
@@ -123,328 +94,19 @@ void UWorld::SetRenderer(URenderer* InRenderer)
 void UWorld::Render()
 {
 	Renderer->BeginFrame();
+
 	UI.Render();
 
-if (SlateManager)
+	if (SlateManager)
 	{
+		//실제 렌더 호출 (Slate Viewport Render)
 		SlateManager->OnRender();
 	}
 
 	//프레임 종료 
 	UI.EndFrame();
+
 	Renderer->EndFrame();
-}
-
-void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
-{
-	int objCount = static_cast<int>(Actors.size());
-	int visibleCount = 0;
-	float zNear = 0.1f, zFar = 100.f;
-	// 뷰포트의 실제 크기로 aspect ratio 계산
-	float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
-	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
-
-	FMatrix ViewMatrix = Camera->GetViewMatrix();
-	FMatrix ProjectionMatrix = Camera->GetProjectionMatrix(ViewportAspectRatio, Viewport);
-
-	Frustum ViewFrustum;
-	UCameraComponent* CamComp = nullptr;
-	if (CamComp = Camera->GetCameraComponent())
-	{
-		ViewFrustum = CreateFrustumFromCamera(*CamComp, ViewportAspectRatio);
-		zNear = CamComp->GetNearClip();
-		zFar = CamComp->GetFarClip();
-	}
-	if (!Renderer) return;
-
-	FVector rgb(1.0f, 1.0f, 1.0f);
-
-	// === Begin Line Batch for all actors ===
-	Renderer->BeginLineBatch();
-
-	// === Draw Actors with Show Flag checks ===
-	Renderer->SetViewModeType(ViewModeIndex);
-
-	// ============ Culling Logic Dispatch ========= //
-	for (AActor* Actor : Actors)
-		Actor->SetCulled(true);
-	PARTITION.FrustumQuery(ViewFrustum);
-
-	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
-
-	// ---------------------- CPU HZB Occlusion ----------------------
-	if (bUseCPUOcclusion)
-	{
-		// 1) 그리드 사이즈 보정(해상도 변화 대응)
-		UpdateOcclusionGridSizeForViewport(Viewport);
-
-		// 2) 오클루더/오클루디 수집
-		TArray<FCandidateDrawable> Occluders, Occludees;
-		BuildCpuOcclusionSets(ViewFrustum, ViewMatrix, ProjectionMatrix, zNear, zFar,
-			Occluders, Occludees);
-
-		// 3) 오클루더로 저해상도 깊이 빌드 + HZB
-		OcclusionCPU->BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
-		OcclusionCPU->BuildHZB();
-
-		// 4) 가시성 판정 → VisibleFlags[UUID] = 0/1
-		//     VisibleFlags 크기 보장
-		uint32_t maxUUID = 0;
-		for (auto& C : Occludees) maxUUID = std::max(maxUUID, C.ActorIndex);
-		if (VisibleFlags.size() <= size_t(maxUUID))
-			VisibleFlags.assign(size_t(maxUUID + 1), 1); // 기본 보임
-
-		OcclusionCPU->TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
-	}
-	// ----------------------------------------------------------------
-
-	// 일반 액터들 렌더링
-	if (IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
-	{
-		for (AActor* Actor : Actors)
-		{
-			if (!Actor) continue;
-			if (Actor->GetActorHiddenInGame()) continue;
-			if (Actor->GetCulled()) continue; // 컬링된 액터는 스킵
-
-			// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-			if (bUseCPUOcclusion)
-			{
-				uint32_t id = Actor->UUID;
-				if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-				{
-					continue; // 가려짐 → 스킵c
-				}
-			}
-
-			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-			{
-				continue;
-			}
-
-			if (SELECTION.IsActorSelected(Actor))
-				continue;
-
-			for (USceneComponent* Component : Actor->GetComponents())
-			{
-				if (!Component) continue;
-				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-					if (!ActorComp->IsActive()) continue;
-
-				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
-				{
-					const UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Primitive);
-					if (SMC && SMC->IsChangedMaterialByUser() == false)
-					{
-						// 유저에 의해 Material이 안 바뀐 UStaticMeshComponent는 따로 sorting rendering
-						continue;
-					}
-					// Actor가 textCmp도 가지고 있고, bounding box도 가지고 있고,
-					// TODO: StaticMeshComp이면 분기해서, 어떤 sorting 자료구조에 넣고 나중에 렌더링 ㄱ?
-					// StatcMeshCmp면 이것의 dirtyflag를 보고, dirtyflag가 true면 tree탐색(이미 바꼇는데 그거 기반으로 어떻게 탐색해?)으로 state tree의 해당 cmp를 다른 곳으로 옮기기
-					Renderer->SetViewModeType(ViewModeIndex);
-					Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-					
-					visibleCount++;
-				}
-			}
-		}
-
-		// TODO: StaticCmp를 State tree 이용해서 렌더(showFlag 확인 필요)
-		if (IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-		{
-			for (UStaticMesh* StaticMesh : StaticMeshs)
-			{
-				UINT stride = 0;
-				stride = sizeof(FVertexDynamic);
-				UINT offset = 0;
-
-				ID3D11Buffer* VertexBuffer = StaticMesh->GetVertexBuffer();
-				ID3D11Buffer* IndexBuffer = StaticMesh->GetIndexBuffer();
-				uint32 VertexCount = StaticMesh->GetVertexCount();
-				uint32 IndexCount = StaticMesh->GetIndexCount();
-
-				URHIDevice* RHIDevice = Renderer->GetRHIDevice();
-
-				RHIDevice->GetDeviceContext()->IASetVertexBuffers(
-					0, 1, &VertexBuffer, &stride, &offset
-				);
-
-				RHIDevice->GetDeviceContext()->IASetIndexBuffer(
-					IndexBuffer, DXGI_FORMAT_R32_UINT, 0
-				);
-
-				RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				RHIDevice->PSSetDefaultSampler(0);
-
-				if (StaticMesh->HasMaterial())
-				{
-					for (const FGroupInfo& GroupInfo : StaticMesh->GetMeshGroupInfo())
-					{
-						if (StaticMesh->GetUsingComponents().empty())
-						{
-							continue;
-						}
-						UMaterial* const Material = RESOURCE.Get<UMaterial>(GroupInfo.InitialMaterialName);
-						const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
-						bool bHasTexture = !(MaterialInfo.DiffuseTextureFileName.empty());
-						if (bHasTexture)
-						{
-							FWideString WTextureFileName(MaterialInfo.DiffuseTextureFileName.begin(), MaterialInfo.DiffuseTextureFileName.end()); // 단순 ascii라고 가정
-							FTextureData* TextureData = RESOURCE.CreateOrGetTextureData(WTextureFileName);
-							RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &(TextureData->TextureSRV));
-						}
-						RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // PSSet도 해줌
-
-						for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
-						{
-							if (Component->GetOwner()->GetCulled() == false && Component->IsChangedMaterialByUser() == false)
-							{
-								// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-								if (bUseCPUOcclusion)
-								{
-									uint32_t id = Component->GetOwner()->UUID;
-									if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-									{
-										continue; // 가려짐 → 스킵
-									}
-								}
-
-								Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
-								Renderer->PrepareShader(Component->GetMaterial()->GetShader());
-								RHIDevice->GetDeviceContext()->DrawIndexed(GroupInfo.IndexCount, GroupInfo.StartIndex, 0);
-							}
-						}
-					}
-				}
-				else
-				{
-
-					for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
-					{
-						if (!Component->GetOwner()->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
-						{
-							// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-							if (bUseCPUOcclusion)
-							{
-								uint32_t id = Component->GetOwner()->UUID;
-								if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-								{
-									continue; // 가려짐 → 스킵
-								}
-							}
-
-							FObjMaterialInfo ObjMaterialInfo;
-							RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
-
-							Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
-							Renderer->PrepareShader(Component->GetMaterial()->GetShader());
-							RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
-						}
-					}
-					//FObjMaterialInfo ObjMaterialInfo;
-					//RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
-					//RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
-				}
-
-			}
-		}
-		
-	}
-	// 엔진 액터들 (그리드 등)
-	for (AActor* EngineActor : EngineActors)
-	{
-		if (!EngineActor)
-		{
-			continue;
-		}
-		if (EngineActor->GetActorHiddenInGame())
-		{
-			continue;
-		}
-
-		if (Cast<AGridActor>(EngineActor) && !IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
-		{
-			continue;
-		}
-
-		for (USceneComponent* Component : EngineActor->GetComponents())
-		{
-			if (!Component)
-			{
-				continue;
-			}
-			if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-			{
-				if (!ActorComp->IsActive())
-				{
-					continue;
-				}
-			}
-
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
-			{
-				Renderer->SetViewModeType(ViewModeIndex);
-				Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-				Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-			}
-		}
-		Renderer->OMSetBlendState(false);
-	}
-
-	for (AActor* SelectedActor : SELECTION.GetSelectedActors())
-	{
-		if (!SelectedActor) continue;
-		if (SelectedActor->GetActorHiddenInGame()) continue;
-		if (Cast<AStaticMeshActor>(SelectedActor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-			continue;
-
-		for (USceneComponent* Component : SelectedActor->GetComponents())
-		{
-			if (!Component) continue;
-			if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-				if (!ActorComp->IsActive()) continue;
-
-			if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText)) continue;
-			if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes)) continue;
-
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
-			{
-				UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Primitive);
-				if (SMC && SMC->IsChangedMaterialByUser() == false)
-				{
-					continue;
-				}
-				Renderer->SetViewModeType(ViewModeIndex);
-				Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-				Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-			}
-		}
-	}
-
-	// Debug draw (exclusive: BVH first, else Octree)
-	if (IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug))
-	{
-		if (FBVHierachy* BVH = PARTITION.GetBVH())
-		{
-			BVH->DebugDraw(Renderer);
-		}
-	}
-	else if (IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug))
-	{
-		if (FOctree* Octree = PARTITION.GetSceneOctree())
-		{
-			Octree->DebugDraw(Renderer);
-		}
-	}
-
-	Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
-	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
-	if (IsShowFlagEnabled(EEngineShowFlags::SF_Culling))
-	{
-		UE_LOG("Obj count: %d, Visible count: %d\r\n", objCount, visibleCount);
-	}
 }
 
 void UWorld::Tick(float DeltaSeconds)
@@ -456,17 +118,14 @@ void UWorld::Tick(float DeltaSeconds)
 	{
 		if (Actor) Actor->Tick(DeltaSeconds);
 	}
-	for (AActor* EngineActor : EngineActors)
+	for (AActor* EngineActor : EditorActors)
 	{
 		if (EngineActor) EngineActor->Tick(DeltaSeconds);
 	}
 	GizmoActor->Tick(DeltaSeconds);
 
-	ProcessViewportInput();
-	//Input Manager가 카메라 후에 업데이트 되어야함
-
 	// 뷰포트 업데이트 - UIManager의 뷰포트 전환 상태에 따라
-if (SlateManager)
+	if (SlateManager)
 	{
 		SlateManager->OnUpdate(DeltaSeconds);
 	}
@@ -482,7 +141,7 @@ float UWorld::GetTimeSeconds() const
 
 FString UWorld::GenerateUniqueActorName(const FString& ActorType)
 {
-	// Get current count for this type
+	// GetInstance current count for this type
 	int32& CurrentCount = ObjectTypeCounts[ActorType];
 	FString UniqueName = ActorType + "_" + std::to_string(CurrentCount);
 	CurrentCount++;
@@ -555,11 +214,6 @@ void UWorld::OnActorDestroyed(AActor* Actor)
 	}
 }
 
-inline FString ToObjFileName(const FString& TypeName)
-{
-	return "Data/" + TypeName + ".obj";
-}
-
 inline FString RemoveObjExtension(const FString& FileName)
 {
 	const FString Extension = ".obj";
@@ -601,109 +255,6 @@ void UWorld::CreateNewScene()
 	ObjectTypeCounts.clear();
 
 	PARTITION.Clear();
-}
-
-
-
-// 액터 인터페이스 관리 메소드들
-void UWorld::SetupActorReferences()
-{
-	if (GizmoActor && MainCameraActor)
-	{
-		GizmoActor->SetCameraActor(MainCameraActor);
-	}
-
-}
-//마우스 피킹관련 메소드
-void UWorld::ProcessActorSelection()
-{
-	if (INPUT.IsMouseButtonPressed(LeftButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseDown(MousePosition,0);
-			}
-		}
-	}
-	if (INPUT.IsMouseButtonPressed(RightButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseDown(MousePosition, 0);
-			}
-		}
-	}
-	if (INPUT.IsMouseButtonPressed(RightButton) )
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseDown(MousePosition,1);
-			}
-		}
-	}
-	if (INPUT.IsMouseButtonReleased(RightButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseUp(MousePosition,1);
-			}
-		}
-	}
-}
-
-void UWorld::ProcessViewportInput()
-{
-	const FVector2D MousePosition = INPUT.GetMousePosition();
-
-	if (INPUT.IsMouseButtonPressed(LeftButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseDown(MousePosition, 0);
-			}
-		}
-	}
-	if (INPUT.IsMouseButtonPressed(RightButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseDown(MousePosition, 1);
-			}
-		}
-	}
-	if (INPUT.IsMouseButtonReleased(LeftButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseUp(MousePosition, 0);
-			}
-		}
-	}
-	if (INPUT.IsMouseButtonReleased(RightButton))
-	{
-		const FVector2D MousePosition = INPUT.GetMousePosition();
-		{
-			if (SlateManager)
-			{
-				SlateManager->OnMouseUp(MousePosition, 1);
-			}
-		}
-	}
-	SlateManager->OnMouseMove(MousePosition);
 }
 
 void UWorld::LoadScene(const FString& SceneName)
@@ -768,7 +319,7 @@ void UWorld::LoadScene(const FString& SceneName)
 	// 1) 현재 월드에서 이미 사용 중인 UUID 수집(엔진 액터 + 기즈모)
 	std::unordered_set<uint32> UsedUUIDs;
 	auto AddUUID = [&](AActor* A) { if (A) UsedUUIDs.insert(A->UUID); };
-	for (AActor* Eng : EngineActors) 
+	for (AActor* Eng : EditorActors) 
 	{
 		AddUUID(Eng);
 	}
@@ -924,6 +475,12 @@ void UWorld::SaveScene(const FString& SceneName)
     FSceneLoader::Save(Primitives, CamPtr, SceneName);
 }
 
+void UWorld::SetCameraActor(ACameraActor* InCameraActor)
+{
+	MainCameraActor = InCameraActor;
+	UI.SetCamera(MainCameraActor);
+}
+
 AGizmoActor* UWorld::GetGizmoActor()
 {
 	return GizmoActor;
@@ -937,66 +494,4 @@ void UWorld::PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor)
 void UWorld::SetStaticMeshs()
 {
 	StaticMeshs = RESOURCE.GetAll<UStaticMesh>();
-}
-
-// === World.cpp 패치: 그리드 리사이즈 ===
-void UWorld::UpdateOcclusionGridSizeForViewport(FViewport* Viewport)
-{
-	if (!Viewport) return;
-	int vw = (1 > Viewport->GetSizeX()) ? 1 : Viewport->GetSizeX();
-	int vh = (1 > Viewport->GetSizeY()) ? 1 : Viewport->GetSizeY();
-	int gw = std::max(1, vw / std::max(1, OcclGridDiv));
-	int gh = std::max(1, vh / std::max(1, OcclGridDiv));
-	// 매 프레임 호출해도 싸다. 내부에서 동일크기면 skip
-	OcclusionCPU->Initialize(gw, gh);
-}
-
-// === World.cpp 패치: 후보 수집 ===
-void UWorld::BuildCpuOcclusionSets(
-	const Frustum& ViewFrustum,
-	const FMatrix& View, const FMatrix& Proj,
-	float ZNear, float ZFar,                       // ★ 추가
-	TArray<FCandidateDrawable>& OutOccluders,
-	TArray<FCandidateDrawable>& OutOccludees)
-{
-	OutOccluders.clear();
-	OutOccludees.clear();
-
-	size_t estimatedCount = 0;
-	for (AActor* Actor : Actors)
-	{
-		if (Actor && !Actor->GetActorHiddenInGame() && !Actor->GetCulled())
-		{
-			if (Actor->IsA<AStaticMeshActor>()) estimatedCount++;
-		}
-	}
-	OutOccluders.reserve(estimatedCount);
-	OutOccludees.reserve(estimatedCount);
-	//
-
-	const FMatrix VP = View * Proj; // 행벡터: p_world * View * Proj
-
-	for (AActor* Actor : Actors)
-	{
-		if (!Actor) continue;
-		if (Actor->GetActorHiddenInGame()) continue;
-		if (Actor->GetCulled()) continue;
-
-		AStaticMeshActor* SMA = Cast<AStaticMeshActor>(Actor);
-		if (!SMA) continue;
-
-		UAABoundingBoxComponent* Box = Cast<UAABoundingBoxComponent>(SMA->CollisionComponent);
-		if (!Box) continue;
-
-		OutOccluders.emplace_back();
-		FCandidateDrawable& occluder = OutOccluders.back();
-		occluder.ActorIndex = Actor->UUID;
-		occluder.Bound = Box->GetWorldBound();
-		occluder.WorldViewProj = VP;
-		occluder.WorldView = View;
-		occluder.ZNear = ZNear;
-		occluder.ZFar = ZFar;
-
-		OutOccludees.emplace_back(occluder);
-	}
 }

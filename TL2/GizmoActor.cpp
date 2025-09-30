@@ -147,8 +147,9 @@ void AGizmoActor::Tick(float DeltaSeconds)
 	}
 	UpdateComponentVisibility();
 }
-void AGizmoActor::Render(ACameraActor* Camera, FViewport* Viewport) {
 
+void AGizmoActor::Render(ACameraActor* Camera, FViewport* Viewport) 
+{
 UpdateConstantScreenScale(Camera, Viewport);
 
 TArray<USceneComponent*>* Components = GetGizmoComponents();
@@ -390,8 +391,7 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
 	case EGizmoMode::Translate:
 	{
         FVector2D ScreenAxis = GetStableAxisDirection(Axis, Camera);
-        // X축 드래그일 때만 수평 기여 부호 보정
-        float px = (((GizmoAxis == 1) ? -MouseDelta.X : MouseDelta.X) * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
+        float px = (MouseDelta.X * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
         float h = Viewport ? static_cast<float>(Viewport->GetSizeY()) : UInputManager::GetInstance().GetScreenSize().Y;
         if (h <= 0.0f) h = 1.0f;
         float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;
@@ -443,8 +443,7 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
 		}
 
 		FVector2D ScreenAxis = GetStableAxisDirection(Axis, Camera);
-		// X축 드래그일 때만 수평 기여 부호 보정
-		float px = (((GizmoAxis == 1) ? -MouseDelta.X : MouseDelta.X) * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
+		float px = (MouseDelta.X * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
 		float h = Viewport ? static_cast<float>(Viewport->GetSizeY()) : UInputManager::GetInstance().GetScreenSize().Y;
 		if (h <= 0.0f) h = 1.0f;
 		float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;
@@ -643,7 +642,7 @@ void AGizmoActor::ProcessGizmoDragging(ACameraActor* Camera, FViewport* Viewport
 		FVector2D MouseDelta = InputManager->GetMouseDelta();
 		if ((MouseDelta.X * MouseDelta.X + MouseDelta.Y * MouseDelta.Y) > 0.0f)
 		{
-            OnDrag(TargetActor, GizmoAxis, MouseDelta.X, MouseDelta.Y, CameraActor, Viewport);
+            OnDrag(TargetActor, GizmoAxis, MouseDelta.X, MouseDelta.Y, Camera, Viewport);
 			bIsDragging = true;
 			SetActorLocation(TargetActor->GetActorLocation());
 		}
