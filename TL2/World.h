@@ -1,12 +1,6 @@
 ﻿#pragma once
-#include "GizmoActor.h"
 #include "Object.h"
-#include "GridActor.h"
-#include "BVHierachy.h"
-#include "Frustum.h"
 #include "Enums.h"
-#include "Occlusion.h"
-// forward declare to avoid heavy include
 
 // Forward Declarations
 class UResourceManager;
@@ -17,6 +11,7 @@ class AActor;
 class URenderer;
 class ACameraActor;
 class AGizmoActor;
+class AGridActor;
 class FViewport;
 class SMultiViewportWindow;
 struct FTransform;
@@ -24,12 +19,12 @@ struct FPrimitiveData;
 class SViewportWindow;
 class UWorldPartitionManager;
 class AStaticMeshActor;
+class BVHierachy;
+class UStaticMesh;
 
-/**
- * UWorld
- * - 월드 단위의 액터/타임/매니저 관리 클래스
- */
-
+class FOcclusionCullingManagerCPU;
+class Frustum;
+struct FCandidateDrawable;
 
 class UWorld final : public UObject
 {
@@ -38,7 +33,7 @@ public:
     UWorld();
     ~UWorld() override;
     static UWorld& GetInstance();
-    
+
 protected:
 
 
@@ -48,10 +43,10 @@ public:
     void InitializeMainCamera();
     void InitializeGrid();
     void InitializeGizmo();
-    
+
     // 액터 인터페이스 관리
     void SetupActorReferences();
-    
+
     // 선택 및 피킹 처리
     void ProcessActorSelection();
 
@@ -71,10 +66,6 @@ public:
 
     template<class T>
     T* SpawnActor(const FTransform& Transform);
-    
-    // 벌크 액터 스폰 - 대량 액터 생성 시 사용
-    template<class T>
-    TArray<T*> BulkSpawnActors(const TArray<FTransform>& Transforms);
 
     bool DestroyActor(AActor* Actor);
 
@@ -97,7 +88,7 @@ public:
     void DisableShowFlag(EEngineShowFlags Flag) { ShowFlags &= ~Flag; }
     void ToggleShowFlag(EEngineShowFlags Flag) { ShowFlags = HasShowFlag(ShowFlags, Flag) ? (ShowFlags & ~Flag) : (ShowFlags | Flag); }
     bool IsShowFlagEnabled(EEngineShowFlags Flag) const { return HasShowFlag(ShowFlags, Flag); }
-    
+
     /** Generate unique name for actor based on type */
     FString GenerateUniqueActorName(const FString& ActorType);
 
@@ -107,7 +98,6 @@ public:
 
     /** === 렌더 === */
     void Render();
-    void RenderSingleViewport();
     void RenderViewports(ACameraActor* Camera, FViewport* Viewport);
     //void GameRender(ACameraActor* Camera, FViewport* Viewport);
 
@@ -120,67 +110,48 @@ public:
     AGizmoActor* GetGizmoActor();
     AGridActor* GetGridActor() { return GridActor; }
 
-    void PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor) { StaticMeshActors.push_back(InStaticMeshActor); }
+    void PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor);
+    void SetStaticMeshs();
 
-    void SetStaticMeshs()
-    {
-        StaticMeshs = ResourceManager.GetAll<UStaticMesh>();
-    }
     /** === 레벨 / 월드 구성 === */
     // TArray<ULevel*> Levels;
 
     /** === 플레이어 / 컨트롤러 === */
     // APlayerController* GetFirstPlayerController() const;
     // TArray<APlayerController*> GetPlayerControllerIterator() const;
-
 private:
-    // 싱글톤 매니저 참조
-    UResourceManager& ResourceManager;
-    UUIManager& UIManager;
-    UInputManager& InputManager;
-    USelectionManager& SelectionManager;
-
-    // World partition/spatial indexing //Non Single Ton
-    //UWorldPartitionManager* PartitionManager = nullptr;
-
-   
-    // 메인 카메라
-    ACameraActor* MainCameraActor = nullptr;
-
-    AGridActor* GridActor = nullptr;
     // 렌더러 (월드가 소유)
-    URenderer* Renderer;
+    URenderer* Renderer = nullptr;
 
     // 메인 뷰포트
     SViewportWindow* MainViewport = nullptr;
     // 멀티 뷰포트 윈도우
     SMultiViewportWindow* MultiViewport = nullptr;
 
-    TArray<FPrimitiveData> Primitives;
-
     /** === 액터 관리 === */
     TArray<AActor*> EngineActors;
+    ACameraActor* MainCameraActor = nullptr;
+    AGridActor* GridActor = nullptr;
+    AGizmoActor* GizmoActor = nullptr;
+
     /** === 액터 관리 === */
     TArray<AActor*> Actors;
+    TArray<FPrimitiveData> Primitives;
 
     /** A dedicated array for static mesh actors to optimize culling. */
     TArray<class AStaticMeshActor*> StaticMeshActors;
-    
     TArray<UStaticMesh*> StaticMeshs;
 
     // Object naming system
-    std::map<FString, int32> ObjectTypeCounts;
-    
-    /** == 기즈모 == */
-    AGizmoActor* GizmoActor;
+    TMap<FString, int32> ObjectTypeCounts;
 
     /** === Show Flag 시스템 === */
     EEngineShowFlags ShowFlags = EEngineShowFlags::SF_DefaultEnabled;
-    
+
     EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
 
     // ==================== CPU HZB Occlusion ====================
-    FOcclusionCullingManagerCPU OcclusionCPU;
+    FOcclusionCullingManagerCPU* OcclusionCPU = nullptr;
     TArray<uint8_t>        VisibleFlags;   // ActorIndex(UUID)로 인덱싱 (0=가려짐, 1=보임)
     bool                        bUseCPUOcclusion = true; // False 하면 오클루전 컬링 안씁니다.
     int                         OcclGridDiv = 2; // 화면 크기/이 값 = 오클루전 그리드 해상도(1/6 권장)
@@ -193,7 +164,7 @@ private:
         float ZNear, float ZFar,                       // ★ 추가
         TArray<FCandidateDrawable>& OutOccluders,
         TArray<FCandidateDrawable>& OutOccludees);
-   
+
 };
 template<class T>
 inline T* UWorld::SpawnActor()

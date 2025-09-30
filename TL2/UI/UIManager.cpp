@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "Actor.h"
 #include "Window/UIWindow.h"
 #include "ImGui/ImGuiHelper.h"
 #include "Widget/Widget.h"
@@ -134,8 +135,6 @@ void UUIManager::Update(float DeltaTime)
 
 	// 포커스 상태 업데이트
 	UpdateFocusState();
-
-
 }
 
 /**
@@ -167,14 +166,9 @@ void UUIManager::Render()
 			Window->RenderWindow();
 		}
 	}
-
-
-	
 }
-void UUIManager::EndFrame() {
-
-
-
+void UUIManager::EndFrame() 
+{
 	// ImGui 프레임 종료
 	ImGuiHelper->EndFrame();
 }

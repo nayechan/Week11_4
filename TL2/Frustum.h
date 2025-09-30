@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "Vector.h"
-#include "AABoundingBoxComponent.h"
 #include "CameraComponent.h"
 
 
 class UCameraComponent;
+struct FBound;
 
 struct Plane
 {

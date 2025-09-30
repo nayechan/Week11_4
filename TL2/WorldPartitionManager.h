@@ -15,17 +15,16 @@ class UWorldPartitionManager : public UObject
 {
 public:
 	DECLARE_CLASS(UWorldPartitionManager, UObject)
+
 	UWorldPartitionManager();
-	~UWorldPartitionManager();
-	/** 싱글톤 접근 */
-	static UWorldPartitionManager* GetInstance()
+	static UWorldPartitionManager& GetInstance()
 	{
-		static UWorldPartitionManager* Instance;
+		static UWorldPartitionManager* Instance = nullptr;
 		if (!Instance)
 		{
 			Instance = NewObject<UWorldPartitionManager>();
 		}
-		return Instance;
+		return *Instance;
 	}
 
 	void Clear();
@@ -48,6 +47,8 @@ public:
 	FBVHierachy* GetBVH() const { return BVH; }
 
 private:
+	~UWorldPartitionManager();
+
 	// 싱글톤 
 	UWorldPartitionManager(const UWorldPartitionManager&) = delete;
 	UWorldPartitionManager& operator=(const UWorldPartitionManager&) = delete;

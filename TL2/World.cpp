@@ -20,16 +20,19 @@
 #include "BVHierachy.h"
 #include "Frustum.h"
 #include "Occlusion.h"
+#include "GizmoActor.h"
+#include "GridActor.h"
+#include "StaticMeshComponent.h"
+#include "Frustum.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
 
-UWorld::UWorld() : ResourceManager(UResourceManager::GetInstance())
-, UIManager(UUIManager::GetInstance())
-, InputManager(UInputManager::GetInstance())
-, SelectionManager(USelectionManager::GetInstance())
+UWorld::UWorld()
 {
+	OcclusionCPU = new FOcclusionCullingManagerCPU();
 }
+
 UWorld& UWorld::GetInstance()
 {
 	static UWorld* Instance = nullptr;
@@ -117,7 +120,7 @@ void UWorld::InitializeMainCamera()
 	MainCameraActor->SetWorld(this);
 
 	DebugRTTI_UObject(MainCameraActor, "MainCameraActor");
-	UIManager.SetCamera(MainCameraActor);
+	UI.SetCamera(MainCameraActor);
 
 	EngineActors.Add(MainCameraActor);
 }
@@ -146,7 +149,7 @@ void UWorld::InitializeGizmo()
 		GizmoActor->SetCameraActor(MainCameraActor);
 	}
 
-	UIManager.SetGizmoActor(GizmoActor);
+	UI.SetGizmoActor(GizmoActor);
 }
 void UWorld::SetRenderer(URenderer* InRenderer)
 {
@@ -156,7 +159,7 @@ void UWorld::SetRenderer(URenderer* InRenderer)
 void UWorld::Render()
 {
 	Renderer->BeginFrame();
-	UIManager.Render();
+	UI.Render();
 
 	if (MultiViewport)
 	{
@@ -164,124 +167,9 @@ void UWorld::Render()
 	}
 
 	//프레임 종료 
-	UIManager.EndFrame();
+	UI.EndFrame();
 	Renderer->EndFrame();
 }
-
-// legacy code
-//void UWorld::RenderSingleViewport()
-//{
-//	FMatrix ViewMatrix = MainCameraActor->GetViewMatrix();
-//	FMatrix ProjectionMatrix = MainCameraActor->GetProjectionMatrix();
-//	FMatrix ModelMatrix;
-//	FVector rgb(1.0f, 1.0f, 1.0f);
-//
-//	if (!Renderer) return;
-//	// === Begin Frame ===
-//	Renderer->BeginFrame();
-//
-//	// === Begin Line Batch for all actors ===
-//	Renderer->BeginLineBatch();
-//
-//    // === Draw Actors with Show Flag checks ===
-//    Renderer->SetViewModeType(ViewModeIndex);
-//
-//	// 일반 액터들 렌더링 (Primitives Show Flag 체크)
-//	if (IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
-//	{
-//		for (AActor* Actor : Actors)
-//		{
-//			if (!Actor) continue;
-//			if (Actor->GetActorHiddenInGame()) continue;
-//
-//			// StaticMesh Show Flag 체크
-//			if (Cast<AStaticMeshActor>(Actor) && !IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-//				continue;
-//
-//			bool bIsSelected = SelectionManager.IsActorSelected(Actor);
-//			if (bIsSelected) {
-//				Renderer->OMSetDepthStencilState(EComparisonFunc::Always);
-//			}
-//			Renderer->UpdateHighLightConstantBuffer(bIsSelected, rgb, 0, 0, 0, 0);
-//
-//			for (USceneComponent* Component : Actor->GetComponents())
-//			{
-//				if (!Component) continue;
-//
-//				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-//				{
-//					if (!ActorComp->IsActive()) continue;
-//				}
-//
-//				// Text Render Component Show Flag 체크
-//				if (Cast<UTextRenderComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText))
-//					continue;
-//
-//				// Bounding Box Show Flag 체크  
-//				if (Cast<UAABoundingBoxComponent>(Component) && !IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes))
-//					continue;
-//
-//				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
-//				{
-//					Renderer->SetViewModeType(ViewModeIndex);
-//					Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-//					Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-//				}
-//			}
-//			// 블랜드 스테이드 종료
-//			Renderer->OMSetBlendState(false);
-//		}
-//	}
-//
-//	// Engine Actors (그리드 등) 렌더링
-//	for (AActor* EngineActor : EngineActors)
-//	{
-//		if (!EngineActor) continue;
-//		if (EngineActor->GetActorHiddenInGame()) continue;
-//
-//		// Grid Show Flag 체크
-//		if (Cast<AGridActor>(EngineActor) && !IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
-//			continue;
-//
-//		for (USceneComponent* Component : EngineActor->GetComponents())
-//		{
-//			if (!Component) continue;
-//
-//			if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-//			{
-//				if (!ActorComp->IsActive()) continue;
-//			}
-//			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
-//			{
-//				Renderer->SetViewModeType(ViewModeIndex);
-//				Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-//				Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-//			}
-//		}
-//		// 블랜드 스테이드 종료
-//		Renderer->OMSetBlendState(false);
-//	}
-//    // Octree debug draw (draw as overlay: depth test always, no write)
-//    if (IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug))
-//    {
-//        if (FOctree* Octree = UWorldPartitionManager::GetInstance()->GetSceneOctree())
-//        {
-//            Renderer->OMSetDepthStencilState(EComparisonFunc::Always);
-//            Octree->DebugDraw(Renderer);
-//            Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-//        }
-//    }
-//
-//    Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
-//
-//
-//
-//	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
-//	UIManager.Render();
-//	// === End Frame ===
-//	Renderer->EndFrame();
-//}
-
 
 void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 {
@@ -316,7 +204,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	// ============ Culling Logic Dispatch ========= //
 	for (AActor* Actor : Actors)
 		Actor->SetCulled(true);
-	UWorldPartitionManager::GetInstance()->FrustumQuery(ViewFrustum);
+	PARTITION.FrustumQuery(ViewFrustum);
 
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
 
@@ -332,8 +220,8 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			Occluders, Occludees);
 
 		// 3) 오클루더로 저해상도 깊이 빌드 + HZB
-		OcclusionCPU.BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
-		OcclusionCPU.BuildHZB();
+		OcclusionCPU->BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
+		OcclusionCPU->BuildHZB();
 
 		// 4) 가시성 판정 → VisibleFlags[UUID] = 0/1
 		//     VisibleFlags 크기 보장
@@ -342,7 +230,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		if (VisibleFlags.size() <= size_t(maxUUID))
 			VisibleFlags.assign(size_t(maxUUID + 1), 1); // 기본 보임
 
-		OcclusionCPU.TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
+		OcclusionCPU->TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
 	}
 	// ----------------------------------------------------------------
 
@@ -370,7 +258,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 				continue;
 			}
 
-			if (SelectionManager.IsActorSelected(Actor))
+			if (SELECTION.IsActorSelected(Actor))
 				continue;
 
 			for (USceneComponent* Component : Actor->GetComponents())
@@ -434,13 +322,13 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 						{
 							continue;
 						}
-						UMaterial* const Material = UResourceManager::GetInstance().Get<UMaterial>(GroupInfo.InitialMaterialName);
+						UMaterial* const Material = RESOURCE.Get<UMaterial>(GroupInfo.InitialMaterialName);
 						const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
 						bool bHasTexture = !(MaterialInfo.DiffuseTextureFileName.empty());
 						if (bHasTexture)
 						{
 							FWideString WTextureFileName(MaterialInfo.DiffuseTextureFileName.begin(), MaterialInfo.DiffuseTextureFileName.end()); // 단순 ascii라고 가정
-							FTextureData* TextureData = UResourceManager::GetInstance().CreateOrGetTextureData(WTextureFileName);
+							FTextureData* TextureData = RESOURCE.CreateOrGetTextureData(WTextureFileName);
 							RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &(TextureData->TextureSRV));
 						}
 						RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // PSSet도 해줌
@@ -541,7 +429,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 		Renderer->OMSetBlendState(false);
 	}
 
-	for (AActor* SelectedActor : SelectionManager.GetSelectedActors())
+	for (AActor* SelectedActor : SELECTION.GetSelectedActors())
 	{
 		if (!SelectedActor) continue;
 		if (SelectedActor->GetActorHiddenInGame()) continue;
@@ -574,22 +462,16 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	// Debug draw (exclusive: BVH first, else Octree)
 	if (IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug))
 	{
-		if (auto* PM = UWorldPartitionManager::GetInstance())
+		if (FBVHierachy* BVH = PARTITION.GetBVH())
 		{
-			if (FBVHierachy* BVH = PM->GetBVH())
-			{
-				BVH->DebugDraw(Renderer);
-			}
+			BVH->DebugDraw(Renderer);
 		}
 	}
 	else if (IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug))
 	{
-		if (auto* PM = UWorldPartitionManager::GetInstance())
+		if (FOctree* Octree = PARTITION.GetSceneOctree())
 		{
-			if (FOctree* Octree = PM->GetSceneOctree())
-			{
-				Octree->DebugDraw(Renderer);
-			}
+			Octree->DebugDraw(Renderer);
 		}
 	}
 
@@ -602,11 +484,7 @@ void UWorld::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 void UWorld::Tick(float DeltaSeconds)
 {
-	// Update spatial indices first so any previous-frame changes are reflected
-	if (UWorldPartitionManager::GetInstance())
-	{
-		UWorldPartitionManager::GetInstance()->Update(DeltaSeconds, /*budget*/256);
-	}
+	PARTITION.Update(DeltaSeconds, /*budget*/256);
 
 	//순서 바꾸면 안댐
 	for (AActor* Actor : Actors)
@@ -619,20 +497,17 @@ void UWorld::Tick(float DeltaSeconds)
 	}
 	GizmoActor->Tick(DeltaSeconds);
 
-	//ProcessActorSelection();
 	ProcessViewportInput();
 	//Input Manager가 카메라 후에 업데이트 되어야함
 
-
 	// 뷰포트 업데이트 - UIManager의 뷰포트 전환 상태에 따라
-
 	if (MultiViewport)
 	{
 		MultiViewport->OnUpdate(DeltaSeconds);
 	}
 
-	InputManager.Update();
-	UIManager.Update(DeltaSeconds);
+	INPUT.Update();
+	UI.Update(DeltaSeconds);
 }
 
 float UWorld::GetTimeSeconds() const
@@ -660,12 +535,12 @@ bool UWorld::DestroyActor(AActor* Actor)
 	}
 
 	// SelectionManager에서 선택 해제 (메모리 해제 전에 하자)
-	USelectionManager::GetInstance().DeselectActor(Actor);
+	SELECTION.DeselectActor(Actor);
 
 	// UIManager에서 픽된 액터 정리
-	if (UIManager.GetPickedActor() == Actor)
+	if (UI.GetPickedActor() == Actor)
 	{
-		UIManager.ResetPickedActor();
+		UI.ResetPickedActor();
 	}
 
 	// 배열에서 제거 시도
@@ -691,7 +566,7 @@ bool UWorld::DestroyActor(AActor* Actor)
 		ObjectFactory::DeleteObject(Actor);
 
 		// 삭제된 액터 정리
-		USelectionManager::GetInstance().CleanupInvalidActors();
+		SELECTION.CleanupInvalidActors();
 
 		return true; // 성공적으로 삭제
 	}
@@ -701,17 +576,17 @@ bool UWorld::DestroyActor(AActor* Actor)
 
 void UWorld::OnActorSpawned(AActor* Actor)
 {
-	if (UWorldPartitionManager::GetInstance() && Actor)
+	if (Actor)
 	{
-		UWorldPartitionManager::GetInstance()->Register(Actor);
+		PARTITION.Register(Actor);
 	}
 }
 
 void UWorld::OnActorDestroyed(AActor* Actor)
 {
-	if (UWorldPartitionManager::GetInstance() && Actor)
+	if (Actor)
 	{
-		UWorldPartitionManager::GetInstance()->Unregister(Actor);
+		PARTITION.Unregister(Actor);
 	}
 }
 
@@ -747,8 +622,8 @@ inline FString RemoveObjExtension(const FString& FileName)
 void UWorld::CreateNewScene()
 {
 	// Safety: clear interactions that may hold stale pointers
-	SelectionManager.ClearSelection();
-	UIManager.ResetPickedActor();
+	SELECTION.ClearSelection();
+	UI.ResetPickedActor();
 
 	for (AActor* Actor : Actors)
 	{
@@ -760,10 +635,7 @@ void UWorld::CreateNewScene()
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
 
-	if (UWorldPartitionManager::GetInstance())
-	{
-		UWorldPartitionManager::GetInstance()->Clear();
-	}
+	PARTITION.Clear();
 }
 
 
@@ -780,9 +652,9 @@ void UWorld::SetupActorReferences()
 //마우스 피킹관련 메소드
 void UWorld::ProcessActorSelection()
 {
-	if (InputManager.IsMouseButtonPressed(LeftButton))
+	if (INPUT.IsMouseButtonPressed(LeftButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -790,9 +662,9 @@ void UWorld::ProcessActorSelection()
 			}
 		}
 	}
-	if (InputManager.IsMouseButtonPressed(RightButton))
+	if (INPUT.IsMouseButtonPressed(RightButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -800,9 +672,9 @@ void UWorld::ProcessActorSelection()
 			}
 		}
 	}
-	if (InputManager.IsMouseButtonPressed(RightButton) )
+	if (INPUT.IsMouseButtonPressed(RightButton) )
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -810,9 +682,9 @@ void UWorld::ProcessActorSelection()
 			}
 		}
 	}
-	if (InputManager.IsMouseButtonReleased(RightButton))
+	if (INPUT.IsMouseButtonReleased(RightButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -824,11 +696,11 @@ void UWorld::ProcessActorSelection()
 }
 void UWorld::ProcessViewportInput()
 {
-	const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+	const FVector2D MousePosition = INPUT.GetMousePosition();
 
-	if (InputManager.IsMouseButtonPressed(LeftButton))
+	if (INPUT.IsMouseButtonPressed(LeftButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -836,9 +708,9 @@ void UWorld::ProcessViewportInput()
 			}
 		}
 	}
-	if (InputManager.IsMouseButtonPressed(RightButton))
+	if (INPUT.IsMouseButtonPressed(RightButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -846,9 +718,9 @@ void UWorld::ProcessViewportInput()
 			}
 		}
 	}
-	if (InputManager.IsMouseButtonReleased(LeftButton))
+	if (INPUT.IsMouseButtonReleased(LeftButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -856,9 +728,9 @@ void UWorld::ProcessViewportInput()
 			}
 		}
 	}
-	if (InputManager.IsMouseButtonReleased(RightButton))
+	if (INPUT.IsMouseButtonReleased(RightButton))
 	{
-		const FVector2D MousePosition = UInputManager::GetInstance().GetMousePosition();
+		const FVector2D MousePosition = INPUT.GetMousePosition();
 		{
 			if (MultiViewport)
 			{
@@ -901,8 +773,8 @@ void UWorld::LoadScene(const FString& SceneName)
     const TArray<FPrimitiveData>& Primitives = FSceneLoader::Load(FilePath, &CamData);
 
     // 마우스 델타 초기화
-    const FVector2D CurrentMousePos = UInputManager::GetInstance().GetMousePosition();
-    UInputManager::GetInstance().SetLastMousePosition(CurrentMousePos);
+    const FVector2D CurrentMousePos = INPUT.GetMousePosition();
+	INPUT.SetLastMousePosition(CurrentMousePos);
 
     // 카메라 적용
     if (MainCameraActor && MainCameraActor->GetCameraComponent())
@@ -918,14 +790,14 @@ void UWorld::LoadScene(const FString& SceneName)
         MainCameraActor->SetAnglesImmediate(CamData.Rotation.Y, CamData.Rotation.Z);
 
 		// UIManager의 카메라 회전 상태도 동기화
-		UIManager.UpdateMouseRotation(CamData.Rotation.Y, CamData.Rotation.Z);
+		UI.UpdateMouseRotation(CamData.Rotation.Y, CamData.Rotation.Z);
 
         // 프로젝션 파라미터
         Cam->SetFOV(CamData.FOV);
         Cam->SetClipPlanes(CamData.NearClip, CamData.FarClip);
 
 		// UI 위젯에 현재 카메라 상태로 재동기화 요청
-		UIManager.SyncCameraControlFromCamera();
+		UI.SyncCameraControlFromCamera();
     }
 
 	// 1) 현재 월드에서 이미 사용 중인 UUID 수집(엔진 액터 + 기즈모)
@@ -1006,17 +878,15 @@ void UWorld::LoadScene(const FString& SceneName)
 			}
 			StaticMeshActor->SetName(GenerateUniqueActorName(BaseName));
 		}
-		
-		//UWorldPartitionManager::GetInstance()->BulkRegister();
 		// 벌크 삽입을 위해 목록에 추가
 		SpawnedActors.push_back(StaticMeshActor);
 	}
 	
 	// 모든 액터를 한 번에 벌크 등록 하여 성능 최적화
-	if (UWorldPartitionManager::GetInstance() && !SpawnedActors.empty())
+	if (!SpawnedActors.empty())
 	{
 		UE_LOG("LoadScene: Using bulk registration for %zu actors\r\n", SpawnedActors.size());
-		UWorldPartitionManager::GetInstance()->BulkRegister(SpawnedActors);
+		PARTITION.BulkRegister(SpawnedActors);
 	}
 
 	// 3) 최종 보정: 전역 카운터는 절대 하향 금지 + 현재 사용된 최대값 이후로 설정
@@ -1094,6 +964,16 @@ AGizmoActor* UWorld::GetGizmoActor()
 	return GizmoActor;
 }
 
+void UWorld::PushBackToStaticMeshActors(AStaticMeshActor* InStaticMeshActor)
+{
+	StaticMeshActors.push_back(InStaticMeshActor);
+}
+
+void UWorld::SetStaticMeshs()
+{
+	StaticMeshs = RESOURCE.GetAll<UStaticMesh>();
+}
+
 // === World.cpp 패치: 그리드 리사이즈 ===
 void UWorld::UpdateOcclusionGridSizeForViewport(FViewport* Viewport)
 {
@@ -1103,7 +983,7 @@ void UWorld::UpdateOcclusionGridSizeForViewport(FViewport* Viewport)
 	int gw = std::max(1, vw / std::max(1, OcclGridDiv));
 	int gh = std::max(1, vh / std::max(1, OcclGridDiv));
 	// 매 프레임 호출해도 싸다. 내부에서 동일크기면 skip
-	OcclusionCPU.Initialize(gw, gh);
+	OcclusionCPU->Initialize(gw, gh);
 }
 
 // === World.cpp 패치: 후보 수집 ===

@@ -3,6 +3,7 @@
 #include "UI/UIManager.h"
 #include "ImGui/imgui.h"
 #include "Actor.h"
+#include "GridActor.h"
 #include "World.h"
 #include "Vector.h"
 #include "GizmoActor.h"

@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "ActorTerminationWidget.h"
+#include "GizmoActor.h"
 #include "../UIManager.h"
 #include "../../ImGui/imgui.h"
 #include "../../Actor.h"

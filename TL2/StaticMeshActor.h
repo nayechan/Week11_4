@@ -1,7 +1,8 @@
 ﻿#pragma once
 #include "Actor.h"
-#include "StaticMeshComponent.h"
 #include "Enums.h"
+
+class UStaticMeshComponent;
 class AStaticMeshActor : public AActor
 {
 public:

@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "SWindow.h"
-#include "FViewport.h"
-#include "FViewportClient.h"
+#include "Enums.h"
+
+class FViewport;
+class FViewportClient;
 
 class SViewportWindow : public SWindow
 {

@@ -360,13 +360,6 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 	int PickedIndex = -1;
 	float PickedT = 1e9f;
 
-	UWorldPartitionManager* PartitionManager = UWorldPartitionManager::GetInstance();
-	if (PartitionManager == nullptr)
-	{
-		UE_LOG("WorldPartitionManager is Empty!");
-		return nullptr;
-	}
-
 	// 퍼포먼스 측정용 카운터 시작
 	FScopeCycleCounter PickCounter;
 
@@ -375,7 +368,7 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 
 	// 베스트 퍼스트 탐색으로 가장 가까운 것을 직접 구한다
 	AActor* PickedActor = nullptr;
-	PartitionManager->RayQueryClosest(ray, PickedActor, PickedT);
+	PARTITION.RayQueryClosest(ray, PickedActor, PickedT);
 	LastPickTime = PickCounter.Finish();
 	TotalPickTime += LastPickTime;
 	double Milliseconds = ((double)LastPickTime * FPlatformTime::GetSecondsPerCycle()) * 1000.0f;

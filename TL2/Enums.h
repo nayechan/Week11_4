@@ -405,4 +405,14 @@ inline bool HasShowFlag(EEngineShowFlags flags, EEngineShowFlags flag)
     return (flags & flag) != EEngineShowFlags::None;
 }
 
+enum class EViewportType : uint8
+{
+    Perspective,    // 원근 뷰
+    Orthographic_Top,     // 상단 직교 뷰
+    Orthographic_Bottom,    // 하단 직교 뷰
+    Orthographic_Front,   // 정면 직교 뷰
+    Orthographic_Left,     // 왼쪽면 직교 뷰 
+    Orthographic_Right,   // 오른쪽면 직교 뷰
+    Orthographic_Back     // 측면 직교 뷰
+};
 //#endif /** UE_ENUMS_H */

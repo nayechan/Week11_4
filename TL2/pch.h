@@ -66,4 +66,11 @@
 #include "UI/UIManager.h"
 #include "ResourceManager.h"
 
+
+#define RESOURCE UResourceManager::GetInstance()
+#define UI UUIManager::GetInstance()
+#define INPUT UInputManager::GetInstance()
+#define SELECTION USelectionManager::GetInstance()
+#define PARTITION UWorldPartitionManager::GetInstance()
+
 extern TMap<FString, FString> EditorINI;

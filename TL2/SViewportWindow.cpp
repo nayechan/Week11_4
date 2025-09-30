@@ -3,6 +3,10 @@
 #include "World.h"
 #include "ImGui/imgui.h"
 #include"SMultiViewportWindow.h"
+
+#include "FViewport.h"
+#include "FViewportClient.h"
+
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
 SViewportWindow::SViewportWindow()
