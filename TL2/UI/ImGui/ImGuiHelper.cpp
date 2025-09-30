@@ -56,7 +56,7 @@ void UImGuiHelper::Initialize(HWND InWindowHandle, ID3D11Device* InDevice, ID3D1
 	ImFontConfig Cfg;
 	Cfg.OversampleH = Cfg.OversampleV = 2;
 	IO.Fonts->AddFontFromFileTTF("Fonts/malgun.ttf", 18.0f, &Cfg, IO.Fonts->GetGlyphRangesKorean());
-	IO.Fonts->Build();
+	// IO.Fonts->Build();
 	// Use default ImGui font
 	// IO.Fonts->AddFontDefault();
 
