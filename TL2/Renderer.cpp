@@ -268,9 +268,15 @@ void URenderer::DrawIndexedPrimitiveComponent(UBillboardComponent* Comp, D3D11_P
     RHIDevice->PSSetDefaultSampler(0);
     RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &srv);
 
+    // Ensure correct alpha blending just for this draw
+    OMSetBlendState(true);
+
 	RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(InTopology);
 	const uint32 indexCnt = Comp->GetStaticMesh()->GetIndexCount();
 	RHIDevice->GetDeviceContext()->DrawIndexed(indexCnt, 0, 0);
+
+    // Restore blend state so others aren't affected
+    OMSetBlendState(false);
 }
 void URenderer::SetViewModeType(EViewModeIndex ViewModeIndex)
 {

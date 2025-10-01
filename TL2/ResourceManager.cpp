@@ -252,7 +252,7 @@ void UResourceManager::CreateTextBillboardMesh()
     BillboardData->UV.resize(MaxQuads * 4);
 
     UQuad* Mesh = NewObject<UQuad>();
-    Mesh->Load(BillboardData, Device);
+    Mesh->Load(BillboardData, Device, true);
     Add<UQuad>("TextBillboard", Mesh);
     UMeshLoader::GetInstance().AddMeshData("TextBillboard", BillboardData);
 }
