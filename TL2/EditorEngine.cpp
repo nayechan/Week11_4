@@ -40,6 +40,7 @@ static void SaveIniFile()
 
 UEditorEngine::UEditorEngine()
 {
+
 }
 
 UEditorEngine::~UEditorEngine()

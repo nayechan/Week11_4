@@ -130,6 +130,7 @@ void D3D11RHI::Release()
 
     if (DefaultRasterizerState) { DefaultRasterizerState->Release();   DefaultRasterizerState = nullptr; }
     if (WireFrameRasterizerState) { WireFrameRasterizerState->Release();   WireFrameRasterizerState = nullptr; }
+    if (NoCullRasterizerState) { NoCullRasterizerState->Release();   NoCullRasterizerState = nullptr; }
     if (BlendState) { BlendState->Release();        BlendState = nullptr; }
 
     // RTV/DSV/FrameBuffer
