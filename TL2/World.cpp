@@ -90,15 +90,10 @@ void UWorld::Tick(float DeltaSeconds)
 	{
 		if (Actor) Actor->Tick(DeltaSeconds);
 	}
-	for (AActor* EngineActor : EditorActors)
+	for (AActor* EditorActor : EditorActors)
 	{
-		if (EngineActor) EngineActor->Tick(DeltaSeconds);
+		if (EditorActor) EditorActor->Tick(DeltaSeconds);
 	}
-}
-
-float UWorld::GetTimeSeconds() const
-{
-	return 0.0f;
 }
 
 FString UWorld::GenerateUniqueActorName(const FString& ActorType)

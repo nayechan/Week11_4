@@ -39,10 +39,10 @@ float UGizmoArrowComponent::ComputeScreenConstantScale(URenderer* Renderer, cons
         worldPerPixel = (2.0f * z) / (h * yScale);
     }
 
-    float desiredScale = targetPixels * worldPerPixel;
-    if (desiredScale < 0.001f) desiredScale = 0.001f;
-    if (desiredScale > 10000.0f) desiredScale = 10000.0f;
-    return desiredScale;
+    float ScaleFactor = targetPixels * worldPerPixel;
+    if (ScaleFactor < 0.001f) ScaleFactor = 0.001f;
+    if (ScaleFactor > 10000.0f) ScaleFactor = 10000.0f;
+    return ScaleFactor;
 }
 
 //뷰포트 사이즈에 맞게 기즈모 resize => render 로직에 scale 변경... 
@@ -62,8 +62,9 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     Renderer->UpdateHighLightConstantBuffer(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1);
 
     // 리사이징
-    const float desiredScale = ComputeScreenConstantScale(Renderer, View, Proj, 30.0f);
-    SetWorldScale({ desiredScale ,desiredScale ,desiredScale * 3 });
+    const float ScaleFactor = ComputeScreenConstantScale(Renderer, View, Proj, 30.0f);
+
+    SetWorldScale(DefaultScale * ScaleFactor);
 
     FMatrix M = GetWorldMatrix();
     Renderer->UpdateConstantBuffer(M, View, Proj);

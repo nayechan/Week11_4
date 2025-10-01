@@ -71,9 +71,9 @@ AGizmoActor::AGizmoActor()
 	RotateY->SetupAttachment(RootComponent);
 	RotateZ->SetupAttachment(RootComponent);
 
-	RotateX->SetDefaultScale({ 0.03f, 0.03f, 0.03f });
-	RotateY->SetDefaultScale({ 0.03f, 0.03f, 0.03f });
-	RotateZ->SetDefaultScale({ 0.03f, 0.03f, 0.03f });
+	RotateX->SetDefaultScale({ 0.02f, 0.02f, 0.02f });
+	RotateY->SetDefaultScale({ 0.02f, 0.02f, 0.02f });
+	RotateZ->SetDefaultScale({ 0.02f, 0.02f, 0.02f });
 
 	AddComponent(RotateX);
 	AddComponent(RotateY);
@@ -103,9 +103,9 @@ AGizmoActor::AGizmoActor()
 	ScaleY->SetupAttachment(RootComponent);
 	ScaleZ->SetupAttachment(RootComponent);
 
-	ScaleX->SetDefaultScale({ 0.03f, 0.03f, 0.03f });
-	ScaleY->SetDefaultScale({ 0.03f, 0.03f, 0.03f });
-	ScaleZ->SetDefaultScale({ 0.03f, 0.03f, 0.03f });
+	ScaleX->SetDefaultScale({ 0.02f, 0.02f, 0.02f });
+	ScaleY->SetDefaultScale({ 0.02f, 0.02f, 0.02f });
+	ScaleZ->SetDefaultScale({ 0.02f, 0.02f, 0.02f });
 
 	if (ScaleX) ScaleX->SetRelativeRotation(FQuat::MakeFromEuler(FVector(0, 90, 0)));
 	if (ScaleY) ScaleY->SetRelativeRotation(FQuat::MakeFromEuler(FVector(-90, 0, 0)));

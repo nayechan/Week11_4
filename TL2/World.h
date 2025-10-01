@@ -65,7 +65,6 @@ public:
 
     /** === 타임 / 틱 === */
     virtual void Tick(float DeltaSeconds);
-    float GetTimeSeconds() const;
 
     /** === 필요한 엑터 게터 === */
     const TArray<AActor*>& GetActors() { return Actors; }

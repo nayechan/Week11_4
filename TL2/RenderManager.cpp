@@ -361,10 +361,7 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			Octree->DebugDraw(Renderer);
 		}
 	}
-
 	Renderer->EndLineBatch(FMatrix::Identity(), ViewMatrix, ProjectionMatrix);
-
-	// 기즈모는 각 컴포넌트의 Render 오버라이드를 통해 일반 경로로 렌더됩니다.
 
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
 	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Culling))

@@ -69,6 +69,7 @@ private:
 	URHIDevice* RHIDevice;
 
     // Current viewport size (per FViewport draw); 0 if unset
+
     uint32 CurrentViewportWidth = 0;
     uint32 CurrentViewportHeight = 0;
 
