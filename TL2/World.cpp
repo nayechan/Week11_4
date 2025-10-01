@@ -190,10 +190,9 @@ inline FString RemoveObjExtension(const FString& FileName)
 
 void UWorld::CreateLevel()
 {
-	// DEPRECATED shim: forward to LevelService
 	SELECTION.ClearSelection();
 	UI.ResetPickedActor();
-
+	 
 	SetLevel(ULevelService::CreateNewLevel());
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
