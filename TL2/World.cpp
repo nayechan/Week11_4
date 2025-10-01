@@ -25,16 +25,6 @@
 #include "StaticMeshComponent.h"
 #include "Frustum.h"
 
-UWorld& UWorld::GetInstance()
-{
-	static UWorld* Instance = nullptr;
-	if (Instance == nullptr)
-	{
-		Instance = NewObject<UWorld>();
-	}
-	return *Instance;
-}
-
 UWorld::UWorld()
 	: Partition(new UWorldPartitionManager())
 {

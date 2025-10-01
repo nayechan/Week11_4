@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "GizmoArrowComponent.h"
+#include "EditorEngine.h"
 
 UGizmoArrowComponent::UGizmoArrowComponent()
 {
@@ -51,7 +52,8 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     if (!IsActive()) return;
 
     // 모드/상태 적용(오버레이)
-    auto& RS = UWorld::GetInstance().GetRenderSettings();
+    extern UEditorEngine GEngine;
+    auto& RS = GEngine.GetDefaultWorld()->GetRenderSettings();
     EViewModeIndex saved = RS.GetViewModeIndex();
     Renderer->SetViewModeType(EViewModeIndex::VMI_Unlit);
     // 스텐실에 1을 기록해, 이후 라인 렌더링이 겹치는 픽셀을 그리지 않도록 마스크

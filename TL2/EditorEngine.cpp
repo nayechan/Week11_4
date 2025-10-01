@@ -166,7 +166,7 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
 
     ///////////////////////////////////
     //@TODO 월드 수정 필
-    World = &UWorld::GetInstance();
+    World = NewObject<UWorld>();
     World->Initialize();
     ///////////////////////////////////
 

@@ -33,7 +33,6 @@ public:
     DECLARE_CLASS(UWorld, UObject)
     UWorld();
     ~UWorld() override;
-    static UWorld& GetInstance();
 
 public:
     /** 초기화 */
