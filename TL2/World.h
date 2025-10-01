@@ -78,6 +78,9 @@ public:
     URenderSettings& GetRenderSettings() { return RenderSettings; }
     const URenderSettings& GetRenderSettings() const { return RenderSettings; }
 
+    // Per-world SelectionManager accessor
+    USelectionManager* GetSelectionManager() { return SelectionMgr.get(); }
+
 private:
     /** === 에디터 특수 액터 관리 === */
     TArray<AActor*> EditorActors;
@@ -99,6 +102,9 @@ private:
 
     //partition
     std::unique_ptr<UWorldPartitionManager> Partition = nullptr;
+
+    // Per-world selection manager
+    std::unique_ptr<USelectionManager> SelectionMgr;
 };
 
 template<class T>

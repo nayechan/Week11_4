@@ -40,6 +40,7 @@ static void SaveIniFile()
 
 UEditorEngine::UEditorEngine()
 {
+
 }
 
 UEditorEngine::~UEditorEngine()
@@ -170,9 +171,8 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     INPUT.Initialize(HWnd);
 
     ///////////////////////////////////
-    WorldContexts.Add(FWorldContext());
-    WorldContexts[0].World = NewObject<UWorld>();
-    WorldContexts[0].WorldType = EWorldType::Editor;
+    WorldContexts.Add(FWorldContext(NewObject<UWorld>(), EWorldType::Editor));
+    WorldContexts.Add(FWorldContext(NewObject<UWorld>(), EWorldType::Editor));
     ///////////////////////////////////
 
 
