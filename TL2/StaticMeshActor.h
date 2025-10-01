@@ -24,7 +24,7 @@ public:
     DECLARE_DUPLICATE(AStaticMeshActor)
 
 protected:
-    UBillboardComponent* BillboardComp = nullptr;
+    //UBillboardComponent* BillboardComp = nullptr;
     UStaticMeshComponent* StaticMeshComponent;
 };
 

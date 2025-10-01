@@ -9,7 +9,7 @@ AStaticMeshActor::AStaticMeshActor()
     Name = "Static Mesh Actor";
     StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
     StaticMeshComponent->SetupAttachment(RootComponent);
-    BillboardComp = CreateDefaultSubobject<UBillboardComponent>("BillboardBox");
+    //BillboardComp = CreateDefaultSubobject<UBillboardComponent>("BillboardBox");
 
     //StaticMeshComponent->SetOwnedActor(this);
 }
