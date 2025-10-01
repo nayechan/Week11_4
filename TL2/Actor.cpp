@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Actor.h"
 #include "SceneComponent.h"
 #include "ObjectFactory.h"
@@ -310,6 +310,10 @@ FVector AActor::GetActorScale() const
 
 FMatrix AActor::GetWorldMatrix() const
 {
+	if (RootComponent == nullptr)
+	{
+		UE_LOG("RootComponent is nullptr");
+	}
 	return RootComponent ? RootComponent->GetWorldMatrix() : FMatrix::Identity();
 }
 

@@ -61,6 +61,10 @@ FBound UAABoundingBoxComponent::GetWorldBound() const
     const FVector LocalExtents = (LocalMax - LocalMin) * 0.5f;
 
     // 2) 월드 행렬
+    if (GetOwner() == nullptr)
+    {
+        UE_LOG("owner is nullptr");
+    }
     const FMatrix WorldMat = GetOwner()->GetWorldMatrix();
 
     // 3) SIMD 최적화된 월드 중심 계산 (행벡터: p' = p * M)

@@ -139,7 +139,7 @@ public:
 protected:
     TSet<UActorComponent*> OwnedComponents;   // 모든 컴포넌트 (씬/비씬)
     TArray<USceneComponent*> SceneComponents; // 씬 컴포넌트들만 별도 캐시(트리/렌더/ImGui용)
-    bool bTickInEditor = true; // 에디터에서도 틱 허용
+    bool bTickInEditor = false; // 에디터에서도 틱 허용
     bool bHiddenInGame = false;
     bool bPendingDestroy = false;
 

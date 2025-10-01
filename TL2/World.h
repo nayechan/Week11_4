@@ -35,6 +35,8 @@ public:
     UWorld();
     ~UWorld() override;
 
+    bool bPie = false;
+
 public:
     /** 초기화 */
     void InitializeGrid();
