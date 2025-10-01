@@ -73,6 +73,7 @@ namespace
 			}();
 		return Options;
 	}
+	// 초기에 들어간 컴포넌트들은 지우지 못하도록
 	bool IsProtectedSceneComponent(const AActor& Actor, const USceneComponent* Component)
 	{
 		if (!Component)
@@ -191,7 +192,7 @@ namespace
 			NodeFlags |= ImGuiTreeNodeFlags_Selected;
 		}
 
-		FString Label = Component->GetClass() ? Component->GetClass()->Name : "Unknown Component";
+		FString Label = Component->GetClass() ? Component->GetName() : "Unknown Component";
 		if (Component == Actor.GetRootComponent())
 		{
 			Label += " (Root)";
@@ -339,8 +340,8 @@ void UTargetActorTransformWidget::Update()
 
 				// 스냅샷
 				UpdateTransformFromActor();
-				PrevEditRotationUI = EditRotation; // ★ 회전 UI 기준값 초기화
-				bRotationEditing = false;          // ★ 편집 상태 초기화
+				PrevEditRotationUI = EditRotation; // 회전 UI 기준값 초기화
+				bRotationEditing = false;          // 편집 상태 초기화
 			}
 			catch (...)
 			{
@@ -508,7 +509,7 @@ void UTargetActorTransformWidget::RenderWidget()
 
 				ImGui::PushID(Component);
 				const bool bSelected = (Component == SelectedComponent);
-				if (ImGui::Selectable(Component->GetClass()->Name, bSelected))
+				if (ImGui::Selectable(Component->GetName().c_str(), bSelected))
 				{
 					SelectedComponent = Component; // 하이라이트 유지
 				}
@@ -793,11 +794,13 @@ void UTargetActorTransformWidget::RenderWidget()
 				if (SelectedMeshIdx == -1 && !CurrentPath.empty())
 				{
 					for (int i = 0; i < static_cast<int>(Paths.size()); ++i)
+					{
 						if (Paths[i] == CurrentPath || DisplayNames[i] == GetBaseNameNoExt(CurrentPath))
 						{
 							SelectedMeshIdx = i;
 							break;
 						}
+					}
 				}
 
 				ImGui::SetNextItemWidth(240);
@@ -828,11 +831,13 @@ void UTargetActorTransformWidget::RenderWidget()
 					if (!CurrentPath.empty())
 					{
 						for (int i = 0; i < static_cast<int>(Paths.size()); ++i)
+						{
 							if (Paths[i] == CurrentPath || DisplayNames[i] == GetBaseNameNoExt(CurrentPath))
 							{
 								SelectedMeshIdx = i;
 								break;
 							}
+						}
 					}
 				}
 			}

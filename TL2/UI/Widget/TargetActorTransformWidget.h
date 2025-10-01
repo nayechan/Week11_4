@@ -58,6 +58,8 @@ private:
 	// 선택된 컴포넌트
 	USceneComponent* SelectedComponent = nullptr;
 
+	// 선택된 컴포넌트 가져오기
 	USceneComponent* GetEditingComponent() const;  // ← 추가
+	// 스태틱메쉬컴포넌트	가져오기
 	UStaticMeshComponent* GetEditingStaticMeshComponent() const;
 };
