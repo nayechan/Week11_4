@@ -54,7 +54,7 @@ void UBillboardComponent::Render(URenderer* Renderer, const FMatrix& View, const
 	FVector CamRight = CameraActor->GetActorRight();
 	FVector CamUp = CameraActor->GetActorUp();
 	FVector cameraPosition = CameraActor->GetActorLocation();
-    Renderer->UpdateBillboardConstantBuffers(Owner->GetActorLocation() + FVector(0.f, 0.f, 1.f) * Owner->GetActorScale().Z, View, Proj, CamRight, CamUp);
+    Renderer->UpdateBillboardConstantBuffers(Owner->GetActorLocation() + GetRelativeLocation() + FVector(0.f, 0.f, 1.f) * Owner->GetActorScale().Z, View, Proj, CamRight, CamUp);
 
     Renderer->PrepareShader(Material->GetShader());
     Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
