@@ -5,6 +5,12 @@ class URenderer;
 class D3D11RHI;
 class UWorld;
 
+struct FWorldContext
+{
+    UWorld* World;
+    EWorldType WorldType;
+};
+
 class UEditorEngine final 
 {
 public:
@@ -23,7 +29,7 @@ public:
     
     URenderer* GetRenderer() const { return Renderer.get(); }
     D3D11RHI* GetRHIDevice() { return &RHIDevice; }
-    UWorld* GetDefaultWorld() { return World; }
+    UWorld* GetDefaultWorld();
 
 private:
     bool CreateMainWindow(HINSTANCE hInstance);
@@ -44,7 +50,7 @@ private:
     std::unique_ptr<URenderer> Renderer;
     
     //월드 핸들
-    UWorld* World = nullptr;
+    TArray<FWorldContext> WorldContexts;
 
     //틱 상태
     bool bRunning = false;

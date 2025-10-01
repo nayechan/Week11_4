@@ -79,7 +79,7 @@ public:
     const URenderSettings& GetRenderSettings() const { return RenderSettings; }
 
 private:
-    /** === 액터 관리 === */
+    /** === 에디터 특수 액터 관리 === */
     TArray<AActor*> EditorActors;
     ACameraActor* MainCameraActor = nullptr;
     AGridActor* GridActor = nullptr;

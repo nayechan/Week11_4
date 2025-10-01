@@ -416,4 +416,16 @@ enum class EViewportType : uint8
     Orthographic_Right,   // 오른쪽면 직교 뷰
     Orthographic_Back     // 측면 직교 뷰
 };
+
+enum class EWorldType : uint8
+{
+    None = 0,
+
+    Editor,
+    Game,
+
+    End,
+};
+
 //#endif /** UE_ENUMS_H */
+
