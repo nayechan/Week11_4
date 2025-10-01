@@ -31,6 +31,11 @@ public:
     D3D11RHI* GetRHIDevice() { return &RHIDevice; }
     UWorld* GetDefaultWorld();
 
+    void AddWorldContext(const FWorldContext& InWorldContext)
+    {
+        WorldContexts.push_back(InWorldContext);
+    }
+
 private:
     bool CreateMainWindow(HINSTANCE hInstance);
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

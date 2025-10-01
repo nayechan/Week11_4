@@ -169,16 +169,19 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     UI.Initialize(HWnd, RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
     INPUT.Initialize(HWnd);
 
+    FObjManager::Preload();
+
     ///////////////////////////////////
     WorldContexts.Add(FWorldContext());
     WorldContexts[0].World = NewObject<UWorld>();
     WorldContexts[0].WorldType = EWorldType::Editor;
     ///////////////////////////////////
 
+    GWorld = WorldContexts[0].World;
 
     // 슬레이트 매니저 (singleton)
     FRect ScreenRect(0, 0, ClientWidth, ClientHeight);
-    SLATE.Initialize(RHIDevice.GetDevice(), WorldContexts[0].World, ScreenRect);
+    SLATE.Initialize(RHIDevice.GetDevice(), GWorld, ScreenRect);
 
     //스폰을 위한 월드셋
     UI.SetWorld(WorldContexts[0].World);
@@ -194,9 +197,14 @@ void UEditorEngine::Tick(float DeltaSeconds)
 
     for (auto& WorldContext : WorldContexts)
     {
-        if (WorldContext.World)
+        // 테스트용으로 분기해놨음
+        if (WorldContext.World && bPIEActive && WorldContext.WorldType == EWorldType::Game)
         {
-            WorldContext.World->Tick(DeltaSeconds);
+            WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
+        }
+        else if (WorldContext.World && !bPIEActive && WorldContext.WorldType == EWorldType::Editor)
+        {
+            WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
         }
     }
     
@@ -296,7 +304,21 @@ void UEditorEngine::StartPIE()
     //// AActor::BeginPlay()
     //PIEWorld->InitializeActorsForPlay();
 
+    UWorld* EditorWorld = WorldContexts[0].World;
+    UWorld* PIEWorld = UWorld::DuplicateWorldForPIE(EditorWorld);
+
+    GWorld = PIEWorld;
+    SLATE.SetWorld(GWorld);
+
     bPIEActive = true;
+
+    //// 슬레이트 매니저 (singleton)
+    //FRect ScreenRect(0, 0, ClientWidth, ClientHeight);
+    //SLATE.Initialize(RHIDevice.GetDevice(), PIEWorld, ScreenRect);
+
+    ////스폰을 위한 월드셋
+    //UI.SetWorld(PIEWorld);
+
     UE_LOG("START PIE CLICKED");
 }
 

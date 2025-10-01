@@ -40,6 +40,7 @@ void AActor::BeginPlay()
 
 void AActor::Tick(float DeltaSeconds)
 {
+	
 }
 
 void AActor::Destroy()

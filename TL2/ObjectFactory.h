@@ -36,9 +36,9 @@ namespace ObjectFactory
 
     // 5) 복사생성자 호출 + GUObjectArray 자동 등록
     template<class T>
-    inline T* DuplicateObject(UObject* Source)
+    inline T* DuplicateObject(const UObject* Source)
     {
-        UObject* Dest = new T(*static_cast<T*>(Source));
+        UObject* Dest = new T(*static_cast<const T*>(Source));
         return static_cast<T*>(AddToGUObjectArray(T::StaticClass(), Dest));
     }
 

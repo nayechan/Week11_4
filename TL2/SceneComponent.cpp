@@ -266,7 +266,7 @@ void USceneComponent::DuplicateSubObjects()
     for (USceneComponent*& Child : AttachChildren)
     {
         Child = Child->Duplicate();
-        Child->SetupAttachment(this); // Child의 AttachParent를 재설정
+        Child->SetParent(this); // Child의 AttachParent를 재설정
     }
 }
 

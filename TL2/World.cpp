@@ -30,7 +30,7 @@ UWorld::UWorld()
 	: Partition(new UWorldPartitionManager())
 {
 	Level = std::make_unique<ULevel>();
-	FObjManager::Preload();
+	//FObjManager::Preload();
 	CreateLevel();
 
 	InitializeGrid();
@@ -76,7 +76,7 @@ void UWorld::InitializeGizmo()
 	EditorActors.push_back(GizmoActor);
 }
 
-void UWorld::Tick(float DeltaSeconds)
+void UWorld::Tick(float DeltaSeconds, EWorldType InWorldType)
 {
 	Partition->Update(DeltaSeconds, /*budget*/256);
 
@@ -85,13 +85,51 @@ void UWorld::Tick(float DeltaSeconds)
 	{
 		for (AActor* Actor : Level->GetActors())
 		{
-			if (Actor) Actor->Tick(DeltaSeconds);
+			if (Actor && (Actor->CanTickInEditor() || InWorldType == EWorldType::Game))
+			{
+				Actor->Tick(DeltaSeconds);
+			}
 		}
 	}
 	for (AActor* EditorActor : EditorActors)
 	{
-		if (EditorActor) EditorActor->Tick(DeltaSeconds);
+		if (EditorActor && InWorldType == EWorldType::Editor) EditorActor->Tick(DeltaSeconds);
 	}
+}
+
+UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
+{
+	// 레벨 새로 생성
+	// 월드 카피 및 월드에 이 새로운 레벨 할당
+	// 월드 컨텍스트 새로 생성(월드타입, 카피한 월드)
+	// 월드의 레벨에 원래 Actor들 다 복사
+	// 해당 월드의 Initialize 호출?
+
+	//ULevel* NewLevel = ULevelService::CreateNewLevel();
+	UWorld* PIEWorld = NewObject<UWorld>(); // 레벨도 새로 생성됨
+	
+	FWorldContext PIEWorldContext = FWorldContext(PIEWorld, EWorldType::Game);
+	GEngine.AddWorldContext(PIEWorldContext);
+
+	const TArray<AActor*>& SourceActors = InEditorWorld->GetLevel()->GetActors();
+	for (AActor* SourceActor : SourceActors)
+	{
+		if (!SourceActor)
+		{
+			UE_LOG("Duplicate failed: SourceActor is nullptr");
+			continue;
+		}
+
+		AActor* NewActor = SourceActor->Duplicate();
+		if (!NewActor)
+		{
+			UE_LOG("Duplicate failed: NewActor is nullptr");
+			continue;
+		}
+		PIEWorld->AddActorToLevel(NewActor);
+	}
+
+	return PIEWorld;
 }
 
 FString UWorld::GenerateUniqueActorName(const FString& ActorType)

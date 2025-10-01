@@ -81,6 +81,8 @@ public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(USceneComponent)
 
+    
+
 protected:
     FVector RelativeLocation{ 0,0,0 };
     FQuat   RelativeRotation;
@@ -95,4 +97,11 @@ protected:
     FTransform RelativeTransform;
 
     void UpdateRelativeTransform();
+    
+private:
+    // DuplicateSubObjects에서 쓰기 위함
+    void SetParent(USceneComponent* InParent)
+    {
+        AttachParent = InParent;
+    }
 };

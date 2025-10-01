@@ -10,10 +10,12 @@ AStaticMeshActor::AStaticMeshActor()
     StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
     StaticMeshComponent->SetupAttachment(RootComponent);
     //StaticMeshComponent->SetOwnedActor(this);
+    //bTickInEditor = true; // 테스트 용
 }
 
 void AStaticMeshActor::Tick(float DeltaTime)
 {
+    AddActorWorldLocation(FVector(3.0f, 0.0f, 0.0f) * DeltaTime);
     if (bIsPicked)
     {
         //CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);

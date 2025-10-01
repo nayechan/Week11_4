@@ -15,7 +15,7 @@ void UObject::DuplicateSubObjects()
     UUID = GenerateUUID(); // UUID는 고유값이므로 새로 생성
 }
 
-UObject* UObject::Duplicate()
+UObject* UObject::Duplicate() const
 {
     UObject* NewObject = ObjectFactory::DuplicateObject<UObject>(this); // 모든 멤버 얕은 복사
 

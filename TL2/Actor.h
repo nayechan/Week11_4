@@ -78,6 +78,11 @@ public:
     void SetName(const FString& InName) { Name = InName; }
     const FName& GetName() { return Name; }
 
+    bool CanTickInEditor() const
+    {
+        return bTickInEditor;
+    }
+
     template<typename T>
     T* CreateDefaultSubobject(const FName& SubobjectName)
     {
@@ -111,6 +116,7 @@ protected:
     TArray<USceneComponent*> Components;
     bool bIsPicked = false;
     bool bCanEverTick = true;
+    bool bTickInEditor = false;
     bool bHiddenInGame = false;
     bool bIsCulled = false;
 };
