@@ -128,9 +128,13 @@ void FViewportClient::SetupCameraMode()
 }
 void FViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y) 
 {
-    World->GetGizmoActor()->ProcessGizmoInteraction(Camera, Viewport, static_cast<float>(X), static_cast<float>(Y));
 
-    if ( !bIsMouseButtonDown && !World->GetGizmoActor()->GetbIsHovering()&& bIsMouseRightButtonDown) // 직교투영이고 마우스 버튼이 눌려있을 때
+    if (World->GetGizmoActor())
+        World->GetGizmoActor()->ProcessGizmoInteraction(Camera, Viewport, static_cast<float>(X), static_cast<float>(Y));
+
+    if ( !bIsMouseButtonDown && 
+        (!World->GetGizmoActor() || !World->GetGizmoActor()->GetbIsHovering()) &&
+        bIsMouseRightButtonDown) // 직교투영이고 마우스 버튼이 눌려있을 때
     {
         if (ViewportType != EViewportType::Perspective) {
             
@@ -170,7 +174,7 @@ void FViewportClient::MouseButtonDown(FViewport* Viewport, int32 X, int32 Y, int
 {
     if (!Viewport || !World) // Only handle left mouse button
         return;
-
+    
     // GetInstance viewport size
     FVector2D ViewportSize(static_cast<float>(Viewport->GetSizeX()), static_cast<float>(Viewport->GetSizeY()));
     FVector2D ViewportOffset(static_cast<float>(Viewport->GetStartX()), static_cast<float>(Viewport->GetStartY()));
@@ -179,7 +183,11 @@ void FViewportClient::MouseButtonDown(FViewport* Viewport, int32 X, int32 Y, int
     FVector2D ViewportMousePos(static_cast<float>(X) + ViewportOffset.X, static_cast<float>(Y) + ViewportOffset.Y);
     AActor* PickedActor = nullptr;
     TArray<AActor*> AllActors = World->GetActors();
-    if (Button == 0) {
+    if (Button == 0) 
+    {
+        if (!World->GetGizmoActor())
+            return;
+
         bIsMouseButtonDown = true;
         // 뷰포트의 실제 aspect ratio 계산
         float PickingAspectRatio = ViewportSize.X / ViewportSize.Y;
@@ -193,7 +201,7 @@ void FViewportClient::MouseButtonDown(FViewport* Viewport, int32 X, int32 Y, int
 
         if (PickedActor)
         {
-            USelectionManager::GetInstance().SelectActor(PickedActor);
+            if (World) World->GetSelectionManager()->SelectActor(PickedActor);
             UUIManager::GetInstance().SetPickedActor(PickedActor);
             if (World->GetGizmoActor())
             {
@@ -205,14 +213,14 @@ void FViewportClient::MouseButtonDown(FViewport* Viewport, int32 X, int32 Y, int
         {
             UUIManager::GetInstance().ResetPickedActor();
             // Clear selection if nothing was picked
-            USelectionManager::GetInstance().ClearSelection();
+            if (World) World->GetSelectionManager()->ClearSelection();
         }
     }
-    else if (Button==1){//우클릭시 
+    else if (Button==1)
+    {//우클릭시 
         bIsMouseRightButtonDown = true;
         MouseLastX = X;
         MouseLastY = Y;
-
     }
 
 }

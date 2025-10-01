@@ -12,10 +12,14 @@ AStaticMeshActor::AStaticMeshActor()
     //BillboardComp = CreateDefaultSubobject<UBillboardComponent>("BillboardBox");
 
     //StaticMeshComponent->SetOwnedActor(this);
+    //bTickInEditor = true; // 테스트 용
 }
 
 void AStaticMeshActor::Tick(float DeltaTime)
 {
+    Super::Tick(DeltaTime);
+
+    AddActorWorldLocation(FVector(3.0f, 0.0f, 0.0f) * DeltaTime);
     if (bIsPicked)
     {
         //CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);

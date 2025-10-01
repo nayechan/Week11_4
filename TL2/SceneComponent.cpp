@@ -104,6 +104,7 @@ void USceneComponent::SetWorldTransform(const FTransform& W)
     }
 
     RelativeLocation = RelativeTransform.Translation;
+    UE_LOG("UUID: %d, RelativeLocation: %.2f, %.2f, %.2f", UUID, RelativeLocation.X, RelativeLocation.Y, RelativeLocation.Z);
     RelativeRotation = RelativeTransform.Rotation;
     RelativeScale = RelativeTransform.Scale3D;
 }
@@ -266,7 +267,7 @@ void USceneComponent::DuplicateSubObjects()
     for (USceneComponent*& Child : AttachChildren)
     {
         Child = Child->Duplicate();
-        Child->SetupAttachment(this); // Child의 AttachParent를 재설정
+        Child->SetParent(this); // Child의 AttachParent를 재설정
     }
 }
 

@@ -16,8 +16,6 @@
 #include "BillboardComponent.h"
 using namespace std;
 
-//// UE_LOG 대체 매크로
-//#define UE_LOG(fmt, ...)
 
 // ★ 고정 오더: ZYX (Yaw-Pitch-Roll) ? 기즈모의 Delta 곱(Z * Y * X)과 동일
 static inline FQuat QuatFromEulerZYX_Deg(const FVector& Deg)
@@ -800,7 +798,7 @@ void UTargetActorTransformWidget::RenderWidget()
 			FString CurrentPath;
 			if (UStaticMesh* CurMesh = TargetSMC->GetStaticMesh())
 			{
-				CurrentPath = CurMesh->GetAssetPathFileName();
+				CurrentPath = ToUtf8(CurMesh->GetAssetPathFileName());
 				ImGui::Text("Current: %s", CurrentPath.c_str());
 			}
 			else
@@ -856,8 +854,8 @@ void UTargetActorTransformWidget::RenderWidget()
 							else
 								SMActorOwner->SetCollisionComponent();
 						}
-
-						UE_LOG("Applied StaticMesh: %s", NewPath.c_str());
+						const FString LogPath = ToUtf8(NewPath);
+						UE_LOG("Applied StaticMesh: %s", LogPath.c_str());
 					}
 				}
 

@@ -19,23 +19,6 @@
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
 
-// ANSI 문자열을 UTF-8로 변환하는 유틸리티 함수
-// TODO (동민, 한글) - 혹시나 프로젝트 설정의 /utf-8 옵션을 끈다면 이 설정이 무의미해집니다.
-FString ToUtf8(const FString& Ansi)
-{
-    if (Ansi.empty()) return {};
-
-    // ANSI -> Wide
-    int WideLen = MultiByteToWideChar(CP_ACP, 0, Ansi.c_str(), -1, nullptr, 0);
-    FWideString Wide(static_cast<size_t>(WideLen - 1), L'\0');
-    MultiByteToWideChar(CP_ACP, 0, Ansi.c_str(), -1, Wide.data(), WideLen);
-
-    // Wide -> UTF-8
-    int Utf8Len = WideCharToMultiByte(CP_UTF8, 0, Wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    FString Utf8(static_cast<size_t>(Utf8Len - 1), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, Wide.c_str(), -1, Utf8.data(), Utf8Len, nullptr, nullptr);
-    return Utf8;
-}
 // std 함수들 정의
 using std::max;
 using std::min;
@@ -392,10 +375,10 @@ void UPrimitiveSpawnWidget::SpawnActors() const
 
             // 월드 옥트리에 등록
             World->OnActorSpawned(NewActor);
-
+            const FString LogPath = ToUtf8(MeshPath);
             SuccessCount++;
             UE_LOG("PrimitiveSpawn: Created at (%.2f, %.2f, %.2f) scale %.2f using %s",
-                SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z, SpawnScale, MeshPath.c_str());
+                SpawnLocation.X, SpawnLocation.Y, SpawnLocation.Z, SpawnScale, LogPath.c_str());
         }
         else
         {

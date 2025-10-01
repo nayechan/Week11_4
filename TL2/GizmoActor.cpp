@@ -120,15 +120,15 @@ AGizmoActor::AGizmoActor()
 
 	CurrentMode = EGizmoMode::Translate;
 
-	// 매니저 참조 초기화
-	SelectionManager = &USelectionManager::GetInstance();
+	// 매니저 참조 초기화 (월드 소유)
+	SelectionManager = GetWorld() ? GetWorld()->GetSelectionManager() : nullptr;
 	InputManager = &UInputManager::GetInstance();
 	UIManager = &UUIManager::GetInstance();
 }
 
 void AGizmoActor::Tick(float DeltaSeconds)
 {
-	if (!SelectionManager) SelectionManager = &USelectionManager::GetInstance();
+	if (!SelectionManager) SelectionManager = GetWorld() ? GetWorld()->GetSelectionManager() : nullptr;
 	if (!InputManager) InputManager = &UInputManager::GetInstance();
 	if (!UIManager) UIManager = &UUIManager::GetInstance();
 

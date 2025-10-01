@@ -130,6 +130,7 @@ void D3D11RHI::Release()
 
     if (DefaultRasterizerState) { DefaultRasterizerState->Release();   DefaultRasterizerState = nullptr; }
     if (WireFrameRasterizerState) { WireFrameRasterizerState->Release();   WireFrameRasterizerState = nullptr; }
+    if (NoCullRasterizerState) { NoCullRasterizerState->Release();   NoCullRasterizerState = nullptr; }
     if (BlendState) { BlendState->Release();        BlendState = nullptr; }
 
     // RTV/DSV/FrameBuffer
@@ -709,6 +710,15 @@ void D3D11RHI::ReleaseDeviceAndSwapChain()
         DeviceContext->Release();
         DeviceContext = nullptr;
     }
+
+#if defined(_DEBUG)
+    ID3D11Debug* pDebug = nullptr;
+    if (SUCCEEDED(Device->QueryInterface(__uuidof(ID3D11Debug), (void**)&pDebug)))
+    {
+        pDebug->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+        pDebug->Release();
+    }
+#endif
 
     if (Device)
     {

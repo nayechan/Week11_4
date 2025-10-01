@@ -75,11 +75,17 @@ public:
     // ──────────────────────────────
     USceneComponent* GetAttachParent() const { return AttachParent; }
     const TArray<USceneComponent*>& GetAttachChildren() const { return AttachChildren; }
-    UWorld* GetWorld() { return AttachParent->GetWorld(); }
+    UWorld* GetWorld() { return AttachParent ? AttachParent->GetWorld() : nullptr; }
 
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(USceneComponent)
+
+    // DuplicateSubObjects에서 쓰기 위함
+    void SetParent(USceneComponent* InParent)
+    {
+        AttachParent = InParent;
+    }
 
 protected:
     FVector RelativeLocation{ 0,0,0 };
@@ -95,4 +101,5 @@ protected:
     FTransform RelativeTransform;
 
     void UpdateRelativeTransform();
+    
 };

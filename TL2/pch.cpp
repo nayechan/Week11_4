@@ -13,3 +13,5 @@ UEditorEngine GEngine;
 #ifdef _GAME
 UGameEngine GEngine;
 #endif
+
+UWorld* GWorld = nullptr;

@@ -43,6 +43,8 @@ public:
     void OnMouseUp(FVector2D MousePos, uint32 Button);
 
     void OnShutdown();
+    // Explicit cleanup to release viewports/contexts before D3D device is destroyed
+    void Shutdown();
 
     // 상태
     static SViewportWindow* ActiveViewport; // 현재 드래그 중인 뷰포트
@@ -50,6 +52,13 @@ public:
     // 매니저 자체 위치/크기 (상위 윈도우 크기 기준)
     void SetRect(const FRect& InRect) { Rect = InRect; }
     const FRect& GetRect() const { return Rect; }
+
+    void SetWorld(UWorld* InWorld)
+    {
+        World = InWorld;
+    }
+
+    void SetPIEWorld(UWorld* InWorld);
 
 private:
     FRect Rect; // 이전엔 SWindow로부터 상속받던 영역 정보

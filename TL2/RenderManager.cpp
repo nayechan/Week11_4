@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "RenderManager.h"
 #include "WorldPartitionManager.h"
-#include "SelectionManager.h"
 #include "World.h"
 #include "Renderer.h"
 #include "FViewport.h"
@@ -66,7 +65,9 @@ void URenderManager::Render(UWorld* InWorld, FViewport* Viewport)
     if (!Camera) return;
 
 	//기즈모 카메라 설정
-	World->GetGizmoActor()->SetCameraActor(Camera);
+	if(World->GetGizmoActor())
+		World->GetGizmoActor()->SetCameraActor(Camera);
+	
 	World->GetRenderSettings().SetViewModeIndex(Client->GetViewModeIndex());
     RenderViewports(Camera, Viewport);
 }
@@ -105,10 +106,10 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	Renderer->SetViewModeType(World->GetRenderSettings().GetViewModeIndex());
 
 	// ============ Culling Logic Dispatch ========= //
-	for (AActor* Actor : World->GetActors())
-		Actor->SetCulled(true);
-	if (World->GetPartitionManager())
-		World->GetPartitionManager()->FrustumQuery(ViewFrustum);
+	//for (AActor* Actor : World->GetActors())
+	//	Actor->SetCulled(true);
+	//if (World->GetPartitionManager())
+	//	World->GetPartitionManager()->FrustumQuery(ViewFrustum);
 
 	Renderer->UpdateHighLightConstantBuffer(false, rgb, 0, 0, 0, 0);
 
@@ -161,9 +162,6 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 				{
 					continue;
 				}
-
-				if (SELECTION.IsActorSelected(Actor))
-					continue;
 
 			for (USceneComponent* Component : Actor->GetSceneComponents())
 			{
@@ -289,35 +287,6 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 				//		}
 				//	}
-			}
-		}
-	}
-	for (AActor* SelectedActor : SELECTION.GetSelectedActors())
-	{
-		if (!SelectedActor) continue;
-		if (SelectedActor->GetActorHiddenInGame()) continue;
-		if (Cast<AStaticMeshActor>(SelectedActor) && !World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-			continue;
-
-		for (USceneComponent* Component : SelectedActor->GetSceneComponents())
-		{
-			if (!Component) continue;
-			if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-				if (!ActorComp->IsActive()) continue;
-
-			if (Cast<UTextRenderComponent>(Component) && !World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText)) continue;
-			if (Cast<UAABoundingBoxComponent>(Component) && !World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes)) continue;
-
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
-			{
-				//UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Primitive);
-				//if (SMC && SMC->IsChangedMaterialByUser() == false)
-				//{
-				//	continue;
-				//}
-				Renderer->SetViewModeType(World->GetRenderSettings().GetViewModeIndex());
-				Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-				Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 			}
 		}
 	}

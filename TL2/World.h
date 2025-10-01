@@ -35,8 +35,11 @@ public:
     UWorld();
     ~UWorld() override;
 
+    bool bPie = false;
+
 public:
     /** 초기화 */
+    void Initialize();
     void InitializeGrid();
     void InitializeGizmo();
 
@@ -65,7 +68,7 @@ public:
     FString GenerateUniqueActorName(const FString& ActorType);
 
     /** === 타임 / 틱 === */
-    virtual void Tick(float DeltaSeconds);
+    virtual void Tick(float DeltaSeconds, EWorldType InWorldType);
 
     /** === 필요한 엑터 게터 === */
     const TArray<AActor*>& GetActors() { static TArray<AActor*> Empty; return Level ? Level->GetActors() : Empty; }
@@ -77,6 +80,12 @@ public:
     // Per-world render settings
     URenderSettings& GetRenderSettings() { return RenderSettings; }
     const URenderSettings& GetRenderSettings() const { return RenderSettings; }
+
+    // Per-world SelectionManager accessor
+    USelectionManager* GetSelectionManager() { return SelectionMgr.get(); }
+
+    // PIE용 World 생성
+    static UWorld* DuplicateWorldForPIE(UWorld* InEditorWorld);
 
 private:
     /** === 에디터 특수 액터 관리 === */
@@ -99,6 +108,9 @@ private:
 
     //partition
     std::unique_ptr<UWorldPartitionManager> Partition = nullptr;
+
+    // Per-world selection manager
+    std::unique_ptr<USelectionManager> SelectionMgr;
 };
 
 template<class T>

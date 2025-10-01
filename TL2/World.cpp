@@ -29,12 +29,9 @@
 UWorld::UWorld()
 	: Partition(new UWorldPartitionManager())
 {
+	SelectionMgr = std::make_unique<USelectionManager>();
 	Level = std::make_unique<ULevel>();
-	FObjManager::Preload();
 	CreateLevel();
-
-	InitializeGrid();
-	InitializeGizmo();
 }
 
 UWorld::~UWorld()
@@ -57,6 +54,14 @@ if (Level)
 	GizmoActor = nullptr;
 }
 
+void UWorld::Initialize()
+{
+	CreateLevel();
+
+	InitializeGrid();
+	InitializeGizmo();
+}
+
 void UWorld::InitializeGrid()
 {
 	GridActor = NewObject<AGridActor>();
@@ -76,7 +81,7 @@ void UWorld::InitializeGizmo()
 	EditorActors.push_back(GizmoActor);
 }
 
-void UWorld::Tick(float DeltaSeconds)
+void UWorld::Tick(float DeltaSeconds, EWorldType InWorldType)
 {
 	Partition->Update(DeltaSeconds, /*budget*/256);
 
@@ -85,13 +90,53 @@ void UWorld::Tick(float DeltaSeconds)
 	{
 		for (AActor* Actor : Level->GetActors())
 		{
-			if (Actor) Actor->Tick(DeltaSeconds);
+			if (Actor && (Actor->CanTickInEditor() || InWorldType == EWorldType::Game))
+			{
+				Actor->Tick(DeltaSeconds);
+			}
 		}
 	}
 	for (AActor* EditorActor : EditorActors)
 	{
-		if (EditorActor) EditorActor->Tick(DeltaSeconds);
+		if (EditorActor && InWorldType == EWorldType::Editor) EditorActor->Tick(DeltaSeconds);
 	}
+}
+
+UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
+{
+	// 레벨 새로 생성
+	// 월드 카피 및 월드에 이 새로운 레벨 할당
+	// 월드 컨텍스트 새로 생성(월드타입, 카피한 월드)
+	// 월드의 레벨에 원래 Actor들 다 복사
+	// 해당 월드의 Initialize 호출?
+
+	//ULevel* NewLevel = ULevelService::CreateNewLevel();
+	UWorld* PIEWorld = NewObject<UWorld>(); // 레벨도 새로 생성됨
+	PIEWorld->bPie = true;
+	
+	FWorldContext PIEWorldContext = FWorldContext(PIEWorld, EWorldType::Game);
+	GEngine.AddWorldContext(PIEWorldContext);
+
+	const TArray<AActor*>& SourceActors = InEditorWorld->GetLevel()->GetActors();
+	for (AActor* SourceActor : SourceActors)
+	{
+		if (!SourceActor)
+		{
+			UE_LOG("Duplicate failed: SourceActor is nullptr");
+			continue;
+		}
+
+		AActor* NewActor = SourceActor->Duplicate();
+		if (!NewActor)
+		{
+			UE_LOG("Duplicate failed: NewActor is nullptr");
+			continue;
+		}
+		PIEWorld->AddActorToLevel(NewActor);
+		NewActor->SetWorld(PIEWorld);
+	}
+
+	return PIEWorld;
 }
 
 FString UWorld::GenerateUniqueActorName(const FString& ActorType)
@@ -115,7 +160,7 @@ bool UWorld::DestroyActor(AActor* Actor)
 	Actor->MarkPendingDestroy();
 
 	// 선택/UI 해제
-	SELECTION.DeselectActor(Actor);
+	if (SelectionMgr) SelectionMgr->DeselectActor(Actor);
 	if (UI.GetPickedActor() == Actor)
 		UI.ResetPickedActor();
 
@@ -140,7 +185,7 @@ bool UWorld::DestroyActor(AActor* Actor)
 		ObjectFactory::DeleteObject(Actor);
 
 		// 삭제된 액터 정리
-		SELECTION.CleanupInvalidActors();
+		if (SelectionMgr) SelectionMgr->CleanupInvalidActors();
 
 		return true; // 성공적으로 삭제
 	}
@@ -190,10 +235,9 @@ inline FString RemoveObjExtension(const FString& FileName)
 
 void UWorld::CreateLevel()
 {
-	// DEPRECATED shim: forward to LevelService
-	SELECTION.ClearSelection();
+	if (SelectionMgr) SelectionMgr->ClearSelection();
 	UI.ResetPickedActor();
-
+	 
 	SetLevel(ULevelService::CreateNewLevel());
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
@@ -202,7 +246,7 @@ void UWorld::CreateLevel()
 void UWorld::SetLevel(std::unique_ptr<ULevel> InLevel)
 {
     // Make UI/selection safe before destroying previous actors
-    SELECTION.ClearSelection();
+    if (SelectionMgr) SelectionMgr->ClearSelection();
     UI.ResetPickedActor();
 
     // Cleanup current
@@ -231,11 +275,15 @@ void UWorld::SetLevel(std::unique_ptr<ULevel> InLevel)
     }
 
     // Clean any dangling selection references just in case
-    SELECTION.CleanupInvalidActors();
+    if (SelectionMgr) SelectionMgr->CleanupInvalidActors();
 }
 
 void UWorld::AddActorToLevel(AActor* Actor)
 {
-	if (Level) Level->AddActor(Actor);
+	if (Level) 
+	{
+		Level->AddActor(Actor);
+		Partition->Register(Actor);
+	}
 }
 
