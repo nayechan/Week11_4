@@ -8,18 +8,18 @@ PipeLineStateObject::PipeLineStateObject(ID3D11Buffer* InVertexBuffer, ID3D11Buf
 	, IndexBuffer(InIndexBuffer)
 	, SRV(InSRV)
 {
-	RHIDevice = UWorld::GetInstance().GetRenderer()->GetRHIDevice();
+	//RHIDevice = UWorld::GetInstance().GetRenderer()->GetRHIDevice();
 }
 
 void PipeLineStateObject::SetRenderState()
 {
-    assert(RHIDevice && "PSO dont have RHIDevice");
+    //assert(RHIDevice && "PSO dont have RHIDevice");
 
-    RHIDevice->GetDeviceContext()->IASetVertexBuffers(
-        0, 1, &VertexBuffer, &Stride, &Offset
-    );
+    //RHIDevice->GetDeviceContext()->IASetVertexBuffers(
+    //    0, 1, &VertexBuffer, &Stride, &Offset
+    //);
 
-    RHIDevice->GetDeviceContext()->IASetIndexBuffer(
-        IndexBuffer, DXGI_FORMAT_R32_UINT, 0
-    );
+    //RHIDevice->GetDeviceContext()->IASetIndexBuffer(
+    //    IndexBuffer, DXGI_FORMAT_R32_UINT, 0
+    //);
 }

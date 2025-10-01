@@ -2,12 +2,22 @@
 #include "USlateManager.h"
 #include "SWindow.h"
 #include "SSplitterV.h"
-#include "ImGui/imgui.h"
+#include "MenuBarWidget.h"
 #include "SceneIOWindow.h"
 #include "SDetailsWindow.h"
 #include "SControlPanel.h"
-#include "MenuBarWidget.h"
 #include "SViewportWindow.h"
+#include "FViewportClient.h"
+
+USlateManager& USlateManager::GetInstance()
+{
+    static USlateManager* Instance = nullptr;
+    if (Instance == nullptr)
+    {
+        Instance = NewObject<USlateManager>();
+    }
+    return *Instance;
+}
 #include "FViewportClient.h"
 
 extern float CLIENTWIDTH;

@@ -357,7 +357,8 @@ void UPrimitiveSpawnWidget::SpawnActors() const
         if (NewActor)
         {
             //World->StaticMeshActors.push_back(NewActor);
-            World->PushBackToStaticMeshActors(NewActor);
+            //World->PushBackToStaticMeshActors(NewActor);
+
             // 드롭다운에서 선택한 리소스가 있으면 그걸 사용, 아니면 Cube로 기본 설정
             FString MeshPath = "Data/Cube.obj";
             const bool bHasResourceSelection =

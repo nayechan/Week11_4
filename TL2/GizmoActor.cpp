@@ -9,6 +9,7 @@
 #include "UI/UIManager.h"
 #include"FViewport.h"
 #include "Picking.h"
+#include <EditorEngine.h>
 
 AGizmoActor::AGizmoActor()
 {
@@ -160,8 +161,14 @@ TArray<USceneComponent*>* Components = GetGizmoComponents();
 	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
 
 	EViewModeIndex ViewModeIndex = World->GetViewModeIndex();
-	URenderer* Renderer = GetWorld()->GetRenderer();
-	if (!USelectionManager::GetInstance().HasSelection()) return;
+
+
+	//@TODO 기즈모 액터에서 렌더러 접근 수정 필요
+	extern UEditorEngine GEngine;
+	URenderer* Renderer = GEngine.GetRenderer();
+
+
+	if (!SELECTION.HasSelection()) return;
 	FMatrix ViewMatrix = Camera->GetViewMatrix();
 	FMatrix ProjectionMatrix = Camera->GetProjectionMatrix(ViewportAspectRatio, Viewport);
 	FMatrix ModelMatrix;

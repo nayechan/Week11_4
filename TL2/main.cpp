@@ -17,12 +17,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     _CrtSetBreakAlloc(0);
 #endif
 
-    UEditorEngine Engine;
-    if (!Engine.Startup(hInstance))
+    if (!GEngine.Startup(hInstance))
         return -1;
 
-    Engine.MainLoop();
-    Engine.Shutdown();
+    GEngine.MainLoop();
+    GEngine.Shutdown();
 
     return 0;
 }

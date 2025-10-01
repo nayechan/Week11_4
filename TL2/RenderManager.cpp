@@ -24,15 +24,15 @@
 #include "StaticMesh.h"
 #include "Material.h"
 #include "Texture.h"
+#include <EditorEngine.h>
 
 URenderManager::URenderManager()
+	: OcclusionCPU(new FOcclusionCullingManagerCPU())
 {
-    OcclusionCPU = new FOcclusionCullingManagerCPU();
 }
 
 URenderManager::~URenderManager()
 {
-    delete OcclusionCPU;
 }
 
 void URenderManager::BeginFrame()
@@ -52,9 +52,12 @@ void URenderManager::Render(UWorld* InWorld, FViewport* Viewport)
     if (!Viewport) return;
     if (InWorld) World = InWorld; // update current world
 
-    // Ensure renderer is bound lazily from world
-    if (!Renderer && World)
-        Renderer = World->GetRenderer();
+	//엔진 접근 수정
+	if (!Renderer)
+	{
+		extern UEditorEngine GEngine;
+		Renderer = GEngine.GetRenderer();
+	}
 
     FViewportClient* Client = Viewport->GetViewportClient();
     if (!Client) return;
