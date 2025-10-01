@@ -30,6 +30,22 @@ void ULineComponent::GetWorldLineData(TArray<FVector>& OutStartPoints, TArray<FV
     return;
 }
 
+void ULineComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    bLinesVisible = true;
+
+    const uint32 NumLines = Lines.size();
+    for (uint32 idx = 0; idx < NumLines; ++idx)
+    {
+        if (Lines[idx])
+        {
+            Lines[idx] = Lines[idx]->Duplicate();
+        }
+    }
+}
+
 ULineComponent::ULineComponent()
 {
     bLinesVisible = true;

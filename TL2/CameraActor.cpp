@@ -159,6 +159,13 @@ void ACameraActor::ProcessEditorCameraInput(float DeltaSeconds)
     }
 }
 
+void ACameraActor::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    CameraComponent = CameraComponent->Duplicate();
+}
+
 static inline float Clamp(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }
 
 void ACameraActor::ProcessCameraRotation(float DeltaSeconds)

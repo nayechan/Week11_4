@@ -32,6 +32,10 @@ public:
     void GetWorldLineData(TArray<FVector>& OutStartPoints, TArray<FVector>& OutEndPoints, TArray<FVector4>& OutColors) const;
     bool HasVisibleLines() const { return bLinesVisible && !Lines.empty(); }
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(ULineComponent)
+
 private:
     TArray<ULine*> Lines;
     bool bLinesVisible = true;

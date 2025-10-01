@@ -100,6 +100,13 @@ void AGridActor::ClearLines()
     }
 }
 
+void AGridActor::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    LineComponent = LineComponent->Duplicate();
+}
+
 void AGridActor::RegenerateGrid()
 {
     // Clear existing lines

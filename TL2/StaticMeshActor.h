@@ -19,6 +19,10 @@ public:
     void SetStaticMeshComponent(UStaticMeshComponent* InStaticMeshComponent);
 	void SetCollisionComponent(EPrimitiveType InType = EPrimitiveType::Default);
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(AStaticMeshActor)
+
 protected:
     UStaticMeshComponent* StaticMeshComponent;
 };

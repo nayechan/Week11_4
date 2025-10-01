@@ -224,6 +224,41 @@ const TArray<USceneComponent*>& AActor::GetComponents() const
 	return Components;
 }
 
+void AActor::DuplicateSubObjects()
+{
+	Super::DuplicateSubObjects();
+
+	bool bIsPicked = false;
+	bool bCanEverTick = true;
+	bool bHiddenInGame = false;
+	bool bIsCulled = false;
+
+	RootComponent = RootComponent->Duplicate();
+	CollisionComponent = CollisionComponent->Duplicate();
+	TextComp = TextComp->Duplicate();
+
+	RootComponent->SetOwner(this);
+	CollisionComponent->SetOwner(this);
+	TextComp->SetOwner(this);
+
+	World = nullptr; // TODO: World를 PIE World로 할당해야 함.
+
+	for (USceneComponent*& Component : Components)
+	{
+		Component = Component->Duplicate();
+		Component->SetOwner(this);
+	}
+}
+
+//AActor* AActor::Duplicate()
+//{
+//	AActor* NewActor = ObjectFactory::DuplicateObject<AActor>(this); // 모든 멤버 얕은 복사
+//
+//	NewActor->DuplicateSubObjects();
+//
+//	return nullptr;
+//}
+
 void AActor::AddComponent(USceneComponent* Component)
 {
 	if (!Component)

@@ -35,6 +35,10 @@ public:
     // Debug 렌더링용
     // void DrawDebug(ID3D11DeviceContext* DC);
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UOBoundingBoxComponent)
+
 private:
     FVector LocalMin;
     FVector LocalMax;

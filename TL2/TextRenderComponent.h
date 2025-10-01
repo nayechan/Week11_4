@@ -3,7 +3,7 @@
 class UTextRenderComponent : public UPrimitiveComponent
 {
 public:
-	DECLARE_CLASS(UTextRenderComponent, UMeshComponent)
+	DECLARE_CLASS(UTextRenderComponent, UPrimitiveComponent)
 	UTextRenderComponent();
 
 protected:
@@ -18,6 +18,10 @@ public:
 	// void SetText(FString Txt);
 
 	UTextQuad* GetStaticMesh() const { return TextQuad; }
+
+	// ───── 복사 관련 ────────────────────────────
+	void DuplicateSubObjects() override;
+	DECLARE_DUPLICATE(UTextRenderComponent)
 
 private:
 	FString Text;

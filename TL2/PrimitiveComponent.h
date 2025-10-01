@@ -33,6 +33,10 @@ public:
         return bIsCulled;
     }
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UPrimitiveComponent)
+
 protected:
     UMaterial* Material = nullptr;
     bool bIsCulled = false;

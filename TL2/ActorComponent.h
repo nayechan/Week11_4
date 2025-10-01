@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Object.h"
+
 class AActor;
 
 class UActorComponent : public UObject
@@ -36,6 +37,10 @@ public:
         Owner = InOwner;
     }
     AActor* GetOwner() const { return Owner; }
+
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UActorComponent)
 
 protected:
     AActor* Owner = nullptr;  // 자신을 보유한 액터

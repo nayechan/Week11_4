@@ -25,6 +25,9 @@ public:
     // Component access
     ULineComponent* GetLineComponent() const { return LineComponent; }
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(AGridActor)
 private:
     void RegenerateGrid();
     

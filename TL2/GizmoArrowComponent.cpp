@@ -81,3 +81,8 @@ UGizmoArrowComponent::~UGizmoArrowComponent()
 {
 
 }
+
+void UGizmoArrowComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

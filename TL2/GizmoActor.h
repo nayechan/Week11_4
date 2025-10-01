@@ -68,7 +68,12 @@ public:
 
     void ProcessGizmoInteraction(ACameraActor* Camera, FViewport* Viewport, float MousePositionX, float MousePositionY);
     void UpdateConstantScreenScale(ACameraActor* Camera, FViewport* Viewport);
-  
+    
+    // 어차피 gizmo가 게임모드에서 안나오니까 할 필요 없을지도?
+    // ───── 복사 관련 ────────────────────────────
+    /*void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(AGizmoActor)*/
+
 protected:
 
     UGizmoArrowComponent* ArrowX;

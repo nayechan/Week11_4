@@ -170,6 +170,12 @@ TArray<FVector4> UAABoundingBoxComponent::GetLocalCorners() const
     };
 }
 
+void UAABoundingBoxComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+    return;
+}
+
 void UAABoundingBoxComponent::CreateLineData(
     const FVector& Min, const FVector& Max,
     OUT TArray<FVector>& Start,

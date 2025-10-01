@@ -106,3 +106,8 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
 
     assert(MaterailSlots[InMaterialSlotIndex].bChangedByUser == true);
 }
+
+void UStaticMeshComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

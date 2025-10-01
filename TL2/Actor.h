@@ -89,6 +89,10 @@ public:
         return Comp;
     }
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(AActor)
+
 public:
     FName Name;
     USceneComponent* RootComponent = nullptr;

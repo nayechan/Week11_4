@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "StaticMeshComponent.h"
 class UGizmoArrowComponent : public UStaticMeshComponent
 {
@@ -25,6 +25,9 @@ public:
     bool IsHighlighted() const { return bHighlighted; }
     uint32 GetAxisIndex() const { return AxisIndex; }
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UGizmoArrowComponent)
 protected:
     // Compute uniform scale so gizmo appears with a constant on-screen size per viewport
     float ComputeScreenConstantScale(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj, float targetPixels = 30.0f) const;

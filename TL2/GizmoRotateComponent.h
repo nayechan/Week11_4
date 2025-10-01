@@ -10,5 +10,8 @@ protected:
 
 public:
     DECLARE_CLASS(UGizmoRotateComponent, UGizmoArrowComponent)
+
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UGizmoRotateComponent)
 };
 

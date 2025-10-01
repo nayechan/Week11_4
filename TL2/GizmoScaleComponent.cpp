@@ -10,3 +10,8 @@ UGizmoScaleComponent::UGizmoScaleComponent()
 UGizmoScaleComponent::~UGizmoScaleComponent()
 {
 }
+
+void UGizmoScaleComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

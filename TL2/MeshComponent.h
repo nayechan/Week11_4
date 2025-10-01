@@ -11,7 +11,8 @@ protected:
     ~UMeshComponent() override;
 
 public:
-
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UMeshComponent)
 
 protected:
 

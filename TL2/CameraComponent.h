@@ -43,6 +43,10 @@ public:
     FVector GetRight() const;
     FVector GetUp() const;
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UCameraComponent)
+
 private:
     float FieldOfView;   // degrees
     float AspectRatio;

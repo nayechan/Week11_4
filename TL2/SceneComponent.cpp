@@ -251,6 +251,25 @@ void USceneComponent::DetachFromParent(bool bKeepWorld)
     RelativeScale = RelativeTransform.Scale3D;
 }
 
+void USceneComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    /* Hierarchy
+    USceneComponent* AttachParent = nullptr; // 부모에서 SetupAttachment로 알아서 설정해줄거임
+    TArray<USceneComponent*> AttachChildren; // 아래서 깊은 복사
+    */
+
+    AttachParent = nullptr; // 부모 컴포넌트가 이 객체의 SetupAttachment를 호출할 경우, 불필요한 로직(기존 부모에서 제거) 수행 방지
+
+    // AttachChildren 배열의 실제 요소의 포인터 값을 바꿔야 하므로 *이 아닌, *&로 받음
+    for (USceneComponent*& Child : AttachChildren)
+    {
+        Child = Child->Duplicate();
+        Child->SetupAttachment(this); // Child의 AttachParent를 재설정
+    }
+}
+
 // ──────────────────────────────
 // 내부 유틸
 // ──────────────────────────────

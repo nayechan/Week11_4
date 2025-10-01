@@ -48,3 +48,10 @@ void AStaticMeshActor::SetCollisionComponent(EPrimitiveType InType)
     CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);
     CollisionComponent->SetPrimitiveType(InType);
 }
+
+void AStaticMeshActor::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    StaticMeshComponent = StaticMeshComponent->Duplicate();
+}
