@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Object.h"
 #include "Enums.h"
 #include "RenderSettings.h"
@@ -77,6 +77,9 @@ public:
     // Per-world render settings
     URenderSettings& GetRenderSettings() { return RenderSettings; }
     const URenderSettings& GetRenderSettings() const { return RenderSettings; }
+
+    // Per-world SelectionManager accessor
+    USelectionManager* GetSelectionManager() { return SelectionMgr.get(); }
 
     // PIE용 World 생성
     static UWorld* DuplicateWorldForPIE(UWorld* InEditorWorld);

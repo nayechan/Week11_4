@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Object.h"
 #include "Vector.h"
 #include "AABoundingBoxComponent.h"
@@ -119,23 +119,9 @@ public:
     bool GetActorHiddenInGame() const { return bHiddenInGame; }
     bool IsActorVisible() const { return !bHiddenInGame; }
 
-    void SetName(const FString& InName) { Name = InName; }
-    const FName& GetName() { return Name; }
-
     bool CanTickInEditor() const
     {
         return bTickInEditor;
-    }
-
-    template<typename T>
-    T* CreateDefaultSubobject(const FName& SubobjectName)
-    {
-        // NewObject를 통해 생성
-        T* Comp = ObjectFactory::NewObject<T>();
-        Comp->SetOwner(this);
-       // Comp->SetName(SubobjectName);  //나중에 추가 구현
-        AddComponent(Comp);
-        return Comp;
     }
 
     // ───── 복사 관련 ────────────────────────────
@@ -159,8 +145,6 @@ protected:
 
     bool bIsPicked = false;
     bool bCanEverTick = true;
-    bool bTickInEditor = false;
-    bool bHiddenInGame = false;
     bool bIsCulled = false;
 
 
