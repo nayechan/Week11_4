@@ -280,6 +280,7 @@ void UEditorEngine::StartPIE()
     //// AActor::BeginPlay()
     //PIEWorld->InitializeActorsForPlay();
 
+    bPIEActive = true;
     UE_LOG("START PIE CLICKED");
 }
 
@@ -293,5 +294,6 @@ void UEditorEngine::EndPIE()
 
     //GWorld = GEditor->GetEditorWorldContext().World();
 
+    bPIEActive = false;
     UE_LOG("END PIE CLICKED");
 }

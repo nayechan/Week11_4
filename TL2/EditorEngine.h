@@ -17,6 +17,7 @@ public:
 
     void StartPIE();
     void EndPIE();
+    bool IsPIEActive() const { return bPIEActive; }
     
     HWND GetHWND() const { return HWnd; }
     
@@ -48,6 +49,7 @@ private:
     //틱 상태
     bool bRunning = false;
     bool bUVScrollPaused = true;
+    bool bPIEActive = false;
     float UVScrollTime = 0.0f;
     FVector2D UVScrollSpeed = FVector2D(0.5f, 0.5f);
 

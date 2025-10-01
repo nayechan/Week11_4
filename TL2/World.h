@@ -77,9 +77,7 @@ public:
     // Per-world render settings
     URenderSettings& GetRenderSettings() { return RenderSettings; }
     const URenderSettings& GetRenderSettings() const { return RenderSettings; }
-        
-    /** === 레벨 / 월드 구성 === */
-    // TArray<ULevel*> Levels;
+
 private:
     /** === 액터 관리 === */
     TArray<AActor*> EditorActors;

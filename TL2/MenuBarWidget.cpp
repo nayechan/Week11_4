@@ -123,32 +123,6 @@ void UMenuBarWidget::RenderWidget()
         ImGui::EndMenu();
     }
 
-    // ===== PIE Controls (center-ish) =====
-    {
-        // Try to position roughly centered
-        float w = ImGui::GetWindowWidth();
-        float totalBtnW = 200.0f; // approx for two buttons and spacing
-        float startX = (w - totalBtnW) * 0.5f;
-        if (startX > 0.0f)
-        {
-            ImGui::SameLine(startX / ImGui::GetFontSize());
-        }
-#ifdef _EDITOR
-        extern UEditorEngine GEngine;
-        if (ImGui::Button("Start PIE"))
-        {
-            GEngine.StartPIE();
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("End PIE"))
-        {
-            GEngine.EndPIE();
-        }
-#else
-        ImGui::Text("PIE unavailable");
-#endif
-    }
-
     // ===== Help =====
     if (ImGui::BeginMenu("Help"))
     {
@@ -169,6 +143,47 @@ void UMenuBarWidget::RenderWidget()
             (HelpAction ? HelpAction : [this](auto a) { OnHelpMenuAction(a); })("about");
 
         ImGui::EndMenu();
+    }
+
+    // ===== PIE Controls (centered) =====
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+        const char* kStart = "Start PIE";
+        const char* kEnd   = "End PIE";
+        float startW = ImGui::CalcTextSize(kStart).x + style.FramePadding.x * 2.0f;
+        float endW   = ImGui::CalcTextSize(kEnd).x   + style.FramePadding.x * 2.0f;
+        float spacing = style.ItemSpacing.x;
+        float totalW  = startW + spacing + endW;
+
+        float regionMin = ImGui::GetWindowContentRegionMin().x;
+        float regionMax = ImGui::GetWindowContentRegionMax().x;
+        float posX = regionMin + (regionMax - regionMin - totalW) * 0.5f;
+        // Avoid overlapping previously added menus
+        float curX = ImGui::GetCursorPosX();
+        if (posX < curX) posX = curX;
+        ImGui::SameLine(posX);
+
+#ifdef _EDITOR
+        extern UEditorEngine GEngine;
+        bool isPIE = GEngine.IsPIEActive();
+        ImGui::BeginDisabled(isPIE);
+        if (ImGui::Button(kStart, ImVec2(startW, 0.0f)))
+        {
+            GEngine.StartPIE();
+            isPIE = true;
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine(0.0f, spacing);
+        ImGui::BeginDisabled(!isPIE);
+        if (ImGui::Button(kEnd, ImVec2(endW, 0.0f)))
+        {
+            GEngine.EndPIE();
+            isPIE = false;
+        }
+        ImGui::EndDisabled();
+#else
+        ImGui::Text("PIE unavailable");
+#endif
     }
 
     ImGui::EndMainMenuBar();
