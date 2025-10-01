@@ -104,6 +104,7 @@ void USceneComponent::SetWorldTransform(const FTransform& W)
     }
 
     RelativeLocation = RelativeTransform.Translation;
+    UE_LOG("UUID: %d, RelativeLocation: %.2f, %.2f, %.2f", UUID, RelativeLocation.X, RelativeLocation.Y, RelativeLocation.Z);
     RelativeRotation = RelativeTransform.Rotation;
     RelativeScale = RelativeTransform.Scale3D;
 }

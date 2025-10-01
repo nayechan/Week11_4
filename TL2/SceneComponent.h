@@ -81,7 +81,11 @@ public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(USceneComponent)
 
-    
+    // DuplicateSubObjects에서 쓰기 위함
+    void SetParent(USceneComponent* InParent)
+    {
+        AttachParent = InParent;
+    }
 
 protected:
     FVector RelativeLocation{ 0,0,0 };
@@ -98,10 +102,4 @@ protected:
 
     void UpdateRelativeTransform();
     
-private:
-    // DuplicateSubObjects에서 쓰기 위함
-    void SetParent(USceneComponent* InParent)
-    {
-        AttachParent = InParent;
-    }
 };

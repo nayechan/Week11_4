@@ -17,6 +17,8 @@ AStaticMeshActor::AStaticMeshActor()
 
 void AStaticMeshActor::Tick(float DeltaTime)
 {
+    Super::Tick(DeltaTime);
+
     AddActorWorldLocation(FVector(3.0f, 0.0f, 0.0f) * DeltaTime);
     if (bIsPicked)
     {

@@ -391,10 +391,24 @@ void AActor::DuplicateSubObjects()
 
 	World = nullptr; // TODO: World를 PIE World로 할당해야 함.
 
-	for (USceneComponent*& Component : SceneComponents)
+	/*for (USceneComponent*& Component : SceneComponents)
 	{
 		Component = Component->Duplicate();
 		Component->SetOwner(this);
+		Component->
+	}*/
+
+	SceneComponents[0] = RootComponent;
+	SceneComponents[1] = CollisionComponent;
+	SceneComponents[2] = TextComp;
+	for (int i = 3; i < SceneComponents.size(); ++i)
+	{
+		SceneComponents[i] = SceneComponents[i]->Duplicate();
+		SceneComponents[i]->SetOwner(this);
+	}
+	for (int i = 1; i < SceneComponents.size(); ++i)
+	{
+		SceneComponents[i]->SetParent(RootComponent);
 	}
 }
 
