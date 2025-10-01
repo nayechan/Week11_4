@@ -36,6 +36,9 @@ PS_INPUT mainVS(VS_INPUT input)
 
 float4 mainPS(PS_INPUT i) : SV_Target
 {
+
     float4 c = BillboardTex.Sample(LinearSamp, i.uv);
+    if (c.a < 0.1f)
+        discard;
     return c;
 }

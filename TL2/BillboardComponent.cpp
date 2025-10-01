@@ -57,7 +57,7 @@ void UBillboardComponent::Render(URenderer* Renderer, const FMatrix& View, const
 
     Renderer->PrepareShader(Material->GetShader());
     // Depth-test against scene so floor/geometry don’t overdraw later
-    Renderer->OMSetDepthStencilState(EComparisonFunc::Always);
+    Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
     Renderer->RSSetState(EViewModeIndex::VMI_Unlit);
     Renderer->DrawIndexedPrimitiveComponent(this, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
