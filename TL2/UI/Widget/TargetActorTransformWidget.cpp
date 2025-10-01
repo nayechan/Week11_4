@@ -69,10 +69,6 @@ namespace
 			{
 				TArray<FAddableComponentDescriptor> Result;
 				Result.push_back({ "Static Mesh Component", UStaticMeshComponent::StaticClass(), "Static mesh 렌더링용 컴포넌트" });
-				Result.push_back({ "Camera Component", UCameraComponent::StaticClass(), "카메라 뷰/프로젝션 제공" });
-				Result.push_back({ "Text Render Component", UTextRenderComponent::StaticClass(), "텍스트 표시" });
-				Result.push_back({ "Line Component", ULineComponent::StaticClass(), "라인/디버그 드로잉" });
-				Result.push_back({ "AABB Component", UAABoundingBoxComponent::StaticClass(), "바운딩 박스 시각화" });
 				Result.push_back({ "Billboard Component", UBillboardComponent::StaticClass(), "빌보드 텍스쳐 표시" });
 				return Result;
 			}();
