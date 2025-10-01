@@ -8,13 +8,14 @@
 UTextRenderComponent::UTextRenderComponent()
 {
     auto& RM = UResourceManager::GetInstance();
-    TextQuad = RM.Get<UTextQuad>("TextBillboard");
+    TextQuad = RM.Get<UQuad>("TextBillboard");
     if (auto* M = RM.Get<UMaterial>("TextBillboard"))
     {
         Material = M;
     }
     else
     {
+
         Material = NewObject<UMaterial>();
         RM.Add<UMaterial>("TextBillboard", Material);
     }

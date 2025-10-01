@@ -1,17 +1,17 @@
 ﻿#pragma once
 
 #include "pch.h"
-#include "TextQuad.h"
+#include "Quad.h"
 #include "MeshLoader.h"
 #include "ResourceManager.h"
 #include "ObjManager.h"
 
-UTextQuad::~UTextQuad()
+UQuad::~UQuad()
 {
     ReleaseResources();
 }
 
-void UTextQuad::Load(const FString& InFilePath, ID3D11Device* InDevice)
+void UQuad::Load(const FString& InFilePath, ID3D11Device* InDevice)
 {
     assert(InDevice);
 
@@ -36,7 +36,7 @@ void UTextQuad::Load(const FString& InFilePath, ID3D11Device* InDevice)
     IndexCount = MeshDataCPU->Indices.size();*/
 }
 
-void UTextQuad::Load(FMeshData* InData, ID3D11Device* InDevice)
+void UQuad::Load(FMeshData* InData, ID3D11Device* InDevice)
 {
     if (VertexBuffer)
     {
@@ -54,7 +54,7 @@ void UTextQuad::Load(FMeshData* InData, ID3D11Device* InDevice)
     IndexCount = static_cast<uint32>(InData->Indices.size());
 }
 
-void UTextQuad::CreateVertexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice)
+void UQuad::CreateVertexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice)
 {
 
     HRESULT hr = D3D11RHI::CreateVertexBuffer<FBillboardVertexInfo_GPU>(InDevice, *InMeshData, &VertexBuffer);
@@ -62,7 +62,7 @@ void UTextQuad::CreateVertexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice
 }
 
 
-void UTextQuad::CreateIndexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice)
+void UQuad::CreateIndexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice)
 {
     HRESULT hr = D3D11RHI::CreateIndexBuffer(InDevice, InMeshData, &IndexBuffer);
 
@@ -70,7 +70,7 @@ void UTextQuad::CreateIndexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice)
 }
 
 
-void UTextQuad::ReleaseResources()
+void UQuad::ReleaseResources()
 {
     if (VertexBuffer)
     {

@@ -6,7 +6,7 @@
 #include "Material.h"
 #include "Texture.h"
 #include "DynamicMesh.h"
-#include "TextQuad.h"
+#include "Quad.h"
 #include "LineDynamicMesh.h"
 
 class UStaticMesh;
@@ -49,6 +49,7 @@ public:
 
     void CreateAxisMesh(float Length, const FString& FilePath);
     void CreateTextBillboardMesh();
+    void CreateBillboardMesh();
     void CreateGridMesh(int N, const FString& FilePath);
     void CreateBoxWireframeMesh(const FVector& Min, const FVector& Max, const FString& FilePath);
     //FMeshData* CreateWireBoxMesh(const FVector& Min, const FVector& Max, const FString& FilePath);
@@ -165,8 +166,8 @@ ResourceType UResourceManager::GetResourceType()
 {
     if (T::StaticClass() == UStaticMesh::StaticClass())
         return ResourceType::StaticMesh;
-    if (T::StaticClass() == UTextQuad::StaticClass())
-        return ResourceType::TextQuad;
+    if (T::StaticClass() == UQuad::StaticClass())
+        return ResourceType::Quad;
     if (T::StaticClass() == UDynamicMesh::StaticClass())
         return ResourceType::DynamicMesh;
     if (T::StaticClass() == ULineDynamicMesh::StaticClass())

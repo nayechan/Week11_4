@@ -2,7 +2,7 @@
 #include "TextRenderComponent.h"
 #include "Shader.h"
 #include "StaticMesh.h"
-#include "TextQuad.h"
+#include "Quad.h"
 #include "StaticMeshComponent.h"
 #include <Windows.h>
 

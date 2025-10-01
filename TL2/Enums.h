@@ -291,7 +291,7 @@ enum class ResourceType : uint8
     None,
 
     StaticMesh,
-    TextQuad,
+    Quad,
     DynamicMesh,
     Shader,
     Texture,

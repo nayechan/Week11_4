@@ -4,13 +4,13 @@
 #include "Enums.h"
 #include <d3d11.h>
 
-class UTextQuad : public UResourceBase
+class UQuad : public UResourceBase
 {
 public:
-    DECLARE_CLASS(UTextQuad, UResourceBase)
+    DECLARE_CLASS(UQuad, UResourceBase)
 
-    UTextQuad() = default;
-    virtual ~UTextQuad() override;
+    UQuad() = default;
+    virtual ~UQuad() override;
 
     void Load(const FString& InFilePath, ID3D11Device* InDevice);
     void Load(FMeshData* InData, ID3D11Device* InDevice);

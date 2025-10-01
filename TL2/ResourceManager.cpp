@@ -4,7 +4,7 @@
 #include "d3dtk/DDSTextureLoader.h"
 #include "ObjManager.h"
 #include "d3dtk/WICTextureLoader.h"
-#include "TextQuad.h"
+#include "Quad.h"
 #include "MeshBVH.h"
 #include "Enums.h"
 #include <filesystem>
@@ -252,10 +252,54 @@ void UResourceManager::CreateTextBillboardMesh()
     BillboardData->Color.resize(MaxQuads * 4);
     BillboardData->UV.resize(MaxQuads * 4);
 
-    UTextQuad* Mesh = NewObject<UTextQuad>();
+    UQuad* Mesh = NewObject<UQuad>();
     Mesh->Load(BillboardData, Device);
-    Add<UTextQuad>("TextBillboard", Mesh);
+    Add<UQuad>("TextBillboard", Mesh);
     UMeshLoader::GetInstance().AddMeshData("TextBillboard", BillboardData);
+}
+
+// 단일 Quad
+void UResourceManager::CreateBillboardMesh()
+{
+    // Quad 인덱스 (삼각형 2개)
+    TArray<uint32> Indices;
+    Indices.push_back(0); Indices.push_back(1); Indices.push_back(2);
+    Indices.push_back(0); Indices.push_back(2); Indices.push_back(3);
+
+    // 메시 데이터 준비
+    FMeshData* BillboardData = new FMeshData;
+    BillboardData->Indices = Indices;
+
+    // 정점 4개 (Quad)
+    BillboardData->Vertices.resize(4);
+    BillboardData->Color.resize(4);
+    BillboardData->UV.resize(4);
+
+    // 로컬 좌표계 기준 Quad (-0.5~0.5)
+    BillboardData->Vertices[0] = { -0.5f, -0.5f, 0.0f }; // left-bottom
+    BillboardData->Vertices[1] = { -0.5f,  0.5f, 0.0f }; // left-top
+    BillboardData->Vertices[2] = { 0.5f,  0.5f, 0.0f }; // right-top
+    BillboardData->Vertices[3] = { 0.5f, -0.5f, 0.0f }; // right-bottom
+
+    // UV (0~1)
+    BillboardData->UV[0] = { 0.0f, 1.0f };
+    BillboardData->UV[1] = { 0.0f, 0.0f };
+    BillboardData->UV[2] = { 1.0f, 0.0f };
+    BillboardData->UV[3] = { 1.0f, 1.0f };
+
+    // 색상 (기본 흰색)
+    for (int i = 0; i < 4; i++)
+        BillboardData->Color[i] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    // GPU 리소스 생성
+    UQuad* Mesh = NewObject<UQuad>();
+    Mesh->Load(BillboardData, Device);
+
+    // 리소스 매니저에 등록
+    Add<UQuad>("BillboardQuad", Mesh);
+
+    // CPU 데이터 캐싱 (선택)
+    UMeshLoader::GetInstance().AddMeshData("BillboardQuad", BillboardData);
 }
 
 void UResourceManager::CreateGridMesh(int N, const FString& FilePath)
@@ -411,6 +455,7 @@ void UResourceManager::CreateDefaultShader()
     Load<UShader>("Primitive.hlsl", EVertexLayoutType::PositionColor);
     Load<UShader>("StaticMeshShader.hlsl", EVertexLayoutType::PositionColorTexturNormal);
     Load<UShader>("TextBillboard.hlsl", EVertexLayoutType::PositionBillBoard);
+    Load<UShader>("Billboard.hlsl", EVertexLayoutType::PositionBillBoard);
 }
 
 void UResourceManager::InitShaderILMap()
@@ -434,6 +479,7 @@ void UResourceManager::InitShaderILMap()
     layout.Add({ "SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 });
     layout.Add({ "UVRECT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 });
     ShaderToInputLayoutMap["TextBillboard.hlsl"] = layout;
+    ShaderToInputLayoutMap["Billboard.hlsl"] = layout;
 }
 
 TArray<D3D11_INPUT_ELEMENT_DESC>& UResourceManager::GetProperInputLayout(const FString& InShaderName)
@@ -476,7 +522,7 @@ void UResourceManager::CreateTextBillboardTexture()
 
 void UResourceManager::UpdateDynamicVertexBuffer(const FString& Name, TArray<FBillboardVertexInfo_GPU>& vertices)
 {
-    UTextQuad* Mesh = Get<UTextQuad>(Name);
+    UQuad* Mesh = Get<UQuad>(Name);
 
     const uint32_t quadCount = static_cast<uint32_t>(vertices.size() / 4);
     Mesh->SetIndexCount(quadCount * 6);
