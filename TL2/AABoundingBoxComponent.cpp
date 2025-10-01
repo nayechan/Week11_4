@@ -2,6 +2,7 @@
 #include "AABoundingBoxComponent.h"
 #include "SelectionManager.h"
 #include "Line.h"   
+#include "Actor.h"
 
 UAABoundingBoxComponent::UAABoundingBoxComponent()
     : LocalMin(FVector{}), LocalMax(FVector{})
@@ -167,6 +168,12 @@ TArray<FVector4> UAABoundingBoxComponent::GetLocalCorners() const
 
         {LocalMax.X, LocalMax.Y, LocalMax.Z, 1}
     };
+}
+
+void UAABoundingBoxComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+    return;
 }
 
 void UAABoundingBoxComponent::CreateLineData(

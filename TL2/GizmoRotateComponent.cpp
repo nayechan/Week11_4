@@ -10,3 +10,8 @@ UGizmoRotateComponent::UGizmoRotateComponent()
 UGizmoRotateComponent::~UGizmoRotateComponent()
 {
 }
+
+void UGizmoRotateComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

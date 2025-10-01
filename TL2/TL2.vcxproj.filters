@@ -114,6 +114,9 @@
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="EditorEngine.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="WorldPartitionManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -145,6 +148,9 @@
       <Filter>소스 파일\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Renderer.cpp">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderManager.cpp">
       <Filter>소스 파일\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="SceneLoader.cpp">
@@ -354,7 +360,7 @@
     <ClCompile Include="SSplitter.cpp">
       <Filter>소스 파일\SWidget\SWindow</Filter>
     </ClCompile>
-    <ClCompile Include="SMultiViewportWindow.cpp">
+    <ClCompile Include="USlateManager.cpp">
       <Filter>소스 파일\SWidget\SWindow</Filter>
     </ClCompile>
     <ClCompile Include="SSplitterH.cpp">
@@ -409,6 +415,7 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="QuadManager.cpp">
+    <ClCompile Include="Level.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -470,6 +477,9 @@
       <Filter>소스 파일\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Renderer.h">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderManager.h">
       <Filter>소스 파일\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Triangle.h">
@@ -685,6 +695,9 @@
     <ClInclude Include="FViewport.h">
       <Filter>소스 파일</Filter>
     </ClInclude>
+    <ClInclude Include="EditorEngine.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="FViewportClient.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -694,7 +707,7 @@
     <ClInclude Include="ObjManager.h">
       <Filter>헤더 파일\Manager</Filter>
     </ClInclude>
-    <ClInclude Include="SMultiViewportWindow.h">
+    <ClInclude Include="USlateManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="SViewportWindow.h">
@@ -761,6 +774,7 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="QuadManager.h">
+    <ClInclude Include="Level.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

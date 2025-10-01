@@ -1,25 +1,11 @@
 ﻿#pragma once
 #include "Vector.h"
 #include"Enums.h"
+
 class FViewport;
 class UWorld;
 class UCameraComponent;
 
-/**
- * @brief 뷰포트 렌더링 타입
- */
-
-
-enum class EViewportType : uint8
-{
-    Perspective,    // 원근 뷰
-    Orthographic_Top,     // 상단 직교 뷰
-    Orthographic_Bottom,    // 하단 직교 뷰
-    Orthographic_Front,   // 정면 직교 뷰
-    Orthographic_Left,     // 왼쪽면 직교 뷰 
-    Orthographic_Right,   // 오른쪽면 직교 뷰
-    Orthographic_Back     // 측면 직교 뷰
-};
 
 /**
  * @brief 뷰포트 클라이언트 - UE의 FViewportClient를 모방
@@ -67,7 +53,6 @@ protected:
     EViewportType ViewportType = EViewportType::Perspective;
     UWorld* World = nullptr;
     ACameraActor* Camera = nullptr;
-    ACameraActor* ViewPortCamera = nullptr;
     int32 MouseLastX{};
     int32 MouseLastY{};
     bool bIsMouseButtonDown = false;

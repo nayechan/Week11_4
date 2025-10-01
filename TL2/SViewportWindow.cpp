@@ -2,9 +2,14 @@
 #include "SViewportWindow.h"
 #include "World.h"
 #include "ImGui/imgui.h"
-#include"SMultiViewportWindow.h"
+#include"USlateManager.h"
+
+#include "FViewport.h"
+#include "FViewportClient.h"
+
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
+
 SViewportWindow::SViewportWindow()
 {
 	ViewportType = EViewportType::Perspective;
@@ -65,18 +70,10 @@ bool SViewportWindow::Initialize(float StartX, float StartY, float Width, float 
 
 void SViewportWindow::OnRender()
 {
-	if (!Viewport)
-		return;
-
-	Viewport->BeginRenderFrame();
+	// Slate(UI)만 처리하고 렌더는 FViewport에 위임
 	RenderToolbar();
-	if (ViewportClient)
-		ViewportClient->Draw(Viewport);
-	// 툴바 렌더링
-	
-	Viewport->EndRenderFrame();
-
-
+	if (Viewport)
+		Viewport->Render();
 }
 
 void SViewportWindow::OnUpdate(float DeltaSeconds)
@@ -102,11 +99,8 @@ void SViewportWindow::OnMouseMove(FVector2D MousePos)
 	if (!Viewport) return;
 
 	// 툴바 영역 아래에서만 마우스 이벤트 처리
-	
-	
-		FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top );
-		Viewport->ProcessMouseMove((int32)LocalPos.X, (int32)LocalPos.Y);
-	
+	FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top );
+	Viewport->ProcessMouseMove((int32)LocalPos.X, (int32)LocalPos.Y);
 }
 
 void SViewportWindow::OnMouseDown(FVector2D MousePos, uint32 Button)
@@ -124,17 +118,9 @@ void SViewportWindow::OnMouseUp(FVector2D MousePos, uint32 Button)
 {
 	if (!Viewport) return;
 
-	// 툴바 영역 아래에서만 마우스 이벤트 처리
-
-		bIsMouseDown = false;
-		FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top );
-		Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, Button);
-	
-}
-
-void SViewportWindow::SetMainViewPort()
-{
-	Viewport->SetMainViewport();
+	bIsMouseDown = false;
+	FVector2D LocalPos = MousePos - FVector2D(Rect.Left, Rect.Top);
+	Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, Button);
 }
 
 void SViewportWindow::RenderToolbar()
@@ -184,7 +170,7 @@ void SViewportWindow::RenderToolbar()
 				{
 					ViewportClient->SetViewportType(ViewportType);
 					ViewportClient->SetupCameraMode();
-					
+
 				}
 
 				// 뷰포트 이름 업데이트
@@ -219,7 +205,7 @@ void SViewportWindow::RenderToolbar()
 		if (ImGui::Button("Reset")) { /* TODO: 카메라 Reset */ }
 
 		const char* viewModes[] = { "Lit", "Unlit", "Wireframe" };
-		int currentViewMode = static_cast<int>(ViewportClient-> GetViewModeIndex())-1; // 0=Lit, 1=Unlit, 2=Wireframe -1이유 1부터 시작이여서 
+		int currentViewMode = static_cast<int>(ViewportClient->GetViewModeIndex()) - 1; // 0=Lit, 1=Unlit, 2=Wireframe -1이유 1부터 시작이여서 
 
 		ImGui::SameLine();
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 2)); // 버튼/콤보 내부 여백 축소
@@ -249,8 +235,7 @@ void SViewportWindow::RenderToolbar()
 
 		if (ImGui::Button("Switch##ToThis", btnSize))
 		{
-			if (auto* MVP = UWorld::GetInstance().GetMultiViewportWindow())
-				MVP->SwitchPanel(this);
+			SLATE.SwitchPanel(this);
 		}
 
 		//ImGui::PopStyleVar();

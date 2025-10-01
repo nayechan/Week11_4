@@ -1,13 +1,14 @@
 ﻿#include "pch.h"
 #include "MenuBarWidget.h"
-#include "SMultiViewportWindow.h"
+#include "USlateManager.h"
 #include "ImGui/imgui.h"
+#include <EditorEngine.h>
 
 // 필요하다면 외부 free 함수 사용 가능 (동일 TU가 아닐 경우 extern 선언이 필요)
 // extern void LoadSplitterConfig(SSplitter* RootSplitter);
 
 UMenuBarWidget::UMenuBarWidget() {}
-UMenuBarWidget::UMenuBarWidget(SMultiViewportWindow* InOwner) : Owner(InOwner) {}
+UMenuBarWidget::UMenuBarWidget(USlateManager* InOwner) : Owner(InOwner) {}
 
 void UMenuBarWidget::Initialize() {}
 void UMenuBarWidget::Update() {}
@@ -142,6 +143,47 @@ void UMenuBarWidget::RenderWidget()
             (HelpAction ? HelpAction : [this](auto a) { OnHelpMenuAction(a); })("about");
 
         ImGui::EndMenu();
+    }
+
+    // ===== PIE Controls (centered) =====
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+        const char* kStart = "Start PIE";
+        const char* kEnd   = "End PIE";
+        float startW = ImGui::CalcTextSize(kStart).x + style.FramePadding.x * 2.0f;
+        float endW   = ImGui::CalcTextSize(kEnd).x   + style.FramePadding.x * 2.0f;
+        float spacing = style.ItemSpacing.x;
+        float totalW  = startW + spacing + endW;
+
+        float regionMin = ImGui::GetWindowContentRegionMin().x;
+        float regionMax = ImGui::GetWindowContentRegionMax().x;
+        float posX = regionMin + (regionMax - regionMin - totalW) * 0.5f;
+        // Avoid overlapping previously added menus
+        float curX = ImGui::GetCursorPosX();
+        if (posX < curX) posX = curX;
+        ImGui::SameLine(posX);
+
+#ifdef _EDITOR
+        extern UEditorEngine GEngine;
+        bool isPIE = GEngine.IsPIEActive();
+        ImGui::BeginDisabled(isPIE);
+        if (ImGui::Button(kStart, ImVec2(startW, 0.0f)))
+        {
+            GEngine.StartPIE();
+            isPIE = true;
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine(0.0f, spacing);
+        ImGui::BeginDisabled(!isPIE);
+        if (ImGui::Button(kEnd, ImVec2(endW, 0.0f)))
+        {
+            GEngine.EndPIE();
+            isPIE = false;
+        }
+        ImGui::EndDisabled();
+#else
+        ImGui::Text("PIE unavailable");
+#endif
     }
 
     ImGui::EndMainMenuBar();

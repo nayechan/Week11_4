@@ -20,8 +20,8 @@ public:
 
     // 렌더링
     void BeginRenderFrame();
+    void Render();
     void EndRenderFrame();
-    void Present();
 
     // 크기 조정
     void Resize(uint32 NewStartX, uint32 NewStartY,uint32 NewSizeX, uint32 NewSizeY);
@@ -30,8 +30,6 @@ public:
     void SetViewportClient(FViewportClient* InClient) { ViewportClient = InClient; }
     FViewportClient* GetViewportClient() const { return ViewportClient; }
     
-    void SetMainViewport();
-    bool GetMainViewport() { return MainViewport; };
     // 접근자
     uint32 GetSizeX() const { return SizeX; }
     uint32 GetSizeY() const { return SizeY; }
@@ -62,8 +60,6 @@ private:
 
     // ViewportClient
     FViewportClient* ViewportClient = nullptr;
-
-    bool  MainViewport = false;
 
     FVector2D ViewportMousePosition{};
 };

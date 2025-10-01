@@ -179,6 +179,11 @@ FMeshBVH* UResourceManager::GetOrBuildMeshBVH(const FString& ObjPath, const FSta
     return NewBVH;
 }
 
+void UResourceManager::SetStaticMeshs()
+{
+    StaticMeshs = GetAll<UStaticMesh>();
+}
+
 void UResourceManager::CreateAxisMesh(float Length, const FString& FilePath)
 {
     // 이미 있으면 패스
@@ -242,7 +247,7 @@ void UResourceManager::CreateTextBillboardMesh()
     }
 
 
-    //if(UResourceManager::GetInstance().Get<UMaterial>())
+    //if(UResourceManager::GetInstance().GetInstance<UMaterial>())
     const uint32 MaxQuads = 100; // capacity
     FMeshData* BillboardData = new FMeshData;
     BillboardData->Indices = Indices;

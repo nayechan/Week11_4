@@ -29,7 +29,11 @@ struct UClass
 class UObject
 {
 public:
+    using ThisClass_t = UObject;
+
+public:
     UObject() : UUID(GenerateUUID()), InternalIndex(UINT32_MAX), ObjectName("UObject") {}
+    UObject(const UObject&) = default;
 
 protected:
     virtual ~UObject() = default;
@@ -46,7 +50,10 @@ public:
     FString GetName();    // 원문
     FString GetComparisonName(); // lower-case
 public:
+    // GenerateUUID()에 의해 자동 발급
     uint32_t UUID;
+
+    // 팩토리 함수에 의해 자동 발급
     uint32_t InternalIndex;
     FName    ObjectName;   // ← 객체 개별 이름 추가
 
@@ -73,6 +80,30 @@ public:
     // UUID 발급기: 현재 카운터를 반환하고 1 증가
     static uint32 GenerateUUID() { return GUUIDCounter++; }
 
+    // ───── 복사 관련 ────────────────────────────
+    virtual void DuplicateSubObjects(); // Super::DuplicateSubObjects() 호출 -> 얕은 복사한 멤버들에 대해 메뉴얼하게 깊은 복사 수행(특히, Uobject 계열 멤버들에 대해서는 Duplicate() 호출)
+    virtual UObject* Duplicate(); // 자기 자신 깊은 복사(+모든 멤버들 얕은 복사) -> DuplicateSubObjects 호출
+
+    // 자기 자신 깊은 복사(+모든 멤버들 얕은 복사) -> DuplicateSubObjects 호출
+    //template<class T>
+    //T* Duplicate()
+    //{
+    //    T* NewObject = ObjectFactory::DuplicateObject<T>(this); // 모든 멤버 얕은 복사
+
+    //    NewObject->DuplicateSubObjects(); // Sub UObject 멤버 있을 경우, 해당 멤버 복사
+
+    //    return NewObject;
+    //}
+
+    //virtual ThisClass_t* Duplicate()
+    //{
+    //    ThisClass_t* NewObject = ObjectFactory::DuplicateObject<ThisClass_t>(this); // 모든 멤버 얕은 복사
+
+    //    NewObject->DuplicateSubObjects(); // Sub UObject 멤버 있을 경우, 해당 멤버 복사
+
+    //    return NewObject;
+    //}
+
 private:
     // 전역 UUID 카운터(초기값 1)
     inline static uint32 GUUIDCounter = 1;
@@ -94,10 +125,25 @@ const T* Cast(const UObject* Obj) noexcept
 #define DECLARE_CLASS(ThisClass, SuperClass)                                  \
 public:                                                                       \
     using Super_t = SuperClass;                                               \
+    using Super   = SuperClass; /* Unreal 스타일 Super 매크로 대응 */        \
+    using ThisClass_t = ThisClass;                                            \
     static UClass* StaticClass()                                              \
     {                                                                         \
         static UClass Cls{ #ThisClass, SuperClass::StaticClass(),             \
                             sizeof(ThisClass) };                              \
         return &Cls;                                                          \
     }                                                                         \
-    virtual UClass* GetClass() const override { return ThisClass::StaticClass(); }
+    virtual UClass* GetClass() const override { return ThisClass::StaticClass(); } \
+
+// 각 파생 타입에 맞는 Duplicate() 자동 생성 매크로
+#define DECLARE_DUPLICATE(ThisClass)                                          \
+public:                                                                       \
+    ThisClass(const ThisClass&) = default; /* 디폴트 복사 생성자 명시: 아래 DuplicateObject 호출이 모든 멤버에 대해 단순 = 대입을 수행한다고 가정하기 때문.*/ \
+    ThisClass* Duplicate() override                                           \
+    {                                                                         \
+        ThisClass* NewObject = ObjectFactory::DuplicateObject<ThisClass>(this); /*모든 멤버 단순 = 대입 수행(즉, 포인터 멤버들은 얕은복사)*/ \
+        NewObject->DuplicateSubObjects(); /*메뉴얼한 복사 수행 로직(ex: 포인터 멤버 깊은 복사, 독립적인 값 생성, Uobject계열 Duplicate 재호출)*/ \
+        return NewObject;                                                     \
+    }
+
+

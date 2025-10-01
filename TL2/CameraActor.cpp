@@ -5,7 +5,7 @@
 #include "UI/UIManager.h"
 #include "InputManager.h"
 #include "Vector.h"
-#include "SMultiViewportWindow.h"
+#include "USlateManager.h"
 
 // 예전 World에서 사용하던 전역 변수들 (임시)
 static float MouseSensitivity = 0.05f;  // 적당한 값으로 조정
@@ -18,7 +18,7 @@ ACameraActor::ACameraActor()
     // 카메라 컴포넌트
     CameraComponent = NewObject<UCameraComponent>();
     CameraComponent->SetupAttachment(RootComponent);
-    Components.Add(CameraComponent);
+    SceneComponents.Add(CameraComponent);
 
     if(EditorINI.count("CameraSpeed"))
     {
@@ -157,6 +157,13 @@ void ACameraActor::ProcessEditorCameraInput(float DeltaSeconds)
         ProcessCameraRotation(DeltaSeconds);
         ProcessCameraMovement(DeltaSeconds);
     }
+}
+
+void ACameraActor::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    CameraComponent = CameraComponent->Duplicate();
 }
 
 static inline float Clamp(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }

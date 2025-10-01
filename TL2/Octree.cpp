@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Octree.h"
+#include "Actor.h"
 
 FOctree::FOctree(const FBound& InBounds, int InDepth, int InMaxDepth, int InMaxObjects)
 	: Bounds(InBounds), Depth(InDepth), MaxDepth(InMaxDepth), MaxObjects(InMaxObjects)

@@ -49,6 +49,9 @@ void UWorldPartitionManager::Clear()
 {
 	//ClearSceneOctree();
 	ClearBVHierachy();
+
+	DirtyQueue.Empty();
+	DirtySet.Empty();
 }
 
 void UWorldPartitionManager::Register(AActor* Owner)

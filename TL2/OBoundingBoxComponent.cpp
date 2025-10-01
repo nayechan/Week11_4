@@ -107,3 +107,9 @@ void UOBoundingBoxComponent::Render(URenderer* Renderer, const FMatrix& ViewMatr
     Renderer->PrepareShader(GetMaterial()->GetShader());
     //Renderer->DrawIndexedPrimitiveComponent(GetMeshResource(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 }
+
+void UOBoundingBoxComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+    return;
+}

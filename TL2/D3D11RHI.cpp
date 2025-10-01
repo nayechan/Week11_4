@@ -125,6 +125,8 @@ void D3D11RHI::Release()
     if (DepthStencilStateAlwaysNoWrite) { DepthStencilStateAlwaysNoWrite->Release(); DepthStencilStateAlwaysNoWrite = nullptr; }
     if (DepthStencilStateDisable) { DepthStencilStateDisable->Release(); DepthStencilStateDisable = nullptr; }
     if (DepthStencilStateGreaterEqualWrite) { DepthStencilStateGreaterEqualWrite->Release(); DepthStencilStateGreaterEqualWrite = nullptr; }
+    if (DepthStencilStateOverlayWriteStencil) { DepthStencilStateOverlayWriteStencil->Release(); DepthStencilStateOverlayWriteStencil = nullptr; }
+    if (DepthStencilStateStencilRejectOverlay) { DepthStencilStateStencilRejectOverlay->Release(); DepthStencilStateStencilRejectOverlay = nullptr; }
 
     if (DefaultRasterizerState) { DefaultRasterizerState->Release();   DefaultRasterizerState = nullptr; }
     if (WireFrameRasterizerState) { WireFrameRasterizerState->Release();   WireFrameRasterizerState = nullptr; }
@@ -198,6 +200,36 @@ void D3D11RHI::CreateDepthStencilState()
     desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     desc.DepthFunc = D3D11_COMPARISON_GREATER_EQUAL;
     Device->CreateDepthStencilState(&desc, &DepthStencilStateGreaterEqualWrite);
+
+    // 6) OverlayWriteStencil: Always + NoWriteDepth + Stencil=REPLACE 1
+    ZeroMemory(&desc, sizeof(desc));
+    desc.DepthEnable = TRUE;
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+    desc.StencilEnable = TRUE;
+    desc.StencilReadMask = 0xFF;
+    desc.StencilWriteMask = 0xFF;
+    desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_REPLACE; // write ref
+    desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+    desc.BackFace = desc.FrontFace;
+    Device->CreateDepthStencilState(&desc, &DepthStencilStateOverlayWriteStencil);
+
+    // 7) StencilRejectOverlay: LessEqual + DepthWrite ALL + Stencil EQUAL 0 (keep)
+    ZeroMemory(&desc, sizeof(desc));
+    desc.DepthEnable = TRUE;
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+    desc.StencilEnable = TRUE;
+    desc.StencilReadMask = 0xFF;
+    desc.StencilWriteMask = 0x00; // no stencil write
+    desc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+    desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL; // pass only when stencil==ref
+    desc.BackFace = desc.FrontFace;
+    Device->CreateDepthStencilState(&desc, &DepthStencilStateStencilRejectOverlay);
 }
 
 void D3D11RHI::CreateSamplerState()
@@ -700,6 +732,18 @@ void D3D11RHI::OmSetDepthStencilState(EComparisonFunc Func)
         DeviceContext->OMSetDepthStencilState(DepthStencilStateGreaterEqualWrite, 0);
         break;
     }
+}
+
+void D3D11RHI::OMSetDepthStencilState_OverlayWriteStencil()
+{
+    // Stencil ref = 1 (overlay marks)
+    DeviceContext->OMSetDepthStencilState(DepthStencilStateOverlayWriteStencil, 1);
+}
+
+void D3D11RHI::OMSetDepthStencilState_StencilRejectOverlay()
+{
+    // Stencil ref = 0 (draw only where overlay not marked)
+    DeviceContext->OMSetDepthStencilState(DepthStencilStateStencilRejectOverlay, 0);
 }
 
 void D3D11RHI::CreateShader(ID3D11InputLayout** SimpleInputLayout, ID3D11VertexShader** SimpleVertexShader, ID3D11PixelShader** SimplePixelShader)

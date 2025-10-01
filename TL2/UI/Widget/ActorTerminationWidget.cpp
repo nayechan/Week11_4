@@ -1,10 +1,12 @@
 ﻿#include "pch.h"
 #include "ActorTerminationWidget.h"
+#include "GizmoActor.h"
 #include "../UIManager.h"
 #include "../../ImGui/imgui.h"
 #include "../../Actor.h"
 #include "../../InputManager.h"
 #include "../../World.h"
+#include <EditorEngine.h>
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -65,8 +67,8 @@ void UActorTerminationWidget::RenderWidget()
 		// 캐시된 이름 사용하여 안전하게 출력
 		ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.6f, 1.0f), "Selected: %s (%p)",
 		                   CachedActorName.c_str(), SelectedActor);
-
-		if (ImGui::Button("Delete Selected") || InputManager.IsKeyPressed(VK_DELETE))
+		// 키보드 delete 버튼은 해당 윈도우가 포커스된 상태에서만 작동
+		if (ImGui::Button("Delete Selected") || (ImGui::IsKeyPressed(ImGuiKey_Delete) && ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows)))
 		{
 			DeleteSelectedActor();
 		}
@@ -121,7 +123,7 @@ void UActorTerminationWidget::DeleteSelectedActor()
 	UIManager->ClearTransformWidgetSelection();
 
 	// 기즈모가 이 액터를 타겟으로 잡고 있다면 해제
-	if (AGizmoActor* Gizmo = UIManager->GetGizmoActor())
+	if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
 	{
 		if (Gizmo->GetTargetActor() == ActorToDelete)
 		{

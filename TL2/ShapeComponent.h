@@ -14,5 +14,9 @@ public:
 
     // Shape 크기(예: 박스=XYZ, 스피어=반지름) 정의
     virtual FVector GetExtent() const { return FVector(1, 1, 1); }
+
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UShapeComponent)
 };
 

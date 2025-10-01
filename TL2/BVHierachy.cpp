@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "BVHierachy.h"
+#include "Actor.h"
 #include "AABoundingBoxComponent.h" // FBound helpers
 #include "Vector.h"
 #include <algorithm>
@@ -348,9 +349,6 @@ void FBVHierachy::BuildLBVHFromMap()
     Nodes.clear();
     BuildRange(0, N);
 }
-
-
-
 
 int FBVHierachy::BuildRange(int s, int e)
 {

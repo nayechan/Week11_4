@@ -124,7 +124,7 @@ FRay MakeRayFromViewport(const FMatrix& InView,
 	if (bIsOrthographic)
 	{
 		// Orthographic projection
-		// Get orthographic bounds from projection matrix
+		// GetInstance orthographic bounds from projection matrix
 		float OrthoWidth = 2.0f / InProj.M[0][0];
 		float OrthoHeight = 2.0f / InProj.M[1][1];
 
@@ -345,6 +345,10 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 	float ViewportAspectRatio, FViewport* Viewport)
 {
 	if (!Camera) return nullptr;
+	UWorld* CurrentWorld = Camera->GetWorld();
+	if (!CurrentWorld) return nullptr;
+	UWorldPartitionManager* Partition = CurrentWorld->GetPartitionManager();
+	if (!Partition) return nullptr;
 
 	// 뷰포트별 레이 생성 - 커스텀 aspect ratio 사용
 	const FMatrix View = Camera->GetViewMatrix();
@@ -360,13 +364,6 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 	int PickedIndex = -1;
 	float PickedT = 1e9f;
 
-	UWorldPartitionManager* PartitionManager = UWorldPartitionManager::GetInstance();
-	if (PartitionManager == nullptr)
-	{
-		UE_LOG("WorldPartitionManager is Empty!");
-		return nullptr;
-	}
-
 	// 퍼포먼스 측정용 카운터 시작
 	FScopeCycleCounter PickCounter;
 
@@ -375,7 +372,7 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 
 	// 베스트 퍼스트 탐색으로 가장 가까운 것을 직접 구한다
 	AActor* PickedActor = nullptr;
-	PartitionManager->RayQueryClosest(ray, PickedActor, PickedT);
+	Partition->RayQueryClosest(ray, PickedActor, PickedT);
 	LastPickTime = PickCounter.Finish();
 	TotalPickTime += LastPickTime;
 	double Milliseconds = ((double)LastPickTime * FPlatformTime::GetSecondsPerCycle()) * 1000.0f;
@@ -826,7 +823,7 @@ bool CPickingSystem::CheckActorPicking(const AActor* Actor, const FRay& Ray, flo
 	if (!Actor) return false;
 
 	// 액터의 모든 SceneComponent 순회
-	for (auto SceneComponent : Actor->GetComponents())
+	for (auto SceneComponent : Actor->GetSceneComponents())
 	{
 		if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(SceneComponent))
 		{

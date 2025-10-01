@@ -29,3 +29,8 @@ void UPrimitiveComponent::Serialize(bool bIsLoading, FPrimitiveData& InOut)
         InOut.Scale = WT.Scale3D;
     }
 }
+
+void UPrimitiveComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

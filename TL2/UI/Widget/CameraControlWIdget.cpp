@@ -6,7 +6,10 @@
 #include "CameraComponent.h"
 #include "Vector.h"
 #include "World.h"
+#include "GridActor.h"
+#include "GizmoActor.h"
 #include <algorithm>
+#include <EditorEngine.h>
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -35,19 +38,36 @@ void UCameraControlWidget::Initialize()
 	{
 		UIManager->RegisterCameraControlWidget(this);
 	}
+	// GizmoActor 참조 획득
+	if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
+	{
+		CurrentGizmoSpace = Gizmo->GetSpace();
+	}
 }
 
 void UCameraControlWidget::Update()
 {
-	// 필요시 카메라 상태 업데이트 로직 추가
+	// GizmoActor 참조 업데이트
+	extern UEditorEngine GEngine;
+	if (AGizmoActor* Gizmo = GEngine.GetDefaultWorld()->GetGizmoActor())
+	{
+		GizmoActor = Gizmo;
+	}
+	// 월드 정보 업데이트 (옵션)
+	if (UIManager && UIManager->GetWorld())
+	{
+		UWorld* World = UIManager->GetWorld();
+		WorldActorCount = static_cast<uint32>(World->GetActors().size());
+	}
 }
 
 ACameraActor* UCameraControlWidget::GetCurrentCamera() const
 {
-	if (!UIManager)
+	GEngine.GetDefaultWorld()->GetCameraActor();
+	if (!GEngine.GetDefaultWorld())
 		return nullptr;
 		
-	return UIManager->GetCamera();
+	return GEngine.GetDefaultWorld()->GetCameraActor();
 }
 
 void UCameraControlWidget::RenderWidget()
@@ -73,16 +93,16 @@ void UCameraControlWidget::RenderWidget()
 	ImGui::Spacing();
 
 	// 카메라 이동속도 표시 및 조절 (World와 동기화)
-	if (UIManager && UIManager->GetWorld())
+	if (GEngine.GetDefaultWorld() && GEngine.GetDefaultWorld()->GetCameraActor())
 	{
 		// World에서 현재 카메라 이동 속도 가져오기
-		float WorldMoveSpeed = UIManager->GetWorld()->GetCameraActor()->GetCameraSpeed();
+		float WorldMoveSpeed = GEngine.GetDefaultWorld()->GetCameraActor()->GetCameraSpeed();
 		
 		ImGui::Text("Move Speed: %.1f", WorldMoveSpeed);
 		if (ImGui::SliderFloat("##MoveSpeed", &WorldMoveSpeed, 1.0f, 20.0f, "%.1f"))
 		{
 			// World에 카메라 이동속도 설정
-			UIManager->GetWorld()->GetCameraActor()->SetCameraSpeed(WorldMoveSpeed);
+			GEngine.GetDefaultWorld()->GetCameraActor()->SetCameraSpeed(WorldMoveSpeed);
 			// 위젯의 로컬 값도 업데이트
 			CameraMoveSpeed = WorldMoveSpeed;
 		}
@@ -149,6 +169,47 @@ void UCameraControlWidget::RenderWidget()
 
 	ImGui::Spacing();
 	ImGui::Separator();
+
+	// 월드 정보 표시
+	ImGui::Text("World Information");
+	ImGui::Text("Actor Count: %u", WorldActorCount);
+	ImGui::Separator();
+
+	AGridActor* gridActor = UIManager->GetWorld()->GetGridActor();
+	if (gridActor)
+	{
+		float currentLineSize = gridActor->GetLineSize();
+		if (ImGui::DragFloat("Grid Spacing", &currentLineSize, 0.1f, 0.1f, 1000.0f))
+		{
+			gridActor->SetLineSize(currentLineSize);
+			EditorINI["GridSpacing"] = std::to_string(currentLineSize);
+		}
+	}
+	else
+	{
+		ImGui::Text("GridActor not found in the world.");
+	}
+
+	ImGui::Text("Transform Editor");
+
+	SelectedActor = GetCurrentSelectedActor();
+
+
+	// 기즈모 스페이스 모드 선택
+	if (GizmoActor)
+	{
+		const char* spaceItems[] = { "World", "Local" };
+		int currentSpaceIndex = static_cast<int>(CurrentGizmoSpace);
+
+		if (ImGui::Combo("Gizmo Space", &currentSpaceIndex, spaceItems, IM_ARRAYSIZE(spaceItems)))
+		{
+			CurrentGizmoSpace = static_cast<EGizmoSpace>(currentSpaceIndex);
+
+			GizmoActor->SetSpaceWorldMatrix(CurrentGizmoSpace, SelectedActor);
+		}
+		ImGui::Separator();
+	}
+
 }
 
 void UCameraControlWidget::SyncFromCamera()
@@ -173,9 +234,9 @@ void UCameraControlWidget::SyncFromCamera()
 	}
 	
 	// World에서 카메라 이동 속도 동기화
-	if (UIManager && UIManager->GetWorld())
+	if (GEngine.GetDefaultWorld() && GEngine.GetDefaultWorld()->GetCameraActor())
 	{
-		CameraMoveSpeed = UIManager->GetWorld()->GetCameraActor()->GetCameraSpeed();
+		CameraMoveSpeed = GEngine.GetDefaultWorld()->GetCameraActor()->GetCameraSpeed();
 		UE_LOG("CameraControl: Synced camera move speed from world - Speed=%.1f", CameraMoveSpeed);
 	}
 }
@@ -206,4 +267,13 @@ void UCameraControlWidget::PushToCamera()
 		UE_LOG("CameraControl: Applied to camera - FOV=%.1f, Near=%.4f, Far=%.1f, Mode=%s", 
 			UiFovY, UiNearZ, UiFarZ, (CameraModeIndex == 0) ? "Perspective" : "Orthographic");
 	}
+}
+
+
+AActor* UCameraControlWidget::GetCurrentSelectedActor() const
+{
+	if (!UIManager)
+		return nullptr;
+
+	return UIManager->GetSelectedActor();
 }

@@ -26,3 +26,8 @@ void ULine::GetWorldPoints(const FMatrix& WorldMatrix, FVector& OutStart, FVecto
     OutStart = FVector(WorldStart4.X, WorldStart4.Y, WorldStart4.Z);
     OutEnd = FVector(WorldEnd4.X, WorldEnd4.Y, WorldEnd4.Z);
 }
+
+void ULine::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

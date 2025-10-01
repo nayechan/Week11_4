@@ -60,6 +60,9 @@ public:
     virtual void OMSetRenderTargets() = 0;
     virtual void OMSetBlendState(bool bIsBlendMode) = 0;
     virtual void OmSetDepthStencilState(EComparisonFunc Func) = 0;
+    // Overlay precedence helpers (stencil-based)
+    virtual void OMSetDepthStencilState_OverlayWriteStencil() = 0;      // writes stencil=1 where overlay draws
+    virtual void OMSetDepthStencilState_StencilRejectOverlay() = 0;     // allows drawing only where stencil==0
     virtual void Present() = 0;
     virtual void PSSetDefaultSampler(UINT StartSlot) = 0;
 };

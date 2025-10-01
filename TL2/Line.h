@@ -45,6 +45,11 @@ public:
     FVector GetWorldEndPoint(const FMatrix& WorldMatrix) const;
     void GetWorldPoints(const FMatrix& WorldMatrix, FVector& OutStart, FVector& OutEnd) const;
 
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(ULine)
+
+
 private:
     // Line geometry
     FVector StartPoint = FVector();

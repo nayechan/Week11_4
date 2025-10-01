@@ -10,6 +10,9 @@
 #include "../UIManager.h"
 #include "../../SceneLoader.h"
 #include "../../Object.h"
+#include "../../Level.h"
+#include "CameraActor.h"
+#include "CameraComponent.h"
 
 USceneIOWidget::USceneIOWidget()
 	: UWidget("Scene IO Widget")
@@ -204,7 +207,7 @@ void USceneIOWidget::SaveLevel(const FString& InFilePath)
 		if (InFilePath.empty())
 		{
 			// Quick Save: 이름만 넘김. Scene 경로/확장자는 FSceneLoader::Save가 처리
-			CurrentWorld->SaveScene("QuickSave");
+			ULevelService::SaveLevel(CurrentWorld->GetLevel(), CurrentWorld->GetCameraActor(), "QuickSave");
 			UE_LOG("SceneIO: Quick Save executed to Scene/QuickSave.Scene");
 			SetStatusMessage("Quick Save completed: Scene/QuickSave.Scene");
 		}
@@ -222,7 +225,7 @@ void USceneIOWidget::SaveLevel(const FString& InFilePath)
 				if (LastDot != std::string::npos) SceneName = SceneName.substr(0, LastDot);
 			}
 
-			CurrentWorld->SaveScene(SceneName);
+			ULevelService::SaveLevel(CurrentWorld->GetLevel(), CurrentWorld->GetCameraActor(), SceneName);
 			UE_LOG("SceneIO: Scene saved: %s", SceneName.c_str());
 			SetStatusMessage("Scene saved: Scene/" + SceneName + ".Scene");
 		}
@@ -268,8 +271,22 @@ void USceneIOWidget::LoadLevel(const FString& InFilePath)
 		UUIManager::GetInstance().ClearTransformWidgetSelection();
 		UUIManager::GetInstance().ResetPickedActor();
 
-		// 2) 씬 로드 (World 내부에서 파일명은 SceneName + ".Scene"으로 접근)
-		CurrentWorld->LoadScene(SceneName);
+		// 2) 레벨 서비스로 로드 후 월드에 적용
+		FLoadedLevel Loaded = ULevelService::LoadLevel(SceneName);
+		CurrentWorld->SetLevel(std::move(Loaded.Level));
+
+		// 카메라 적용
+		if (ACameraActor* CamActor = CurrentWorld->GetCameraActor())
+		{
+			FPerspectiveCameraData& CamData = Loaded.Camera;
+			CamActor->SetActorLocation(CamData.Location);
+			CamActor->SetActorRotation(FQuat::MakeFromEuler(CamData.Rotation));
+			if (auto* CamComp = CamActor->GetCameraComponent())
+			{
+				CamComp->SetFOV(CamData.FOV);
+				CamComp->SetClipPlanes(CamData.NearClip, CamData.FarClip);
+			}
+		}
 
 		UE_LOG("SceneIO: Scene loaded successfully: %s", SceneName.c_str());
 		SetStatusMessage("Scene loaded successfully: " + SceneName);
@@ -289,7 +306,7 @@ void USceneIOWidget::CreateNewLevel()
 {
 	try
 	{
-		// Get World reference
+		// GetInstance World reference
 		UWorld* CurrentWorld = UUIManager::GetInstance().GetWorld();
 		if (!CurrentWorld)
 		{
@@ -301,8 +318,8 @@ void USceneIOWidget::CreateNewLevel()
 		UUIManager::GetInstance().ClearTransformWidgetSelection();
 		UUIManager::GetInstance().ResetPickedActor();
 
-		// 새 씬 생성 (이름 입력 없이)
-		CurrentWorld->CreateNewScene();
+		// 새 레벨 생성 후 월드에 적용
+		CurrentWorld->SetLevel(ULevelService::CreateNewLevel());
 
 		UE_LOG("SceneIO: New scene created");
 		SetStatusMessage("New scene created");

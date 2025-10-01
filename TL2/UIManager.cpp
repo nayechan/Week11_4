@@ -12,6 +12,7 @@
 #include "StaticMeshActor.h"
 #include"GizmoActor.h"
 #include "World.h"
+#include "Level.h"
 
 void UUIManager::Initialize(HWND hWindow, ID3D11Device* InDevice, ID3D11DeviceContext* InDeviceContext)
 {
@@ -101,21 +102,36 @@ void UUIManager::RenderImGui()
     ImGui::InputText("Scene Name", SceneNameBuf, (size_t)IM_ARRAYSIZE(SceneNameBuf));
 
     // Scene 버튼들
-    if (ImGui::Button("New scene"))
+if (ImGui::Button("New scene"))
     {
         std::snprintf(SceneNameBuf, sizeof(SceneNameBuf), "%s", "Default");
-        WorldRef->CreateNewScene();
+        UUIManager::GetInstance().ClearTransformWidgetSelection();
+        UUIManager::GetInstance().ResetPickedActor();
+        WorldRef->SetLevel(ULevelService::CreateNewLevel());
     }
 
     if (ImGui::Button("Save scene"))
     {
-        WorldRef->SaveScene(SceneNameBuf);
+ULevelService::SaveLevel(WorldRef->GetLevel(), WorldRef->GetCameraActor(), SceneNameBuf);
     }
 
     if (ImGui::Button("Load scene"))
     {
-        WorldRef->CreateNewScene();
-        WorldRef->LoadScene(GetSceneName());
+{
+            UUIManager::GetInstance().ClearTransformWidgetSelection();
+            UUIManager::GetInstance().ResetPickedActor();
+            auto Loaded = ULevelService::LoadLevel(GetSceneName());
+            WorldRef->SetLevel(std::move(Loaded.Level));
+            if (auto* Cam = WorldRef->GetCameraActor()) {
+                auto& CamData = Loaded.Camera;
+                Cam->SetActorLocation(CamData.Location);
+                Cam->SetActorRotation(FQuat::MakeFromEuler(CamData.Rotation));
+                if (auto* CC = Cam->GetCameraComponent()) {
+                    CC->SetFOV(CamData.FOV);
+                    CC->SetClipPlanes(CamData.NearClip, CamData.FarClip);
+                }
+            }
+        }
     }
 
     ImGui::Separator();

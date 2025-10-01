@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "MeshComponent.h"
 #include "Enums.h"
-#include "StaticMesh.h"
 
 class UStaticMesh;
 class UShader;
@@ -42,6 +41,10 @@ public:
     {
         return bChangedMaterialByUser;
     }
+
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UStaticMeshComponent)
     
 protected:
     UStaticMesh* StaticMesh = nullptr;

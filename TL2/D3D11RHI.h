@@ -61,6 +61,10 @@ public:
 	void PSSetDefaultSampler(UINT StartSlot) override;
     void RSSetNoCullState() override;
 
+    // Overlay precedence helpers
+    void OMSetDepthStencilState_OverlayWriteStencil() override;
+    void OMSetDepthStencilState_StencilRejectOverlay() override;
+
     void CreateShader(ID3D11InputLayout** OutSimpleInputLayout, ID3D11VertexShader** OutSimpleVertexShader, ID3D11PixelShader** OutSimplePixelShader) override;
 
     void OnResize(UINT NewWidth, UINT NewHeight);
@@ -72,6 +76,10 @@ public:
     void setviewort(UINT width, UINT height);
 
     void ResizeSwapChain(UINT width, UINT height);
+
+    // Viewport query
+    UINT GetViewportWidth() const { return (UINT)ViewportInfo.Width; }
+    UINT GetViewportHeight() const { return (UINT)ViewportInfo.Height; }
 
 public:
     // getter
@@ -125,6 +133,10 @@ private:
     ID3D11DepthStencilState* DepthStencilStateAlwaysNoWrite = nullptr;       // 기즈모/오버레이
     ID3D11DepthStencilState* DepthStencilStateDisable = nullptr;              // 깊이 테스트/쓰기 모두 끔
     ID3D11DepthStencilState* DepthStencilStateGreaterEqualWrite = nullptr;   // 선택사항
+
+    // Stencil-based overlay control
+    ID3D11DepthStencilState* DepthStencilStateOverlayWriteStencil = nullptr;   // overlay writes stencil=1
+    ID3D11DepthStencilState* DepthStencilStateStencilRejectOverlay = nullptr;  // draw only where stencil==0
 
     ID3D11BlendState* BlendState{};
 

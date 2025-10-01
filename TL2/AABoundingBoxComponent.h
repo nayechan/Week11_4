@@ -216,6 +216,10 @@ public:
 
 	void SetPrimitiveType(EPrimitiveType InType) { PrimitiveType = InType; }
 
+	// ───── 복사 관련 ────────────────────────────
+	void DuplicateSubObjects() override;
+	DECLARE_DUPLICATE(UAABoundingBoxComponent)
+
 private:
 	void CreateLineData(
 		const FVector& Min, const FVector& Max,

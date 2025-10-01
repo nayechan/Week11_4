@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "CameraComponent.h"
-#include"FViewport.h"
+#include "FViewport.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
@@ -93,4 +93,11 @@ FVector UCameraComponent::GetRight() const
 FVector UCameraComponent::GetUp() const
 {
     return GetWorldTransform().Rotation.RotateVector(FVector(0, 0, 1)).GetNormalized();
+}
+
+void UCameraComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    ProjectionMode = ECameraProjectionMode::Perspective;
 }

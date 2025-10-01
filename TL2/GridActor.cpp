@@ -7,7 +7,7 @@ AGridActor::AGridActor()
 {
     LineComponent = NewObject<ULineComponent>();
     LineComponent->SetupAttachment(RootComponent);
-    AddComponent(LineComponent);
+    AddOwnedComponent(LineComponent);
 }
 
 void AGridActor::Initialize()
@@ -98,6 +98,13 @@ void AGridActor::ClearLines()
     {
         LineComponent->ClearLines();
     }
+}
+
+void AGridActor::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    LineComponent = LineComponent->Duplicate();
 }
 
 void AGridActor::RegenerateGrid()

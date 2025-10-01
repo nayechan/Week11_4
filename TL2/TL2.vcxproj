@@ -86,6 +86,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -123,6 +124,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);d3dtk</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -144,6 +146,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(ProjectDir);d3dtk</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -159,6 +162,7 @@
     <ClCompile Include="ActorComponent.cpp" />
     <ClCompile Include="BillboardComponent.cpp" />
     <ClCompile Include="BVHierachy.cpp" />
+    <ClCompile Include="Level.cpp" />
     <ClCompile Include="MeshBVH.cpp" />
     <ClCompile Include="Occlusion.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
@@ -250,13 +254,15 @@
     </ClCompile>
     <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="EditorEngine.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RenderManager.cpp" />
     <ClCompile Include="RHIDevice.cpp" />
     <ClCompile Include="SControlPanel.cpp" />
     <ClCompile Include="SDetailsWindow.cpp" />
     <ClCompile Include="ShapeComponent.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="SMultiViewportWindow.cpp" />
+    <ClCompile Include="USlateManager.cpp" />
     <ClCompile Include="SSplitter.cpp" />
     <ClCompile Include="SSplitterH.cpp" />
     <ClCompile Include="SSplitterV.cpp" />
@@ -338,6 +344,7 @@
     <ClInclude Include="ActorComponent.h" />
     <ClInclude Include="BillboardComponent.h" />
     <ClInclude Include="BVHierachy.h" />
+    <ClInclude Include="Level.h" />
     <ClInclude Include="MeshBVH.h" />
     <ClInclude Include="Occlusion.h" />
     <ClInclude Include="PipelineStateManager.h" />
@@ -394,13 +401,14 @@
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="InputManager.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="RenderManager.h" />
     <ClInclude Include="RHIDevice.h" />
     <ClInclude Include="SceneRotationUtils.h" />
     <ClInclude Include="SControlPanel.h" />
     <ClInclude Include="SDetailsWindow.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="ShapeComponent.h" />
-    <ClInclude Include="SMultiViewportWindow.h" />
+    <ClInclude Include="USlateManager.h" />
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="SSplitter.h" />
     <ClInclude Include="SSplitterH.h" />
@@ -441,6 +449,7 @@
     <ClInclude Include="Vector.h" />
     <ClInclude Include="VertexData.h" />
     <ClInclude Include="FViewport.h" />
+    <ClInclude Include="EditorEngine.h" />
     <ClInclude Include="WindowsBinReader.h" />
     <ClInclude Include="WindowsBinWriter.h" />
     <ClInclude Include="World.h" />

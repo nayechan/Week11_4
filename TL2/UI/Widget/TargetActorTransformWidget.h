@@ -45,14 +45,14 @@ private:
 	bool bPositionChanged = false;
 	bool bUniformScale = false;
 	
-	// 기즈모 설정
-	EGizmoSpace CurrentGizmoSpace = EGizmoSpace::World;
-	AGizmoActor* GizmoActor = nullptr;
-	
-	// 월드 정보 (옵션)
-	uint32 WorldActorCount = 0;
-	
 	// 헬퍼 메서드
 	AActor* GetCurrentSelectedActor() const;
 	void ResetChangeFlags();
+
+	// 선택된 컴포넌트
+	USceneComponent* SelectedComponent = nullptr;
+
+	// 회전 UI 증분 누적용 상태
+	FVector PrevEditRotationUI = FVector(0, 0, 0); // 직전 프레임 UI 표시값(도)
+	bool bRotationEditing = false;               // 현재 회전 필드가 편집(active) 중인가
 };

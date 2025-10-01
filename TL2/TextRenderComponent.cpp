@@ -153,3 +153,10 @@ void UTextRenderComponent::Render(URenderer* Renderer, const FMatrix& View, cons
         //Renderer->RSSetState(EViewModeIndex::VMI_Unlit);
     }
 }
+
+void UTextRenderComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+    // CharInfoMap는 static 멤버이므로 디폴트 복사 생성자에서 복사하지 않음
+    // TextQuad는 얕은 복사를 수행해도 상관없음
+}

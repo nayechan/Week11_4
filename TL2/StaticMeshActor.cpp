@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "AABoundingBoxComponent.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "ObjectFactory.h"
 
 AStaticMeshActor::AStaticMeshActor()
@@ -46,4 +47,11 @@ void AStaticMeshActor::SetCollisionComponent(EPrimitiveType InType)
 {
     CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);
     CollisionComponent->SetPrimitiveType(InType);
+}
+
+void AStaticMeshActor::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+
+    StaticMeshComponent = StaticMeshComponent->Duplicate();
 }

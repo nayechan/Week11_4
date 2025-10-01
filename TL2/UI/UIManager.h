@@ -67,8 +67,6 @@ public:
 	UWorld* GetWorld() const { return WorldRef; }
 	
 	// Actor management methods
-	void SetGizmoActor(AGizmoActor* InGizmoActor) { GizmoActorRef = InGizmoActor; }
-	AGizmoActor* GetGizmoActor() const { return GizmoActorRef; }
 	void SetCamera(ACameraActor* InCameraActor) { CameraActorRef = InCameraActor; }
 	ACameraActor* GetCamera() const { return CameraActorRef; }
 	void SetPickedActor(AActor* InPickedActor);
@@ -113,7 +111,6 @@ private:
 	UWorld* WorldRef = nullptr;
 	
 	// Actor references
-	AGizmoActor* GizmoActorRef = nullptr;
 	ACameraActor* CameraActorRef = nullptr;
 	AActor* PickedActorRef = nullptr;
 	

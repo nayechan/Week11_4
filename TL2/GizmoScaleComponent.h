@@ -11,5 +11,8 @@ protected:
 
 public:
     DECLARE_CLASS(UGizmoScaleComponent, UGizmoArrowComponent)
+
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(UGizmoScaleComponent)
 };
 

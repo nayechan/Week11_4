@@ -59,6 +59,10 @@ public:
     void SetCameraSpeed(float InSpeed) { CameraMoveSpeed = InSpeed; EditorINI["CameraSpeed"] = std::to_string(CameraMoveSpeed); }
 
     void ProcessEditorCameraInput(float DeltaSeconds);
+
+    // ───── 복사 관련 ────────────────────────────
+    void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(ACameraActor)
 private:
     UCameraComponent* CameraComponent = nullptr;
     

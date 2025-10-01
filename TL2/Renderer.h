@@ -19,7 +19,12 @@ public:
     ~URenderer();
 
 public:
-	void BeginFrame();
+    void BeginFrame();
+
+    // Viewport size for current draw context (used by overlay/gizmo scaling)
+    void SetCurrentViewportSize(uint32 InWidth, uint32 InHeight) { CurrentViewportWidth = InWidth; CurrentViewportHeight = InHeight; }
+    uint32 GetCurrentViewportWidth() const { return CurrentViewportWidth; }
+    uint32 GetCurrentViewportHeight() const { return CurrentViewportHeight; }
 
     void PrepareShader(FShader& InShader);
 
@@ -57,13 +62,21 @@ public:
     void EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix);
     void ClearLineBatch();
 
-	void EndFrame();
+    void EndFrame();
 
     void OMSetDepthStencilState(EComparisonFunc Func);
+    // Overlay precedence helpers
+    void OMSetDepthStencilStateOverlayWriteStencil();
+    void OMSetDepthStencilStateStencilRejectOverlay();
 
     URHIDevice* GetRHIDevice() { return RHIDevice; }
 private:
-	URHIDevice* RHIDevice;
+    URHIDevice* RHIDevice;
+
+    // Current viewport size (per FViewport draw); 0 if unset
+
+    uint32 CurrentViewportWidth = 0;
+    uint32 CurrentViewportHeight = 0;
 
     // Batch Line Rendering System using UDynamicMesh for efficiency
     ULineDynamicMesh* DynamicLineMesh = nullptr;
