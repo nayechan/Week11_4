@@ -95,16 +95,16 @@ void UCameraControlWidget::RenderWidget()
 	ImGui::Spacing();
 
 	// 카메라 이동속도 표시 및 조절 (World와 동기화)
-	if (UIManager && UIManager->GetWorld())
+	if (UIManager && UIManager->GetCamera())
 	{
 		// World에서 현재 카메라 이동 속도 가져오기
-		float WorldMoveSpeed = UIManager->GetWorld()->GetCameraActor()->GetCameraSpeed();
+		float WorldMoveSpeed = UIManager->GetCamera()->GetCameraSpeed();
 		
 		ImGui::Text("Move Speed: %.1f", WorldMoveSpeed);
 		if (ImGui::SliderFloat("##MoveSpeed", &WorldMoveSpeed, 1.0f, 20.0f, "%.1f"))
 		{
 			// World에 카메라 이동속도 설정
-			UIManager->GetWorld()->GetCameraActor()->SetCameraSpeed(WorldMoveSpeed);
+			UIManager->GetCamera()->SetCameraSpeed(WorldMoveSpeed);
 			// 위젯의 로컬 값도 업데이트
 			CameraMoveSpeed = WorldMoveSpeed;
 		}
@@ -236,9 +236,9 @@ void UCameraControlWidget::SyncFromCamera()
 	}
 	
 	// World에서 카메라 이동 속도 동기화
-	if (UIManager && UIManager->GetWorld())
+	if (UIManager && UIManager->GetCamera())
 	{
-		CameraMoveSpeed = UIManager->GetWorld()->GetCameraActor()->GetCameraSpeed();
+		CameraMoveSpeed = UIManager->GetCamera()->GetCameraSpeed();
 		UE_LOG("CameraControl: Synced camera move speed from world - Speed=%.1f", CameraMoveSpeed);
 	}
 }

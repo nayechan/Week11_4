@@ -1,5 +1,7 @@
 ﻿#include "pch.h"
+#include "GridActor.h"
 #include "GizmoActor.h"
+#include "RenderSettings.h"
 #include "GizmoArrowComponent.h"
 #include "GizmoScaleComponent.h"
 #include "GizmoRotateComponent.h"
@@ -52,7 +54,7 @@ AGizmoActor::AGizmoActor()
 	GizmoArrowComponents.Add(ArrowY);
 	GizmoArrowComponents.Add(ArrowZ);
 
-	   //======= Rotate Component 생성 =======
+	//======= Rotate Component 생성 =======
 	RotateX = NewObject<UGizmoRotateComponent>();
 	RotateY = NewObject<UGizmoRotateComponent>();
 	RotateZ = NewObject<UGizmoRotateComponent>();
@@ -149,18 +151,18 @@ void AGizmoActor::Tick(float DeltaSeconds)
 	UpdateComponentVisibility();
 }
 
-void AGizmoActor::Render(ACameraActor* Camera, FViewport* Viewport) 
+void AGizmoActor::Render(ACameraActor* Camera, FViewport* Viewport)
 {
-UpdateConstantScreenScale(Camera, Viewport);
+	UpdateConstantScreenScale(Camera, Viewport);
 
-TArray<USceneComponent*>* Components = GetGizmoComponents();
+	TArray<USceneComponent*>* Components = GetGizmoComponents();
 	if (!Components) return;
 
 
 	float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
 	if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
 
-	EViewModeIndex ViewModeIndex = World->GetViewModeIndex();
+	EViewModeIndex ViewModeIndex = World->GetRenderSettings().GetViewModeIndex();
 
 
 	//@TODO 기즈모 액터에서 렌더러 접근 수정 필요
@@ -193,16 +195,16 @@ TArray<USceneComponent*>* Components = GetGizmoComponents();
 		ModelMatrix = Component->GetWorldMatrix();
 		Renderer->UpdateConstantBuffer(ModelMatrix, ViewMatrix, ProjectionMatrix);
 
-		
-			if (GizmoAxis== i + 1)
-			{
-				Renderer->UpdateHighLightConstantBuffer(true, rgb, i + 1, 1, 0, 1);
-			}
-			else
-			{
-				Renderer->UpdateHighLightConstantBuffer(true, rgb, i + 1, 0, 0, 1);
-			}
-		
+
+		if (GizmoAxis == i + 1)
+		{
+			Renderer->UpdateHighLightConstantBuffer(true, rgb, i + 1, 1, 0, 1);
+		}
+		else
+		{
+			Renderer->UpdateHighLightConstantBuffer(true, rgb, i + 1, 0, 0, 1);
+		}
+
 
 		if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 		{
@@ -269,9 +271,9 @@ void AGizmoActor::SetSpaceWorldMatrix(EGizmoSpace NewSpace, AActor* PickedActor)
 		// 타겟 액터 회전 가져오기
 		FQuat TargetRot = PickedActor->GetActorRotation();
 
-		 // ───────── Translate Gizmo ─────────
-		// ArrowX->AddRelativeRotation(AC);
-			// 월드 고정 → 기즈모 축은 항상 X/Y/Z
+		// ───────── Translate Gizmo ─────────
+	   // ArrowX->AddRelativeRotation(AC);
+		   // 월드 고정 → 기즈모 축은 항상 X/Y/Z
 		if (ArrowX) ArrowX->SetRelativeRotation(TargetRot * FQuat::MakeFromEuler(FVector(0, 0, 0)));
 		if (ArrowY) ArrowY->SetRelativeRotation(TargetRot * FQuat::MakeFromEuler(FVector(0, 0, 90)));
 		if (ArrowZ) ArrowZ->SetRelativeRotation(TargetRot * FQuat::MakeFromEuler(FVector(0, -90, 0)));
@@ -364,10 +366,10 @@ static FVector2D GetStableAxisDirection(const FVector& WorldAxis, const ACameraA
 
 void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, float MouseDeltaY, const ACameraActor* Camera, FViewport* Viewport)
 {
-    if (!Target || !Camera )
-        return;
+	if (!Target || !Camera)
+		return;
 
-    FVector2D MouseDelta = FVector2D(MouseDeltaX, MouseDeltaY);
+	FVector2D MouseDelta = FVector2D(MouseDeltaX, MouseDeltaY);
 
 	FVector Axis{};
 	FVector GizmoPosition = GetActorLocation();
@@ -397,33 +399,33 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
 	{
 	case EGizmoMode::Translate:
 	{
-        FVector2D ScreenAxis = GetStableAxisDirection(Axis, Camera);
-        float px = (MouseDelta.X * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
-        float h = Viewport ? static_cast<float>(Viewport->GetSizeY()) : UInputManager::GetInstance().GetScreenSize().Y;
-        if (h <= 0.0f) h = 1.0f;
-        float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;
-        float aspect = w / h;
-        FMatrix Proj = Camera->GetProjectionMatrix(aspect,Viewport);
-        bool bOrtho = std::fabs(Proj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
-        float worldPerPixel = 0.0f;
-        if (bOrtho)
-        {
-            float halfH = 1.0f / Proj.M[1][1];
-            worldPerPixel = (2.0f * halfH) / h;
-        }
-        else
-        {
-            float yScale = Proj.M[1][1];
-            FVector camPos = Camera->GetActorLocation();
-            FVector gizPos = GetActorLocation();
-            FVector camF = Camera->GetForward();
-            float z = FVector::Dot(gizPos - camPos, camF);
-            if (z < 1.0f) z = 1.0f;
-            worldPerPixel = (2.0f * z) / (h * yScale);
-        }
-        float Movement = px * worldPerPixel;
-        FVector CurrentLocation = Target->GetActorLocation();
-        Target->SetActorLocation(CurrentLocation + Axis * Movement);
+		FVector2D ScreenAxis = GetStableAxisDirection(Axis, Camera);
+		float px = (MouseDelta.X * ScreenAxis.X + MouseDelta.Y * ScreenAxis.Y);
+		float h = Viewport ? static_cast<float>(Viewport->GetSizeY()) : UInputManager::GetInstance().GetScreenSize().Y;
+		if (h <= 0.0f) h = 1.0f;
+		float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;
+		float aspect = w / h;
+		FMatrix Proj = Camera->GetProjectionMatrix(aspect, Viewport);
+		bool bOrtho = std::fabs(Proj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
+		float worldPerPixel = 0.0f;
+		if (bOrtho)
+		{
+			float halfH = 1.0f / Proj.M[1][1];
+			worldPerPixel = (2.0f * halfH) / h;
+		}
+		else
+		{
+			float yScale = Proj.M[1][1];
+			FVector camPos = Camera->GetActorLocation();
+			FVector gizPos = GetActorLocation();
+			FVector camF = Camera->GetForward();
+			float z = FVector::Dot(gizPos - camPos, camF);
+			if (z < 1.0f) z = 1.0f;
+			worldPerPixel = (2.0f * z) / (h * yScale);
+		}
+		float Movement = px * worldPerPixel;
+		FVector CurrentLocation = Target->GetActorLocation();
+		Target->SetActorLocation(CurrentLocation + Axis * Movement);
 
 		break;
 	}
@@ -455,7 +457,7 @@ void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, fl
 		if (h <= 0.0f) h = 1.0f;
 		float w = Viewport ? static_cast<float>(Viewport->GetSizeX()) : UInputManager::GetInstance().GetScreenSize().X;
 		float aspect = w / h;
-		FMatrix Proj = Camera->GetProjectionMatrix(aspect,Viewport);
+		FMatrix Proj = Camera->GetProjectionMatrix(aspect, Viewport);
 		bool bOrtho = std::fabs(Proj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
 		float worldPerPixel = 0.0f;
 		if (bOrtho)
@@ -606,19 +608,19 @@ void AGizmoActor::ProcessGizmoInteraction(ACameraActor* Camera, FViewport* Viewp
 {
 	if (!TargetActor || !Camera) return;
 
-	
-    UpdateConstantScreenScale(Camera, Viewport);
 
-    ProcessGizmoModeSwitch();
+	UpdateConstantScreenScale(Camera, Viewport);
+
+	ProcessGizmoModeSwitch();
 
 	// 기즈모 드래그
 	ProcessGizmoDragging(Camera, Viewport, MousePositionX, MousePositionY);
 
-	ProcessGizmoHovering(Camera,  Viewport,  MousePositionX, MousePositionY);
+	ProcessGizmoHovering(Camera, Viewport, MousePositionX, MousePositionY);
 
 }
 
-void AGizmoActor::ProcessGizmoHovering(ACameraActor* Camera,FViewport* Viewport ,float MousePositionX, float MousePositionY )
+void AGizmoActor::ProcessGizmoHovering(ACameraActor* Camera, FViewport* Viewport, float MousePositionX, float MousePositionY)
 {
 	if (!Camera) return;
 
@@ -626,14 +628,14 @@ void AGizmoActor::ProcessGizmoHovering(ACameraActor* Camera,FViewport* Viewport 
 	FVector2D ViewportOffset(static_cast<float>(Viewport->GetStartX()), static_cast<float>(Viewport->GetStartY()));
 	FVector2D ViewportMousePos(static_cast<float>(MousePositionX) + ViewportOffset.X,
 		static_cast<float>(MousePositionY) + ViewportOffset.Y);
-	if(!bIsDragging)
-	GizmoAxis = CPickingSystem::IsHoveringGizmoForViewport(this, Camera, ViewportMousePos, ViewportSize, ViewportOffset, Viewport);
+	if (!bIsDragging)
+		GizmoAxis = CPickingSystem::IsHoveringGizmoForViewport(this, Camera, ViewportMousePos, ViewportSize, ViewportOffset, Viewport);
 
 	if (GizmoAxis > 0)//기즈모 축이 0이상이라면 선택 된것 
 	{
 		bIsHovering = true;
 	}
-	else 
+	else
 	{
 		bIsHovering = false;
 	}
@@ -642,14 +644,14 @@ void AGizmoActor::ProcessGizmoHovering(ACameraActor* Camera,FViewport* Viewport 
 
 void AGizmoActor::ProcessGizmoDragging(ACameraActor* Camera, FViewport* Viewport, float MousePositionX, float MousePositionY)
 {
-	if (!TargetActor || !Camera ) return;
+	if (!TargetActor || !Camera) return;
 
 	if (InputManager->IsMouseButtonDown(LeftButton))
 	{
 		FVector2D MouseDelta = InputManager->GetMouseDelta();
 		if ((MouseDelta.X * MouseDelta.X + MouseDelta.Y * MouseDelta.Y) > 0.0f)
 		{
-            OnDrag(TargetActor, GizmoAxis, MouseDelta.X, MouseDelta.Y, Camera, Viewport);
+			OnDrag(TargetActor, GizmoAxis, MouseDelta.X, MouseDelta.Y, Camera, Viewport);
 			bIsDragging = true;
 			SetActorLocation(TargetActor->GetActorLocation());
 		}
@@ -700,36 +702,36 @@ void AGizmoActor::UpdateComponentVisibility()
 
 void AGizmoActor::UpdateConstantScreenScale(ACameraActor* Camera, FViewport* Viewport)
 {
-    if (!Camera || !Viewport) return;
-    float h = static_cast<float>(Viewport->GetSizeY());
-    if (h <= 0.0f) h = 1.0f;
-    float w = static_cast<float>(Viewport->GetSizeX());
-    float aspect = w / h;
-    FMatrix Proj = Camera->GetProjectionMatrix(aspect,Viewport);
-    bool bOrtho = std::fabs(Proj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
-    float targetPx = 30.0f;
-    float scale = 1.0f;
-    if (bOrtho)
-    {
-        float halfH = 1.0f / Proj.M[1][1];
-        scale = (targetPx * 2.0f * halfH) / h;
-    }
-    else
-    {
-        float yScale = Proj.M[1][1];
-        FVector camPos = Camera->GetActorLocation();
-        FVector gizPos = GetActorLocation();
-        FVector camF = Camera->GetForward();
-        float z = FVector::Dot(gizPos - camPos, camF);
-        if (z < 1.0f) z = 1.0f;
-        scale = (targetPx * 2.0f * z) / (h * yScale);
-    }
-    if (scale < 0.001f) scale = 0.001f;
-    if (scale > 10000.0f) scale = 10000.0f;
-    SetActorScale(FVector(scale, scale, scale));
+	if (!Camera || !Viewport) return;
+	float h = static_cast<float>(Viewport->GetSizeY());
+	if (h <= 0.0f) h = 1.0f;
+	float w = static_cast<float>(Viewport->GetSizeX());
+	float aspect = w / h;
+	FMatrix Proj = Camera->GetProjectionMatrix(aspect, Viewport);
+	bool bOrtho = std::fabs(Proj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
+	float targetPx = 30.0f;
+	float scale = 1.0f;
+	if (bOrtho)
+	{
+		float halfH = 1.0f / Proj.M[1][1];
+		scale = (targetPx * 2.0f * halfH) / h;
+	}
+	else
+	{
+		float yScale = Proj.M[1][1];
+		FVector camPos = Camera->GetActorLocation();
+		FVector gizPos = GetActorLocation();
+		FVector camF = Camera->GetForward();
+		float z = FVector::Dot(gizPos - camPos, camF);
+		if (z < 1.0f) z = 1.0f;
+		scale = (targetPx * 2.0f * z) / (h * yScale);
+	}
+	if (scale < 0.001f) scale = 0.001f;
+	if (scale > 10000.0f) scale = 10000.0f;
+	SetActorScale(FVector(scale, scale, scale));
 }
 
 void AGizmoActor::OnDrag(AActor* Target, uint32 GizmoAxis, float MouseDeltaX, float MouseDeltaY, const ACameraActor* Camera)
 {
-    OnDrag(Target, GizmoAxis, MouseDeltaX, MouseDeltaY, Camera, nullptr);
+	OnDrag(Target, GizmoAxis, MouseDeltaX, MouseDeltaY, Camera, nullptr);
 }

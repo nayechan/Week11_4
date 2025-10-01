@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "ShowFlagWidget.h"
 #include "../../World.h"
+#include "../../RenderSettings.h"
 #include "../UIManager.h"
 
 UShowFlagWidget::UShowFlagWidget()
@@ -33,7 +34,7 @@ void UShowFlagWidget::RenderWidget()
     UWorld* World = GetWorld();
     if (!World) return;
     
-    // World의 현재 Show Flag 상태와 동기화
+    // RenderSettings와 동기화
     SyncWithWorld(World);
     
     // Show Flag 섹션 헤더
@@ -102,25 +103,25 @@ void UShowFlagWidget::SyncWithWorld(UWorld* World)
 {
     if (!World) return;
     
-    EEngineShowFlags CurrentFlags = World->GetShowFlags();
+EEngineShowFlags CurrentFlags = World->GetRenderSettings().GetShowFlags();
     
     // 각 플래그 상태를 로컬 변수에 동기화
-    bPrimitives = World->IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
-    bStaticMeshes = World->IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
-    bWireframe = World->IsShowFlagEnabled(EEngineShowFlags::SF_Wireframe);
-    bBillboardText = World->IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText);
-    bBoundingBoxes = World->IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes);
-    bGrid = World->IsShowFlagEnabled(EEngineShowFlags::SF_Grid);
-    bLighting = World->IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
-    bOctree = World->IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
-    bBVH = World->IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
+bPrimitives = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
+bStaticMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
+bWireframe = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Wireframe);
+bBillboardText = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText);
+bBoundingBoxes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes);
+bGrid = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid);
+bLighting = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
+bOctree = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
+bBVH = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
 }
 
 void UShowFlagWidget::RenderShowFlagCheckbox(const char* Label, EEngineShowFlags Flag, UWorld* World)
 {
     if (!World) return;
     
-    bool bCurrentState = World->IsShowFlagEnabled(Flag);
+bool bCurrentState = World->GetRenderSettings().IsShowFlagEnabled(Flag);
     
     // 상태에 따라 색상 변경
     ImVec4 checkboxColor = bCurrentState ? ActiveColor : InactiveColor;
@@ -131,11 +132,11 @@ void UShowFlagWidget::RenderShowFlagCheckbox(const char* Label, EEngineShowFlags
         // 체크박스 상태가 변경되면 World의 Show Flag 업데이트
         if (bCurrentState)
         {
-            World->EnableShowFlag(Flag);
+World->GetRenderSettings().EnableShowFlag(Flag);
         }
         else
         {
-            World->DisableShowFlag(Flag);
+World->GetRenderSettings().DisableShowFlag(Flag);
         }
     }
     
@@ -204,7 +205,7 @@ void UShowFlagWidget::RenderPrimitiveSection(UWorld* World)
         RenderShowFlagCheckbox("Primitives", EEngineShowFlags::SF_Primitives, World);
         
         // Primitives가 활성화되어 있을 때만 하위 옵션들 활성화
-        bool bPrimitivesEnabled = World->IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
+bool bPrimitivesEnabled = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
         if (!bPrimitivesEnabled)
         {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
@@ -240,8 +241,8 @@ void UShowFlagWidget::RenderDebugSection(UWorld* World)
         RenderShowFlagCheckbox("Grid", EEngineShowFlags::SF_Grid, World);
         RenderShowFlagCheckbox("Culling", EEngineShowFlags::SF_Culling, World);
         // Mutually exclusive toggles: Octree vs BVH
-        bool oct = World->IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
-        bool bvh = World->IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
+bool oct = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_OctreeDebug);
+bool bvh = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
         bool octChanged = ImGui::Checkbox("Octree", &oct);
         ImGui::SameLine();
         bool bvhChanged = ImGui::Checkbox("BVH", &bvh);
@@ -251,18 +252,18 @@ void UShowFlagWidget::RenderDebugSection(UWorld* World)
             // Enforce exclusivity
             if (bvh && bvhChanged)
             {
-                World->EnableShowFlag(EEngineShowFlags::SF_BVHDebug);
-                World->DisableShowFlag(EEngineShowFlags::SF_OctreeDebug);
+World->GetRenderSettings().EnableShowFlag(EEngineShowFlags::SF_BVHDebug);
+World->GetRenderSettings().DisableShowFlag(EEngineShowFlags::SF_OctreeDebug);
             }
             else if (oct && octChanged)
             {
-                World->EnableShowFlag(EEngineShowFlags::SF_OctreeDebug);
-                World->DisableShowFlag(EEngineShowFlags::SF_BVHDebug);
+World->GetRenderSettings().EnableShowFlag(EEngineShowFlags::SF_OctreeDebug);
+World->GetRenderSettings().DisableShowFlag(EEngineShowFlags::SF_BVHDebug);
             }
             else
             {
-                if (!oct) World->DisableShowFlag(EEngineShowFlags::SF_OctreeDebug);
-                if (!bvh) World->DisableShowFlag(EEngineShowFlags::SF_BVHDebug);
+if (!oct) World->GetRenderSettings().DisableShowFlag(EEngineShowFlags::SF_OctreeDebug);
+if (!bvh) World->GetRenderSettings().DisableShowFlag(EEngineShowFlags::SF_BVHDebug);
             }
         }
         
@@ -300,20 +301,20 @@ void UShowFlagWidget::RenderControlButtons(UWorld* World)
     // 버튼들을 한 줄에 배치
     if (ImGui::Button("Show All"))
     {
-        World->SetShowFlags(EEngineShowFlags::SF_All);
+World->GetRenderSettings().SetShowFlags(EEngineShowFlags::SF_All);
     }
     
     ImGui::SameLine();
     
     if (ImGui::Button("Hide All"))
     {
-        World->SetShowFlags(EEngineShowFlags::None);
+World->GetRenderSettings().SetShowFlags(EEngineShowFlags::None);
     }
     
     ImGui::SameLine();
     
     if (ImGui::Button("Reset"))
     {
-        World->SetShowFlags(EEngineShowFlags::SF_DefaultEnabled);
+World->GetRenderSettings().SetShowFlags(EEngineShowFlags::SF_DefaultEnabled);
     }
 }

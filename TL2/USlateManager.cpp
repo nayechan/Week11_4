@@ -150,7 +150,7 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
         Rect.GetWidth(), Rect.GetHeight(),
         World, Device, EViewportType::Orthographic_Top);
 
-    UI.SetCamera(MainViewport->GetViewportClient()->GetCamera());
+    World->SetCameraActor(MainViewport->GetViewportClient()->GetCamera());
 
     // 뷰포트들을 2x2로 연결
     LeftTop->SideLT = Viewports[0];

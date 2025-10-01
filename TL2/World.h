@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Object.h"
 #include "Enums.h"
+#include "RenderSettings.h"
 
 // Forward Declarations
 class UResourceManager;
@@ -56,17 +57,8 @@ public:
     void LoadScene(const FString& SceneName);
     void SaveScene(const FString& SceneName);
     ACameraActor* GetCameraActor() { return MainCameraActor; }
+    void SetCameraActor(ACameraActor* InCamera);
 
-    EViewModeIndex GetViewModeIndex() { return ViewModeIndex; }
-    void SetViewModeIndex(EViewModeIndex InViewModeIndex) { ViewModeIndex = InViewModeIndex; }
-
-    /** === Show Flag 시스템 === */
-    EEngineShowFlags GetShowFlags() const { return ShowFlags; }
-    void SetShowFlags(EEngineShowFlags InShowFlags) { ShowFlags = InShowFlags; }
-    void EnableShowFlag(EEngineShowFlags Flag) { ShowFlags |= Flag; }
-    void DisableShowFlag(EEngineShowFlags Flag) { ShowFlags &= ~Flag; }
-    void ToggleShowFlag(EEngineShowFlags Flag) { ShowFlags = HasShowFlag(ShowFlags, Flag) ? (ShowFlags & ~Flag) : (ShowFlags | Flag); }
-    bool IsShowFlagEnabled(EEngineShowFlags Flag) const { return HasShowFlag(ShowFlags, Flag); }
 
     /** Generate unique name for actor based on type */
     FString GenerateUniqueActorName(const FString& ActorType);
@@ -81,6 +73,10 @@ public:
     AGizmoActor* GetGizmoActor();
     AGridActor* GetGridActor() { return GridActor; }
     UWorldPartitionManager* GetPartitionManager() { return Partition.get(); }
+
+    // Per-world render settings
+    URenderSettings& GetRenderSettings() { return RenderSettings; }
+    const URenderSettings& GetRenderSettings() const { return RenderSettings; }
 
     void SetStaticMeshs();
     const TArray<UStaticMesh*>& GetStaticMeshs() { return StaticMeshs; }
@@ -103,10 +99,8 @@ private:
     // Object naming system
     TMap<FString, int32> ObjectTypeCounts;
 
-    /** === Show Flag 시스템 === */
-    EEngineShowFlags ShowFlags = EEngineShowFlags::SF_DefaultEnabled;
-
-    EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Unlit;
+    // Per-world render settings
+    URenderSettings RenderSettings;
 
     //partition
     std::unique_ptr<UWorldPartitionManager> Partition = nullptr;
