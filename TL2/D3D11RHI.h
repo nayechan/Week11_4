@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "RHIDevice.h"
 #include "ResourceManager.h"
-
+#include "VertexData.h"
 class D3D11RHI : public URHIDevice
 {
 public:
@@ -193,6 +193,16 @@ inline HRESULT D3D11RHI::CreateVertexBuffer<FBillboardVertexInfo_GPU>(ID3D11Devi
         D3D11_USAGE_DYNAMIC,
         D3D11_CPU_ACCESS_WRITE);
 }
+
+
+template<>
+inline HRESULT D3D11RHI::CreateVertexBuffer<FBillboardVertex>(ID3D11Device* device, const FMeshData& mesh, ID3D11Buffer** outBuffer)
+{
+    return CreateVertexBufferImpl<FBillboardVertex>(device, mesh, outBuffer,
+        D3D11_USAGE_DYNAMIC,
+        D3D11_CPU_ACCESS_WRITE);
+}
+
 
 template<typename TVertex>
 inline HRESULT D3D11RHI::CreateVertexBufferImpl(ID3D11Device* device, const std::vector<FNormalVertex>& srcVertices, ID3D11Buffer** outBuffer, D3D11_USAGE usage, UINT cpuAccessFlags)

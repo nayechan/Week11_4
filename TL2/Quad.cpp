@@ -57,7 +57,7 @@ void UQuad::Load(FMeshData* InData, ID3D11Device* InDevice)
 void UQuad::CreateVertexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice)
 {
 
-    HRESULT hr = D3D11RHI::CreateVertexBuffer<FBillboardVertexInfo_GPU>(InDevice, *InMeshData, &VertexBuffer);
+    HRESULT hr = D3D11RHI::CreateVertexBuffer<FBillboardVertex>(InDevice, *InMeshData, &VertexBuffer);
     assert(SUCCEEDED(hr));
 }
 
