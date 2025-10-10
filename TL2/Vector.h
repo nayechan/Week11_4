@@ -267,6 +267,11 @@ struct FVector
                std::fabs(Y) < KINDA_SMALL_NUMBER && 
                std::fabs(Z) < KINDA_SMALL_NUMBER;
     }
+
+    /*FVector4 ToFVector4() const
+    {
+        return FVector4(X, Y, Z, 1.0f);
+    }*/
 };
 
 // ─────────────────────────────
@@ -736,6 +741,7 @@ struct alignas(16) FMatrix
     static FMatrix LookAtLH(const FVector& Eye, const FVector& At, const FVector& Up);
     static FMatrix PerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf);
     static FMatrix OrthoLH(float Width, float Height, float Zn, float Zf);
+    static FMatrix OrthoLH_XForward(float Width, float Height, float Xn, float Xf);
 };
 
 //Without Last RC
@@ -901,7 +907,7 @@ inline FMatrix FQuat::ToMatrix() const
         2.0f * (XY + WZ), 1.0f - 2.0f * (XX + ZZ), 2.0f * (YZ - WX), 0.0f,
         2.0f * (XZ - WY), 2.0f * (YZ + WX), 1.0f - 2.0f * (XX + YY), 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
-    );
+    ).Transpose();
 }
 
 // Row-major + 행벡터(p' = p * M), Left-Handed: forward = +Z
@@ -945,6 +951,20 @@ inline FMatrix FMatrix::OrthoLH(float Width, float Height, float Zn, float Zf)
     m.Rows[1] = _mm_set_ps(0.0f, 0.0f, 2.0f / H, 0.0f);
     m.Rows[2] = _mm_set_ps(0.0f, 1.0f / DZ, 0.0f, 0.0f);
     m.Rows[3] = _mm_set_ps(1.0f, -Zn / DZ, 0.0f, 0.0f);
+    return m;
+}
+
+inline FMatrix FMatrix::OrthoLH_XForward(float Width, float Height, float Xn, float Xf)
+{
+    const float W = (Width != 0.0f) ? Width : 1e-6f;
+    const float H = (Height != 0.0f) ? Height : 1e-6f;
+    const float DX = (Xf - Xn != 0.0f) ? (Xf - Xn) : 1e-6f;
+
+    FMatrix m = FMatrix::Identity();
+    m.Rows[0] = _mm_set_ps(0.0f, 1.0f / DX, 0.0f, 0.0f);
+    m.Rows[1] = _mm_set_ps(0.0f, 0.0f, 0.0f, 2.0f / W);
+    m.Rows[2] = _mm_set_ps(0.0f, 0.0f, 2.0f / H, 0.0f);
+    m.Rows[3] = _mm_set_ps(1.0f, 0.0f, 0.0f, -Xn / DX);
     return m;
 }
 

@@ -9,7 +9,7 @@ cbuffer ViewProjBuffer : register(b1)
     row_major float4x4 ProjectionMatrix;
 }
 
-cbuffer DecalBuffer : register(b2)
+cbuffer DecalBuffer : register(b6)
 {
     row_major float4x4 DecalMatrix;
 }

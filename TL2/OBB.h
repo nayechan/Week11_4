@@ -20,7 +20,8 @@ struct FOBB
     bool Intersects(const FOBB& Other) const;
     bool IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& OutExitDistance) const;
 
-private:
     // Contain 연산을 위한 헬퍼 함수
     TArray<FVector> GetCorners() const;
+private:
+    
 };

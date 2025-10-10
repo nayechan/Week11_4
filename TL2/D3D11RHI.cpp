@@ -116,6 +116,7 @@ void D3D11RHI::Release()
     if (BillboardCB) { BillboardCB->Release(); BillboardCB = nullptr; }
     if (PixelConstCB) { PixelConstCB->Release(); PixelConstCB = nullptr; }
     if (UVScrollCB) { UVScrollCB->Release(); UVScrollCB = nullptr; }
+    if (DecalCB) { DecalCB->Release(); DecalCB = nullptr; }
     if (ConstantBuffer) { ConstantBuffer->Release(); ConstantBuffer = nullptr; }
 
     // 상태 객체
@@ -621,6 +622,14 @@ void D3D11RHI::CreateConstantBuffer()
         }
         DeviceContext->PSSetConstantBuffers(5, 1, &UVScrollCB);
     }
+
+    // b6: DecalCB
+    D3D11_BUFFER_DESC decalDesc = {};
+    decalDesc.Usage = D3D11_USAGE_DYNAMIC;
+    decalDesc.ByteWidth = sizeof(ModelBufferType);
+    decalDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    decalDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    Device->CreateBuffer(&decalDesc, nullptr, &DecalCB);
 }
 
 void D3D11RHI::UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec)
@@ -636,6 +645,18 @@ void D3D11RHI::UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeS
         DeviceContext->Unmap(UVScrollCB, 0);
         DeviceContext->PSSetConstantBuffers(5, 1, &UVScrollCB);
     }
+}
+
+void D3D11RHI::UpdateDecalBuffer(const FMatrix& DecalMatrix)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped;
+    DeviceContext->Map(DecalCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+    auto* dataPtr = reinterpret_cast<ModelBufferType*>(mapped.pData);
+
+    dataPtr->Model = DecalMatrix;
+
+    DeviceContext->Unmap(DecalCB, 0);
+    DeviceContext->VSSetConstantBuffers(6, 1, &DecalCB); // b6 슬롯
 }
 
 

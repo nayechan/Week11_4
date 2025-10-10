@@ -11,28 +11,91 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
 {
     assert(InDevice);
 
-    std::wstring WFilePath;
-    WFilePath = std::wstring(InShaderPath.begin(), InShaderPath.end());
+    std::wstring WFilePath(InShaderPath.begin(), InShaderPath.end());
 
     HRESULT hr;
     ID3DBlob* errorBlob = nullptr;
-    hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr, "mainVS", "vs_5_0", 0, 0, &VSBlob, &errorBlob);
-    if (FAILED(hr))
+
+    // 문자열 끝 검사 (대소문자 구분 없음)
+    auto EndsWith = [](const FString& str, const FString& suffix) {
+        if (str.size() < suffix.size()) return false;
+        return std::equal(suffix.rbegin(), suffix.rend(), str.rbegin(),
+            [](char a, char b) { return ::tolower(a) == ::tolower(b); });
+        };
+
+    if (EndsWith(InShaderPath, "VS.hlsl"))
     {
-        char* msg = (char*)errorBlob->GetBufferPointer();
-        UE_LOG("shader \'%s\'compile error: %s", InShaderPath, msg);
-        if (errorBlob) errorBlob->Release();
-        return;
+        // Vertex Shader만 컴파일
+        hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
+            "mainVS", "vs_5_0", 0, 0, &VSBlob, &errorBlob);
+        if (FAILED(hr))
+        {
+            if (errorBlob)
+            {
+                char* msg = (char*)errorBlob->GetBufferPointer();
+                UE_LOG("shader '%s' compile error: %s", InShaderPath, msg);
+                errorBlob->Release();
+            }
+            return;
+        }
+
+        hr = InDevice->CreateVertexShader(VSBlob->GetBufferPointer(),
+            VSBlob->GetBufferSize(),
+            nullptr, &VertexShader);
+
+        CreateInputLayout(InDevice, InShaderPath);
     }
+    else if (EndsWith(InShaderPath, "PS.hlsl"))
+    {
+        // Pixel Shader만 컴파일
+        hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
+            "mainPS", "ps_5_0", 0, 0, &PSBlob, &errorBlob);
+        if (FAILED(hr))
+        {
+            if (errorBlob)
+            {
+                char* msg = (char*)errorBlob->GetBufferPointer();
+                UE_LOG("shader '%s' compile error: %s", InShaderPath, msg);
+                errorBlob->Release();
+            }
+            return;
+        }
 
-    hr = InDevice->CreateVertexShader(VSBlob->GetBufferPointer(), VSBlob->GetBufferSize(), nullptr, &VertexShader);
+        hr = InDevice->CreatePixelShader(PSBlob->GetBufferPointer(),
+            PSBlob->GetBufferSize(),
+            nullptr, &PixelShader);
+    }
+    else
+    {
+        // 원래 로직 (VS + PS 둘 다 컴파일)
+        hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
+            "mainVS", "vs_5_0", 0, 0, &VSBlob, &errorBlob);
+        if (FAILED(hr))
+        {
+            if (errorBlob)
+            {
+                char* msg = (char*)errorBlob->GetBufferPointer();
+                UE_LOG("shader '%s' compile error: %s", InShaderPath, msg);
+                errorBlob->Release();
+            }
+            return;
+        }
 
-    hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr, "mainPS", "ps_5_0", 0, 0, &PSBlob, nullptr);
+        hr = InDevice->CreateVertexShader(VSBlob->GetBufferPointer(),
+            VSBlob->GetBufferSize(),
+            nullptr, &VertexShader);
 
-    hr = InDevice->CreatePixelShader(PSBlob->GetBufferPointer(), PSBlob->GetBufferSize(), nullptr, &PixelShader);
+        hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
+            "mainPS", "ps_5_0", 0, 0, &PSBlob, nullptr);
 
-    CreateInputLayout(InDevice, InShaderPath);
+        hr = InDevice->CreatePixelShader(PSBlob->GetBufferPointer(),
+            PSBlob->GetBufferSize(),
+            nullptr, &PixelShader);
+
+        CreateInputLayout(InDevice, InShaderPath);
+    }
 }
+
 
 void UShader::CreateInputLayout(ID3D11Device* Device, const FString& InShaderPath)
 {

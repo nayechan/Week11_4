@@ -21,7 +21,7 @@ class UDecalComponent : public USceneComponent
 public:
     DECLARE_CLASS(UDecalComponent, USceneComponent)
     
-    UDecalComponent() = default;
+    UDecalComponent();
     
 protected:
     ~UDecalComponent() override = default;

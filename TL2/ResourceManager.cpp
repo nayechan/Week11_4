@@ -477,6 +477,7 @@ void UResourceManager::InitShaderILMap()
     layout.Add({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 });
     layout.Add({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 48, D3D11_INPUT_PER_VERTEX_DATA, 0 });
     ShaderToInputLayoutMap["StaticMeshShader.hlsl"] = layout;
+    ShaderToInputLayoutMap["DecalVS.hlsl"] = layout;
     layout.clear();
 
     layout.Add({ "WORLDPOSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
