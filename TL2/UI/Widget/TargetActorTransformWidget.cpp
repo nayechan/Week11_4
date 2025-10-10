@@ -14,6 +14,7 @@
 #include "TextRenderComponent.h"
 #include "CameraComponent.h"
 #include "BillboardComponent.h"
+#include "DecalComponent.h"
 using namespace std;
 
 
@@ -68,6 +69,7 @@ namespace
 				TArray<FAddableComponentDescriptor> Result;
 				Result.push_back({ "Static Mesh Component", UStaticMeshComponent::StaticClass(), "Static mesh 렌더링용 컴포넌트" });
 				Result.push_back({ "Billboard Component", UBillboardComponent::StaticClass(), "빌보드 텍스쳐 표시" });
+				Result.push_back({ "Decal Component", UDecalComponent::StaticClass(), "데칼" });
 				return Result;
 			}();
 		return Options;

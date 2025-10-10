@@ -24,7 +24,8 @@
 #include "Material.h"
 #include "Texture.h"
 #include "RenderSettings.h"
-#include <EditorEngine.h>
+#include "EditorEngine.h"
+#include "DecalComponent.h"
 
 URenderManager::URenderManager()
 	: OcclusionCPU(new FOcclusionCullingManagerCPU())
@@ -146,6 +147,10 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 	// ----------------------------------------------------------------
 
 	{	// 일반 액터들 렌더링
+
+		// 렌더 목록 수집
+		FVisibleRenderProxySet RenderProxySet;
+
 		if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives))
 		{
 			for (AActor* Actor : World->GetActors())
@@ -171,128 +176,57 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 
 				for (USceneComponent* Component : Actor->GetSceneComponents())
 				{
-					if (!Component) continue;
-					if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-						if (!ActorComp->IsActive()) continue;
-
-					if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+					if (!Component)
 					{
-						//const UStaticMeshComponent* SMC = Cast<UStaticMeshComponent>(Primitive);
-						//if (SMC && SMC->IsChangedMaterialByUser() == false)
-						//{
-						//	// 유저에 의해 Material이 안 바뀐 UStaticMeshComponent는 따로 sorting rendering
-						//	continue;
-						//}
-						// Actor가 textCmp도 가지고 있고, bounding box도 가지고 있고,
-						// TODO: StaticMeshComp이면 분기해서, 어떤 sorting 자료구조에 넣고 나중에 렌더링 ㄱ?
-						// StatcMeshCmp면 이것의 dirtyflag를 보고, dirtyflag가 true면 tree탐색(이미 바꼇는데 그거 기반으로 어떻게 탐색해?)으로 state tree의 해당 cmp를 다른 곳으로 옮기기
-						Renderer->SetViewModeType(EffectiveViewMode);
-						Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
-						Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+						continue;
+					}
+					if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
+					{
+						if (!ActorComp->IsActive())
+						{
+							continue;
+						}
 
-						visibleCount++;
+						if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+						{
+							RenderProxySet.Primitives.Add(Primitive);
+						}
+						else if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+						{
+							RenderProxySet.Decals.Add(Decal);
+						}
 					}
 				}
 			}
 
-			//MATERIALSORTING
+			Renderer->SetViewModeType(EffectiveViewMode);
+			Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+
+			// Primitives 그리기
+			for (UPrimitiveComponent* Primitive : RenderProxySet.Primitives)
 			{
-				//	// TODO: StaticCmp를 State tree 이용해서 렌더(showFlag 확인 필요)
-				//	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes))
-				//	{
-				//		for (UStaticMesh* StaticMesh : RESOURCE.GetStaticMeshs())
-				//		{
-				//			UINT stride = 0;
-				//			stride = sizeof(FVertexDynamic);
-				//			UINT offset = 0;
+				Primitive->Render(Renderer, ViewMatrix, ProjectionMatrix);
 
-				//			ID3D11Buffer* VertexBuffer = StaticMesh->GetVertexBuffer();
-				//			ID3D11Buffer* IndexBuffer = StaticMesh->GetIndexBuffer();
-				//			uint32 VertexCount = StaticMesh->GetVertexCount();
-				//			uint32 IndexCount = StaticMesh->GetIndexCount();
+				visibleCount++;
+			}
 
-				//			URHIDevice* RHIDevice = Renderer->GetRHIDevice();
+			Renderer->SetViewModeType(EffectiveViewMode);
+			Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
+			Renderer->OMSetBlendState(true);
 
-				//			RHIDevice->GetDeviceContext()->IASetVertexBuffers(
-				//				0, 1, &VertexBuffer, &stride, &offset
-				//			);
+			// Decals 그리기
+			for (UDecalComponent* Decal : RenderProxySet.Decals)
+			{
+				// Todo: RenderProxySet.Primitives 중에 Decals과 충돌한 Primitives 추출
+				// [임시] 모든 오브젝트를 데칼과 충돌했다 판정 / 추후 실제로 충돌한 Primitives만 다시 그리도록 변경
+				TArray<UPrimitiveComponent*> TargetPrimitives = RenderProxySet.Primitives;
 
-				//			RHIDevice->GetDeviceContext()->IASetIndexBuffer(
-				//				IndexBuffer, DXGI_FORMAT_R32_UINT, 0
-				//			);
+				for (UPrimitiveComponent* Target : TargetPrimitives)
+				{
+					Decal->RenderAffectedPrimitives(Renderer, Target, ViewMatrix, ProjectionMatrix);
+				}
 
-				//			RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				//			RHIDevice->PSSetDefaultSampler(0);
-
-				//			if (StaticMesh->HasMaterial())
-				//			{
-				//				for (const FGroupInfo& GroupInfo : StaticMesh->GetMeshGroupInfo())
-				//				{
-				//					if (StaticMesh->GetUsingComponents().empty())
-				//					{
-				//						continue;
-				//					}
-				//					UMaterial* const Material = UResourceManager::GetInstance().Get<UMaterial>(GroupInfo.InitialMaterialName);
-				//					const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
-				//					bool bHasTexture = !(MaterialInfo.DiffuseTextureFileName.empty());
-				//					if (bHasTexture)
-				//					{
-				//						FWideString WTextureFileName(MaterialInfo.DiffuseTextureFileName.begin(), MaterialInfo.DiffuseTextureFileName.end()); // 단순 ascii라고 가정
-				//						FTextureData* TextureData = UResourceManager::GetInstance().CreateOrGetTextureData(WTextureFileName);
-				//						RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &(TextureData->TextureSRV));
-				//					}
-				//					RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // PSSet도 해줌
-
-				//					for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
-				//					{
-				//						if (Component->GetOwner()->GetCulled() == false && Component->IsChangedMaterialByUser() == false)
-				//						{
-				//							// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-				//							if (bUseCPUOcclusion)
-				//							{
-				//								uint32_t id = Component->GetOwner()->UUID;
-				//								if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-				//								{
-				//									continue; // 가려짐 → 스킵
-				//								}
-				//							}
-
-				//							Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
-				//							Renderer->PrepareShader(Component->GetMaterial()->GetShader());
-				//							RHIDevice->GetDeviceContext()->DrawIndexed(GroupInfo.IndexCount, GroupInfo.StartIndex, 0);
-				//						}
-				//					}
-				//				}
-				//			}
-				//			else
-				//			{
-
-				//				for (UStaticMeshComponent* Component : StaticMesh->GetUsingComponents())
-				//				{
-				//					if (!Component->GetOwner()->GetCulled() && !Cast<AGizmoActor>(Component->GetOwner()))
-				//					{
-				//						// ★★★ CPU 오클루전 컬링: UUID로 보임 여부 확인
-				//						if (bUseCPUOcclusion)
-				//						{
-				//							uint32_t id = Component->GetOwner()->UUID;
-				//							if (id < VisibleFlags.size() && VisibleFlags[id] == 0)
-				//							{
-				//								continue; // 가려짐 → 스킵
-				//							}
-				//						}
-
-				//						FObjMaterialInfo ObjMaterialInfo;
-				//						RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
-
-				//						Renderer->UpdateConstantBuffer(Component->GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
-				//						Renderer->PrepareShader(Component->GetMaterial()->GetShader());
-				//						RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
-				//					}
-				//				}
-				//			}
-
-				//		}
-				//	}
+				visibleCount++;
 			}
 		}
 	}

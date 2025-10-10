@@ -6,7 +6,19 @@ class URenderer;
 class ACameraActor;
 class FViewport;
 class FViewportClient;
+class UPrimitiveComponent;
+class UDecalComponent;
+
 struct FCandidateDrawable;
+
+// 렌더링할 대상들의 집합을 담는 구조체
+struct FVisibleRenderProxySet
+{
+    TArray<UPrimitiveComponent*> Primitives;
+    TArray<UDecalComponent*> Decals;
+
+    // TArray<ULightComponent*> Lights; // 나중에 조명 등 다른 요소도 추가 가능
+};
 
 // High-level scene rendering orchestrator extracted from UWorld
 class URenderManager : public UObject

@@ -741,6 +741,9 @@ void D3D11RHI::OmSetDepthStencilState(EComparisonFunc Func)
     case EComparisonFunc::GreaterEqual:
         DeviceContext->OMSetDepthStencilState(DepthStencilStateGreaterEqualWrite, 0);
         break;
+    case EComparisonFunc::LessEqualReadOnly:
+        DeviceContext->OMSetDepthStencilState(DepthStencilStateLessEqualReadOnly, 0);
+        break;
     }
 }
 
