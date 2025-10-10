@@ -8,7 +8,7 @@
 #include <Windows.h>
 
 
-URenderer::URenderer(URHIDevice* InDevice) : RHIDevice(InDevice)
+URenderer::URenderer(D3D11RHI* InDevice) : RHIDevice(InDevice)
 {
 	InitializeLineBatch();
 

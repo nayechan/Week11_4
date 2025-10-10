@@ -14,7 +14,7 @@ struct FMaterialSlot;
 class URenderer
 {
 public:
-    URenderer(URHIDevice* InDevice);
+    URenderer(D3D11RHI* InDevice);
 
     ~URenderer();
 
@@ -69,9 +69,9 @@ public:
     void OMSetDepthStencilStateOverlayWriteStencil();
     void OMSetDepthStencilStateStencilRejectOverlay();
 
-    URHIDevice* GetRHIDevice() { return RHIDevice; }
+    D3D11RHI* GetRHIDevice() { return RHIDevice; }
 private:
-    URHIDevice* RHIDevice;
+    D3D11RHI* RHIDevice;
 
     // Current viewport size (per FViewport draw); 0 if unset
 

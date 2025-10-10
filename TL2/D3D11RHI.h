@@ -65,6 +65,8 @@ public:
     void OMSetDepthStencilState_OverlayWriteStencil() override;
     void OMSetDepthStencilState_StencilRejectOverlay() override;
 
+    void OmSetDepthStencilState(EComparisonFunc Func) override;
+
     void CreateShader(ID3D11InputLayout** OutSimpleInputLayout, ID3D11VertexShader** OutSimpleVertexShader, ID3D11PixelShader** OutSimplePixelShader) override;
 
     void OnResize(UINT NewWidth, UINT NewHeight);
@@ -111,7 +113,7 @@ private:
     void ReleaseFrameBuffer(); // fb, rtv
     void ReleaseDeviceAndSwapChain();
  
-	void OmSetDepthStencilState(EComparisonFunc Func) override;
+	
     
 private:
     //24
