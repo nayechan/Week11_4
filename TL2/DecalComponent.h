@@ -16,10 +16,10 @@ struct FDecalProjectionData;
  * - Rotation: Decal의 투영 방향 (Forward = -Z 방향으로 투영)
  * - Scale: Decal volume의 크기 (X=Width, Y=Height, Z=Depth)
  */
-class UDecalComponent : public UPrimitiveComponent
+class UDecalComponent : public USceneComponent
 {
 public:
-    DECLARE_CLASS(UDecalComponent, UPrimitiveComponent)
+    DECLARE_CLASS(UDecalComponent, USceneComponent)
     
     UDecalComponent() = default;
     

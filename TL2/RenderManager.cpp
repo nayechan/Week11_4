@@ -210,6 +210,12 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 				visibleCount++;
 			}
 
+			// NOTE: 디버깅용 임시 Decals 외곽선 그리기
+			for (UDecalComponent* Decal : RenderProxySet.Decals)
+			{
+				Decal->RenderDebugVolume(Renderer, ViewMatrix, ProjectionMatrix);
+			}
+
 			Renderer->SetViewModeType(EffectiveViewMode);
 			Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 			Renderer->OMSetBlendState(true);
