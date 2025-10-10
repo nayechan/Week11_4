@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include <cmath>
 #include "DecalComponent.h"
 #include "OBB.h"
@@ -149,18 +149,18 @@ FAABB UDecalComponent::GetWorldAABB() const
 
     // Step 2: Initialize min/max accumulators that will grow to the final axis-aligned bounds.
     FVector MinBounds(FLT_MAX, FLT_MAX, FLT_MAX);
-    FVector MaxBounds(FLT_MAX, FLT_MAX, FLT_MAX);
+    FVector MaxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
     // Step 3: Evaluate all 8 OBB corners in world-space.
     const FVector& Center = DecalOBB.Center;
     const FVector& HalfExtent = DecalOBB.HalfExtent;
     const FVector (&Axes)[3] = DecalOBB.Axes;
 
-    for (uint8 sx = -1; sx <= 1; sx += 2)
+    for (int8 sx = -1; sx <= 1; sx += 2)
     {
-        for (uint8 sy = -1; sy <= 1; sy += 2)
+        for (int8 sy = -1; sy <= 1; sy += 2)
         {
-            for (uint8 sz = -1; sz <= 1; sz += 2)
+            for (int8 sz = -1; sz <= 1; sz += 2)
             {
                 const FVector Corner = Center
                     + Axes[0] * (HalfExtent.X * static_cast<float>(sx))
