@@ -159,11 +159,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AABB.cpp" />
     <ClCompile Include="ActorComponent.cpp" />
     <ClCompile Include="BillboardComponent.cpp" />
     <ClCompile Include="BVHierachy.cpp" />
     <ClCompile Include="Level.cpp" />
     <ClCompile Include="MeshBVH.cpp" />
+    <ClCompile Include="OBB.cpp" />
     <ClCompile Include="Occlusion.cpp" />
     <ClCompile Include="PipelineStateManager.cpp" />
     <ClCompile Include="PipelineStateObject.cpp" />
@@ -341,11 +343,13 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AABB.h" />
     <ClInclude Include="ActorComponent.h" />
     <ClInclude Include="BillboardComponent.h" />
     <ClInclude Include="BVHierachy.h" />
     <ClInclude Include="Level.h" />
     <ClInclude Include="MeshBVH.h" />
+    <ClInclude Include="OBB.h" />
     <ClInclude Include="Occlusion.h" />
     <ClInclude Include="PipelineStateManager.h" />
     <ClInclude Include="PipelineStateObject.h" />
