@@ -8,6 +8,8 @@ UDecalComponent::UDecalComponent()
 {
 	UResourceManager::GetInstance().Load<UMaterial>("DecalVS.hlsl", EVertexLayoutType::PositionColorTexturNormal);
 	UResourceManager::GetInstance().Load<UMaterial>("DecalPS.hlsl", EVertexLayoutType::PositionColorTexturNormal);
+
+	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/cube_texture.dds");
 }
 
 void UDecalComponent::Serialize(bool bIsLoading, FDecalData& InOut)
@@ -65,6 +67,16 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 	RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	RHIDevice->PSSetDefaultSampler(0);
 
+	if (DecalTexture)
+	{
+		ID3D11ShaderResourceView* SRV = DecalTexture->GetShaderResourceView();
+		RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &SRV);
+	}
+	else
+	{
+		UE_LOG("Decal Texture is nullptr!");
+	}
+
 	// DrawCall
 	RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
 	
@@ -72,23 +84,6 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 
 void UDecalComponent::RenderDebugVolume(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) const
 {
-	// 로컬 단위 큐브의 정점과 선 정보 정의 (위와 동일)
-	//const FVector4 LocalVertices[8] = {
-	//	FVector4(-0.5f, -0.5f, -0.5f, 1.0f), FVector4(0.5f, -0.5f, -0.5f, 1.0f),
-	//	FVector4(0.5f, 0.5f, -0.5f, 1.0f), FVector4(-0.5f, 0.5f, -0.5f, 1.0f),
-	//	FVector4(-0.5f, -0.5f, 0.5f, 1.0f), FVector4(0.5f, -0.5f, 0.5f, 1.0f),
-	//	FVector4(0.5f, 0.5f, 0.5f, 1.0f), FVector4(-0.5f, 0.5f, 0.5f, 1.0f)
-	//};
-
-	//const int Edges[12][2] = {
-	//	{0, 1}, {1, 2}, {2, 3}, {3, 0}, // 하단
-	//	{4, 5}, {5, 6}, {6, 7}, {7, 4}, // 상단
-	//	{0, 4}, {1, 5}, {2, 6}, {3, 7}  // 기둥
-	//};
-
-	//// 컴포넌트의 월드 변환 행렬
-	//const FMatrix WorldMatrix = GetWorldMatrix();
-
 	// 라인 색상
 	const FVector4 BoxColor(1.0f, 1.0f, 0.0f, 1.0f); // 노란색
 
@@ -96,23 +91,10 @@ void UDecalComponent::RenderDebugVolume(URenderer* Renderer, const FMatrix& View
 	TArray<FVector> StartPoints;
 	TArray<FVector> EndPoints;
 	TArray<FVector4> Colors;
-
-	//// 12개의 선 데이터를 배열에 채워 넣습니다.
-	//for (int i = 0; i < 12; ++i)
-	//{
-	//	// 월드 좌표로 변환
-	//	const FVector4 WorldStart = (LocalVertices[Edges[i][0]]) * WorldMatrix;
-	//	const FVector4 WorldEnd = (LocalVertices[Edges[i][1]]) * WorldMatrix;
-
-	//	StartPoints.Add(FVector(WorldStart.X, WorldStart.Y, WorldStart.Z));
-	//	EndPoints.Add(FVector(WorldEnd.X, WorldEnd.Y, WorldEnd.Z));
-	//	Colors.Add(BoxColor);
-	//}
-
 	
 	TArray<FVector> Coners = GetOBB().GetCorners();
 
-	const int Edges2[12][2] = {
+	const int Edges[12][2] = {
 		{6, 4}, {7, 5}, {6, 7}, {4, 5}, // 앞면
 		{4, 0}, {5, 1}, {6, 2}, {7, 3}, // 옆면
 		{0, 2}, {1, 3}, {0, 1}, {2, 3}  // 뒷면
@@ -122,8 +104,8 @@ void UDecalComponent::RenderDebugVolume(URenderer* Renderer, const FMatrix& View
 	for (int i = 0; i < 12; ++i)
 	{
 		// 월드 좌표로 변환
-		const FVector WorldStart = Coners[Edges2[i][0]];
-		const FVector WorldEnd = Coners[Edges2[i][1]];
+		const FVector WorldStart = Coners[Edges[i][0]];
+		const FVector WorldEnd = Coners[Edges[i][1]];
 
 		StartPoints.Add(WorldStart);
 		EndPoints.Add(WorldEnd);
@@ -136,10 +118,26 @@ void UDecalComponent::RenderDebugVolume(URenderer* Renderer, const FMatrix& View
 
 void UDecalComponent::SetDecalTexture(UTexture* InTexture)
 {
+	DecalTexture = InTexture;
 }
 
 void UDecalComponent::SetDecalTexture(const FString& TexturePath)
 {
+	DecalTexture = UResourceManager::GetInstance().Load<UTexture>(TexturePath);
+	//UMaterial* const Material = UResourceManager::GetInstance().Load<UMaterial>(TexturePath);
+	//const FObjMaterialInfo& MaterialInfo = Material->GetMaterialInfo();
+	//if (!MaterialInfo.DiffuseTextureFileName.empty())
+	//{
+	//	// 반환 여기서 로드 
+	//	if (FTextureData* TextureData = UResourceManager::GetInstance().CreateOrGetTextureData(WTextureFileName))
+	//	{
+	//		if (TextureData->TextureSRV)
+	//		{
+	//			srv = TextureData->TextureSRV;
+	//			bHasTexture = true;
+	//		}
+	//	}
+	//}
 }
 
 FAABB UDecalComponent::GetWorldAABB() const

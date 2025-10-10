@@ -40,5 +40,8 @@ PS_INPUT mainVS(VS_INPUT input)
     float4x4 VP = mul(ViewMatrix, ProjectionMatrix);
     output.position = mul(worldPos, VP);
     
+    // Depth Bias 적용 (z를 살짝 앞으로 당김)
+    output.position.z -= 0.0001 * output.position.w;
+    
     return output;
 }

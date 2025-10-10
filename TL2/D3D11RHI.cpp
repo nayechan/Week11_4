@@ -184,7 +184,12 @@ void D3D11RHI::CreateDepthStencilState()
     Device->CreateDepthStencilState(&desc, &DepthStencilStateLessEqualWrite);
 
     // 2) ReadOnly: LessEqual + Write ZERO
-    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    desc.DepthEnable = TRUE;                            // 깊이 테스트를 켭니다.
+    desc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;       // 일반적인 '가깝거나 같으면 통과' 규칙을 사용합니다.
+    // 3. 뎁스 쓰기 관련 설정을 합니다. (핵심 부분)
+    desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;  // 깊이 버퍼에 쓰지 않도록 설정합니다 (OFF).
+    // 4. 스텐실 테스트는 사용하지 않습니다.
+    desc.StencilEnable = FALSE;
     Device->CreateDepthStencilState(&desc, &DepthStencilStateLessEqualReadOnly);
 
     // 3) AlwaysNoWrite: Always + Write ZERO (기즈모/오버레이 용)

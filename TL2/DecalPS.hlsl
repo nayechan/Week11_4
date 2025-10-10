@@ -25,16 +25,16 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     }
     
     // for test
-    return float4(1.0, 0.0f, 0.0f, 1.0f);
+    //return float4(1.0, 0.0f, 0.0f, 1.0f);
     
     // ndc to uv
-    //float2 uv = (ndc.yz + 1.0f) / 2.0f;
-    //uv.y *= -1.0f;
+    float2 uv = (ndc.yz + 1.0f) / 2.0f;
+    uv.y *= -1.0f;
     
-    //uv += UVScrollSpeed * UVScrollTime;
+    uv += UVScrollSpeed * UVScrollTime;
     
-    //float4 finalColor = g_DecalTexColor.Sample(g_Sample, uv);
+    float4 finalColor = g_DecalTexColor.Sample(g_Sample, uv);
     
-    //return finalColor;
+    return finalColor;
 }
 

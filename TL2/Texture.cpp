@@ -58,6 +58,8 @@ void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 	}
 
 	UE_LOG("Successfully loaded DDS texture: %s", InFilePath);
+
+	TextureName = InFilePath;
 }
 
 void UTexture::ReleaseResources()
