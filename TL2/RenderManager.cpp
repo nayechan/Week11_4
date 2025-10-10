@@ -169,11 +169,11 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 					continue;
 				}
 
-			for (USceneComponent* Component : Actor->GetSceneComponents())
-			{
-				if (!Component) continue;
-				if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
-					if (!ActorComp->IsActive()) continue;
+				for (USceneComponent* Component : Actor->GetSceneComponents())
+				{
+					if (!Component) continue;
+					if (UActorComponent* ActorComp = Cast<UActorComponent>(Component))
+						if (!ActorComp->IsActive()) continue;
 
 					if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
 					{
