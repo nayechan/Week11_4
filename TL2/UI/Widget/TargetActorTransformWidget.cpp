@@ -924,6 +924,48 @@ void UTargetActorTransformWidget::RenderWidget()
 				}
 			}
 		}
+
+		if (UDecalComponent* DecalCmp = Cast<UDecalComponent>(GetEditingComponent()))
+		{
+			ImGui::Separator();
+			ImGui::Text("Set Decal Texture");
+
+			FString CurrentPath;
+			if (UTexture* Texture = DecalCmp->GetDecalTexture())
+			{
+				CurrentPath = ToUtf8(Texture->GetTextureName());
+				ImGui::Text("Current: %s", CurrentPath.c_str());
+			}
+			else
+			{
+				ImGui::Text("Current: <None>");
+			}
+
+			const TArray<FString> MaterialNames = UResourceManager::GetInstance().GetAllFilePaths<UMaterial>();
+			TArray<const char*> MaterialNamesCharP;
+			MaterialNamesCharP.reserve(MaterialNames.size());
+			for (const FString& n : MaterialNames)
+				MaterialNamesCharP.push_back(n.c_str());
+
+			if (MaterialNames.empty())
+			{
+				ImGui::TextColored(ImVec4(1, 0.6f, 0.6f, 1), "No Material resources loaded.");
+			}
+			else
+			{
+				int SelectedMaterialIdx = -1;
+				if (ImGui::Combo("Material", &SelectedMaterialIdx, MaterialNamesCharP.data(),
+					static_cast<int>(MaterialNamesCharP.size())))
+				{
+					if (SelectedMaterialIdx >= 0 && SelectedMaterialIdx < static_cast<int>(MaterialNames.size()))
+					{
+						DecalCmp->SetDecalTexture(MaterialNames[SelectedMaterialIdx]);
+						//TargetSMC->SetMaterialByUser(i, MaterialNames[SelectedMaterialIdx]);
+						UE_LOG("Set Decal Texture to %s", MaterialNames[SelectedMaterialIdx].c_str());
+					}
+				}
+			}
+		}
 	}
 }
 

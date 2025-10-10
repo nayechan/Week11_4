@@ -24,6 +24,9 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         discard;
     }
     
+    // for test
+    //return float4(1.0, 0.0f, 0.0f, 1.0f);
+    
     // ndc to uv
     float2 uv = (ndc.yz + 1.0f) / 2.0f;
     uv.y *= -1.0f;

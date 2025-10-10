@@ -18,6 +18,7 @@
 #include "Frustum.h"
 #include "WorldPartitionManager.h"
 #include "BVHierachy.h"
+#include "SelectionManager.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, ACameraActor* InCamera, FViewport* InViewport, URenderer* InOwnerRenderer)
 	: World(InWorld)
@@ -184,20 +185,53 @@ void FSceneRenderer::RenderOpaquePass()
 
 void FSceneRenderer::RenderDecalPass()
 {
-	if (Proxies.Decals.empty()) return;
+	if (Proxies.Decals.empty())
+		return;
 
+	UWorldPartitionManager* Partition = World->GetPartitionManager();
+	if (!Partition)
+		return;
+
+	const FBVHierachy* BVH = Partition->GetBVH();
+	if (!BVH)
+		return;
+
+	// 데칼 렌더 설정
 	OwnerRenderer->SetViewModeType(EffectiveViewMode);
 	RHI->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly); // 깊이 쓰기 OFF
 	RHI->OMSetBlendState(true);
 
 	for (UDecalComponent* Decal : Proxies.Decals)
 	{
-		TArray<UPrimitiveComponent*> TargetPrimitives = Proxies.Primitives;
+		// Decal이 그려질 Primitives
+		TArray<UPrimitiveComponent*> TargetPrimitives;
+
+		// 1. Decal의 World AABB와 충돌한 모든 Actor 쿼리
+		TArray<AActor*> IntersectedActors = BVH->QueryIntersectedActors(Decal->GetWorldAABB());
+
+		// 2. 충돌한 모든 visible Actor의 PrimitiveComponent를 TargetPrimitives에 추가 
+		for (AActor* Actor : IntersectedActors)
+		{
+			if (!Actor->IsActorVisible())
+				continue; // Skip hidden actor
+			TArray<USceneComponent*> SceneComponents = Actor->GetSceneComponents();
+			for (USceneComponent* SceneComp : SceneComponents)
+			{
+				UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(SceneComp);
+				if (Primitive)
+				{
+					TargetPrimitives.push_back(Primitive);
+				}
+			}
+		}
+
+		// 3. TargetPrimitive 순회하며 렌더링
 		for (UPrimitiveComponent* Target : TargetPrimitives)
 		{
 			Decal->RenderAffectedPrimitives(OwnerRenderer, Target, ViewMatrix, ProjectionMatrix);
 		}
 	}
+
 	RHI->OMSetBlendState(false); // 상태 복구
 }
 
@@ -225,12 +259,25 @@ void FSceneRenderer::RenderEditorPrimitivesPass()
 
 void FSceneRenderer::RenderDebugPass()
 {
+	// 선택된 액터 경계 출력
+	for (AActor* SelectedActor : World->GetSelectionManager()->GetSelectedActors())
+	{
+		for (USceneComponent* Component : SelectedActor->GetSceneComponents())
+		{
+			// 일단 데칼만 구현됨
+			if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+			{
+				Decal->RenderDebugVolume(OwnerRenderer, ViewMatrix, ProjectionMatrix);
+			}
+		}
+	}
+
 	// Debug draw (BVH, Octree 등)
 	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug) && World->GetPartitionManager())
 	{
 		if (FBVHierachy* BVH = World->GetPartitionManager()->GetBVH())
 		{
-			// BVH->DebugDraw(OwnerRenderer); // DebugDraw가 LineBatcher를 직접 받도록 수정 필요
+			BVH->DebugDraw(OwnerRenderer); // DebugDraw가 LineBatcher를 직접 받도록 수정 필요
 		}
 	}
 }

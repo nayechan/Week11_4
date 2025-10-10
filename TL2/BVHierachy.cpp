@@ -178,6 +178,49 @@ void FBVHierachy::QueryFrustum(const Frustum& InFrustum)
     }
 }
 
+// DFS 방식으로 BVH 순회하며 InBounds와 bounding volume이 충돌한 액터들 추출
+TArray<AActor*> FBVHierachy::QueryIntersectedActors(const FAABB& InBound) const
+{
+    TArray<AActor*> OutActors;
+    if (Nodes.empty())
+        return OutActors;
+    TArray<int32> IdxStack;
+    IdxStack.push_back({ 0 }); // Index 0 is always root node (BuildLBVHFromMap 참고)
+
+    while (!IdxStack.empty())
+    {
+        int32 Idx = IdxStack.back();
+        IdxStack.pop_back();
+        const FLBVHNode& Node = Nodes[Idx];
+        if (Node.Bounds.Intersects(InBound))
+        {
+            // 현재 노드와 InBound가 겹쳤고 leaf인 경우 -> 각 액터 순회 돌면서 InBound와 겹치는지 검사
+            if (Node.IsLeaf())
+            {
+                for (int32 i = 0; i < Node.Count; ++i)
+                {
+                    AActor* A = ActorArray[Node.First + i];
+                    if (!A || ActorLastBounds.find(A) == ActorLastBounds.end())
+                        continue;
+                    const FAABB* Cached = ActorLastBounds.Find(A);
+                    const FAABB Box = Cached ? *Cached : A->GetBounds();
+                    if (InBound.Intersects(Box))
+                    {
+                        OutActors.push_back(A);
+                    }
+                }
+            }
+            // 현재 노드가 leaf가 아닌 경우 -> child 있으면 search stack에 추가
+            else
+            {
+                if (Node.Left >= 0) IdxStack.push_back({ Node.Left });
+                if (Node.Right >= 0) IdxStack.push_back({ Node.Right });
+            }
+        }
+    }
+    return OutActors;
+}
+
 void FBVHierachy::DebugDraw(URenderer* Renderer) const
 {
     if (!Renderer) return;

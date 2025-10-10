@@ -9,7 +9,7 @@ cbuffer ViewProjBuffer : register(b1)
     row_major float4x4 ProjectionMatrix;
 }
 
-cbuffer DecalBuffer : register(b2)
+cbuffer DecalBuffer : register(b6)
 {
     row_major float4x4 DecalMatrix;
 }
@@ -39,6 +39,9 @@ PS_INPUT mainVS(VS_INPUT input)
     
     float4x4 VP = mul(ViewMatrix, ProjectionMatrix);
     output.position = mul(worldPos, VP);
+    
+    // Depth Bias 적용 (z를 살짝 앞으로 당김)
+    output.position.z -= 0.0001 * output.position.w;
     
     return output;
 }

@@ -52,14 +52,16 @@ public:
 	static HRESULT CreateIndexBuffer(ID3D11Device* device, const FStaticMesh* mesh, ID3D11Buffer** outBuffer);
 
 
-	void UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
-	void UpdateViewProjectionBuffers(const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
-	void UpdateModelBuffer(const FMatrix& ModelMatrix);
-	void UpdateBillboardConstantBuffers(const FVector& pos, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix, const FVector& CameraRight, const FVector& CameraUp);
-	void UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture);
-	void UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo);
-	void UpdateColorConstantBuffers(const FVector4& InColor);
-	void UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec);
+
+    void UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
+    void UpdateViewProjectionBuffers(const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
+    void UpdateModelBuffer(const FMatrix& ModelMatrix);
+    void UpdateBillboardConstantBuffers(const FVector& pos, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix, const FVector& CameraRight, const FVector& CameraUp);
+    void UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture);
+    void UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo);
+    void UpdateColorConstantBuffers(const FVector4& InColor);
+    void UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec);
+    void UpdateDecalBuffer(const FMatrix& DecalMatrix);
 
 	void IASetPrimitiveTopology();
 	void RSSetState(EViewModeIndex ViewModeIndex);
@@ -156,14 +158,15 @@ private:
 	ID3D11RenderTargetView* RenderTargetView{};//
 	ID3D11DepthStencilView* DepthStencilView{};//
 
-	// 버퍼 핸들
-	ID3D11Buffer* ModelCB{};
-	ID3D11Buffer* ViewProjCB{};
-	ID3D11Buffer* HighLightCB{};
-	ID3D11Buffer* BillboardCB{};
-	ID3D11Buffer* ColorCB{};
-	ID3D11Buffer* PixelConstCB{};
-	ID3D11Buffer* UVScrollCB{};
+    // 버퍼 핸들
+    ID3D11Buffer* ModelCB{};
+    ID3D11Buffer* ViewProjCB{};
+    ID3D11Buffer* HighLightCB{};
+    ID3D11Buffer* BillboardCB{};
+    ID3D11Buffer* ColorCB{};
+    ID3D11Buffer* PixelConstCB{};
+    ID3D11Buffer* UVScrollCB{};
+    ID3D11Buffer* DecalCB{};
 
 	ID3D11Buffer* ConstantBuffer{};
 

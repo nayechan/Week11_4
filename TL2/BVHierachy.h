@@ -31,6 +31,7 @@ public:
 
     void QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const;
     void QueryFrustum(const Frustum& InFrustum);
+    TArray<AActor*> QueryIntersectedActors(const FAABB& InBound) const;
 
     void DebugDraw(URenderer* Renderer) const;
 
@@ -42,7 +43,7 @@ public:
     const FAABB& GetBounds() const { return Bounds; }
 
     // 프러스텀 기준으로 오클루더(내부노드 AABB) / 오클루디(리프의 액터들) 수집
-// VP는 행벡터 기준(네 컨벤션): p' = p * VP
+    // VP는 행벡터 기준(네 컨벤션): p' = p * VP
 private:
     static FAABB UnionBounds(const FAABB& A, const FAABB& B);
 
