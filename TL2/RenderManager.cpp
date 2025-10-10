@@ -220,19 +220,44 @@ void URenderManager::RenderViewports(ACameraActor* Camera, FViewport* Viewport)
 			Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqualReadOnly);
 			Renderer->OMSetBlendState(true);
 
-			// Decals 그리기
-			for (UDecalComponent* Decal : RenderProxySet.Decals)
+			// Decal 그리기
+			if (UWorldPartitionManager* Partition = World->GetPartitionManager())
 			{
-				// Todo: RenderProxySet.Primitives 중에 Decals과 충돌한 Primitives 추출
-				// [임시] 모든 오브젝트를 데칼과 충돌했다 판정 / 추후 실제로 충돌한 Primitives만 다시 그리도록 변경
-				TArray<UPrimitiveComponent*> TargetPrimitives = RenderProxySet.Primitives;
-
-				for (UPrimitiveComponent* Target : TargetPrimitives)
+				if (const FBVHierachy* BVH = Partition->GetBVH())
 				{
-					Decal->RenderAffectedPrimitives(Renderer, Target, ViewMatrix, ProjectionMatrix);
-				}
+					for (UDecalComponent* Decal : RenderProxySet.Decals)
+					{
+						// Decal이 그려질 Primitives
+						TArray<UPrimitiveComponent*> TargetPrimitives;
 
-				visibleCount++;
+						// 1. Decal의 World AABB와 충돌한 모든 Actor 쿼리
+						TArray<AActor*> IntersectedActors = BVH->QueryIntersectedActors(Decal->GetWorldAABB());
+
+						// 2. 충돌한 모든 visible Actor의 PrimitiveComponent를 TargetPrimitives에 추가 
+						for (AActor* Actor : IntersectedActors)
+						{
+							if (!Actor->IsActorVisible())
+								continue; // Skip hidden actor
+							TArray<USceneComponent*> SceneComponents = Actor->GetSceneComponents();
+							for (USceneComponent* SceneComp : SceneComponents)
+							{
+								UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(SceneComp);
+								if (Primitive)
+								{
+									TargetPrimitives.push_back(Primitive);
+								}
+							}
+						}
+
+						// 3. TargetPrimitive 순회하며 렌더링
+						for (UPrimitiveComponent* Target : TargetPrimitives)
+						{
+							Decal->RenderAffectedPrimitives(Renderer, Target, ViewMatrix, ProjectionMatrix);
+						}
+
+						visibleCount++;
+					}
+				}
 			}
 		}
 	}
