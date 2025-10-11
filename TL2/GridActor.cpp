@@ -104,7 +104,7 @@ void AGridActor::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();
 
-    LineComponent = LineComponent->Duplicate();
+    //LineComponent = LineComponent->Duplicate();
 }
 
 void AGridActor::RegenerateGrid()

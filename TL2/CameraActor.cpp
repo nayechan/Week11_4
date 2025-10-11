@@ -16,9 +16,10 @@ ACameraActor::ACameraActor()
 
     Name = "Camera Actor";
     // 카메라 컴포넌트
-    CameraComponent = NewObject<UCameraComponent>();
+    //CameraComponent = NewObject<UCameraComponent>();
+    CameraComponent = CreateDefaultSubobject<UCameraComponent>("CameraComponent");
     CameraComponent->SetupAttachment(RootComponent);
-    SceneComponents.Add(CameraComponent);
+    //SceneComponents.Add(CameraComponent);
 
     if(EditorINI.count("CameraSpeed"))
     {
@@ -172,7 +173,14 @@ void ACameraActor::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();
 
-    CameraComponent = CameraComponent->Duplicate();
+    for (UActorComponent* Component : OwnedComponents)
+    {
+        if (UCameraComponent* CameraComp = Cast<UCameraComponent>(Component))
+        {
+            CameraComponent = CameraComp;
+            break;
+        }
+    }
 }
 
 static inline float Clamp(float v, float a, float b) { return v < a ? a : (v > b ? b : v); }

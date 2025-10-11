@@ -19,7 +19,7 @@ void AStaticMeshActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    //AddActorWorldLocation(FVector(3.0f, 0.0f, 0.0f) * DeltaTime);
+    AddActorWorldLocation(FVector(3.0f, 0.0f, 0.0f) * DeltaTime);
     if (bIsPicked)
     {
         //CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);
@@ -59,5 +59,12 @@ void AStaticMeshActor::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();
 
-    StaticMeshComponent = StaticMeshComponent->Duplicate();
+    for (UActorComponent* Component : OwnedComponents)
+    {
+        if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Component))
+        {
+            StaticMeshComponent = StaticMeshComp;
+            break;
+        }
+    }
 }
