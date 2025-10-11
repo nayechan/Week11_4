@@ -116,7 +116,7 @@ public:
         this->shrink_to_fit();
     }
 
-    void Reserve(int32 Capacity)
+    void Reserve(int64 Capacity)
     {
         this->reserve(static_cast<size_t>(Capacity));
     }

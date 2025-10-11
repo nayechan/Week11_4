@@ -117,6 +117,7 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
 FAABB UStaticMeshComponent::GetWorldAABB() const
 {
     const FTransform WorldTransform = GetWorldTransform();
+    const FMatrix WorldMatrix = GetWorldMatrix();
 
     if (!StaticMesh)
     {
@@ -138,17 +139,23 @@ FAABB UStaticMeshComponent::GetWorldAABB() const
         FVector(LocalMin.X, LocalMax.Y, LocalMax.Z),
         FVector(LocalMax.X, LocalMax.Y, LocalMax.Z)
     };
-
-    FVector WorldMin = WorldTransform.TransformPosition(LocalCorners[0]);
-    FVector WorldMax = WorldMin;
+    
+    FVector4 WorldMin4 = FVector4(LocalCorners[0].X, LocalCorners[0].Y, LocalCorners[0].Z, 1.0f) * WorldMatrix;
+    FVector4 WorldMax4 = WorldMin4;
 
     for (int32 CornerIndex = 1; CornerIndex < 8; ++CornerIndex)
     {
-        const FVector WorldPos = WorldTransform.TransformPosition(LocalCorners[CornerIndex]);
-        WorldMin = WorldMin.ComponentMin(WorldPos);
-        WorldMax = WorldMax.ComponentMax(WorldPos);
+        const FVector4 WorldPos = FVector4(LocalCorners[CornerIndex].X
+            , LocalCorners[CornerIndex].Y
+            , LocalCorners[CornerIndex].Z
+            , 1.0f)
+            * WorldMatrix;
+        WorldMin4 = WorldMin4.ComponentMin(WorldPos);
+        WorldMax4 = WorldMax4.ComponentMax(WorldPos);
     }
 
+    FVector WorldMin = FVector(WorldMin4.X, WorldMin4.Y, WorldMin4.Z);
+    FVector WorldMax = FVector(WorldMax4.X, WorldMax4.Y, WorldMax4.Z);
     return FAABB(WorldMin, WorldMax);
 }
 

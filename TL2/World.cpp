@@ -283,6 +283,7 @@ void UWorld::AddActorToLevel(AActor* Actor)
 	if (Level) 
 	{
 		Level->AddActor(Actor);
-		Partition->Register(Actor);
+		// OnActorSpawned에서 등록해주고 있어서 삭제
+		// Partition->Register(Actor);
 	}
 }

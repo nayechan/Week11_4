@@ -10,6 +10,7 @@
 #include <cmath>
 #include <functional>
 #include <queue>
+#include "StaticMeshComponent.h"
 
 namespace {
     inline bool RayAABB_IntersectT(const FRay& ray, const FAABB& box, float& outTMin, float& outTMax)
@@ -59,78 +60,54 @@ FBVHierarchy::~FBVHierarchy()
 
 void FBVHierarchy::Clear()
 {
-    Actors = TArray<AActor*>();
-    ActorLastBounds = TMap<AActor*, FAABB>();
-    ActorArray = TArray<AActor*>();
+    // NOTE: TMap, TArray를 clear로 비우면 capacity가 그대로이기 때문에 새 객체로 초기화
+    StaticMeshComponentBounds = TMap<UStaticMeshComponent*, FAABB>();
+    StaticMeshComponentArray = TArray<UStaticMeshComponent*>();
     Nodes = TArray<FLBVHNode>();
     Bounds = FAABB();
     bPendingRebuild = false;
-
 }
 
-void FBVHierarchy::Insert(AActor* InActor, const FAABB& ActorBounds)
+void FBVHierarchy::BulkInsert(const TArray<std::pair<UStaticMeshComponent*, FAABB>>& ComponentsAndBounds)
 {
-    if (!InActor) return;
-
-    ActorLastBounds.Add(InActor, ActorBounds);
-    bPendingRebuild = true;
-}
-
-void FBVHierarchy::BulkInsert(const TArray<std::pair<AActor*, FAABB>>& ActorsAndBounds)
-{
-    for (const auto& kv : ActorsAndBounds)
+    for (const auto& kv : ComponentsAndBounds)
     {
         if (kv.first)
-            ActorLastBounds.Add(kv.first, kv.second);
+        {
+            StaticMeshComponentBounds.Add(kv.first, kv.second);
+        }
     }
 
-    BuildLBVHFromMap();
+    BuildLBVH();
     bPendingRebuild = false;
 }
 
-bool FBVHierarchy::Contains(const FAABB& Box) const
+void FBVHierarchy::Update(UStaticMeshComponent* InComponent)
 {
-    return Bounds.Contains(Box);
-}
+    if (!InComponent)
+    {
+        return;
+    }
 
-bool FBVHierarchy::Remove(AActor* InActor, const FAABB& ActorBounds)
-{
-    if (!InActor) return false;
-    bool existed = ActorLastBounds.Remove(InActor);
-    bPendingRebuild = existed || bPendingRebuild;
-    return existed;
-}
-
-void FBVHierarchy::Update(AActor* InActor, const FAABB& NewBounds)
-{
-    if (!InActor) return;
-    ActorLastBounds.Add(InActor, NewBounds);
+    StaticMeshComponentBounds.Add(InComponent, InComponent->GetWorldAABB());
     bPendingRebuild = true;
 }
 
-void FBVHierarchy::Remove(AActor* InActor)
+void FBVHierarchy::Remove(UStaticMeshComponent* InComponent)
 {
-    if (!InActor) return;
-    if (ActorLastBounds.Find(InActor))
+    if (!InComponent)
     {
-        ActorLastBounds.Remove(InActor);
+        return;
+    }
+
+    if (StaticMeshComponentBounds.Find(InComponent))
+    {
+        StaticMeshComponentBounds.Remove(InComponent);
         bPendingRebuild = true;
     }
 }
-
-void FBVHierarchy::Update(AActor* InActor)
-{
-    auto it = ActorLastBounds.find(InActor);
-    if (it != ActorLastBounds.end())
-    {
-        Update(InActor, InActor->GetBounds());
-    }
-    else
-    {
-        Insert(InActor, InActor->GetBounds());
-    }
-    FlushRebuild();
-}
+// ================================================================================================================
+// ================================================================================================================
 
 void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
 {
@@ -140,9 +117,15 @@ void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
     //프러스텀 내부에 바운드 존재 (교차 X)
     if (!IsAABBIntersects(InFrustum, Nodes[0].Bounds))
     {
-        for (AActor* A : ActorArray)
+        for (UStaticMeshComponent* Component : StaticMeshComponentArray)
         {
-            if (A && ActorLastBounds.find(A) != ActorLastBounds.end()) A->SetCulled(false);
+            if (!Component) continue;
+            if (StaticMeshComponentBounds.find(Component) == StaticMeshComponentBounds.end())
+                continue;
+            if (AActor* Owner = Component->GetOwner())
+            {
+                Owner->SetCulled(false);
+            }
         }
         return;
     }
@@ -159,14 +142,17 @@ void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
         {
             for (int32 i = 0; i < node.Count; ++i)
             {
-                AActor* A = ActorArray[node.First + i];
-                if (!A || ActorLastBounds.find(A) == ActorLastBounds.end())
+                UStaticMeshComponent* Component = StaticMeshComponentArray[node.First + i];
+                if (!Component || StaticMeshComponentBounds.find(Component) == StaticMeshComponentBounds.end())
                     continue;
-                const FAABB* Cached = ActorLastBounds.Find(A);
-                const FAABB Box = Cached ? *Cached : A->GetBounds();
+                const FAABB* Cached = StaticMeshComponentBounds.Find(Component);
+                const FAABB Box = Cached ? *Cached : Component->GetWorldAABB();
                 if (IsAABBVisible(InFrustum, Box))
                 {
-                    A->SetCulled(false);
+                    if (AActor* Owner = Component->GetOwner())
+                    {
+                        Owner->SetCulled(false);
+                    }
                 }
             }
             continue;
@@ -182,6 +168,7 @@ void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
 TArray<AActor*> FBVHierarchy::QueryIntersectedActors(const FAABB& InBound) const
 {
     TArray<AActor*> OutActors;
+    TSet<AActor*> SeenActors;
     if (Nodes.empty())
         return OutActors;
     TArray<int32> IdxStack;
@@ -199,14 +186,20 @@ TArray<AActor*> FBVHierarchy::QueryIntersectedActors(const FAABB& InBound) const
             {
                 for (int32 i = 0; i < Node.Count; ++i)
                 {
-                    AActor* A = ActorArray[Node.First + i];
-                    if (!A || ActorLastBounds.find(A) == ActorLastBounds.end())
+                    UStaticMeshComponent* Component = StaticMeshComponentArray[Node.First + i];
+                    if (!Component || StaticMeshComponentBounds.find(Component) == StaticMeshComponentBounds.end())
                         continue;
-                    const FAABB* Cached = ActorLastBounds.Find(A);
-                    const FAABB Box = Cached ? *Cached : A->GetBounds();
+                    const FAABB* Cached = StaticMeshComponentBounds.Find(Component);
+                    const FAABB Box = Cached ? *Cached : Component->GetWorldAABB();
                     if (InBound.Intersects(Box))
                     {
-                        OutActors.push_back(A);
+                        if (AActor* Owner = Component->GetOwner())
+                        {
+                            if (SeenActors.insert(Owner).second)
+                            {
+                                OutActors.push_back(Owner);
+                            }
+                        }
                     }
                 }
             }
@@ -272,7 +265,7 @@ int FBVHierarchy::TotalNodeCount() const
 
 int FBVHierarchy::TotalActorCount() const
 {
-    return static_cast<int>(ActorArray.size());
+    return static_cast<int>(StaticMeshComponentArray.size());
 }
 
 int FBVHierarchy::MaxOccupiedDepth() const
@@ -284,7 +277,7 @@ void FBVHierarchy::DebugDump() const
 {
     UE_LOG("===== BVHierachy (LBVH) DUMP BEGIN =====\r\n");
     char buf[256];
-    std::snprintf(buf, sizeof(buf), "nodes=%zu, actors=%zu\r\n", Nodes.size(), ActorArray.size());
+    std::snprintf(buf, sizeof(buf), "nodes=%zu, components=%zu\r\n", Nodes.size(), StaticMeshComponentArray.size());
     UE_LOG(buf);
     for (size_t i = 0; i < Nodes.size(); ++i)
     {
@@ -297,21 +290,6 @@ void FBVHierarchy::DebugDump() const
         UE_LOG(buf);
     }
     UE_LOG("===== BVHierachy (LBVH) DUMP END =====\r\n");
-}
-
-
-FAABB FBVHierarchy::UnionBounds(const FAABB& A, const FAABB& B)
-{
-    FAABB out;
-    out.Min = FVector(
-        std::min(A.Min.X, B.Min.X),
-        std::min(A.Min.Y, B.Min.Y),
-        std::min(A.Min.Z, B.Min.Z));
-    out.Max = FVector(
-        std::max(A.Max.X, B.Max.X),
-        std::max(A.Max.Y, B.Max.Y),
-        std::max(A.Max.Z, B.Max.Z));
-    return out;
 }
 
 // Morton helpers
@@ -330,14 +308,10 @@ namespace {
     }
 }
 
-void FBVHierarchy::BuildLBVHFromMap()
+void FBVHierarchy::BuildLBVH()
 {
-    // 프리미티브 수
-    ActorArray = TArray<AActor*>();
-    ActorArray.reserve(ActorLastBounds.size());
-    for (const auto& kv : ActorLastBounds) ActorArray.Add(kv.first);
-
-    const int N = static_cast<int>(ActorArray.size());
+    StaticMeshComponentArray = StaticMeshComponentBounds.GetKeys();
+    const int N = StaticMeshComponentArray.Num();
     Nodes = TArray<FLBVHNode>();
 
     if (N == 0)
@@ -346,49 +320,77 @@ void FBVHierarchy::BuildLBVHFromMap()
         return;
     }
 
-    // 글로벌 바운드 박스 계산
-    auto it0 = ActorLastBounds.begin();
-    Bounds = it0->second;
-    for (const auto& kv : ActorLastBounds) Bounds = UnionBounds(Bounds, kv.second);
+    bool bHasBounds = false;
+    for (const auto& Pair : StaticMeshComponentBounds)
+    {
+        const FAABB& Bound = Pair.second;
+        if (!bHasBounds)
+        {
+            Bounds = Bound;
+            bHasBounds = true;
+        }
+        else
+        {
+            Bounds = FAABB::Union(Bounds, Bound);
+        }
+    }
 
-    // 액터 리스트에 있는 모든 액터의 모튼 코드 계산
-    TArray<uint32> codes;
-    codes.resize(N);
-    FVector gmin = Bounds.Min;
-    FVector ext = Bounds.GetHalfExtent();
+    if (!bHasBounds)
+    {
+        Bounds = FAABB();
+        return;
+    }
+
+    TArray<uint32> Codes;
+    Codes.resize(N);
+    const FVector Min = Bounds.Min;
+    const FVector Extent = Bounds.GetHalfExtent();
+
     for (int i = 0; i < N; ++i)
     {
-        const FAABB* b = ActorLastBounds.Find(ActorArray[i]);
-        FVector c = b ? b->GetCenter() : ActorArray[i]->GetBounds().GetCenter();
-        float nx = (ext.X > 0) ? (c.X - gmin.X) / (ext.X * 2.0f) : 0.5f;
-        float ny = (ext.Y > 0) ? (c.Y - gmin.Y) / (ext.Y * 2.0f) : 0.5f;
-        float nz = (ext.Z > 0) ? (c.Z - gmin.Z) / (ext.Z * 2.0f) : 0.5f;
-        nx = std::clamp(nx, 0.0f, 1.0f);
-        ny = std::clamp(ny, 0.0f, 1.0f);
-        nz = std::clamp(nz, 0.0f, 1.0f);
-        uint32 ix = (uint32)(nx * 1023.0f);
-        uint32 iy = (uint32)(ny * 1023.0f);
-        uint32 iz = (uint32)(nz * 1023.0f);
-        codes[i] = Morton3D(ix, iy, iz);
+        UStaticMeshComponent* Component = StaticMeshComponentArray[i];
+        const FAABB* Bound = StaticMeshComponentBounds.Find(Component);
+        const FVector Center = Bound ? Bound->GetCenter() : Component->GetWorldAABB().GetCenter();
+
+        const auto Normalize = [](float Value, float MinValue, float ExtHalf)
+        {
+            if (ExtHalf > 0.0f)
+            {
+                return std::clamp((Value - MinValue) / (ExtHalf * 2.0f), 0.0f, 1.0f);
+            }
+            return 0.5f;
+        };
+
+        const float Nx = Normalize(Center.X, Min.X, Extent.X);
+        const float Ny = Normalize(Center.Y, Min.Y, Extent.Y);
+        const float Nz = Normalize(Center.Z, Min.Z, Extent.Z);
+
+        const uint32 Ix = static_cast<uint32>(Nx * 1023.0f);
+        const uint32 Iy = static_cast<uint32>(Ny * 1023.0f);
+        const uint32 Iz = static_cast<uint32>(Nz * 1023.0f);
+
+        Codes[i] = Morton3D(Ix, Iy, Iz);
     }
 
-    // Actor와 Morton 코드를 함께 정렬
-    TArray<std::pair<AActor*, uint32>> actorCodePairs;
-    actorCodePairs.resize(N);
-    for (int i = 0; i < N; ++i) {
-        actorCodePairs[i] = {ActorArray[i], codes[i]};
-    }
-    std::sort(actorCodePairs.begin(), actorCodePairs.end(), 
-        [](const auto& a, const auto& b) { return a.second < b.second; });
-
-    // 정렬된 결과를 ActorArray에 다시 저장
-    for (int i = 0; i < N; ++i) {
-        ActorArray[i] = actorCodePairs[i].first;
+    TArray<std::pair<UStaticMeshComponent*, uint32>> ComponentCodePairs;
+    ComponentCodePairs.resize(N);
+    for (int i = 0; i < N; ++i)
+    {
+        ComponentCodePairs[i] = { StaticMeshComponentArray[i], Codes[i] };
     }
 
-    // 재귀 빌드(중앙 분할; 리프 MaxObjects)
+    std::sort(ComponentCodePairs.begin(), ComponentCodePairs.end(),
+        [](const auto& LHS, const auto& RHS)
+        {
+            return LHS.second < RHS.second;
+        });
+
+    for (int i = 0; i < N; ++i)
+    {
+        StaticMeshComponentArray[i] = ComponentCodePairs[i].first;
+    }
+
     Nodes.reserve(std::max(1, 2 * N));
-
     Nodes.clear();
     BuildRange(0, N);
 }
@@ -404,16 +406,29 @@ int FBVHierarchy::BuildRange(int s, int e)
     {
         node.First = s;
         node.Count = count;
-        bool inited = false;
-        FAABB acc;
+        bool bInitialized = false;
+        FAABB Accumulated;
         for (int i = s; i < e; ++i)
         {
-            const FAABB* b = ActorLastBounds.Find(ActorArray[i]);
-            if (!b) continue;
-            if (!inited) { acc = *b; inited = true; }
-            else acc = UnionBounds(acc, *b);
+            UStaticMeshComponent* Component = StaticMeshComponentArray[i];
+            if (!Component)
+            {
+                continue;
+            }
+
+            const FAABB* Bound = StaticMeshComponentBounds.Find(Component);
+            const FAABB LocalBound = Bound ? *Bound : Component->GetWorldAABB();
+            if (!bInitialized)
+            {
+                Accumulated = LocalBound;
+                bInitialized = true;
+            }
+            else
+            {
+                Accumulated = FAABB::Union(Accumulated, LocalBound);
+            }
         }
-        node.Bounds = inited ? acc : Bounds;
+        node.Bounds = bInitialized ? Accumulated : Bounds;
         return nodeIdx;
     }
 
@@ -421,7 +436,7 @@ int FBVHierarchy::BuildRange(int s, int e)
     int L = BuildRange(s, mid);
     int R = BuildRange(mid, e);
     node.Left = L; node.Right = R; node.First = -1; node.Count = 0;
-    node.Bounds = UnionBounds(Nodes[L].Bounds, Nodes[R].Bounds);
+    node.Bounds = FAABB::Union(Nodes[L].Bounds, Nodes[R].Bounds);
     return nodeIdx;
 }
 
@@ -463,12 +478,14 @@ void FBVHierarchy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float
         {
             for (int i = 0; i < node.Count; ++i)
             {
-                AActor* A = ActorArray[node.First + i];
-                if (!A) continue;
-                if (A->GetActorHiddenInGame()) continue;
+                UStaticMeshComponent* Component = StaticMeshComponentArray[node.First + i];
+                if (!Component) continue;
+                AActor* Owner = Component->GetOwner();
+                if (!Owner) continue;
+                if (Owner->GetActorHiddenInGame()) continue;
 
-                const FAABB* Cached = ActorLastBounds.Find(A);
-                const FAABB Box = Cached ? *Cached : A->GetBounds();
+                const FAABB* Cached = StaticMeshComponentBounds.Find(Component);
+                const FAABB Box = Cached ? *Cached : Component->GetWorldAABB();
 
                 float tmin, tmax;
                 if (!RayAABB_IntersectT(Ray, Box, tmin, tmax))
@@ -477,12 +494,12 @@ void FBVHierarchy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float
                     continue;
 
                 float hitDistance;
-                if (CPickingSystem::CheckActorPicking(A, Ray, hitDistance))
+                if (CPickingSystem::CheckActorPicking(Owner, Ray, hitDistance))
                 {
                     if (hitDistance < OutBestT)
                     {
                         OutBestT = hitDistance;
-                        OutActor = A;
+                        OutActor = Owner;
                         isPick = true;
                     }
                 }
@@ -519,7 +536,7 @@ void FBVHierarchy::FlushRebuild()
 {
     if (bPendingRebuild)
     {
-        BuildLBVHFromMap();
+        BuildLBVH();
         bPendingRebuild = false;
     }
 }

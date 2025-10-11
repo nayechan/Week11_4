@@ -37,4 +37,6 @@ struct FAABB
 	FAABB CreateOctant(int i) const;
 	
 	bool IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& OutExitDistance);
+
+	static FAABB Union(const FAABB& A, const FAABB& B);
 };

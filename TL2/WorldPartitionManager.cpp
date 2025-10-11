@@ -7,16 +7,24 @@
 #include "Octree.h"
 #include "BVHierarchy.h"
 #include "StaticMeshActor.h"
+#include "StaticMeshComponent.h"
 #include "Frustum.h"
 
 
-namespace 
+namespace
 {
-	inline bool ShouldIndexActor(const AActor* Actor)
+	inline UStaticMeshComponent* ResolveStaticMeshComponent(AActor* Actor)
 	{
-		// 현재 Bounding Box가 Primitive Component가 아닌 Actor에 종속
-		// 추후 컴포넌트 별 처리 가능하게 수정 필
-		return Actor && Actor->IsA<AStaticMeshActor>();
+		if (!Actor)
+		{
+			return nullptr;
+		}
+
+		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(Actor))
+		{
+			return StaticMeshActor->GetStaticMeshComponent();
+		}
+		return nullptr;
 	}
 }
 
@@ -50,17 +58,16 @@ void UWorldPartitionManager::Clear()
 	//ClearSceneOctree();
 	ClearBVHierarchy();
 
-	DirtyQueue.Empty();
-	DirtySet.Empty();
+	ComponentDirtyQueue.Empty();
+	ComponentDirtySet.Empty();
 }
 
 void UWorldPartitionManager::Register(AActor* Owner)
 {
 	if (!Owner) return;
-	if (!ShouldIndexActor(Owner)) return;
-	if (DirtySet.insert(Owner).second)
+	if (UStaticMeshComponent* Component = ResolveStaticMeshComponent(Owner))
 	{
-		DirtyQueue.push(Owner);
+		MarkDirty(Component);
 	}
 }
 
@@ -68,45 +75,54 @@ void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 {
 	if (Actors.empty()) return;
 
-	TArray<std::pair<AActor*, FAABB>> ActorsAndBounds;
-	ActorsAndBounds.reserve(Actors.size());
+	TArray<std::pair<UStaticMeshComponent*, FAABB>> ComponentsAndBounds;
+	ComponentsAndBounds.reserve(Actors.size());
 
 	for (AActor* Actor : Actors)
 	{
-		if (Actor && ShouldIndexActor(Actor))
+		if (UStaticMeshComponent* Component = ResolveStaticMeshComponent(Actor))
 		{
-			ActorsAndBounds.push_back({ Actor, Actor->GetBounds() });
+			ComponentsAndBounds.push_back({ Component, Component->GetWorldAABB() });
+			ComponentDirtySet.erase(Component);
 		}
-		DirtySet.erase(Actor);
 	}
 
 	// Octree: 기존 대량 삽입
 	//if (SceneOctree) SceneOctree->BulkInsert(ActorsAndBounds);
-	if (BVH) BVH->BulkInsert(ActorsAndBounds);
+	if (BVH) BVH->BulkInsert(ComponentsAndBounds);
 }
 
 void UWorldPartitionManager::Unregister(AActor* Owner)
 {
 	if (!Owner) return;
-	if (!ShouldIndexActor(Owner)) return;
-	
-	//if (SceneOctree) SceneOctree->Remove(Owner);
-	if (BVH) BVH->Remove(Owner);
-
-	if (USceneComponent* Root = Owner->GetRootComponent())
+	if (UStaticMeshComponent* Component = ResolveStaticMeshComponent(Owner))
 	{
-		DirtySet.erase(Owner);
+		//if (SceneOctree) SceneOctree->Remove(Owner);
+		if (BVH) BVH->Remove(Component);
+
+		ComponentDirtySet.erase(Component);
 	}
 }
 
 void UWorldPartitionManager::MarkDirty(AActor* Owner)
 {
 	if (!Owner) return;
-	if (!ShouldIndexActor(Owner)) return;
-
-	if (DirtySet.insert(Owner).second)
+	if (UStaticMeshComponent* Component = ResolveStaticMeshComponent(Owner))
 	{
-		DirtyQueue.push(Owner);
+		MarkDirty(Component);
+	}
+}
+
+void UWorldPartitionManager::MarkDirty(UStaticMeshComponent* Component)
+{
+	if (!Component)
+	{
+		return;
+	}
+
+	if (ComponentDirtySet.insert(Component).second)
+	{
+		ComponentDirtyQueue.push(Component);
 	}
 }
 
@@ -114,21 +130,29 @@ void UWorldPartitionManager::Update(float DeltaTime, uint32 InBugetCount)
 {
 	// 프레임 히칭 방지를 위해 컴포넌트 카운트 제한
 	uint32 processed = 0;
-	while (!DirtyQueue.empty() && processed < InBugetCount)
+	while (processed < InBugetCount)
 	{
-		AActor* Actor = DirtyQueue.front();
-		DirtyQueue.pop();
-		if (DirtySet.erase(Actor) == 0)
+		UStaticMeshComponent* Component = nullptr;
+		if (!ComponentDirtyQueue.Dequeue(Component))
+		{
+			break;
+		}
+
+		if (ComponentDirtySet.erase(Component) == 0)
 		{
 			// 이미 처리되었거나 제거됨
 			continue;
 		}
 
-		if (!Actor) continue;
-		//if (SceneOctree) SceneOctree->Update(Actor);
-		if (BVH) BVH->Update(Actor);
+		if (!Component) continue;
+		if (BVH) BVH->Update(Component);
 
 		++processed;
+	}
+
+	if (BVH)
+	{
+		BVH->FlushRebuild();
 	}
 }
 

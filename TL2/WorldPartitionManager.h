@@ -4,6 +4,7 @@
 
 class UPrimitiveComponent;
 class AStaticMeshActor;
+class UStaticMeshComponent;
 
 class FOctree;
 class FBVHierarchy;
@@ -27,6 +28,7 @@ public:
 	void BulkRegister(const TArray<AActor*>& Actors);
 	void Unregister(AActor* Actor);
 	void MarkDirty(AActor* Actor);
+	void MarkDirty(UStaticMeshComponent* Component);
 
 	void Update(float DeltaTime, uint32 budgetItems = 256);
 
@@ -49,8 +51,8 @@ private:
 	void ClearSceneOctree();
 	void ClearBVHierarchy();
 
-	TQueue<AActor*> DirtyQueue;
-	TSet<AActor*> DirtySet;
+	TQueue<UStaticMeshComponent*> ComponentDirtyQueue;
+	TSet<UStaticMeshComponent*> ComponentDirtySet;
 	FOctree* SceneOctree = nullptr;
 	FBVHierarchy* BVH = nullptr;
 };

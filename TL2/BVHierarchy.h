@@ -4,9 +4,20 @@
 
 struct Frustum;
 struct FRay; // forward declaration for ray type
+class UStaticMeshComponent;
+class AActor;
 
+/**
+ * @brief Broad phase BVH based on UStaticMeshComponent
+ */
 class FBVHierarchy
 {
+/**
+ * *주의사항*
+ * AActor 기반에서 UStaticMeshComponent 기반으로 변경을 거친 BVH입니다.
+ * - AActor를 기준으로 만들어졌다가 재활용된 로직에 의한 혼동 및 버그 주의.
+ * - 일반적인 USceneComponent에 대해서는 호환성 없음.
+ */
 public:
     // 생성자/소멸자
     FBVHierarchy(const FAABB& InBounds, int InDepth = 0, int InMaxDepth = 12, int InMaxObjects = 8);
@@ -15,18 +26,10 @@ public:
     // 초기화
     void Clear();
 
-    // 삽입 / 제거 / 갱신
-    void Insert(AActor* InActor, const FAABB& ActorBounds);
-    void BulkInsert(const TArray<std::pair<AActor*, FAABB>>& ActorsAndBounds);
-    bool Remove(AActor* InActor, const FAABB& ActorBounds);
-    void Update(AActor* InActor, const FAABB& NewBounds);
-
-    bool Contains(const FAABB& Box) const;
-
-    // Partition Manager Interface
-    void Remove(AActor* InActor);
-    void Update(AActor* InActor);
-
+    void BulkInsert(const TArray<std::pair<UStaticMeshComponent*, FAABB>>& ComponentsAndBounds);
+    void Update(UStaticMeshComponent* InComponent);
+    void Remove(UStaticMeshComponent* InComponent);
+    
     void FlushRebuild();
 
     void QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const;
@@ -44,9 +47,8 @@ public:
 
     // 프러스텀 기준으로 오클루더(내부노드 AABB) / 오클루디(리프의 액터들) 수집
     // VP는 행벡터 기준(네 컨벤션): p' = p * VP
+    
 private:
-    static FAABB UnionBounds(const FAABB& A, const FAABB& B);
-
     // === LBVH data ===
     struct FLBVHNode
     {
@@ -57,7 +59,7 @@ private:
         int32 Count = 0;
         bool IsLeaf() const { return Count > 0; }
     };
-    void BuildLBVHFromMap();
+    void BuildLBVH();
 
 private:
     int BuildRange(int s, int e);
@@ -67,12 +69,8 @@ private:
     int MaxObjects;
     FAABB Bounds;
 
-    // 리프 페이로드(호환용): 유지하지만 트리 구조는 사용 안 함
-    TArray<AActor*> Actors;
-
-    // 액터의 마지막 바운드 캐시
-    TMap<AActor*, FAABB> ActorLastBounds;
-    TArray<AActor*> ActorArray;
+    TMap<UStaticMeshComponent*, FAABB> StaticMeshComponentBounds;
+    TArray<UStaticMeshComponent*> StaticMeshComponentArray;
 
     // LBVH nodes
     TArray<FLBVHNode> Nodes;

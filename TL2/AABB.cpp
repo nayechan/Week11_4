@@ -136,3 +136,17 @@ bool FAABB::IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& Out
 	OutExitDistance = FarthestExit;
 	return true;
 }
+
+FAABB FAABB::Union(const FAABB& A, const FAABB& B)
+{
+	FAABB out;
+	out.Min = FVector(
+		std::min(A.Min.X, B.Min.X),
+		std::min(A.Min.Y, B.Min.Y),
+		std::min(A.Min.Z, B.Min.Z));
+	out.Max = FVector(
+		std::max(A.Max.X, B.Max.X),
+		std::max(A.Max.Y, B.Max.Y),
+		std::max(A.Max.Z, B.Max.Z));
+	return out;
+}
