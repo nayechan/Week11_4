@@ -64,11 +64,18 @@ public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(UDecalComponent)
 
+    // Tick
+    virtual void TickComponent(float DeltaTime) override;
+
 private:
     UTexture* DecalTexture = nullptr;
     
     bool bIsVisible = true;
     float DecalOpacity = 1.0f;
+
+    // for PIE Tick
+    float FadeSpeed = 0.5f;   // 초당 변화 속도 (0.5 = 2초에 완전 페이드)
+    int FadeDirection = -1;   // -1 = 감소 중, +1 = 증가 중
 
     // TArray<UStaticMeshComponent*> AffectedComponents;
 };

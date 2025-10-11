@@ -10,6 +10,10 @@ UDecalComponent::UDecalComponent()
 	UResourceManager::GetInstance().Load<UMaterial>("DecalPS.hlsl", EVertexLayoutType::PositionColorTexturNormal);
 
 	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/cube_texture.dds");
+
+	// PIE에서 fade in, fade out 위함
+	SetTickEnabled(true);
+	SetCanEverTick(true);
 }
 
 void UDecalComponent::Serialize(bool bIsLoading, FDecalData& InOut)
@@ -18,7 +22,27 @@ void UDecalComponent::Serialize(bool bIsLoading, FDecalData& InOut)
 
 void UDecalComponent::DuplicateSubObjects()
 {
-    
+	Super::DuplicateSubObjects();
+}
+
+void UDecalComponent::TickComponent(float DeltaTime)
+{
+	// Opacity 업데이트
+	DecalOpacity += FadeDirection * FadeSpeed * DeltaTime;
+
+	// 범위 체크 및 방향 반전
+	if (DecalOpacity <= 0.0f)
+	{
+		DecalOpacity = 0.0f;
+		FadeDirection = +1; // 다시 증가 시작
+	}
+	else if (DecalOpacity >= 1.0f)
+	{
+		DecalOpacity = 1.0f;
+		FadeDirection = -1; // 다시 감소 시작
+	}
+
+	UE_LOG("Tick: decal opacity: %.2f, uuid: %d", DecalOpacity, UUID);
 }
 
 
@@ -38,6 +62,7 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 
 	const FMatrix DecalMatrix = GetDecalProjectionMatrix();
 	RHIDevice->UpdateDecalBuffer(DecalMatrix, DecalOpacity);
+	UE_LOG("Render: decal opacity: %.2f, uuid: %d", DecalOpacity, UUID);
 
 	// Shader 설정
 	UShader* VS = UResourceManager::GetInstance().Load<UShader>("DecalVS.hlsl");

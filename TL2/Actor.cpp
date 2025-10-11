@@ -50,7 +50,7 @@ void AActor::BeginPlay()
 void AActor::Tick(float DeltaSeconds)
 {
 	// 에디터에서 틱 Off면 스킵
-	if (!bTickInEditor && /*에디터 중*/ true) return;
+	if (!bTickInEditor && World->bPie == false) return;
 
 	for (UActorComponent* Comp : OwnedComponents)
 	{
