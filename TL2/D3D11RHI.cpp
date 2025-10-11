@@ -1002,11 +1002,7 @@ void D3D11RHI::PrepareShader(FShader& InShader)
 
 void D3D11RHI::PrepareShader(UShader* InShader)
 {
-    if (PreShader != InShader)
-    {
-        GetDeviceContext()->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
-        GetDeviceContext()->PSSetShader(InShader->GetPixelShader(), nullptr, 0);
-        GetDeviceContext()->IASetInputLayout(InShader->GetInputLayout());
-        PreShader = InShader;
-    }
+    GetDeviceContext()->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
+    GetDeviceContext()->PSSetShader(InShader->GetPixelShader(), nullptr, 0);
+    GetDeviceContext()->IASetInputLayout(InShader->GetInputLayout());
 }
