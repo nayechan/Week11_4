@@ -288,3 +288,38 @@ void UWorld::AddActorToLevel(AActor* Actor)
 		Partition->Register(Actor);
 	}
 }
+
+AActor* UWorld::SpawnActor(UClass* Class, const FTransform& Transform)
+{
+	// 유효성 검사: Class가 유효하고 AActor를 상속했는지 확인
+	if (!Class || !Class->IsChildOf(AActor::StaticClass()))
+	{
+		UE_LOG("SpawnActor failed: Invalid class provided.");
+		return nullptr;
+	}
+
+	// ObjectFactory를 통해 UClass*로부터 객체 인스턴스 생성
+	AActor* NewActor = Cast<AActor>(ObjectFactory::NewObject(Class));
+	if (!NewActor)
+	{
+		UE_LOG("SpawnActor failed: ObjectFactory could not create an instance of");
+		return nullptr;
+	}
+
+	// 초기 트랜스폼 적용
+	NewActor->SetActorTransform(Transform);
+
+	// 월드 참조 설정
+	NewActor->SetWorld(this);
+
+	// 현재 레벨에 액터 등록
+	AddActorToLevel(NewActor);
+
+	return NewActor;
+}
+
+AActor* UWorld::SpawnActor(UClass* Class)
+{
+	// 기본 Transform(원점)으로 스폰하는 메인 함수를 호출합니다.
+	return SpawnActor(Class, FTransform());
+}

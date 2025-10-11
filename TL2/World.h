@@ -50,6 +50,9 @@ public:
     template<class T>
     T* SpawnActor(const FTransform& Transform);
 
+    AActor* SpawnActor(UClass* Class, const FTransform& Transform);
+    AActor* SpawnActor(UClass* Class);
+
     bool DestroyActor(AActor* Actor);
 
     // Partial hooks

@@ -13,6 +13,7 @@
 #include "CameraActor.h"
 #include "GizmoActor.h"
 #include "GridActor.h"
+#include "DecalActor.h"
 
 #include "MeshComponent.h"
 #include "GizmoRotateComponent.h"
@@ -38,6 +39,7 @@
 #include "UI/Widget/SceneManagerWidget.h"
 #include "UI/Widget/ShowFlagWidget.h"
 #include "UI/Widget/Widget.h"
+#include "UI/Widget/ActorSpawnWidget.h"
 #include "UI/Window/ConsoleWindow.h"
 #include "UI/Window/ControlPanelWindow.h"
 #include "UI/Window/PropertyWindow.h"
@@ -77,6 +79,7 @@ IMPLEMENT_CLASS(ACameraActor)
 IMPLEMENT_CLASS(AStaticMeshActor)
 IMPLEMENT_CLASS(AGizmoActor)
 IMPLEMENT_CLASS(AGridActor)
+IMPLEMENT_CLASS(ADecalActor)
 
 IMPLEMENT_CLASS(UGizmoArrowComponent)
 IMPLEMENT_CLASS(UGizmoScaleComponent)
@@ -110,6 +113,7 @@ IMPLEMENT_CLASS(USceneIOWidget)
 IMPLEMENT_CLASS(UTargetActorTransformWidget)
 IMPLEMENT_CLASS(USceneManagerWidget)
 IMPLEMENT_CLASS(UShowFlagWidget)
+IMPLEMENT_CLASS(UActorSpawnWidget)
 
 IMPLEMENT_CLASS(UUIWindow)
 IMPLEMENT_CLASS(UConsoleWindow)

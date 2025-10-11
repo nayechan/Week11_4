@@ -15,6 +15,7 @@
 #include "CameraComponent.h"
 #include "BillboardComponent.h"
 #include "DecalComponent.h"
+#include "ActorSpawnWidget.h"
 using namespace std;
 
 

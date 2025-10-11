@@ -393,9 +393,6 @@
     <ClCompile Include="Frustum.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="BVHierachy.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="MeshBVH.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -431,6 +428,15 @@
     </ClCompile>
     <ClCompile Include="FSceneRenderer.cpp">
       <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="BVHierarchy.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="DecalActor.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\Widget\ActorSpawnWidget.cpp">
+      <Filter>소스 파일\UI\Widget</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -766,9 +772,6 @@
     <ClInclude Include="Frustum.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="BVHierachy.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="MeshBVH.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -813,6 +816,15 @@
     </ClInclude>
     <ClInclude Include="DecalStatManager.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="BVHierarchy.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="DecalActor.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\Widget\ActorSpawnWidget.h">
+      <Filter>헤더 파일\UI\Widget</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

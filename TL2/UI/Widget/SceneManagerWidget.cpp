@@ -709,15 +709,12 @@ void USceneManagerWidget::BuildCategorizedHierarchy()
         if (!Actor)
             continue;
             
-        FString CategoryName = GetActorCategory(Actor);
-        FActorTreeNode* CategoryNode = FindOrCreateCategoryNode(CategoryName);
-        
         // Create actor node and add to category
         FActorTreeNode* ActorNode = new FActorTreeNode(Actor);
-        ActorNode->Parent = CategoryNode;
+        ActorNode->Parent = nullptr;
         // Initialize node visibility from actor's actual visibility state
         ActorNode->bIsVisible = Actor->IsActorVisible();
-        CategoryNode->Children.push_back(ActorNode);
+        RootNodes.Add(ActorNode);
     }
     
     // Initialize category visibility based on child actors

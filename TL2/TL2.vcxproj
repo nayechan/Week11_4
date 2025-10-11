@@ -163,6 +163,7 @@
     <ClCompile Include="ActorComponent.cpp" />
     <ClCompile Include="BillboardComponent.cpp" />
     <ClCompile Include="BVHierarchy.cpp" />
+    <ClCompile Include="DecalActor.cpp" />
     <ClCompile Include="DecalComponent.cpp" />
     <ClCompile Include="FSceneRenderer.cpp" />
     <ClCompile Include="Level.cpp" />
@@ -173,6 +174,7 @@
     <ClCompile Include="PipelineStateObject.cpp" />
     <ClCompile Include="PlatformTime.cpp" />
     <ClCompile Include="QuadManager.cpp" />
+    <ClCompile Include="UI\Widget\ActorSpawnWidget.cpp" />
     <ClCompile Include="WorldPartitionManager.cpp" />
     <ClCompile Include="AllClassesRegistration.cpp" />
     <ClCompile Include="AABoundingBoxComponent.cpp" />
@@ -359,6 +361,7 @@
   <ItemGroup>
     <ClInclude Include="AABB.h" />
     <ClInclude Include="ActorComponent.h" />
+    <ClInclude Include="DecalActor.h" />
     <ClInclude Include="BillboardComponent.h" />
     <ClInclude Include="BVHierarchy.h" />
     <ClInclude Include="DecalComponent.h" />
@@ -372,6 +375,7 @@
     <ClInclude Include="PipelineStateObject.h" />
     <ClInclude Include="PlatformTime.h" />
     <ClInclude Include="QuadManager.h" />
+    <ClInclude Include="UI\Widget\ActorSpawnWidget.h" />
     <ClInclude Include="WorldPartitionManager.h" />
     <ClInclude Include="AABoundingBoxComponent.h" />
     <ClInclude Include="Archive.h" />

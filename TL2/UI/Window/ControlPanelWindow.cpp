@@ -51,6 +51,7 @@ UControlPanelWindow::UControlPanelWindow()
 	AddWidget(CameraControlWidget);
 
 	URenderViewportSwitcherWidget* RenderViewPortSWitcherWidget = NewObject<URenderViewportSwitcherWidget>();
+	RenderViewPortSWitcherWidget->Initialize();
 	AddWidget(RenderViewPortSWitcherWidget);
 }
 
