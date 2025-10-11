@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "BVHierachy.h"
+#include "BVHierarchy.h"
 #include "Actor.h"
 #include "AABoundingBoxComponent.h" // FBound helpers
 #include "Vector.h"
@@ -44,7 +44,7 @@ namespace {
     }
 }
 
-FBVHierachy::FBVHierachy(const FAABB& InBounds, int InDepth, int InMaxDepth, int InMaxObjects)
+FBVHierarchy::FBVHierarchy(const FAABB& InBounds, int InDepth, int InMaxDepth, int InMaxObjects)
     : Depth(InDepth)
     , MaxDepth(InMaxDepth)
     , MaxObjects(InMaxObjects)
@@ -52,12 +52,12 @@ FBVHierachy::FBVHierachy(const FAABB& InBounds, int InDepth, int InMaxDepth, int
 {
 }
 
-FBVHierachy::~FBVHierachy()
+FBVHierarchy::~FBVHierarchy()
 {
     Clear();
 }
 
-void FBVHierachy::Clear()
+void FBVHierarchy::Clear()
 {
     Actors = TArray<AActor*>();
     ActorLastBounds = TMap<AActor*, FAABB>();
@@ -68,7 +68,7 @@ void FBVHierachy::Clear()
 
 }
 
-void FBVHierachy::Insert(AActor* InActor, const FAABB& ActorBounds)
+void FBVHierarchy::Insert(AActor* InActor, const FAABB& ActorBounds)
 {
     if (!InActor) return;
 
@@ -76,7 +76,7 @@ void FBVHierachy::Insert(AActor* InActor, const FAABB& ActorBounds)
     bPendingRebuild = true;
 }
 
-void FBVHierachy::BulkInsert(const TArray<std::pair<AActor*, FAABB>>& ActorsAndBounds)
+void FBVHierarchy::BulkInsert(const TArray<std::pair<AActor*, FAABB>>& ActorsAndBounds)
 {
     for (const auto& kv : ActorsAndBounds)
     {
@@ -88,12 +88,12 @@ void FBVHierachy::BulkInsert(const TArray<std::pair<AActor*, FAABB>>& ActorsAndB
     bPendingRebuild = false;
 }
 
-bool FBVHierachy::Contains(const FAABB& Box) const
+bool FBVHierarchy::Contains(const FAABB& Box) const
 {
     return Bounds.Contains(Box);
 }
 
-bool FBVHierachy::Remove(AActor* InActor, const FAABB& ActorBounds)
+bool FBVHierarchy::Remove(AActor* InActor, const FAABB& ActorBounds)
 {
     if (!InActor) return false;
     bool existed = ActorLastBounds.Remove(InActor);
@@ -101,24 +101,24 @@ bool FBVHierachy::Remove(AActor* InActor, const FAABB& ActorBounds)
     return existed;
 }
 
-void FBVHierachy::Update(AActor* InActor, const FAABB& NewBounds)
+void FBVHierarchy::Update(AActor* InActor, const FAABB& NewBounds)
 {
     if (!InActor) return;
     ActorLastBounds.Add(InActor, NewBounds);
     bPendingRebuild = true;
 }
 
-void FBVHierachy::Remove(AActor* InActor)
+void FBVHierarchy::Remove(AActor* InActor)
 {
     if (!InActor) return;
-    if (auto* Found = ActorLastBounds.Find(InActor))
+    if (ActorLastBounds.Find(InActor))
     {
         ActorLastBounds.Remove(InActor);
         bPendingRebuild = true;
     }
 }
 
-void FBVHierachy::Update(AActor* InActor)
+void FBVHierarchy::Update(AActor* InActor)
 {
     auto it = ActorLastBounds.find(InActor);
     if (it != ActorLastBounds.end())
@@ -132,7 +132,7 @@ void FBVHierachy::Update(AActor* InActor)
     FlushRebuild();
 }
 
-void FBVHierachy::QueryFrustum(const Frustum& InFrustum)
+void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
 {
     if (Nodes.empty()) return;
     //프러스텀 외부에 바운드 존재
@@ -179,7 +179,7 @@ void FBVHierachy::QueryFrustum(const Frustum& InFrustum)
 }
 
 // DFS 방식으로 BVH 순회하며 InBounds와 bounding volume이 충돌한 액터들 추출
-TArray<AActor*> FBVHierachy::QueryIntersectedActors(const FAABB& InBound) const
+TArray<AActor*> FBVHierarchy::QueryIntersectedActors(const FAABB& InBound) const
 {
     TArray<AActor*> OutActors;
     if (Nodes.empty())
@@ -221,7 +221,7 @@ TArray<AActor*> FBVHierachy::QueryIntersectedActors(const FAABB& InBound) const
     return OutActors;
 }
 
-void FBVHierachy::DebugDraw(URenderer* Renderer) const
+void FBVHierarchy::DebugDraw(URenderer* Renderer) const
 {
     if (!Renderer) return;
     if (Nodes.empty()) return;
@@ -265,22 +265,22 @@ void FBVHierachy::DebugDraw(URenderer* Renderer) const
     }
 }
 
-int FBVHierachy::TotalNodeCount() const
+int FBVHierarchy::TotalNodeCount() const
 {
     return static_cast<int>(Nodes.size());
 }
 
-int FBVHierachy::TotalActorCount() const
+int FBVHierarchy::TotalActorCount() const
 {
     return static_cast<int>(ActorArray.size());
 }
 
-int FBVHierachy::MaxOccupiedDepth() const
+int FBVHierarchy::MaxOccupiedDepth() const
 {
     return (Nodes.empty()) ? 0 : (int)std::ceil(std::log2((double)Nodes.size() + 1));
 }
 
-void FBVHierachy::DebugDump() const
+void FBVHierarchy::DebugDump() const
 {
     UE_LOG("===== BVHierachy (LBVH) DUMP BEGIN =====\r\n");
     char buf[256];
@@ -300,7 +300,7 @@ void FBVHierachy::DebugDump() const
 }
 
 
-FAABB FBVHierachy::UnionBounds(const FAABB& A, const FAABB& B)
+FAABB FBVHierarchy::UnionBounds(const FAABB& A, const FAABB& B)
 {
     FAABB out;
     out.Min = FVector(
@@ -330,7 +330,7 @@ namespace {
     }
 }
 
-void FBVHierachy::BuildLBVHFromMap()
+void FBVHierarchy::BuildLBVHFromMap()
 {
     // 프리미티브 수
     ActorArray = TArray<AActor*>();
@@ -393,7 +393,7 @@ void FBVHierachy::BuildLBVHFromMap()
     BuildRange(0, N);
 }
 
-int FBVHierachy::BuildRange(int s, int e)
+int FBVHierarchy::BuildRange(int s, int e)
 {
     int nodeIdx = static_cast<int>(Nodes.size());
     Nodes.push_back(FLBVHNode{});
@@ -425,7 +425,7 @@ int FBVHierachy::BuildRange(int s, int e)
     return nodeIdx;
 }
 
-void FBVHierachy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const
+void FBVHierarchy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const
 {
     OutActor = nullptr;
     // Respect caller-provided initial cap (e.g., far plane) if valid
@@ -515,7 +515,7 @@ void FBVHierachy::QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float&
     }
 }
 
-void FBVHierachy::FlushRebuild()
+void FBVHierarchy::FlushRebuild()
 {
     if (bPendingRebuild)
     {

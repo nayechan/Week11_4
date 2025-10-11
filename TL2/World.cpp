@@ -17,7 +17,7 @@
 #include "WorldPartitionManager.h"
 #include "PrimitiveComponent.h"
 #include "Octree.h"
-#include "BVHierachy.h"
+#include "BVHierarchy.h"
 #include "Frustum.h"
 #include "Occlusion.h"
 #include "GizmoActor.h"

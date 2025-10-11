@@ -5,12 +5,12 @@
 struct Frustum;
 struct FRay; // forward declaration for ray type
 
-class FBVHierachy
+class FBVHierarchy
 {
 public:
     // 생성자/소멸자
-    FBVHierachy(const FAABB& InBounds, int InDepth = 0, int InMaxDepth = 12, int InMaxObjects = 8);
-    ~FBVHierachy();
+    FBVHierarchy(const FAABB& InBounds, int InDepth = 0, int InMaxDepth = 12, int InMaxObjects = 8);
+    ~FBVHierarchy();
 
     // 초기화
     void Clear();

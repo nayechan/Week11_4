@@ -11,7 +11,7 @@
 #include <ctime>
 #include <string>
 #include "ObjectIterator.h"
-#include "BVHierachy.h"
+#include "BVHierarchy.h"
 #include "../../Octree.h"
 #include "WorldPartitionManager.h"
 #include "StaticMeshComponent.h"
@@ -264,7 +264,7 @@ void UPrimitiveSpawnWidget::RenderWidget()
                 Oct->DebugDump();
             }
         }
-        if (FBVHierachy* BVH = World->GetPartitionManager()->GetBVH())
+        if (FBVHierarchy* BVH = World->GetPartitionManager()->GetBVH())
         {
             ImGui::Text("BVH Nodes: %d", BVH->TotalNodeCount());
             ImGui::Text("BVH Actors: %d", BVH->TotalActorCount());

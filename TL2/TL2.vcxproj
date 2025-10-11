@@ -162,7 +162,7 @@
     <ClCompile Include="AABB.cpp" />
     <ClCompile Include="ActorComponent.cpp" />
     <ClCompile Include="BillboardComponent.cpp" />
-    <ClCompile Include="BVHierachy.cpp" />
+    <ClCompile Include="BVHierarchy.cpp" />
     <ClCompile Include="DecalComponent.cpp" />
     <ClCompile Include="FSceneRenderer.cpp" />
     <ClCompile Include="Level.cpp" />
@@ -360,7 +360,7 @@
     <ClInclude Include="AABB.h" />
     <ClInclude Include="ActorComponent.h" />
     <ClInclude Include="BillboardComponent.h" />
-    <ClInclude Include="BVHierachy.h" />
+    <ClInclude Include="BVHierarchy.h" />
     <ClInclude Include="DecalComponent.h" />
     <ClInclude Include="FSceneRenderer.h" />
     <ClInclude Include="Level.h" />

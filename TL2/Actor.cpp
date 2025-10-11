@@ -358,8 +358,7 @@ void AActor::AddActorLocalRotation(const FQuat& DeltaRotation)
 	if (RootComponent && !DeltaRotation.IsIdentity()) // 단위 쿼터니온이 아닐 때만
 	{
 		RootComponent->AddLocalRotation(DeltaRotation);
-		if (GetWorld() && GetWorld()->GetPartitionManager())
-			GetWorld()->GetPartitionManager()->MarkDirty(this);
+		MarkPartitionDirty();
 	}
 }
 

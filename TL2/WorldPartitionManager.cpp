@@ -5,7 +5,7 @@
 #include "AABoundingBoxComponent.h"
 #include "World.h"
 #include "Octree.h"
-#include "BVHierachy.h"
+#include "BVHierarchy.h"
 #include "StaticMeshActor.h"
 #include "Frustum.h"
 
@@ -27,7 +27,7 @@ UWorldPartitionManager::UWorldPartitionManager()
 	SceneOctree = new FOctree(WorldBounds, 0, 8, 10);
 	// BVH도 동일 월드 바운드로 초기화 (더 깊고 작은 리프 설정)
 	//BVH = new FBVHierachy(FBound(), 0, 5, 1); 
-	BVH = new FBVHierachy(FAABB(), 0, 8, 1); 
+	BVH = new FBVHierarchy(FAABB(), 0, 8, 1); 
 	//BVH = new FBVHierachy(FBound(), 0, 10, 3);
 }
 
@@ -48,7 +48,7 @@ UWorldPartitionManager::~UWorldPartitionManager()
 void UWorldPartitionManager::Clear()
 {
 	//ClearSceneOctree();
-	ClearBVHierachy();
+	ClearBVHierarchy();
 
 	DirtyQueue.Empty();
 	DirtySet.Empty();
@@ -169,7 +169,7 @@ void UWorldPartitionManager::ClearSceneOctree()
 	}
 }
 
-void UWorldPartitionManager::ClearBVHierachy()
+void UWorldPartitionManager::ClearBVHierarchy()
 {
 	if (BVH)
 	{

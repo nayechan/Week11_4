@@ -6,7 +6,7 @@ class UPrimitiveComponent;
 class AStaticMeshActor;
 
 class FOctree;
-class FBVHierachy;
+class FBVHierarchy;
 
 struct FRay;
 struct FAABB;
@@ -37,7 +37,7 @@ public:
 	/** 옥트리 게터 */
 	FOctree* GetSceneOctree() const { return SceneOctree; }
 	/** BVH 게터 */
-	FBVHierachy* GetBVH() const { return BVH; }
+	FBVHierarchy* GetBVH() const { return BVH; }
 
 private:
 
@@ -47,10 +47,10 @@ private:
 
 	//재시작시 필요 
 	void ClearSceneOctree();
-	void ClearBVHierachy();
+	void ClearBVHierarchy();
 
 	TQueue<AActor*> DirtyQueue;
 	TSet<AActor*> DirtySet;
 	FOctree* SceneOctree = nullptr;
-	FBVHierachy* BVH = nullptr;
+	FBVHierarchy* BVH = nullptr;
 };
