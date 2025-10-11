@@ -31,8 +31,9 @@ public:
     bool HasMaterial() const { return StaticMeshAsset->bHasMaterial; }
 
     uint64 GetMeshGroupCount() const { return StaticMeshAsset->GroupInfos.size(); }
-
-
+    
+    FAABB GetLocalBound() const {return LocalBound; }
+    
     // BVH GETTER 
     // const FMeshBVH* GetBVH() const { return MeshBVH; }
 

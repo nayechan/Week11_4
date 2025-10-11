@@ -112,6 +112,44 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
     assert(MaterialSlots[InMaterialSlotIndex].bChangedByUser == true);
 }
 
+FAABB UStaticMeshComponent::GetWorldAABB() const
+{
+    const FTransform WorldTransform = GetWorldTransform();
+
+    if (!StaticMesh)
+    {
+        const FVector Origin = WorldTransform.TransformPosition(FVector());
+        return FAABB(Origin, Origin);
+    }
+
+    const FAABB LocalBound = StaticMesh->GetLocalBound();
+    const FVector LocalMin = LocalBound.Min;
+    const FVector LocalMax = LocalBound.Max;
+
+    const FVector LocalCorners[8] = {
+        FVector(LocalMin.X, LocalMin.Y, LocalMin.Z),
+        FVector(LocalMax.X, LocalMin.Y, LocalMin.Z),
+        FVector(LocalMin.X, LocalMax.Y, LocalMin.Z),
+        FVector(LocalMax.X, LocalMax.Y, LocalMin.Z),
+        FVector(LocalMin.X, LocalMin.Y, LocalMax.Z),
+        FVector(LocalMax.X, LocalMin.Y, LocalMax.Z),
+        FVector(LocalMin.X, LocalMax.Y, LocalMax.Z),
+        FVector(LocalMax.X, LocalMax.Y, LocalMax.Z)
+    };
+
+    FVector WorldMin = WorldTransform.TransformPosition(LocalCorners[0]);
+    FVector WorldMax = WorldMin;
+
+    for (int32 CornerIndex = 1; CornerIndex < 8; ++CornerIndex)
+    {
+        const FVector WorldPos = WorldTransform.TransformPosition(LocalCorners[CornerIndex]);
+        WorldMin = WorldMin.ComponentMin(WorldPos);
+        WorldMax = WorldMax.ComponentMax(WorldPos);
+    }
+
+    return FAABB(WorldMin, WorldMax);
+}
+
 void UStaticMeshComponent::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();
