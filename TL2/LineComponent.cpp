@@ -36,8 +36,8 @@ void ULineComponent::DuplicateSubObjects()
 
     bLinesVisible = true;
 
-    const uint32 NumLines = Lines.size();
-    for (uint32 idx = 0; idx < NumLines; ++idx)
+    const uint64 NumLines = Lines.size();
+    for (uint64 idx = 0; idx < NumLines; ++idx)
     {
         if (Lines[idx])
         {

@@ -358,7 +358,7 @@ void FOctree::DebugDump() const
     struct StackItem { const FOctree* Node; int D; };
     TArray<StackItem> stack;
     stack.push_back({ this, Depth });
-    int size = 0;
+    uint64 size = 0;
     while (!stack.empty())
     {
         StackItem it = stack.back();

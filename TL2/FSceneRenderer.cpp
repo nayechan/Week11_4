@@ -317,8 +317,8 @@ void FSceneRenderer::FinalizeFrame()
 	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Culling))
 	{
 		int totalActors = static_cast<int>(World->GetActors().size());
-		int visiblePrimitives = Proxies.Primitives.size();
-		UE_LOG("Total Actors: %d, Visible Primitives: %d\r\n", totalActors, visiblePrimitives);
+		uint64 visiblePrimitives = Proxies.Primitives.size();
+		UE_LOG("Total Actors: %d, Visible Primitives: %llu\r\n", totalActors, visiblePrimitives);
 	}
 }
 
