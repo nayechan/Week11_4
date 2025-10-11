@@ -18,8 +18,8 @@ public:
 
     ID3D11Buffer* GetVertexBuffer() const { return VertexBuffer; }
     ID3D11Buffer* GetIndexBuffer() const { return IndexBuffer; }
-    uint32 GetVertexCount() { return VertexCount; }
-    uint32 GetIndexCount() { return IndexCount; }
+    uint32 GetVertexCount() const { return VertexCount; }
+    uint32 GetIndexCount() const { return IndexCount; }
     EVertexLayoutType GetVertexType() const { return VertexType; }
     void SetIndexCount(uint32 Cnt) { IndexCount = Cnt; }
 
@@ -34,7 +34,7 @@ public:
 
 
     // BVH GETTER 
-    const FMeshBVH* GetBVH() const { return MeshBVH; }
+    // const FMeshBVH* GetBVH() const { return MeshBVH; }
 
     bool EraseUsingComponets(UStaticMeshComponent* InStaticMeshComponent);
     bool AddUsingComponents(UStaticMeshComponent* InStaticMeshComponent);
@@ -54,6 +54,8 @@ private:
 	void CreateVertexBuffer(FStaticMesh* InStaticMesh, ID3D11Device* InDevice, EVertexLayoutType InVertexType);
     void CreateIndexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice);
 	void CreateIndexBuffer(FStaticMesh* InStaticMesh, ID3D11Device* InDevice);
+    void CreateLocalBound(const FMeshData* InMeshData);
+    void CreateLocalBound(const FStaticMesh* InStaticMesh);
     void ReleaseResources();
 
     // GPU 리소스
@@ -67,7 +69,11 @@ private:
     FStaticMesh* StaticMeshAsset = nullptr;
 
     // 메시 단위 BVH (ResourceManager에서 캐싱, 소유)
-    FMeshBVH* MeshBVH = nullptr;
+    // 초기화되지 않는 멤버변수 (참조도 ResourceManager에서만 이루어짐) 
+    // FMeshBVH* MeshBVH = nullptr;
 
+    // 로컬 AABB. (스태틱메시 액터 전체 경계 계산에 사용. StaticMeshAsset 로드할 때마다 갱신)
+    FAABB LocalBound;
+    
     TArray<UStaticMeshComponent*> UsingComponents; // 유저에 의해 Material이 안 바뀐 이 Mesh를 사용 중인 Component들(render state sorting 위함)
 };

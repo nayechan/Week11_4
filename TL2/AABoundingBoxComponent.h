@@ -43,10 +43,9 @@ private:
     
     // 🚀 SIMD 최적화된 벡터-매트릭스 변환
     FVector TransformVectorSIMD(const FVector& vector, const FMatrix& matrix) const;
-
-	FVector LocalMin;
-	FVector LocalMax;
-	FAABB Bound;
+	
+	FAABB LocalBound;
+	FAABB WorldBound;
 	EPrimitiveType PrimitiveType = EPrimitiveType::Default;
 };
 

@@ -137,8 +137,11 @@ public:
     UTextRenderComponent* TextComp = nullptr;
 
 protected:
+    // NOTE: RootComponent, CollisionComponent 등 기본 보호 컴포넌트들도
+    // OwnedComponents와 SceneComponents에 포함되어 관리됨.
     TSet<UActorComponent*> OwnedComponents;   // 모든 컴포넌트 (씬/비씬)
     TArray<USceneComponent*> SceneComponents; // 씬 컴포넌트들만 별도 캐시(트리/렌더/ImGui용)
+    
     bool bTickInEditor = false; // 에디터에서도 틱 허용
     bool bHiddenInGame = false;
     bool bPendingDestroy = false;
@@ -146,7 +149,6 @@ protected:
     bool bIsPicked = false;
     bool bCanEverTick = true;
     bool bIsCulled = false;
-
 
 private:
     // 내부 헬퍼

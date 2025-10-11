@@ -35,7 +35,7 @@ public:
 
     void SetMaterialByUser(const uint32 InMaterialSlotIndex, const FString& InMaterialName);
 
-    const TArray<FMaterialSlot>& GetMaterailSlots() const { return MaterailSlots; }
+    const TArray<FMaterialSlot>& GetMaterialSlots() const { return MaterialSlots; }
 
     bool IsChangedMaterialByUser() const
     {
@@ -48,7 +48,7 @@ public:
     
 protected:
     UStaticMesh* StaticMesh = nullptr;
-    TArray<FMaterialSlot> MaterailSlots;
+    TArray<FMaterialSlot> MaterialSlots;
 
     bool bChangedMaterialByUser = false;
 };

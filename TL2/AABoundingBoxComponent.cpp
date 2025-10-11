@@ -5,7 +5,7 @@
 #include "Actor.h"
 
 UAABoundingBoxComponent::UAABoundingBoxComponent()
-    : LocalMin(FVector{}), LocalMax(FVector{})
+    : LocalBound(FAABB())
 {
 }
 
@@ -16,11 +16,11 @@ void UAABoundingBoxComponent::SetFromVertices(const TArray<FVector>& Verts)
 {
     if (Verts.empty()) return;
 
-    LocalMin = LocalMax = Verts[0];
+    LocalBound.Min = LocalBound.Max = Verts[0];
     for (const auto& v : Verts)
     {
-        LocalMin = LocalMin.ComponentMin(v);
-        LocalMax = LocalMax.ComponentMax(v);
+        LocalBound.Min = LocalBound.Min.ComponentMin(v);
+        LocalBound.Max = LocalBound.Max.ComponentMax(v);
     }
 }
 
@@ -28,11 +28,11 @@ void UAABoundingBoxComponent::SetFromVertices(const TArray<FNormalVertex>& Verts
 {
     if (Verts.empty()) return;
 
-    LocalMin = LocalMax = Verts[0].pos;
+    LocalBound.Min = LocalBound.Max = Verts[0].pos;
     for (const auto& v : Verts)
     {
-        LocalMin = LocalMin.ComponentMin(v.pos);
-        LocalMax = LocalMax.ComponentMax(v.pos);
+        LocalBound.Min = LocalBound.Min.ComponentMin(v.pos);
+        LocalBound.Max = LocalBound.Max.ComponentMax(v.pos);
     }
 }
 
@@ -59,8 +59,8 @@ void UAABoundingBoxComponent::Render(URenderer* Renderer, const FMatrix& ViewMat
 FAABB UAABoundingBoxComponent::GetWorldBound() const
 {
     // 1) 로컬 중심/익스텐트
-    const FVector LocalCenter = (LocalMin + LocalMax) * 0.5f;
-    const FVector LocalExtents = (LocalMax - LocalMin) * 0.5f;
+    const FVector LocalCenter = (LocalBound.Min + LocalBound.Max) * 0.5f;
+    const FVector LocalExtents = (LocalBound.Max - LocalBound.Min) * 0.5f;
 
     // 2) 월드 행렬
     if (GetOwner() == nullptr)
@@ -125,8 +125,8 @@ FAABB UAABoundingBoxComponent::GetWorldBoundFromCube()
         MaxW = MaxW.ComponentMax(wc);
     }
 
-    Bound = FAABB({ MinW.X, MinW.Y, MinW.Z }, { MaxW.X, MaxW.Y, MaxW.Z });
-    return Bound;
+    WorldBound = FAABB({ MinW.X, MinW.Y, MinW.Z }, { MaxW.X, MaxW.Y, MaxW.Z });
+    return WorldBound;
 }
 
 
@@ -165,15 +165,14 @@ TArray<FVector4> UAABoundingBoxComponent::GetLocalCorners() const
 {
     return 
     {
-        {LocalMin.X, LocalMin.Y, LocalMin.Z, 1},
-        {LocalMax.X, LocalMin.Y, LocalMin.Z, 1},
-        {LocalMin.X, LocalMax.Y, LocalMin.Z, 1},
-        {LocalMax.X, LocalMax.Y, LocalMin.Z, 1},
-        {LocalMin.X, LocalMin.Y, LocalMax.Z, 1},
-        {LocalMax.X, LocalMin.Y, LocalMax.Z, 1},
-        {LocalMin.X, LocalMax.Y, LocalMax.Z, 1},
-
-        {LocalMax.X, LocalMax.Y, LocalMax.Z, 1}
+        {LocalBound.Min.X, LocalBound.Min.Y, LocalBound.Min.Z, 1},
+        {LocalBound.Max.X, LocalBound.Min.Y, LocalBound.Min.Z, 1},
+        {LocalBound.Min.X, LocalBound.Max.Y, LocalBound.Min.Z, 1},
+        {LocalBound.Max.X, LocalBound.Max.Y, LocalBound.Min.Z, 1},
+        {LocalBound.Min.X, LocalBound.Min.Y, LocalBound.Max.Z, 1},
+        {LocalBound.Max.X, LocalBound.Min.Y, LocalBound.Max.Z, 1},
+        {LocalBound.Min.X, LocalBound.Max.Y, LocalBound.Max.Z, 1},
+        {LocalBound.Max.X, LocalBound.Max.Y, LocalBound.Max.Z, 1}
     };
 }
 

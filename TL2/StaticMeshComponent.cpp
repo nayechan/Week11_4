@@ -29,7 +29,7 @@ void UStaticMeshComponent::Render(URenderer* Renderer, const FMatrix& ViewMatrix
     }
     Renderer->GetRHIDevice()->UpdateConstantBuffers(GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
     Renderer->GetRHIDevice()->PrepareShader(GetMaterial()->GetShader());
-    Renderer->DrawIndexedPrimitiveComponent(GetStaticMesh(), D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST, MaterailSlots);
+    Renderer->DrawIndexedPrimitiveComponent(GetStaticMesh(), D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST, MaterialSlots);
 }
 
 void UStaticMeshComponent::SetStaticMesh(const FString& PathFileName)
@@ -42,17 +42,17 @@ void UStaticMeshComponent::SetStaticMesh(const FString& PathFileName)
     StaticMesh->AddUsingComponents(this);
     
     const TArray<FGroupInfo>& GroupInfos = StaticMesh->GetMeshGroupInfo();
-    if (MaterailSlots.size() < GroupInfos.size())
+    if (MaterialSlots.size() < GroupInfos.size())
     {
-        MaterailSlots.resize(GroupInfos.size());
+        MaterialSlots.resize(GroupInfos.size());
     }
 
     // MaterailSlots.size()가 GroupInfos.size() 보다 클 수 있기 때문에, GroupInfos.size()로 설정
     for (int i = 0; i < GroupInfos.size(); ++i) 
     {
-        if (MaterailSlots[i].bChangedByUser == false)
+        if (MaterialSlots[i].bChangedByUser == false)
         {
-            MaterailSlots[i].MaterialName = GroupInfos[i].InitialMaterialName;
+            MaterialSlots[i].MaterialName = GroupInfos[i].InitialMaterialName;
         }
     }
 }
@@ -97,10 +97,10 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
 {
     assert((0 <= InMaterialSlotIndex && InMaterialSlotIndex < MaterailSlots.size()) && "out of range InMaterialSlotIndex");
 
-    if (0 <= InMaterialSlotIndex && InMaterialSlotIndex < MaterailSlots.size())
+    if (0 <= InMaterialSlotIndex && InMaterialSlotIndex < MaterialSlots.size())
     {
-        MaterailSlots[InMaterialSlotIndex].MaterialName = InMaterialName;
-        MaterailSlots[InMaterialSlotIndex].bChangedByUser = true;
+        MaterialSlots[InMaterialSlotIndex].MaterialName = InMaterialName;
+        MaterialSlots[InMaterialSlotIndex].bChangedByUser = true;
 
         bChangedMaterialByUser = true;
     }

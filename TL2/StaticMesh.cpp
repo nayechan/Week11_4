@@ -17,15 +17,11 @@ void UStaticMesh::Load(const FString& InFilePath, ID3D11Device* InDevice, EVerte
     StaticMeshAsset = FObjManager::LoadObjStaticMeshAsset(InFilePath);
     CreateVertexBuffer(StaticMeshAsset, InDevice, InVertexType);
     CreateIndexBuffer(StaticMeshAsset, InDevice);
+    CreateLocalBound(StaticMeshAsset);
     VertexCount = static_cast<uint32>(StaticMeshAsset->Vertices.size());
     IndexCount = static_cast<uint32>(StaticMeshAsset->Indices.size());
 
-    // Cache or build BVH once per OBJ asset and keep reference
-    //if (StaticMeshAsset)
-    //{
-    //    const FString& Key = StaticMeshAsset->PathFileName;
-    //    MeshBVH = UResourceManager::GetInstance().GetOrBuildMeshBVH(Key, StaticMeshAsset);
-    //}
+    
 }
 
 void UStaticMesh::Load(FMeshData* InData, ID3D11Device* InDevice, EVertexLayoutType InVertexType)
@@ -45,7 +41,8 @@ void UStaticMesh::Load(FMeshData* InData, ID3D11Device* InDevice, EVertexLayoutT
 
     CreateVertexBuffer(InData, InDevice, InVertexType);
     CreateIndexBuffer(InData, InDevice);
-
+    CreateLocalBound(InData);
+    
     VertexCount = static_cast<uint32>(InData->Vertices.size());
     IndexCount = static_cast<uint32>(InData->Indices.size());
 }
@@ -93,6 +90,33 @@ void UStaticMesh::CreateIndexBuffer(FStaticMesh* InStaticMesh, ID3D11Device* InD
     assert(SUCCEEDED(hr));
 }
 
+void UStaticMesh::CreateLocalBound(const FMeshData* InMeshData)
+{
+    TArray<FVector> Verts = InMeshData->Vertices;
+    FVector Min = Verts[0];
+    FVector Max = Verts[0];
+    for (FVector Vertex : Verts)
+    {
+        Min = Min.ComponentMin(Vertex);
+        Max = Max.ComponentMax(Vertex);
+    }
+    LocalBound = FAABB(Min, Max);
+}
+
+void UStaticMesh::CreateLocalBound(const FStaticMesh* InStaticMesh)
+{
+    TArray<FNormalVertex> Verts = InStaticMesh->Vertices;
+    FVector Min = Verts[0].pos;
+    FVector Max = Verts[0].pos;
+    for (FNormalVertex Vertex : Verts)
+    {
+        FVector Pos = Vertex.pos;
+        Min = Min.ComponentMin(Pos);
+        Max = Max.ComponentMax(Pos);
+    }
+    LocalBound = FAABB(Min, Max);
+}
+
 void UStaticMesh::ReleaseResources()
 {
     if (VertexBuffer)
@@ -106,4 +130,3 @@ void UStaticMesh::ReleaseResources()
         IndexBuffer = nullptr;
     }
 }
-

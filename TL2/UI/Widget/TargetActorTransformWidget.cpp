@@ -899,9 +899,9 @@ void UTargetActorTransformWidget::RenderWidget()
 					const char* Label = GroupInfos[i].InitialMaterialName.c_str();
 					int SelectedMaterialIdx = -1;
 
-					if (i < TargetSMC->GetMaterailSlots().size())
+					if (i < TargetSMC->GetMaterialSlots().size())
 					{
-						const FString& AssignedName = TargetSMC->GetMaterailSlots()[i].MaterialName.ToString();
+						const FString& AssignedName = TargetSMC->GetMaterialSlots()[i].MaterialName.ToString();
 						for (int idx = 0; idx < static_cast<int>(MaterialNames.size()); ++idx)
 							if (MaterialNames[idx] == AssignedName)
 							{

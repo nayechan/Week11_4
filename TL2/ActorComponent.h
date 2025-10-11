@@ -58,6 +58,10 @@ public:
     AActor* GetOwner() const { return Owner; }
     UWorld* GetWorld() const; // 구현은 .cpp에서 Owner->GetWorld()
 
+    // ─────────────── 컴포넌트 보호
+    void SetRequisiteness(const bool bValue) { bIsRequisite = bValue; }
+    bool IsRequisite() const {return bIsRequisite; }
+    
     // 상태 쿼리
     bool IsRegistered()    const { return bRegistered; }
     bool HasBegunPlay()    const { return bHasBegunPlay; }
@@ -69,6 +73,7 @@ public:
 
 protected:
     AActor* Owner = nullptr;     // 소유 액터
+    bool bIsRequisite = false;   // 액터의 필수 컴포넌트로 지정되었는지 여부. 활성화되면 보호되어 삭제 불가 상태가 됨 
     bool bIsActive = true;       // 활성 상태(사용자 on/off)
     bool bCanEverTick = false;   // 컴포넌트 설계상 틱 지원 여부
     bool bTickEnabled = false;   // 현재 틱 켜짐 여부
