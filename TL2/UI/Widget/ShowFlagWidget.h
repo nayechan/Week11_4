@@ -45,7 +45,7 @@ private:
     
 private:
     // UI 상태
-    bool bIsExpanded = true;        // 위젯 확장/축소 상태
+    bool bIsExpanded = false;        // 위젯 확장/축소 상태
     bool bShowTooltips = true;      // 툴팁 표시 여부
     bool bCompactMode = false;      // 컴팩트 모드 (작은 인터페이스)
     

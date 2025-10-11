@@ -2,10 +2,10 @@
 #include "ControlPanelWindow.h"
 #include "../Widget/CameraControlWidget.h"
 #include "../Widget/FPSWidget.h"
-#include "../Widget/TargetActorTransformWidget.h"
 #include "../Widget/ActorTerminationWidget.h"
 #include "../Widget/PrimitiveSpawnWidget.h"
 #include "../Widget/SceneIOWidget.h"
+#include"RenderViewportSwitcherWidget.h"
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -49,6 +49,9 @@ UControlPanelWindow::UControlPanelWindow()
 	UCameraControlWidget* CameraControlWidget = NewObject<UCameraControlWidget>();
 	CameraControlWidget->Initialize();
 	AddWidget(CameraControlWidget);
+
+	URenderViewportSwitcherWidget* RenderViewPortSWitcherWidget = NewObject<URenderViewportSwitcherWidget>();
+	AddWidget(RenderViewPortSWitcherWidget);
 }
 
 /**

@@ -116,12 +116,6 @@ void USceneManagerWidget::Update()
 void USceneManagerWidget::RenderWidget()
 {
     ImGui::Text("Scene Manager");
-    ImGui::Spacing();
-    
-    // Toolbar
-    //RenderToolbar();
-    ImGui::Separator();
-    
     // World status
     UWorld* World = GetCurrentWorld();
     if (!World)
@@ -129,9 +123,6 @@ void USceneManagerWidget::RenderWidget()
         ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "No World Available");
         return;
     }
-    
-    ImGui::Text("Objects: %zu", World->GetActors().size());
-    ImGui::Separator();
     
     // Actor tree view
     ImGui::BeginChild("ActorTreeView", ImVec2(0, 240), true);
@@ -156,8 +147,10 @@ void USceneManagerWidget::RenderWidget()
             }
         }
     }
-    
+
     ImGui::EndChild();
+
+    ImGui::Text("Actor: %zu", World->GetActors().size());
     
     // Context menu
     if (bShowContextMenu)

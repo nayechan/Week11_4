@@ -2,7 +2,6 @@
 #include "SceneWindow.h"
 #include "../Widget/SceneManagerWidget.h"
 #include "../Widget/ShowFlagWidget.h"
-#include"RenderViewportSwitcherWidget.h"
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -21,8 +20,7 @@ USceneWindow::USceneWindow()
 
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
-	URenderViewportSwitcherWidget* RenderViewPortSWitcherWidget= NewObject<URenderViewportSwitcherWidget>();
-	AddWidget(RenderViewPortSWitcherWidget);
+
 	// Add Scene Manager Widget (main scene hierarchy)
 	USceneManagerWidget* SceneManagerWidget = NewObject<USceneManagerWidget>();
 	if (SceneManagerWidget)
