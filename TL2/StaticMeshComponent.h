@@ -50,6 +50,10 @@ public:
     DECLARE_DUPLICATE(UStaticMeshComponent)
     
 protected:
+    void OnTransformUpdated() override;
+    void MarkBVDirty();
+
+protected:
     UStaticMesh* StaticMesh = nullptr;
     TArray<FMaterialSlot> MaterialSlots;
 

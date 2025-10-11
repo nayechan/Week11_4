@@ -88,6 +88,17 @@ public:
     }
 
 protected:
+
+    /** @brief 로컬 트랜스폼 변경시 생기는 영향을 처리하기 위한 메소드 */
+    virtual void OnTransformUpdated();
+
+    /**
+     * @brief Transform 갱신시 자식 컴포넌트의 OnTransformUpdated를 강제 호출.
+     * @note 부모 컴포넌트의 트랜스폼 변화로 인해 월드 관점에서 생길 영향을 처리하기 위한 메소드로,
+     * 자식 컴포넌트들의 로컬 트랜스폼을 직접 변경시키지 않습니다. 
+     */
+    void PropagateTransformUpdate();
+
     FVector RelativeLocation{ 0,0,0 };
     FQuat   RelativeRotation;
     FVector RelativeScale{ 1,1,1 };

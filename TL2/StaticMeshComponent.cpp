@@ -6,6 +6,8 @@
 #include "ResourceManager.h"
 #include "ObjManager.h"
 #include "SceneLoader.h"
+#include "World.h"
+#include "WorldPartitionManager.h"
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
@@ -153,4 +155,21 @@ FAABB UStaticMeshComponent::GetWorldAABB() const
 void UStaticMeshComponent::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();
+}
+
+void UStaticMeshComponent::OnTransformUpdated()
+{
+    Super::OnTransformUpdated();
+    MarkBVDirty();
+}
+
+void UStaticMeshComponent::MarkBVDirty()
+{
+    if (UWorld* World = GetWorld())
+    {
+        if (UWorldPartitionManager* Partition = World->GetPartitionManager())
+        {
+            Partition->MarkDirty(this);
+        }
+    }
 }
