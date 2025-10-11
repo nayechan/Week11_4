@@ -36,9 +36,7 @@ void FObjManager::Preload()
 
         if (Extension == ".obj")
         {
-            // 경로 정규화 - 절대경로로 변환하고 슬래시로 통일
-            std::filesystem::path NormalizedPath = std::filesystem::absolute(Path);
-            FString PathStr = NormalizedPath.string();
+            FString PathStr = Path.string();
             std::replace(PathStr.begin(), PathStr.end(), '\\', '/');
 
             // 이미 처리된 파일인지 확인
@@ -73,9 +71,7 @@ void FObjManager::Clear()
 
 FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 {
-    // 1) 경로 정규화 - 절대경로로 변환하고 백슬래시를 슬래시로 통일
-    std::filesystem::path NormalizedPath = std::filesystem::absolute(PathFileName);
-    FString NormalizedPathStr = NormalizedPath.string();
+    FString NormalizedPathStr = PathFileName;
     std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
 
     // 2) 캐시 히트 시 즉시 반환 (정규화된 경로로 검색)
@@ -201,20 +197,16 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 // 여기서 BVH 정보 담아주기 작업을 해야 함 
 UStaticMesh* FObjManager::LoadObjStaticMesh(const FString& PathFileName)
 {
-    // 0) 경로 정규화
-    std::filesystem::path NormalizedPath = std::filesystem::absolute(PathFileName);
-    FString NormalizedPathStr = NormalizedPath.string();
+    // 0) 경로
+    FString NormalizedPathStr = PathFileName;
     std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
 
 	// 1) 이미 로드된 UStaticMesh가 있는지 전체 검색 (정규화된 경로로 비교)
     for (TObjectIterator<UStaticMesh> It; It; ++It)
     {
         UStaticMesh* StaticMesh = *It;
-        std::filesystem::path ExistingPath = std::filesystem::absolute(StaticMesh->GetFilePath());
-        FString ExistingNormalizedStr = ExistingPath.string();
-        std::replace(ExistingNormalizedStr.begin(), ExistingNormalizedStr.end(), '\\', '/');
 
-        if (ExistingNormalizedStr == NormalizedPathStr)
+        if (StaticMesh->GetFilePath() == NormalizedPathStr)
         {
             return StaticMesh;
         }
