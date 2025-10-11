@@ -23,11 +23,17 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
             [](char a, char b) { return ::tolower(a) == ::tolower(b); });
         };
 
+    UINT compileFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+    compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+
     if (EndsWith(InShaderPath, "VS.hlsl"))
     {
         // Vertex Shader만 컴파일
         hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
-            "mainVS", "vs_5_0", 0, 0, &VSBlob, &errorBlob);
+            "mainVS", "vs_5_0", compileFlags, 0, &VSBlob, &errorBlob);
         if (FAILED(hr))
         {
             if (errorBlob)
@@ -49,7 +55,7 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
     {
         // Pixel Shader만 컴파일
         hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
-            "mainPS", "ps_5_0", 0, 0, &PSBlob, &errorBlob);
+            "mainPS", "ps_5_0", compileFlags, 0, &PSBlob, &errorBlob);
         if (FAILED(hr))
         {
             if (errorBlob)
@@ -69,7 +75,7 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
     {
         // 원래 로직 (VS + PS 둘 다 컴파일)
         hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
-            "mainVS", "vs_5_0", 0, 0, &VSBlob, &errorBlob);
+            "mainVS", "vs_5_0", compileFlags, 0, &VSBlob, &errorBlob);
         if (FAILED(hr))
         {
             if (errorBlob)
@@ -86,7 +92,7 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
             nullptr, &VertexShader);
 
         hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
-            "mainPS", "ps_5_0", 0, 0, &PSBlob, nullptr);
+            "mainPS", "ps_5_0", compileFlags, 0, &PSBlob, nullptr);
 
         hr = InDevice->CreatePixelShader(PSBlob->GetBufferPointer(),
             PSBlob->GetBufferSize(),
