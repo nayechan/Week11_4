@@ -353,14 +353,17 @@ enum class EEngineShowFlags : uint64
     SF_BoundingBoxes = 1ull << 4, // Show/hide collision bounds
     SF_Grid = 1ull << 5,          // Show/hide world grid
 
-    SF_OctreeDebug = 1ull << 7,  // Show/hide octree debug bounds
-    SF_BVHDebug = 1ull << 8,  // Show/hide BVH debug bounds
-    SF_Culling = 1ull << 9,          // Show/hide world grid
     // Lighting
     SF_Lighting = 1ull << 6,      // Enable/disable lighting
 
+    SF_OctreeDebug = 1ull << 7,  // Show/hide octree debug bounds
+    SF_BVHDebug = 1ull << 8,  // Show/hide BVH debug bounds
+    SF_Culling = 1ull << 9,          // Show/hide world grid
+
+    SF_Decals = 1ull << 10,      // Enable/disable lighting
+
     // Default enabled flags
-    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid,
+    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid | SF_Decals,
 
     // All flags (for initialization/reset)
     SF_All = 0xFFFFFFFFFFFFFFFFull

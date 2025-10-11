@@ -35,7 +35,7 @@ private:
     /** Show Flag 카테고리별 섹션 렌더링 */
     void RenderPrimitiveSection(UWorld* World);
     void RenderDebugSection(UWorld* World);
-    void RenderLightingSection(UWorld* World);
+    void RenderRenderingSection(UWorld* World);
     
     /** 전체 제어 버튼들 */
     void RenderControlButtons(UWorld* World);
@@ -52,6 +52,7 @@ private:
     // 각 플래그별 로컬 상태 (ImGui 체크박스용)
     bool bPrimitives = true;
     bool bStaticMeshes = true;
+    bool bDecals = true;
     bool bWireframe = false;
     bool bBillboardText = false;
     bool bBoundingBoxes = false;

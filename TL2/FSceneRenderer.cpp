@@ -19,6 +19,7 @@
 #include "WorldPartitionManager.h"
 #include "BVHierachy.h"
 #include "SelectionManager.h"
+#include "StaticMeshComponent.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, ACameraActor* InCamera, FViewport* InViewport, URenderer* InOwnerRenderer)
 	: World(InWorld)
@@ -146,23 +147,49 @@ void FSceneRenderer::PerformCPUOcclusion()
 
 void FSceneRenderer::GatherVisibleProxies()
 {
-	if (!World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives)) return;
+	const bool bDrawPrimitives = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
+	const bool bDrawStaticMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
+	const bool bDrawDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
 
 	for (AActor* Actor : World->GetActors())
 	{
-		if (!Actor || Actor->GetActorHiddenInGame() || Actor->GetCulled()) continue;
-		if (bUseCPUOcclusion && VisibleFlags.size() > Actor->UUID && VisibleFlags[Actor->UUID] == 0) continue;
-		if (Cast<AStaticMeshActor>(Actor) && !World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes)) continue;
+		if (!Actor || Actor->GetActorHiddenInGame())
+		{
+			continue;
+		}
+
+		// NOTE: 컬링 코드 삭제, 컬링은 컴포넌트 단위로 수정 필요
+		//if (!Actor || Actor->GetActorHiddenInGame() || Actor->GetCulled()) continue;
+		//if (bUseCPUOcclusion && VisibleFlags.size() > Actor->UUID && VisibleFlags[Actor->UUID] == 0) continue;
 
 		for (USceneComponent* Component : Actor->GetSceneComponents())
 		{
-			if (Component && Component->IsActive())
+			if (!Component || !Component->IsActive())
 			{
-				if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+				continue;
+			}
+
+			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+			{
+				if (bDrawPrimitives)
 				{
-					Proxies.Primitives.Add(Primitive);
+					if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Primitive))
+					{
+						if (bDrawStaticMeshes)
+						{
+							Proxies.Primitives.Add(Primitive);
+						}
+					}
+					else
+					{
+						// NOTE: 나머지 Primitive 타입 일단 플래그 검사 없이 추가 (추후 수정)
+						Proxies.Primitives.Add(Primitive);
+					}
 				}
-				else if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+			}
+			else if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+			{
+				if (bDrawDecals)
 				{
 					Proxies.Decals.Add(Decal);
 				}
@@ -214,6 +241,7 @@ void FSceneRenderer::RenderDecalPass()
 		{
 			if (!Actor->IsActorVisible())
 				continue; // Skip hidden actor
+
 			TArray<USceneComponent*> SceneComponents = Actor->GetSceneComponents();
 			for (USceneComponent* SceneComp : SceneComponents)
 			{

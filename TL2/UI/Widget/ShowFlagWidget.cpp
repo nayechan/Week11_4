@@ -61,6 +61,8 @@ void UShowFlagWidget::RenderWidget()
                 RenderShowFlagCheckbox("Primitives", EEngineShowFlags::SF_Primitives, World);
                 ImGui::SameLine();
                 RenderShowFlagCheckbox("Grid", EEngineShowFlags::SF_Grid, World);
+                ImGui::SameLine();
+                RenderShowFlagCheckbox("Decal", EEngineShowFlags::SF_Decals, World);
                 
                 RenderShowFlagCheckbox("Static Meshes", EEngineShowFlags::SF_StaticMeshes, World);
                 ImGui::SameLine();
@@ -80,11 +82,11 @@ void UShowFlagWidget::RenderWidget()
                 // 카테고리별 섹션들
                 RenderPrimitiveSection(World);
                 ImGui::Separator();
-                
-                RenderDebugSection(World);
+
+                RenderRenderingSection(World);
                 ImGui::Separator();
-                
-                RenderLightingSection(World);
+
+                RenderDebugSection(World);
             }
         }
         ImGui::EndChild();
@@ -108,6 +110,7 @@ void UShowFlagWidget::SyncWithWorld(UWorld* World)
     // 각 플래그 상태를 로컬 변수에 동기화
     bPrimitives = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
     bStaticMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
+    bDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
     bWireframe = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Wireframe);
     bBillboardText = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BillboardText);
     bBoundingBoxes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes);
@@ -275,13 +278,14 @@ void UShowFlagWidget::RenderDebugSection(UWorld* World)
     }
 }
 
-void UShowFlagWidget::RenderLightingSection(UWorld* World)
+void UShowFlagWidget::RenderRenderingSection(UWorld* World)
 {
     ImGui::PushStyleColor(ImGuiCol_Text, HeaderColor);
-    if (ImGui::TreeNode("Lighting"))
+    if (ImGui::TreeNode("Rendering"))
     {
         ImGui::PopStyleColor();
         
+        RenderShowFlagCheckbox("Decal", EEngineShowFlags::SF_Decals, World);
         RenderShowFlagCheckbox("Lighting", EEngineShowFlags::SF_Lighting, World);
         
         ImGui::TreePop();
