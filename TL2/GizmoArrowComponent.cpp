@@ -56,11 +56,11 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     EViewModeIndex saved = RS.GetViewModeIndex();
     Renderer->SetViewModeType(EViewModeIndex::VMI_Unlit);
     // 스텐실에 1을 기록해, 이후 라인 렌더링이 겹치는 픽셀을 그리지 않도록 마스크
-    Renderer->OMSetDepthStencilStateOverlayWriteStencil();
-    Renderer->OMSetBlendState(true);
+    Renderer->GetRHIDevice()->OMSetDepthStencilState_OverlayWriteStencil();
+    Renderer->GetRHIDevice()->OMSetBlendState(true);
 
     // 하이라이트 상수
-    Renderer->UpdateHighLightConstantBuffer(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1);
+    Renderer->GetRHIDevice()->UpdateHighLightConstantBuffers(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1);
 
     // 리사이징
     const float ScaleFactor = ComputeScreenConstantScale(Renderer, View, Proj, 30.0f);
@@ -68,12 +68,12 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     SetWorldScale(DefaultScale * ScaleFactor);
 
     FMatrix M = GetWorldMatrix();
-    Renderer->UpdateConstantBuffer(M, View, Proj);
+    Renderer->GetRHIDevice()->UpdateConstantBuffers(M, View, Proj);
     UStaticMeshComponent::Render(Renderer, View, Proj);
 
     // 상태 복구
-    Renderer->OMSetBlendState(false);
-    Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+    Renderer->GetRHIDevice()->OMSetBlendState(false);
+    Renderer->GetRHIDevice()->OMSetDepthStencilState(EComparisonFunc::LessEqual);
     Renderer->SetViewModeType(saved);
 }
 

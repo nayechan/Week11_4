@@ -36,10 +36,7 @@ void FViewportClient::Draw(FViewport* Viewport)
 {
     if (!Viewport || !World) return;
 
-    // 뷰포트의 실제 크기로 aspect ratio 계산
-    float ViewportAspectRatio = static_cast<float>(Viewport->GetSizeX()) / static_cast<float>(Viewport->GetSizeY());
-    if (Viewport->GetSizeY() == 0) ViewportAspectRatio = 1.0f; // 0으로 나누기 방지
-
+    // 1. 뷰 타입에 따라 카메라 설정 등 사전 작업을 먼저 수행
     switch (ViewportType)
     {
     case EViewportType::Perspective:
@@ -48,29 +45,24 @@ void FViewportClient::Draw(FViewport* Viewport)
         PerspectiveCameraPosition = Camera->GetActorLocation();
         PerspectiveCameraRotation = Camera->GetActorRotation();
         PerspectiveCameraFov = Camera->GetCameraComponent()->GetFOV();
-          if (World)
-          {
-              World->GetRenderSettings().SetViewModeIndex(ViewModeIndex);
-              RENDER.Render(World, Viewport);
-          }
         break;
     }
-    case EViewportType::Orthographic_Top:
-    case EViewportType::Orthographic_Front:
-    case EViewportType::Orthographic_Left:
-    case EViewportType::Orthographic_Back:
-    case EViewportType::Orthographic_Bottom:
-    case EViewportType::Orthographic_Right:
+    default: // 모든 Orthographic 케이스
     {
         Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Orthographic);
         SetupCameraMode();
-        if (World)
-        {
-            World->GetRenderSettings().SetViewModeIndex(ViewModeIndex);
-            RENDER.Render(World, Viewport);
-        }
         break;
     }
+    }
+
+    // 2. 렌더링 호출은 뷰 타입 설정이 모두 끝난 후 마지막에 한 번만 수행
+    URenderer* Renderer = URenderManager::GetInstance().GetRenderer();
+    if (Renderer)
+    {
+        World->GetRenderSettings().SetViewModeIndex(ViewModeIndex);
+
+        // 더 명확한 이름의 함수를 호출
+        Renderer->RenderSceneForView(World, Camera, Viewport);
     }
 }
 

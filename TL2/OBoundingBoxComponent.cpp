@@ -102,9 +102,9 @@ void UOBoundingBoxComponent::Render(URenderer* Renderer, const FMatrix& ViewMatr
     /*if(OOBB)
     SetupAttachment(NULL);*///OOBB시  조건문 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    Renderer->RSSetState(EViewModeIndex::VMI_Wireframe);
-    Renderer->UpdateConstantBuffer(GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
-    Renderer->PrepareShader(GetMaterial()->GetShader());
+    Renderer->GetRHIDevice()->RSSetState(EViewModeIndex::VMI_Wireframe);
+    Renderer->GetRHIDevice()->UpdateConstantBuffers(GetWorldMatrix(), ViewMatrix, ProjectionMatrix);
+    Renderer->GetRHIDevice()->PrepareShader(GetMaterial()->GetShader());
     //Renderer->DrawIndexedPrimitiveComponent(GetMeshResource(), D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 }
 

@@ -54,12 +54,12 @@ void UBillboardComponent::Render(URenderer* Renderer, const FMatrix& View, const
 	FVector CamRight = CameraActor->GetActorRight();
 	FVector CamUp = CameraActor->GetActorUp();
 	FVector cameraPosition = CameraActor->GetActorLocation();
-    Renderer->UpdateBillboardConstantBuffers(Owner->GetActorLocation() + GetRelativeLocation() + FVector(0.f, 0.f, 1.f) * Owner->GetActorScale().Z, View, Proj, CamRight, CamUp);
+    Renderer->GetRHIDevice()->UpdateBillboardConstantBuffers(Owner->GetActorLocation() + GetRelativeLocation() + FVector(0.f, 0.f, 1.f) * Owner->GetActorScale().Z, View, Proj, CamRight, CamUp);
 
-    Renderer->PrepareShader(Material->GetShader());
-    Renderer->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-    Renderer->RSSetNoCullState();
+    Renderer->GetRHIDevice()->PrepareShader(Material->GetShader());
+    Renderer->GetRHIDevice()->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+    Renderer->GetRHIDevice()->RSSetNoCullState();
     Renderer->DrawIndexedPrimitiveComponent(this, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    //Renderer->RSSetState(EViewModeIndex::VMI_Unlit);
+    //Renderer->GetRHIDevice()->RSSetState(EViewModeIndex::VMI_Unlit);
 }
 

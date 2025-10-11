@@ -429,6 +429,9 @@
     <ClCompile Include="DecalComponent.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="FSceneRenderer.cpp">
+      <Filter>소스 파일\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Primitive.hlsl">
@@ -804,6 +807,9 @@
     </ClInclude>
     <ClInclude Include="DecalComponent.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="FSceneRenderer.h">
+      <Filter>소스 파일\Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

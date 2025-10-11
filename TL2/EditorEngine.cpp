@@ -234,13 +234,13 @@ void UEditorEngine::HandleUVInput(float DeltaSeconds)
         if (bUVScrollPaused)
         {
             UVScrollTime = 0.0f;
-            if (Renderer) Renderer->UpdateUVScroll(UVScrollSpeed, UVScrollTime);
+            if (Renderer) Renderer->GetRHIDevice()->UpdateUVScrollConstantBuffers(UVScrollSpeed, UVScrollTime);
         }
     }
     if (!bUVScrollPaused)
     {
         UVScrollTime += DeltaSeconds;
-        if (Renderer) Renderer->UpdateUVScroll(UVScrollSpeed, UVScrollTime);
+        if (Renderer) Renderer->GetRHIDevice()->UpdateUVScrollConstantBuffers(UVScrollSpeed, UVScrollTime);
     }
 
 }
