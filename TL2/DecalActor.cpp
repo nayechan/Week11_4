@@ -6,7 +6,6 @@ ADecalActor::ADecalActor()
 {
 	Name = "Static Mesh Actor";
 	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
-	DecalComponent->SetupAttachment(RootComponent);
 
 	// 루트 교체
 	USceneComponent* TempRootComponent = RootComponent;
