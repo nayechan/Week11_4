@@ -363,50 +363,96 @@ void AActor::DuplicateSubObjects()
 {
 	Super::DuplicateSubObjects();
 
+	// 기본 프로퍼티 초기화
 	bIsPicked = false;
 	bCanEverTick = true;
 	bHiddenInGame = false;
 	bIsCulled = false;
+	World = nullptr; // PIE World는 복제 프로세스의 상위 레벨에서 설정해 주어야 합니다.
 
-	// OwnedComponents 복사
-	TSet<UActorComponent*> TmpOwnedComponents;
-	for (const auto& Comp : OwnedComponents) {
-		UActorComponent* Tmp = Comp->Duplicate();
-		if (Comp == RootComponent)
-		{
-			RootComponent = Cast<USceneComponent>(Tmp);
-		}
-		Tmp->SetOwner(this);
-		TmpOwnedComponents.insert(Tmp); // 깊은 복사
-	}
-	OwnedComponents.swap(TmpOwnedComponents); // 원래 set 교체
-
-	// SceneComponents 복사
-	SceneComponents.clear();
-	SceneComponents.reserve(OwnedComponents.size());
-	for (const auto& Comp : OwnedComponents)
+	if (OwnedComponents.empty())
 	{
-		if (USceneComponent* SceneComp = Cast<USceneComponent>(Comp))
+		return; // 복제할 컴포넌트가 없으면 종료
+	}
+
+	// ========================================================================
+	// 1단계: 모든 컴포넌트 복제 및 '원본 -> 사본' 매핑 테이블 생성
+	// ========================================================================
+	TMap<UActorComponent*, UActorComponent*> OldToNewComponentMap;
+	TSet<UActorComponent*> NewOwnedComponents;
+
+	for (UActorComponent* OriginalComp : OwnedComponents)
+	{
+		if (!OriginalComp) continue;
+
+		// 컴포넌트를 깊은 복사합니다.
+		UActorComponent* NewComp = OriginalComp->Duplicate();
+		NewComp->SetOwner(this);
+
+		// 매핑 테이블에 (원본 포인터, 새 포인터) 쌍을 기록합니다.
+		OldToNewComponentMap.insert({ OriginalComp, NewComp });
+
+		// 새로운 소유 컴포넌트 목록에 추가합니다.
+		NewOwnedComponents.insert(NewComp);
+	}
+
+	// 복제된 컴포넌트 목록으로 교체합니다.
+	OwnedComponents = NewOwnedComponents;
+
+	// ========================================================================
+	// 2단계: 매핑 테이블을 이용해 씬 계층 구조 재구성
+	// ========================================================================
+
+	// 2-1. 새로운 루트 컴포넌트 설정
+	UActorComponent** FoundNewRootPtr = OldToNewComponentMap.Find(RootComponent);
+	if (FoundNewRootPtr)
+	{
+		RootComponent = Cast<USceneComponent>(*FoundNewRootPtr);
+	}
+	else
+	{
+		// 원본 루트를 찾지 못하는 심각한 오류. 
+		// 이 경우엔 첫 번째 씬 컴포넌트를 임시 루트로 삼거나 에러 처리.
+		RootComponent = nullptr;
+	}
+
+	// 2-2. 모든 씬 컴포넌트의 부모-자식 관계 재연결
+	SceneComponents.clear(); // 새 컴포넌트로 목록을 다시 채웁니다.
+	if (RootComponent)
+	{
+		SceneComponents.push_back(RootComponent);
+	}
+
+	for (auto const& [OriginalComp, NewComp] : OldToNewComponentMap)
+	{
+		USceneComponent* OriginalSceneComp = Cast<USceneComponent>(OriginalComp);
+		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewComp);
+
+		if (OriginalSceneComp && NewSceneComp)
 		{
-			if (SceneComp != RootComponent)
+			// 루트가 아닌 경우에만 부모를 찾아 연결합니다.
+			if (OriginalSceneComp != GetRootComponent()) // 여기서 비교는 원본 액터의 루트와 해야 합니다.
 			{
-				SceneComp->SetParent(RootComponent);
-				SceneComponents.push_back(SceneComp);
+				USceneComponent* OriginalParent = OriginalSceneComp->GetAttachParent();
+				if (OriginalParent)
+				{
+					// 매핑 테이블에서 원본 부모에 해당하는 '새로운 부모'를 찾습니다.
+					UActorComponent** FoundNewParentPtr = OldToNewComponentMap.Find(OriginalParent);
+					if (FoundNewParentPtr)
+					{
+						NewSceneComp->SetupAttachment(Cast<USceneComponent>(*FoundNewParentPtr), EAttachmentRule::KeepRelative);
+					}
+				}
+			}
+
+			// 루트가 아닌 씬 컴포넌트들을 캐시 목록에 추가합니다.
+			if (NewSceneComp != RootComponent)
+			{
+				SceneComponents.push_back(NewSceneComp);
 			}
 		}
 	}
-
-	World = nullptr; // TODO: World를 PIE World로 할당해야 함.
 }
-
-//AActor* AActor::Duplicate()
-//{
-//	AActor* NewActor = ObjectFactory::DuplicateObject<AActor>(this); // 모든 멤버 얕은 복사
-//
-//	NewActor->DuplicateSubObjects();
-//
-//	return nullptr;
-//}
 
 void AActor::RegisterComponentTree(USceneComponent* SceneComp)
 {
