@@ -68,16 +68,18 @@ void FBVHierarchy::Clear()
     bPendingRebuild = false;
 }
 
-void FBVHierarchy::BulkInsert(const TArray<std::pair<UStaticMeshComponent*, FAABB>>& ComponentsAndBounds)
+void FBVHierarchy::BulkUpdate(const TArray<UStaticMeshComponent*>& Components)
 {
-    for (const auto& kv : ComponentsAndBounds)
+    for (const auto& SMC : Components)
     {
-        if (kv.first)
+        if (SMC)
         {
-            StaticMeshComponentBounds.Add(kv.first, kv.second);
+            StaticMeshComponentBounds.Add(SMC, SMC->GetWorldAABB());
         }
     }
 
+    // Level 복사 등으로 다량의 컴포넌트를 한 번에 넣는 상황 전제
+    // 일반적인 update에서 budget 단위로 끊어 갱신되는 로직 우회해 강제 rebuild
     BuildLBVH();
     bPendingRebuild = false;
 }
@@ -106,8 +108,6 @@ void FBVHierarchy::Remove(UStaticMeshComponent* InComponent)
         bPendingRebuild = true;
     }
 }
-// ================================================================================================================
-// ================================================================================================================
 
 void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
 {
@@ -165,12 +165,11 @@ void FBVHierarchy::QueryFrustum(const Frustum& InFrustum)
 }
 
 // DFS 방식으로 BVH 순회하며 InBounds와 bounding volume이 충돌한 액터들 추출
-TArray<AActor*> FBVHierarchy::QueryIntersectedActors(const FAABB& InBound) const
+TArray<UStaticMeshComponent*> FBVHierarchy::QueryIntersectedComponents(const FAABB& InBound) const
 {
-    TArray<AActor*> OutActors;
-    TSet<AActor*> SeenActors;
+    TSet<UStaticMeshComponent*> IntersectedComponents;
     if (Nodes.empty())
-        return OutActors;
+        return TArray<UStaticMeshComponent*>();
     TArray<int32> IdxStack;
     IdxStack.push_back({ 0 }); // Index 0 is always root node (BuildLBVHFromMap 참고)
 
@@ -193,13 +192,7 @@ TArray<AActor*> FBVHierarchy::QueryIntersectedActors(const FAABB& InBound) const
                     const FAABB Box = Cached ? *Cached : Component->GetWorldAABB();
                     if (InBound.Intersects(Box))
                     {
-                        if (AActor* Owner = Component->GetOwner())
-                        {
-                            if (SeenActors.insert(Owner).second)
-                            {
-                                OutActors.push_back(Owner);
-                            }
-                        }
+                        IntersectedComponents.insert(Component);
                     }
                 }
             }
@@ -211,7 +204,7 @@ TArray<AActor*> FBVHierarchy::QueryIntersectedActors(const FAABB& InBound) const
             }
         }
     }
-    return OutActors;
+    return IntersectedComponents.Array();
 }
 
 void FBVHierarchy::DebugDraw(URenderer* Renderer) const

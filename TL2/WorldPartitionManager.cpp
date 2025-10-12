@@ -2,14 +2,13 @@
 #include "WorldPartitionManager.h"
 #include "PrimitiveComponent.h"
 #include "Actor.h"
-#include "AABoundingBoxComponent.h"
 #include "World.h"
 #include "Octree.h"
 #include "BVHierarchy.h"
 #include "StaticMeshActor.h"
 #include "StaticMeshComponent.h"
 #include "Frustum.h"
-#include "GizmoArrowComponent.h"
+#include "GizmoActor.h"
 
 UWorldPartitionManager::UWorldPartitionManager()
 {
@@ -45,39 +44,25 @@ void UWorldPartitionManager::Clear()
 	ComponentDirtySet.Empty();
 }
 
+// 새로 만들어진 StaticMeshComponent를 등록하는 상황에서 맥락을 분명히 드러내기 위한 API입니다.
 void UWorldPartitionManager::Register(UStaticMeshComponent* Smc)
 {
-	if (!Smc) return;
 	MarkDirty(Smc);
 }
 
-
+// 새로 만들어진 Actor를 등록하는 상황에서 맥락을 분명히 드러내기 위한 API입니다.
 void UWorldPartitionManager::Register(AActor* Actor)
 {
-	if (!Actor) return;
-
-	TArray<AActor*> EditorActors = GWorld->GetEditorActors();
-	auto it = std::find(EditorActors.begin(), EditorActors.end(), Actor);
-	if (it != EditorActors.end())
-		return; // 에디터 액터는 포함하지 않는다.
-	
-	const TArray<USceneComponent*> Components = Actor->GetSceneComponents();
-	for (USceneComponent* Component : Components)
-	{
-		if (UStaticMeshComponent* Smc = Cast<UStaticMeshComponent>(Component))
-		{
-			MarkDirty(Smc);
-		}
-	}
+	MarkDirty(Actor);
 }
 
+// BulkRegister를 사용하면 틱 budget에 걸리지 않고 1틱 안에 전부 추가됩니다.
 void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 {
 	if (Actors.empty()) return;
-
-	TArray<std::pair<UStaticMeshComponent*, FAABB>> ComponentsAndBounds;
-	ComponentsAndBounds.reserve(Actors.size());
-
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	StaticMeshComponents.Reserve(Actors.size());
+	
 	for (AActor* Actor : Actors)
 	{
 		TArray<AActor*> EditorActors = GWorld->GetEditorActors();
@@ -90,13 +75,13 @@ void UWorldPartitionManager::BulkRegister(const TArray<AActor*>& Actors)
 		{
 			if (UStaticMeshComponent* Smc = Cast<UStaticMeshComponent>(Component))
 			{
-				ComponentsAndBounds.push_back({ Smc, Smc->GetWorldAABB() });
+				StaticMeshComponents.push_back(Smc);
 				ComponentDirtySet.erase(Smc);
 			}
 		}
 	}
 	
-	if (BVH) BVH->BulkInsert(ComponentsAndBounds);
+	if (BVH) BVH->BulkUpdate(StaticMeshComponents);
 }
 
 void UWorldPartitionManager::Unregister(AActor* Actor)
@@ -115,25 +100,37 @@ void UWorldPartitionManager::Unregister(AActor* Actor)
 	}
 }
 
+// World Partition에서의 액터 상태를 갱신 예약
+// (신규 등록에도 사용할 수 있지만 코드 가독성을 위해 Register API 사용 권장)
 void UWorldPartitionManager::MarkDirty(AActor* Actor)
 {
 	if (!Actor) return;
+
+	// 기즈모는 포함하지 않는다.
+	if (Cast<AGizmoActor>(Actor))
+		return; 
+	
 	const TArray<USceneComponent*> Components = Actor->GetSceneComponents();
 	for (USceneComponent* Component : Components)
 	{
 		if (UStaticMeshComponent* Smc = Cast<UStaticMeshComponent>(Component))
 		{
 			MarkDirty(Smc);
-			
 		}
 	}
 }
 
+// World Partition에서의 스태틱 메시 컴포넌트 상태 갱신 예약
+// (신규 등록에도 사용할 수 있지만 코드 가독성을 위해 Register API 사용 권장)
 void UWorldPartitionManager::MarkDirty(UStaticMeshComponent* Smc)
 {
 	if (!Smc) return;
+	AActor* Owner = Smc->GetOwner();
+	if (!Owner) return;
 
-	if (Cast<UGizmoArrowComponent>(Smc)) return;
+	// 기즈모는 포함하지 않는다.
+	if (Cast<AGizmoActor>(Owner))
+		return;
 	
 	// second: 새로운 요소가 성공적으로 삽입되었으면 true, 이미 요소가 존재하여 삽입에 실패했으면 false
 	// DirtyQueue 중복 삽입 방지 로직

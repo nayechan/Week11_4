@@ -15,13 +15,16 @@ void UStaticMesh::Load(const FString& InFilePath, ID3D11Device* InDevice, EVerte
     VertexType = InVertexType;
 
     StaticMeshAsset = FObjManager::LoadObjStaticMeshAsset(InFilePath);
-    CreateVertexBuffer(StaticMeshAsset, InDevice, InVertexType);
-    CreateIndexBuffer(StaticMeshAsset, InDevice);
-    CreateLocalBound(StaticMeshAsset);
-    VertexCount = static_cast<uint32>(StaticMeshAsset->Vertices.size());
-    IndexCount = static_cast<uint32>(StaticMeshAsset->Indices.size());
 
-    
+    // 로드에 실패한 경우 빈 버텍스가 반환됨 그거 검사
+    if (StaticMeshAsset && 0 < StaticMeshAsset->Vertices.size())
+    {
+        CreateVertexBuffer(StaticMeshAsset, InDevice, InVertexType);
+        CreateIndexBuffer(StaticMeshAsset, InDevice);
+        CreateLocalBound(StaticMeshAsset);
+        VertexCount = static_cast<uint32>(StaticMeshAsset->Vertices.size());
+        IndexCount = static_cast<uint32>(StaticMeshAsset->Indices.size());
+    }
 }
 
 void UStaticMesh::Load(FMeshData* InData, ID3D11Device* InDevice, EVertexLayoutType InVertexType)

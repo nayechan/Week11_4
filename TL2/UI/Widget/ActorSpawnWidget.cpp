@@ -63,7 +63,7 @@ void UActorSpawnWidget::RenderWidget()
 	const float ButtonHeight = 25.0f;
 
 	// '+ 추가' 버튼
-	if (ImGui::Button("+ 추가", ImVec2(ButtonWidth, ButtonHeight)))
+	if (ImGui::Button("+ 액터", ImVec2(ButtonWidth, ButtonHeight)))
 	{
 		ImGui::OpenPopup("AddActorPopup");
 	}
@@ -132,15 +132,6 @@ bool UActorSpawnWidget::TrySpawnActor(UClass* ActorClass)
 		}
 		FString ActorName = World->GenerateUniqueActorName(Desc ? Desc->Label : "Actor");
 		NewActor->SetName(ActorName);
-
-		// 스폰 후 처리 (예: StaticMeshActor에 기본 메시 할당)
-		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(NewActor))
-		{
-			if (auto* StaticMeshComp = StaticMeshActor->GetStaticMeshComponent())
-			{
-				StaticMeshComp->SetStaticMesh("Data/Cube.obj");
-			}
-		}
 
 		// 월드 파티션 시스템에 등록 (중요)
 		World->OnActorSpawned(NewActor);

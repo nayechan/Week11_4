@@ -40,15 +40,21 @@ public:
 	// 선택된 액터가 외부에서 삭제되었을 때 호출되어 내부 상태를 정리
 	void OnSelectedActorCleared();
 
+	void RenderHeader();
+	void RenderComponentHierarchy();
+	void RenderTransformEditor();
+	void RenderSelectedComponentDetails();
+
+
 private:
 	UUIManager* UIManager = nullptr;
 	AActor* SelectedActor = nullptr;
 	FString CachedActorName; // 액터 이름 캐시 (안전한 출력을 위해)
 
 	// Transform UI 상태
-	FVector EditLocation = {0.0f, 0.0f, 0.0f};
-	FVector EditRotation = {0.0f, 0.0f, 0.0f};
-	FVector EditScale = {1.0f, 1.0f, 1.0f};
+	FVector EditLocation = { 0.0f, 0.0f, 0.0f };
+	FVector EditRotation = { 0.0f, 0.0f, 0.0f };
+	FVector EditScale = { 1.0f, 1.0f, 1.0f };
 
 	// UI 변경 플래그
 	bool bScaleChanged = false;
@@ -59,7 +65,7 @@ private:
 	// 회전 UI 증분 누적용 상태
 	FVector PrevEditRotationUI = FVector(0, 0, 0); // 직전 프레임 UI 표시값(도)
 	bool bRotationEditing = false;               // 현재 회전 필드가 편집(active) 중인가
-	
+
 	// 헬퍼 메서드
 	AActor* GetCurrentSelectedActor() const;
 	void ResetChangeFlags();
