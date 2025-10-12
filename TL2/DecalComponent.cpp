@@ -128,7 +128,7 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 void UDecalComponent::RenderDebugVolume(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) const
 {
 	// 라인 색상
-	const FVector4 BoxColor(1.0f, 1.0f, 0.0f, 1.0f); // 노란색
+	const FVector4 BoxColor(0.5f, 0.8f, 0.9f, 1.0f); // 하늘색
 
 	// AddLines 함수에 전달할 데이터 배열들을 준비
 	TArray<FVector> StartPoints;
