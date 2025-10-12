@@ -238,27 +238,20 @@ void FSceneRenderer::RenderDecalPass()
 		// Decal이 그려질 Primitives
 		TArray<UPrimitiveComponent*> TargetPrimitives;
 
-		// 1. Decal의 World AABB와 충돌한 모든 Actor 쿼리
-		TArray<AActor*> IntersectedActors = BVH->QueryIntersectedActors(Decal->GetWorldAABB());
+		// 1. Decal의 World AABB와 충돌한 모든 StaticMeshComponent 쿼리
+		const FAABB DecalAABB = Decal->GetWorldAABB();
+		TArray<UStaticMeshComponent*> IntersectedStaticMeshComponents = BVH->QueryIntersectedComponents(DecalAABB);
 
-		// 2. 충돌한 모든 visible Actor의 PrimitiveComponent를 TargetPrimitives에 추가 
-		for (AActor* Actor : IntersectedActors)
+		// 2. 충돌한 모든 visible Actor의 PrimitiveComponent를 TargetPrimitives에 추가
+		// Actor에 기본으로 붙어있는 TextRenderComponent, BoundingBoxComponent는 decal 적용 안되게 하기 위해,
+		// 임시로 PrimitiveComponent가 아닌 UStaticMeshComponent를 받도록 함
+		for (UStaticMeshComponent* SMC : IntersectedStaticMeshComponents)
 		{
-			if (!Actor || !Actor->IsActorVisible())
-				continue; // Skip hidden actor
-
-			TArray<USceneComponent*> SceneComponents = Actor->GetSceneComponents();
-			for (USceneComponent* SceneComp : SceneComponents)
-			{
-				// Actor에 기본으로 붙어있는 TextRenderComponent, BoundingBoxComponent는 decal 적용 안되게 하기 위해, 임시로 PrimitiveComponent가 아닌 UStaticMeshComponent를 받도록 함
-				UStaticMeshComponent* Primitive = Cast<UStaticMeshComponent>(SceneComp);
-				if (Primitive)
-				{
-					FDecalStatManager::GetInstance().IncrementAffectedMeshCount();
-
-					TargetPrimitives.push_back(Primitive);
-				}
-			}
+			if (!SMC || !SMC->GetOwner()->IsActorVisible())
+				continue; // Skip hidden actor's component
+			
+			FDecalStatManager::GetInstance().IncrementAffectedMeshCount();
+			TargetPrimitives.push_back(SMC);
 		}
 
 		// --- 데칼 렌더 시간 측정 시작 ---

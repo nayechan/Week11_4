@@ -34,7 +34,7 @@ public:
 
     void QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const;
     void QueryFrustum(const Frustum& InFrustum);
-    TArray<AActor*> QueryIntersectedActors(const FAABB& InBound) const;
+TArray<UStaticMeshComponent*> QueryIntersectedComponents(const FAABB& InBound) const;
 
     void DebugDraw(URenderer* Renderer) const;
 
