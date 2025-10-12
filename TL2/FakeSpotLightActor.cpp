@@ -42,3 +42,46 @@ void AFakeSpotLightActor::DuplicateSubObjects()
 		}
 	}
 }
+
+void AFakeSpotLightActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		UPerspectiveDecalComponent* DecalComponentPre = nullptr;
+		UBillboardComponent* BillboardCompPre = nullptr;
+
+		for (auto& Component : SceneComponents)
+		{
+			if (UPerspectiveDecalComponent* PerpectiveDecalComp = Cast<UPerspectiveDecalComponent>(Component))
+			{
+				DecalComponentPre = DecalComponent;
+				DecalComponent->DetachFromParent();
+				DecalComponent = PerpectiveDecalComp;
+			}
+			else if (UBillboardComponent* BillboardCompTemp = Cast<UBillboardComponent>(Component))
+			{
+				BillboardCompPre = BillboardComponent;
+				BillboardComponent->DetachFromParent();
+				BillboardComponent = BillboardCompTemp;
+			}
+		}
+
+		if (DecalComponentPre)
+		{
+			DecalComponentPre->GetOwner()->RemoveOwnedComponent(DecalComponentPre);
+
+		}
+		if (BillboardCompPre)
+		{
+			BillboardCompPre->GetOwner()->RemoveOwnedComponent(BillboardCompPre);
+		}
+	}
+	else
+	{
+
+	}
+	
+	
+}

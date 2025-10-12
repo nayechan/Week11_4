@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "OBB.h"
 #include "PerspectiveDecalComponent.h"
+#include "JsonSerializer.h"
 
 UPerspectiveDecalComponent::UPerspectiveDecalComponent()
 {
@@ -187,4 +188,20 @@ void UPerspectiveDecalComponent::SetFovY(float InFov)
 void UPerspectiveDecalComponent::DuplicateSubObjects()
 {
 	Super::DuplicateSubObjects();
+}
+
+void UPerspectiveDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	if (bInIsLoading)
+	{
+		float FovYTemp;
+		FJsonSerializer::ReadFloat(InOutHandle, "FovY", FovYTemp);
+		SetFovY(FovYTemp);
+	}
+	else
+	{
+		InOutHandle["FovY"] = GetFovY();
+	}
 }

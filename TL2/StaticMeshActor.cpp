@@ -68,5 +68,8 @@ void AStaticMeshActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
     Super::Serialize(bInIsLoading, InOutHandle);
 
-    StaticMeshComponent = Cast<UStaticMeshComponent>(RootComponent);
+    if (bInIsLoading)
+    {
+        StaticMeshComponent = Cast<UStaticMeshComponent>(RootComponent);
+    }
 }

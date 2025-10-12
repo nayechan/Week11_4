@@ -29,6 +29,9 @@ public:
 	void DuplicateSubObjects() override;
 	DECLARE_DUPLICATE(UPerspectiveDecalComponent)
 
+	// Serialize
+	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
 private:
 	float FovY = 60;
 };
