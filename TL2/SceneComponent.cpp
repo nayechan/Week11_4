@@ -5,6 +5,7 @@
 #include "PrimitiveComponent.h"
 #include "WorldPartitionManager.h"
 #include "JsonSerializer.h"
+#include "SceneRotationUtils.h"
 
 // USceneComponent.cpp
 TMap<uint32, USceneComponent*> USceneComponent::SceneIdMap;
@@ -307,7 +308,8 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         FJsonSerializer::ReadVector(InOutHandle, "Location", RelativeLocation, FVector::Zero());
         FVector EulerAngle;
         FJsonSerializer::ReadVector(InOutHandle, "Rotation", EulerAngle, FVector::Zero());
-        RelativeRotation = FQuat::MakeFromEuler(EulerAngle);
+        RelativeRotation = SceneRotUtil::QuatFromEulerZYX_Deg(EulerAngle);
+        
         FJsonSerializer::ReadVector(InOutHandle, "Scale", RelativeScale, FVector::One());
 
         // 해당 객체의 Transform을 위에서 읽은 값을 기반으로 변경 후, 자식에게 전파
@@ -316,23 +318,25 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
         // 나중에 자식의 Serialize 호출될 때 부모인 이 객체를 찾기 위해 Map에 추가
         FJsonSerializer::ReadUint32(InOutHandle, "Id", SceneId);
-        SceneIdMap.Add(SceneId, this);
+        SceneIdMap.Add(SceneId, this); 
 
         // 부모 찾기
-        uint32 ParentId;
         FJsonSerializer::ReadUint32(InOutHandle, "ParentId", ParentId);
-        if (ParentId != 0) // RootComponent가 아니면 부모 설정
-        {
-            USceneComponent** ParentP = SceneIdMap.Find(ParentId);
-            USceneComponent* Parent = *ParentP;
 
-            SetupAttachment(Parent, EAttachmentRule::KeepRelative);
-        }
+
+        //if (ParentId != 0) // RootComponent가 아니면 부모 설정
+        //{
+        //    USceneComponent** ParentP = SceneIdMap.Find(ParentId);
+        //    USceneComponent* Parent = *ParentP;
+
+        //    SetupAttachment(Parent, EAttachmentRule::KeepRelative);
+        //}
     }
     else
     {
         InOutHandle["Location"] = FJsonSerializer::VectorToJson(RelativeLocation);
-        InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(RelativeRotation.ToEuler());
+        FVector EulerAngle = SceneRotUtil::EulerZYX_Deg_FromQuat(RelativeRotation);
+        InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(EulerAngle);
         InOutHandle["Scale"] = FJsonSerializer::VectorToJson(RelativeScale);
         InOutHandle["Id"] = UUID;
         if (AttachParent)

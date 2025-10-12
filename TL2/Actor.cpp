@@ -498,6 +498,19 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 					AddOwnedComponent(NewComponent);
 				}
+
+				for (auto& Component : OwnedComponents)
+				{
+					USceneComponent* SceneComp = Cast<USceneComponent>(Component);
+					uint32 ParentId = SceneComp->GetParentId();
+					if (ParentId != 0) // RootComponent가 아니면 부모 설정
+					{
+						USceneComponent** ParentP = SceneComp->GetSceneIdMap().Find(ParentId);
+						USceneComponent* Parent = *ParentP;
+
+						SceneComp->SetupAttachment(Parent, EAttachmentRule::KeepRelative);
+					}
+				}
 			}
 		}
 		else
