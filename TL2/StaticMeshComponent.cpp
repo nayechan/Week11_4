@@ -12,6 +12,7 @@
 UStaticMeshComponent::UStaticMeshComponent()
 {
     SetMaterial("StaticMeshShader.hlsl", EVertexLayoutType::PositionColorTexturNormal);
+    SetStaticMesh("Data/cube-tex.obj");     // 임시 기본 static mesh 설정
 }
 
 UStaticMeshComponent::~UStaticMeshComponent()
