@@ -819,13 +819,6 @@ void UTargetActorTransformWidget::RenderWidget()
 						const FString& NewPath = Paths[SelectedMeshIdx];
 						TargetSMC->SetStaticMesh(NewPath);
 
-						if (AStaticMeshActor* SMActorOwner = Cast<AStaticMeshActor>(SelectedActor))
-						{
-							if (GetBaseNameNoExt(NewPath) == "Sphere")
-								SMActorOwner->SetCollisionComponent(EPrimitiveType::Sphere);
-							else
-								SMActorOwner->SetCollisionComponent();
-						}
 						const FString LogPath = ToUtf8(NewPath);
 						UE_LOG("Applied StaticMesh: %s", LogPath.c_str());
 					}

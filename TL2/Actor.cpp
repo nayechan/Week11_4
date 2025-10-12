@@ -14,18 +14,6 @@ AActor::AActor()
 {
 	Name = "DefaultActor";
 	RootComponent = CreateDefaultSubobject<USceneComponent>(FName("SceneComponent"));
-	CollisionComponent = CreateDefaultSubobject<UAABoundingBoxComponent>(FName("CollisionBox"));
-	TextComp = CreateDefaultSubobject<UTextRenderComponent>("TextBox");
-
-	// TODO (동민) - 임시로 루트 컴포넌트에 붙임. 추후 계층 구조 관리 기능 구현 필요
-	if (CollisionComponent)
-	{
-		CollisionComponent->SetupAttachment(RootComponent);
-	}
-	if (TextComp)
-	{
-		TextComp->SetupAttachment(RootComponent);
-	}
 }
 
 AActor::~AActor()
@@ -387,14 +375,6 @@ void AActor::DuplicateSubObjects()
 		if (Comp == RootComponent)
 		{
 			RootComponent = Cast<USceneComponent>(Tmp);
-		}
-		else if (Comp == CollisionComponent)
-		{
-			CollisionComponent = Cast<UAABoundingBoxComponent>(Tmp);
-		}
-		else if (Comp == TextComp)
-		{
-			TextComp = Cast<UTextRenderComponent>(Tmp);
 		}
 		Tmp->SetOwner(this);
 		TmpOwnedComponents.insert(Tmp); // 깊은 복사

@@ -8,11 +8,11 @@ AStaticMeshActor::AStaticMeshActor()
 {
     Name = "Static Mesh Actor";
     StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
-    StaticMeshComponent->SetupAttachment(RootComponent);
-    //BillboardComp = CreateDefaultSubobject<UBillboardComponent>("BillboardBox");
-
-    //StaticMeshComponent->SetOwnedActor(this);
-    //bTickInEditor = true; // 테스트 용
+    
+    // 루트 교체
+    USceneComponent* TempRootComponent = RootComponent;
+    RootComponent = StaticMeshComponent;
+    RemoveOwnedComponent(TempRootComponent);
 }
 
 void AStaticMeshActor::Tick(float DeltaTime)
@@ -37,22 +37,17 @@ AStaticMeshActor::~AStaticMeshActor()
 
 FAABB AStaticMeshActor::GetBounds() const
 {
-    if (CollisionComponent)
+    if (StaticMeshComponent)
     {
-        return CollisionComponent->GetWorldBoundFromCube();
+        return StaticMeshComponent->GetWorldAABB();
     }
+
     return FAABB();
 }
 
 void AStaticMeshActor::SetStaticMeshComponent(UStaticMeshComponent* InStaticMeshComponent)
 {
     StaticMeshComponent = InStaticMeshComponent;
-}
-
-void AStaticMeshActor::SetCollisionComponent(EPrimitiveType InType)
-{
-    CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);
-    CollisionComponent->SetPrimitiveType(InType);
 }
 
 void AStaticMeshActor::DuplicateSubObjects()

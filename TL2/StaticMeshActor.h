@@ -6,25 +6,23 @@ class UStaticMeshComponent;
 class AStaticMeshActor : public AActor
 {
 public:
-    DECLARE_CLASS(AStaticMeshActor, AActor)
+	DECLARE_CLASS(AStaticMeshActor, AActor)
 
-    AStaticMeshActor();
-    virtual void Tick(float DeltaTime) override;
+	AStaticMeshActor();
+	virtual void Tick(float DeltaTime) override;
 protected:
-    ~AStaticMeshActor() override;
+	~AStaticMeshActor() override;
 
 public:
-    virtual FAABB GetBounds() const override;
-    UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
-    void SetStaticMeshComponent(UStaticMeshComponent* InStaticMeshComponent);
-	void SetCollisionComponent(EPrimitiveType InType = EPrimitiveType::Default);
+	virtual FAABB GetBounds() const override;
+	UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
+	void SetStaticMeshComponent(UStaticMeshComponent* InStaticMeshComponent);
 
-    // ───── 복사 관련 ────────────────────────────
-    void DuplicateSubObjects() override;
-    DECLARE_DUPLICATE(AStaticMeshActor)
+	// ───── 복사 관련 ────────────────────────────
+	void DuplicateSubObjects() override;
+	DECLARE_DUPLICATE(AStaticMeshActor)
 
 protected:
-    //UBillboardComponent* BillboardComp = nullptr;
-    UStaticMeshComponent* StaticMeshComponent;
+	UStaticMeshComponent* StaticMeshComponent;
 };
 

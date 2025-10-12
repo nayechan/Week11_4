@@ -139,7 +139,6 @@ bool UActorSpawnWidget::TrySpawnActor(UClass* ActorClass)
 			if (auto* StaticMeshComp = StaticMeshActor->GetStaticMeshComponent())
 			{
 				StaticMeshComp->SetStaticMesh("Data/Cube.obj");
-				StaticMeshActor->SetCollisionComponent(EPrimitiveType::Default);
 			}
 		}
 
