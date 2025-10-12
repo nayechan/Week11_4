@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "FSceneRenderer.h"
 
 // FSceneRenderer가 사용하는 모든 헤더 포함
@@ -247,8 +247,12 @@ void FSceneRenderer::RenderDecalPass()
 		// 임시로 PrimitiveComponent가 아닌 UStaticMeshComponent를 받도록 함
 		for (UStaticMeshComponent* SMC : IntersectedStaticMeshComponents)
 		{
-			if (!SMC || !SMC->GetOwner() || !SMC->GetOwner()->IsActorVisible())
-				continue; // Skip hidden actor's component
+			if (!SMC)
+				continue;
+
+			AActor* Owner = SMC->GetOwner();
+			if (!Owner || !Owner->IsActorVisible())
+				continue;
 			
 			FDecalStatManager::GetInstance().IncrementAffectedMeshCount();
 			TargetPrimitives.push_back(SMC);
