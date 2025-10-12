@@ -588,7 +588,7 @@ void D3D11RHI::CreateRasterizerState()
     // Z-Fighting 해결을 위한 핵심 설정
     // 이 값들은 장면에 따라 조정이 필요할 수 있는 시작 값입니다.
     DecalRasterizerDesc.DepthBias = -100; // 깊이 버퍼의 최소 단위만큼 밀어냅니다. (음수 = 카메라 쪽으로)
-    DecalRasterizerDesc.SlopeScaledDepthBias = -10.0f; // 폴리곤의 기울기에 비례하여 바이어스를 적용합니다.
+    DecalRasterizerDesc.SlopeScaledDepthBias = -1.0f; // 폴리곤의 기울기에 비례하여 바이어스를 적용합니다.
     DecalRasterizerDesc.DepthBiasClamp = 0.0f; // 바이어스 최댓값 (0.0f는 제한 없음)
 
     Device->CreateRasterizerState(&DecalRasterizerDesc, &DecalRasterizerState);
