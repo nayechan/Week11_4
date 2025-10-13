@@ -317,7 +317,18 @@ struct alignas(16) FVector4
 	{
 		return FVector4(_mm_max_ps(this->SimdData, B.SimdData));
 	}
+	
+	/** FVector(Point)를 FVector4(Point, W=1)로 변환합니다. */
+	static FVector4 FromPoint(const FVector& P)
+	{
+		return FVector4(P.X, P.Y, P.Z, 1.0f);
+	}
 
+	/** FVector(Direction)를 FVector4(Direction, W=0)로 변환합니다. */
+	static FVector4 FromDirection(const FVector& D)
+	{
+		return FVector4(D.X, D.Y, D.Z, 0.0f);
+	}
 };
 
 // Quaternion 정규화(+w 기준 캐논화)
@@ -1052,31 +1063,11 @@ inline FMatrix FMatrix::OrthoLH_XForward(float Width, float Height, float Xn, fl
 //     );
 // }
 
-inline FMatrix MakeRotationRowMajorFromQuat(const FQuat& Q)
-{
-	// 비정규 안전화
-	const float N = Q.X * Q.X + Q.Y * Q.Y + Q.Z * Q.Z + Q.W * Q.W;
-	if (N <= 1e-8f) return FMatrix::Identity();
-	const float S = 2.0f / N;
-
-	const float XX = Q.X * Q.X * S, YY = Q.Y * Q.Y * S, ZZ = Q.Z * Q.Z * S;
-	const float XY = Q.X * Q.Y * S, XZ = Q.X * Q.Z * S, YZ = Q.Y * Q.Z * S;
-	const float WX = Q.W * Q.X * S, WY = Q.W * Q.Y * S, WZ = Q.W * Q.Z * S;
-
-	FMatrix M;
-	M.Rows[0] = _mm_set_ps(0.0f, XZ - WY, XY + WZ, 1.0f - (YY + ZZ));
-	M.Rows[1] = _mm_set_ps(0.0f, YZ + WX, 1.0f - (XX + ZZ), XY - WZ);
-	M.Rows[2] = _mm_set_ps(0.0f, 1.0f - (XX + YY), YZ - WX, XZ + WY);
-	M.Rows[3] = _mm_set_ps(1.0f, 0.0f, 0.0f, 0.0f);
-
-	return M;
-}
-
 // 최종: S * R(qXYZ) * T  (row-major + 행벡터 규약)
 // row-major + 행벡터(p' = p * M) 규약
 inline FMatrix FTransform::ToMatrixWithScaleLocalXYZ() const
 {
-	FMatrix R = MakeRotationRowMajorFromQuat(Rotation);
+	FMatrix R = Rotation.ToMatrix();
 
 	// Scale the rotation part using SIMD
 	R.Rows[0] = _mm_mul_ps(R.Rows[0], _mm_set1_ps(Scale3D.X));
@@ -1152,6 +1143,3 @@ inline FTransform FTransform::Inverse() const
 	return Out;
 }
 
-// Helper functions to convert FVector to FVector4, useful for SIMD padding.
-inline FVector4 MakePoint4(const FVector& P) { return FVector4(P.X, P.Y, P.Z, 1.0f); }
-inline FVector4 MakeDir4(const FVector& D) { return FVector4(D.X, D.Y, D.Z, 0.0f); }

@@ -112,10 +112,10 @@ Frustum CreateFrustumFromCamera(const UCameraComponent& Camera, float OverrideAs
 
     // 카메라 기준 좌표축(월드 공간)
     // Forward=+X, Right=+Y, Up=+Z
-    const FVector4 Origin = MakePoint4(Camera.GetWorldLocation());
-    const FVector4 Forward = MakeDir4(Camera.GetForward());
-    const FVector4 Right = MakeDir4(Camera.GetRight());
-    const FVector4 Up = MakeDir4(Camera.GetUp());
+    const FVector4 Origin = FVector4::FromPoint(Camera.GetWorldLocation());
+    const FVector4 Forward = FVector4::FromDirection(Camera.GetForward());
+    const FVector4 Right = FVector4::FromDirection(Camera.GetRight());
+    const FVector4 Up = FVector4::FromDirection(Camera.GetUp());
 
     // Far 평면에서의 절반 높이/너비
     const float HalfVSide = FarClip * tanf(FovRad * 0.5f); // 세로(Vertical) 반폭
@@ -159,9 +159,9 @@ Frustum CreateFrustumFromCamera(const UCameraComponent& Camera, float OverrideAs
 //  - 규약: 안쪽 ≥ 0  ⇒  Distance + Radius >= 0 이면 그 평면을 통과(겹침)
 //  - 하나라도 실패하면(음수) 절두체 밖 → 즉시 탈락
 // ------------------------------------------------------------
-bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents) 
+bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents)
 {
-	// 평면과 박스사이의 거리 (양수면 평면의 법선 방향, 음수면 반대 방향)
+    // 평면과 박스사이의 거리 (양수면 평면의 법선 방향, 음수면 반대 방향)
     const float Distance = Dot3(P.Normal, Center) - P.Distance;
     // AABB를 평면 법선 방향으로 투영했을 때의 최대 반경
     // Radius = abs(Normal.X) * Extents.X + abs(Normal.Y) * Extents.Y + abs(Normal.Z) * Extents.Z
@@ -169,7 +169,7 @@ bool Intersects(const Plane& P, const FVector4& Center, const FVector4& Extents)
     __m128 dp = _mm_dp_ps(abs_normal, Extents.SimdData, 0x71);
     float radius;
     _mm_store_ss(&radius, dp);
-	//  최대 반경은 항상 양수이므로, Distance + Radius < 0 이면 절두체의 바깥
+    //  최대 반경은 항상 양수이므로, Distance + Radius < 0 이면 절두체의 바깥
     return Distance + radius >= 0.0f;
 }
 
@@ -178,15 +178,15 @@ bool IsAABBVisible(const Frustum& Frustum, const FAABB& Bound)
     // AABB 중심/반길이
     const FVector Center3 = (Bound.Min + Bound.Max) * 0.5f;
     const FVector Extents3 = (Bound.Max - Bound.Min) * 0.5f; // 항상 양수
-    const FVector4 Center = MakePoint4(Center3);
-    const FVector4 Extents = MakeDir4(Extents3); // 항상 양수
+    const FVector4 Center = FVector4::FromPoint(Center3);
+    const FVector4 Extents = FVector4::FromDirection(Extents3); // 항상 양수
     // 6면 모두 통과해야 절두체의 안쪽이므로 "보이는 것"
-    return Intersects(Frustum.LeftFace, Center, Extents) && 
-           Intersects(Frustum.RightFace, Center, Extents)  &&
-           Intersects(Frustum.TopFace, Center, Extents) &&
-           Intersects(Frustum.BottomFace, Center, Extents) &&
-           Intersects(Frustum.NearFace, Center, Extents) &&
-           Intersects(Frustum.FarFace, Center, Extents);
+    return Intersects(Frustum.LeftFace, Center, Extents) &&
+        Intersects(Frustum.RightFace, Center, Extents) &&
+        Intersects(Frustum.TopFace, Center, Extents) &&
+        Intersects(Frustum.BottomFace, Center, Extents) &&
+        Intersects(Frustum.NearFace, Center, Extents) &&
+        Intersects(Frustum.FarFace, Center, Extents);
 }
 
 bool IsAABBIntersects(const Frustum& F, const FAABB& B)
@@ -194,8 +194,8 @@ bool IsAABBIntersects(const Frustum& F, const FAABB& B)
     // 부분 교차(Intersect)만 true. 완전 내부/완전 외부는 false.
     const FVector Center3 = (B.Min + B.Max) * 0.5f;
     const FVector Extents3 = (B.Max - B.Min) * 0.5f;
-    const FVector4 Center = MakePoint4(Center3);
-    const FVector4 Extents = MakeDir4(Extents3);
+    const FVector4 Center = FVector4::FromPoint(Center3);
+    const FVector4 Extents = FVector4::FromDirection(Extents3);
 
     const Plane planes[6] = { F.LeftFace, F.RightFace, F.TopFace, F.BottomFace, F.NearFace, F.FarFace };
 
