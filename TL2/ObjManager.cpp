@@ -9,218 +9,283 @@
 #include <filesystem>
 #include <unordered_set>
 
+namespace fs = std::filesystem;
+
 TMap<FString, FStaticMesh*> FObjManager::ObjStaticMeshMap;
+
+/**
+ * .obj 파일을 파싱하여 'mtllib' 라인에 명시된 .mtl 파일의 상대 경로를 찾습니다.
+ * @param InObjPath - 검사할 .obj 파일의 경로
+ * @return .mtl 파일의 경로를 담은 FString. 찾지 못하면 비어있는 문자열을 반환합니다.
+ */
+static FString FindMtlFilePath(const FString& InObjPath)
+{
+	std::ifstream FileIn(InObjPath);
+	if (!FileIn)
+	{
+		return "";
+	}
+
+	FString Line;
+	while (std::getline(FileIn, Line))
+	{
+		if (Line.rfind("mtllib ", 0) == 0)
+		{
+			size_t pos = InObjPath.find_last_of("/\\");
+			FString objDir = (pos == FString::npos) ? "" : InObjPath.substr(0, pos + 1);
+			return objDir + Line.substr(7);
+		}
+	}
+
+	return "";
+}
+
+/**
+ * 캐시된 .bin 파일이 재생성되어야 하는지 확인합니다.
+ * @param InObjPath - 원본 .obj 파일 경로
+ * @param InBinPath - 캐시된 FStaticMesh의 .bin 파일 경로
+ * @param InMatBinPath - 캐시된 Material 정보의 .bin 파일 경로
+ * @return 캐시를 재생성해야 하면 true, 그렇지 않으면 false
+ */
+static bool ShouldRegenerateCache(const FString& InObjPath, const FString& InBinPath, const FString& InMatBinPath)
+{
+	std::error_code ec;
+
+	// 1. 캐시 파일(.bin, Mat.bin)이 하나라도 존재하지 않으면 재생성해야 합니다.
+	if (!fs::exists(InBinPath, ec) || !fs::exists(InMatBinPath, ec))
+	{
+		return true;
+	}
+
+	// 2. 캐시 파일의 최종 수정 시간을 가져옵니다. 오류 발생 시 재생성합니다.
+	auto BinLastWriteTime = fs::last_write_time(InBinPath, ec);
+	if (ec) return true;
+
+	// 3. 원본 .obj 파일의 최종 수정 시간을 가져와 캐시와 비교합니다.
+	//    .obj 파일이 더 최신이면 재생성해야 합니다.
+	auto ObjLastWriteTime = fs::last_write_time(InObjPath, ec);
+	if (ec || ObjLastWriteTime > BinLastWriteTime)
+	{
+		return true;
+	}
+
+	// 4. .mtl 파일의 최종 수정 시간을 가져와 캐시와 비교합니다.
+	FString MtlPath = FindMtlFilePath(InObjPath);
+	if (!MtlPath.empty() && fs::exists(MtlPath, ec))
+	{
+		auto MtlLastWriteTime = fs::last_write_time(MtlPath, ec);
+		if (ec || MtlLastWriteTime > BinLastWriteTime)
+		{
+			return true;
+		}
+	}
+
+	// 위 모든 조건에 해당하지 않으면, 유효한 최신 캐시가 존재합니다.
+	return false;
+}
 
 void FObjManager::Preload()
 {
-    namespace fs = std::filesystem;
-    const fs::path DataDir("Data");
+	const fs::path DataDir("Data");
 
-    if (!fs::exists(DataDir) || !fs::is_directory(DataDir))
-    {
-        UE_LOG("FObjManager::Preload: Data directory not found: %s", DataDir.string().c_str());
-        return;
-    }
+	if (!fs::exists(DataDir) || !fs::is_directory(DataDir))
+	{
+		UE_LOG("FObjManager::Preload: Data directory not found: %s", DataDir.string().c_str());
+		return;
+	}
 
-    size_t LoadedCount = 0;
-    std::unordered_set<FString> ProcessedFiles; // 중복 로딩 방지
+	size_t LoadedCount = 0;
+	std::unordered_set<FString> ProcessedFiles; // 중복 로딩 방지
 
-    for (const auto& Entry : fs::recursive_directory_iterator(DataDir))
-    {
-        if (!Entry.is_regular_file())
-            continue;
+	for (const auto& Entry : fs::recursive_directory_iterator(DataDir))
+	{
+		if (!Entry.is_regular_file())
+			continue;
 
-        const fs::path& Path = Entry.path();
-        std::string Extension = Path.extension().string();
-        std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		const fs::path& Path = Entry.path();
+		std::string Extension = Path.extension().string();
+		std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-        if (Extension == ".obj")
-        {
-            FString PathStr = Path.string();
-            std::replace(PathStr.begin(), PathStr.end(), '\\', '/');
+		if (Extension == ".obj")
+		{
+			FString PathStr = Path.string();
+			std::replace(PathStr.begin(), PathStr.end(), '\\', '/');
 
-            // 이미 처리된 파일인지 확인
-            if (ProcessedFiles.find(PathStr) == ProcessedFiles.end())
-            {
-                ProcessedFiles.insert(PathStr);
-                LoadObjStaticMesh(PathStr);
-                ++LoadedCount;
-            }
-        }
-        else if (Extension == ".dds" || Extension == ".jpg" || Extension == ".png")
-        {
-            UResourceManager::GetInstance().Load<UTexture>(Path.string()); // 데칼 텍스쳐를 ui에서 고를 수 있게 하기 위해 임시로 만듬.
-        }
-    }
+			// 이미 처리된 파일인지 확인
+			if (ProcessedFiles.find(PathStr) == ProcessedFiles.end())
+			{
+				ProcessedFiles.insert(PathStr);
+				LoadObjStaticMesh(PathStr);
+				++LoadedCount;
+			}
+		}
+		else if (Extension == ".dds" || Extension == ".jpg" || Extension == ".png")
+		{
+			UResourceManager::GetInstance().Load<UTexture>(Path.string()); // 데칼 텍스쳐를 ui에서 고를 수 있게 하기 위해 임시로 만듬.
+		}
+	}
 
-    // 4) 모든 StaticMeshs 가져오기
-    RESOURCE.SetStaticMeshs();
+	// 4) 모든 StaticMeshs 가져오기
+	RESOURCE.SetStaticMeshs();
 
-    UE_LOG("FObjManager::Preload: Loaded %zu .obj files from %s", LoadedCount, DataDir.string().c_str());
+	UE_LOG("FObjManager::Preload: Loaded %zu .obj files from %s", LoadedCount, DataDir.string().c_str());
 }
 
 void FObjManager::Clear()
 {
-    for (auto& Pair : ObjStaticMeshMap)
-    {
-        delete Pair.second;
-    }
+	for (auto& Pair : ObjStaticMeshMap)
+	{
+		delete Pair.second;
+	}
 
-    ObjStaticMeshMap.Empty();
+	ObjStaticMeshMap.Empty();
 }
 
 FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 {
-    FString NormalizedPathStr = PathFileName;
-    std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
+	FString NormalizedPathStr = PathFileName;
+	std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
 
-    // 2) 캐시 히트 시 즉시 반환 (정규화된 경로로 검색)
-    if (FStaticMesh** It = ObjStaticMeshMap.Find(NormalizedPathStr))
-    {
-        return *It;
-    }
+	// 1. 메모리 캐시 확인: 이미 로드된 에셋이 있으면 즉시 반환합니다.
+	if (FStaticMesh** FoundMesh = ObjStaticMeshMap.Find(NormalizedPathStr))
+	{
+		return *FoundMesh;
+	}
 
-    // 3) 캐시 미스: 새로 생성
-    FStaticMesh* NewFStaticMesh = new FStaticMesh();
+	// 2. 파일 경로 설정
+	fs::path ObjPath(NormalizedPathStr);
+	if (ObjPath.extension() != ".obj" && ObjPath.extension() != ".OBJ")
+	{
+		UE_LOG("Error: Not a .obj file: %s", NormalizedPathStr.c_str());
+		return nullptr;
+	}
 
-    //FWideString WPathFileName(PathFileName.begin(), PathFileName.end()); // 단순 ascii라고 가정
+	fs::path StemPath = ObjPath;
+	StemPath.replace_extension("");
+	const FString BinPath = StemPath.string() + ".bin";
+	const FString MatBinPath = StemPath.string() + "Mat.bin";
 
-    // 4) 해당 파일명 bin이 존재하는 지 확인
-    // 존재하면 bin을 가져와서 FStaticMesh에 할당
-    // 존재하지 않으면, 아래 과정 진행 후, bin으로 저장
-    std::filesystem::path Path(NormalizedPathStr);
-    if ((Path.extension() != ".obj") && (Path.extension() != ".OBJ"))
-    {
-        UE_LOG("this file is not obj!: %s", NormalizedPathStr.c_str());
-        return nullptr;
-    }
+	// 3. 캐시 유효성 검사 및 데이터 준비
+	FStaticMesh* NewFStaticMesh = new FStaticMesh();
+	TArray<FObjMaterialInfo> MaterialInfos;
 
-    TArray<FObjMaterialInfo> MaterialInfos;
+	bool bRegenerate = ShouldRegenerateCache(NormalizedPathStr, BinPath, MatBinPath);
 
-    std::filesystem::path WithoutExtensionPath = Path;
-    WithoutExtensionPath.replace_extension("");
-    const FString StemPath = WithoutExtensionPath.string(); // 확장자를 제외한 경로
-    const FString BinPathFileName = StemPath + ".bin";
-    if (std::filesystem::exists(BinPathFileName))
-    {
-        // obj 정보 bin으로 가져오기
-        FWindowsBinReader Reader(BinPathFileName);
-        if (!Reader.IsOpen()) // 파일 열기 성공 여부 확인
-        {
-            UE_LOG("Failed to open bin file for reading: %s", BinPathFileName.c_str());
-            delete NewFStaticMesh; // 아래 2번 문제와 연관
-            return nullptr;
-        }
-        Reader << *NewFStaticMesh;
-        Reader.Close();
+	if (bRegenerate)
+	{
+		UE_LOG("Cache for '%s' is stale or missing. Regenerating...", NormalizedPathStr.c_str());
 
-        // MaterialInfo도 bin으로 가져오기
-        FString MatBinPathFileName = StemPath + "Mat.bin";
-        if (!std::filesystem::exists(MatBinPathFileName))
-        {
-            UE_LOG("\'%s\' does not exists!", MatBinPathFileName);
-            //assert(std::filesystem::exists(StemPath + "Mat.bin") && "material bin file dont exists!");
+		// .obj 및 .mtl 파일 파싱
+		FObjInfo RawObjInfo;
+		if (!FObjImporter::LoadObjModel(NormalizedPathStr, &RawObjInfo, MaterialInfos, true))
+		{
+			UE_LOG("Failed to load and parse .obj model: %s", NormalizedPathStr.c_str());
+			delete NewFStaticMesh;
+			return nullptr;
+		}
 
-            // 존재하지 않으므로 obj(mtl 파싱 위해선 obj도 파싱 필요) 및 Mtl 파싱
-            FObjInfo RawObjInfo;
-            FObjImporter::LoadObjModel(NormalizedPathStr, &RawObjInfo, MaterialInfos, true, true);
+		// FStaticMesh 데이터로 변환
+		FObjImporter::ConvertToStaticMesh(RawObjInfo, MaterialInfos, NewFStaticMesh);
 
-            // MaterialInfos를 관련 파일명으로 bin 저장
-            FWindowsBinWriter MatWriter(StemPath + "Mat.bin");
-            Serialization::WriteArray<FObjMaterialInfo>(MatWriter, MaterialInfos);
-            MatWriter.Close();
-        }
-        else
-        {
-            UE_LOG("bin file \'%s\', \'%s\' load completed", BinPathFileName, MatBinPathFileName);
-            FWindowsBinReader MatReader(StemPath + "Mat.bin");
-            Serialization::ReadArray<FObjMaterialInfo>(MatReader, MaterialInfos);
-            MatReader.Close();
+		// 새로운 캐시 파일(.bin) 저장
+		FWindowsBinWriter Writer(BinPath);
+		Writer << *NewFStaticMesh;
+		Writer.Close();
 
-            // 상대경로를 OBJ 디렉터리 기준 절대경로로 보정
-            std::filesystem::path baseDir = std::filesystem::path(StemPath).parent_path();
-            for (auto& mi : MaterialInfos)
-            {
-                auto fix = [&](std::string& s){
-                    if (s.empty()) return;
-                    std::filesystem::path p = std::filesystem::path(s);
-                    if (!p.is_absolute())
-                    {
-                        std::filesystem::path abs = baseDir / p;
-                        std::string norm = abs.string();
-                        std::replace(norm.begin(), norm.end(), '\\', '/');
-                        s = norm;
-                    }
-                };
-                fix(mi.DiffuseTextureFileName);
-                fix(mi.TransparencyTextureFileName);
-                fix(mi.AmbientTextureFileName);
-                fix(mi.SpecularTextureFileName);
-                fix(mi.SpecularExponentTextureFileName);
-                fix(mi.EmissiveTextureFileName);
-            }
-        }  
-    }
-    else
-    {
-        // obj 및 Mtl 파싱
-        FObjInfo RawObjInfo;
-        //FObjImporter::LoadObjModel(WPathFileName, &RawObjInfo, false, true); // test로 오른손 좌표계 false
-        FObjImporter::LoadObjModel(NormalizedPathStr, &RawObjInfo, MaterialInfos, true, true);
-        FObjImporter::ConvertToStaticMesh(RawObjInfo, MaterialInfos, NewFStaticMesh);
+		FWindowsBinWriter MatWriter(MatBinPath);
+		Serialization::WriteArray<FObjMaterialInfo>(MatWriter, MaterialInfos);
+		MatWriter.Close();
+	}
+	else
+	{
+		UE_LOG("Loading '%s' from cache.", NormalizedPathStr.c_str());
 
-        // obj 정보 bin에 저장
-        FWindowsBinWriter Writer(BinPathFileName);
-        Writer << *NewFStaticMesh;
-        Writer.Close();
+		// 캐시에서 FStaticMesh 데이터 로드
+		FWindowsBinReader Reader(BinPath);
+		if (!Reader.IsOpen())
+		{
+			UE_LOG("Failed to open bin file for reading: %s", BinPath.c_str());
+			delete NewFStaticMesh;
+			return nullptr;
+		}
+		Reader << *NewFStaticMesh;
+		Reader.Close();
 
-        // MaterialInfos도 관련 파일명으로 bin 저장
-        FWindowsBinWriter MatWriter(StemPath + "Mat.bin");
-        Serialization::WriteArray<FObjMaterialInfo>(MatWriter, MaterialInfos);
-        MatWriter.Close();
-    }
+		// 캐시에서 Material 데이터 로드
+		FWindowsBinReader MatReader(MatBinPath);
+		if (!MatReader.IsOpen())
+		{
+			UE_LOG("Failed to open material bin file for reading: %s", MatBinPath.c_str());
+			delete NewFStaticMesh;
+			return nullptr;
+		}
+		Serialization::ReadArray<FObjMaterialInfo>(MatReader, MaterialInfos);
+		MatReader.Close();
+	}
 
-    // 리소스 매니저에 Material 리소스 맵핑 (중복 방지)
-    for (const FObjMaterialInfo& InMaterialInfo : MaterialInfos)
-    {
-        // 이미 존재하는 머티리얼인지 확인
-        if (!UResourceManager::GetInstance().Get<UMaterial>(InMaterialInfo.MaterialName))
-        {
-            UMaterial* Material = NewObject<UMaterial>();
-            Material->SetMaterialInfo(InMaterialInfo);
+	// 4. 머티리얼 및 텍스처 경로 처리 (공통 로직)
 
-            UResourceManager::GetInstance().Add<UMaterial>(InMaterialInfo.MaterialName, Material);
-        }
-    }
+	// 텍스처 파일의 상대 경로를 .obj 파일 기준의 절대 경로로 변환
+	fs::path BaseDir = ObjPath.parent_path();
+	for (auto& MI : MaterialInfos)
+	{
+		auto FixPath = [&](FString& TexturePath)
+			{
+				if (TexturePath.empty()) return;
 
-    // 5) 맵에 추가 (정규화된 경로로 저장)
-    ObjStaticMeshMap.Add(NormalizedPathStr, NewFStaticMesh);
+				fs::path TexPath(TexturePath);
+				if (!TexPath.is_absolute())
+				{
+					fs::path AbsolutePath = fs::weakly_canonical(BaseDir / TexPath);
+					TexturePath = AbsolutePath.string();
+					std::replace(TexturePath.begin(), TexturePath.end(), '\\', '/');
+				}
+			};
+		FixPath(MI.DiffuseTextureFileName);
+		FixPath(MI.TransparencyTextureFileName);
+		FixPath(MI.AmbientTextureFileName);
+		FixPath(MI.SpecularTextureFileName);
+		FixPath(MI.SpecularExponentTextureFileName);
+		FixPath(MI.EmissiveTextureFileName);
+	}
 
-    // 6) 반환 경로 보장
-    return NewFStaticMesh;
+	// 리소스 매니저에 머티리얼 등록
+	for (const FObjMaterialInfo& InMaterialInfo : MaterialInfos)
+	{
+		if (!UResourceManager::GetInstance().Get<UMaterial>(InMaterialInfo.MaterialName))
+		{
+			UMaterial* Material = NewObject<UMaterial>();
+			Material->SetMaterialInfo(InMaterialInfo);
+			UResourceManager::GetInstance().Add<UMaterial>(InMaterialInfo.MaterialName, Material);
+		}
+	}
+
+	// 5. 메모리 캐시에 등록하고 반환
+	ObjStaticMeshMap.Add(NormalizedPathStr, NewFStaticMesh);
+	return NewFStaticMesh;
 }
 
 // 여기서 BVH 정보 담아주기 작업을 해야 함 
 UStaticMesh* FObjManager::LoadObjStaticMesh(const FString& PathFileName)
 {
-    // 0) 경로
-    FString NormalizedPathStr = PathFileName;
-    std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
+	// 0) 경로
+	FString NormalizedPathStr = PathFileName;
+	std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
 
 	// 1) 이미 로드된 UStaticMesh가 있는지 전체 검색 (정규화된 경로로 비교)
-    for (TObjectIterator<UStaticMesh> It; It; ++It)
-    {
-        UStaticMesh* StaticMesh = *It;
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	{
+		UStaticMesh* StaticMesh = *It;
 
-        if (StaticMesh->GetFilePath() == NormalizedPathStr)
-        {
-            return StaticMesh;
-        }
-    }
+		if (StaticMesh->GetFilePath() == NormalizedPathStr)
+		{
+			return StaticMesh;
+		}
+	}
 
 	// 2) 없으면 새로 로드 (정규화된 경로 사용)
-    UStaticMesh* StaticMesh = UResourceManager::GetInstance().Load<UStaticMesh>(NormalizedPathStr, EVertexLayoutType::PositionColorTexturNormal);
+	UStaticMesh* StaticMesh = UResourceManager::GetInstance().Load<UStaticMesh>(NormalizedPathStr, EVertexLayoutType::PositionColorTexturNormal);
 
-    UE_LOG("UStaticMesh(filename: \'%s\') is successfully crated!", NormalizedPathStr.c_str());
+	UE_LOG("UStaticMesh(filename: \'%s\') is successfully crated!", NormalizedPathStr.c_str());
 	return StaticMesh;
 }
