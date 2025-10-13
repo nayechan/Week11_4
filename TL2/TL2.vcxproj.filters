@@ -156,9 +156,6 @@
     <ClCompile Include="RenderManager.cpp">
       <Filter>소스 파일\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="SceneLoader.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="Actor.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -526,9 +523,6 @@
     <ClInclude Include="Sphere.h">
       <Filter>헤더 파일\Models</Filter>
     </ClInclude>
-    <ClInclude Include="SceneLoader.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="Actor.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -761,9 +755,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="MenuBarWidget.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneRotationUtils.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Archive.h">

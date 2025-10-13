@@ -431,7 +431,6 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RenderManager.h" />
     <ClInclude Include="RHIDevice.h" />
-    <ClInclude Include="SceneRotationUtils.h" />
     <ClInclude Include="SControlPanel.h" />
     <ClInclude Include="SDetailsWindow.h" />
     <ClInclude Include="Shader.h" />

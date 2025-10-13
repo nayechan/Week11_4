@@ -2,7 +2,6 @@
 #include "Level.h"
 #include "StaticMeshActor.h"
 #include "StaticMeshComponent.h"
-#include "SceneRotationUtils.h"
 #include "StaticMesh.h"
 #include "PrimitiveComponent.h"
 #include "CameraActor.h"

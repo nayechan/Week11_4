@@ -5,7 +5,6 @@
 #include "PrimitiveComponent.h"
 #include "WorldPartitionManager.h"
 #include "JsonSerializer.h"
-#include "SceneRotationUtils.h"
 
 // USceneComponent.cpp
 TMap<uint32, USceneComponent*> USceneComponent::SceneIdMap;

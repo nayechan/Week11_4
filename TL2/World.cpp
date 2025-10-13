@@ -12,7 +12,6 @@
 #include "USlateManager.h"
 #include "StaticMesh.h"
 #include "ObjManager.h"
-#include "SceneRotationUtils.h"
 #include "WorldPartitionManager.h"
 #include "PrimitiveComponent.h"
 #include "Octree.h"

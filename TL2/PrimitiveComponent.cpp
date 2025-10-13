@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "PrimitiveComponent.h"
 #include "SceneComponent.h"
-#include "SceneRotationUtils.h"
 
 void UPrimitiveComponent::SetMaterial(const FString& FilePath, EVertexLayoutType layoutType)
 {
