@@ -12,7 +12,7 @@ AFakeSpotLightActor::AFakeSpotLightActor()
 	BillboardComponent->SetTextureName("Editor/SpotLight_64x.png");
 	DecalComponent->SetRelativeScale((FVector(10, 5, 5)));
 	DecalComponent->SetRelativeLocation((FVector(0, 0, -5)));
-	DecalComponent->AddRelativeRotation(FQuat::MakeFromEuler(FVector(0, 90, 0)));
+	DecalComponent->AddRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, 90, 0)));
 	DecalComponent->SetDecalTexture("Data/FakeLight.png");
 	DecalComponent->SetFovY(60);
 

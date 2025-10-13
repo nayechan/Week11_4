@@ -307,7 +307,7 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         FJsonSerializer::ReadVector(InOutHandle, "Location", RelativeLocation, FVector::Zero());
         FVector EulerAngle;
         FJsonSerializer::ReadVector(InOutHandle, "Rotation", EulerAngle, FVector::Zero());
-        RelativeRotation = FQuat::QuatFromEulerZYX_Deg(EulerAngle);
+        RelativeRotation = FQuat::MakeFromEulerZYX(EulerAngle);
         
         FJsonSerializer::ReadVector(InOutHandle, "Scale", RelativeScale, FVector::One());
 

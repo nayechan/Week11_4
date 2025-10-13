@@ -600,7 +600,7 @@ void UTargetActorTransformWidget::RenderTransformEditor()
 			}
 			else
 			{
-				const FQuat NewQ = FQuat::QuatFromEulerZYX_Deg(EditRotation).GetNormalized();
+				const FQuat NewQ = FQuat::MakeFromEulerZYX(EditRotation).GetNormalized();
 				if (EditingComponent)
 				{
 					EditingComponent->SetRelativeRotation(NewQ);
@@ -951,7 +951,7 @@ void UTargetActorTransformWidget::ApplyTransformToActor() const
 
 		if (bRotationChanged)
 		{
-			FQuat NewRotation = FQuat::MakeFromEuler(EditRotation);
+			FQuat NewRotation = FQuat::MakeFromEulerZYX(EditRotation);
 			EditingComponent->SetRelativeRotation(NewRotation);
 			bDirty = true;
 		}
@@ -977,7 +977,7 @@ void UTargetActorTransformWidget::ApplyTransformToActor() const
 
 	if (bRotationChanged)
 	{
-		FQuat NewRotation = FQuat::MakeFromEuler(EditRotation);
+		FQuat NewRotation = FQuat::MakeFromEulerZYX(EditRotation);
 		SelectedActor->SetActorRotation(NewRotation);
 	}
 

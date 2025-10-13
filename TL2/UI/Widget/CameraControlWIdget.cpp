@@ -138,7 +138,7 @@ void UCameraControlWidget::RenderWidget()
 
 	if (RotationChanged)
 	{
-		FQuat NewRotation = FQuat::MakeFromEuler(Rotation);
+		FQuat NewRotation = FQuat::MakeFromEulerZYX(Rotation);
 		Camera->SetActorRotation(NewRotation);
 	}
 

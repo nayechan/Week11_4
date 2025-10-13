@@ -77,39 +77,39 @@ void FViewportClient::SetupCameraMode()
     case EViewportType::Orthographic_Top:
 
         Camera->SetActorLocation({ CameraAddPosition.X, CameraAddPosition.Y, 1000 });
-        Camera->SetActorRotation(FQuat::MakeFromEuler({ 0, 90, 0 }));
+        Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 90, 0 }));
         Camera->GetCameraComponent()->SetFOV(100);
         Camera->GetCameraComponent()->SetClipPlanes(0.1f, 100000.0f);
         break;
     case EViewportType::Orthographic_Bottom:
 
         Camera->SetActorLocation({ CameraAddPosition.X, CameraAddPosition.Y, -1000 });
-        Camera->SetActorRotation(FQuat::MakeFromEuler({ 0, -90, 0 }));
+        Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, -90, 0 }));
         Camera->GetCameraComponent()->SetFOV(100);
         Camera->GetCameraComponent()->SetClipPlanes(0.1f, 100000.0f);
         break;
     case EViewportType::Orthographic_Left:
         Camera->SetActorLocation({ CameraAddPosition.X, 1000 , CameraAddPosition.Z });
-        Camera->SetActorRotation(FQuat::MakeFromEuler({ 0, 0, -90 }));
+        Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, -90 }));
         Camera->GetCameraComponent()->SetFOV(100);
         Camera->GetCameraComponent()->SetClipPlanes(0.1f, 100000.0f);
         break;
     case EViewportType::Orthographic_Right:
         Camera->SetActorLocation({ CameraAddPosition.X, -1000, CameraAddPosition.Z });
-        Camera->SetActorRotation(FQuat::MakeFromEuler({ 0, 0, 90 }));
+        Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, 90 }));
         Camera->GetCameraComponent()->SetFOV(100);
         Camera->GetCameraComponent()->SetClipPlanes(0.1f, 100000.0f);
         break;
 
     case EViewportType::Orthographic_Front:
         Camera->SetActorLocation({ -1000 , CameraAddPosition.Y, CameraAddPosition.Z });
-        Camera->SetActorRotation(FQuat::MakeFromEuler({ 0, 0, 0 }));
+        Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, 0 }));
         Camera->GetCameraComponent()->SetFOV(100);
         Camera->GetCameraComponent()->SetClipPlanes(0.1f, 100000.0f);
         break;
     case EViewportType::Orthographic_Back:
         Camera->SetActorLocation({ 1000 , CameraAddPosition.Y, CameraAddPosition.Z });
-        Camera->SetActorRotation(FQuat::MakeFromEuler({ 0, 0, 180 }));
+        Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, 180 }));
         Camera->GetCameraComponent()->SetFOV(100);
         Camera->GetCameraComponent()->SetClipPlanes(0.1f, 100000.0f);
         break;

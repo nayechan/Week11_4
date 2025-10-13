@@ -109,7 +109,7 @@ FQuat UPrimitiveSpawnWidget::GenerateRandomRotation() const
 	float RandomYaw = (static_cast<float>(rand()) / RAND_MAX) * 360.0f - 180.0f;
 	float RandomRoll = (static_cast<float>(rand()) / RAND_MAX) * 360.0f - 180.0f;
 	
-	return FQuat::MakeFromEuler(FVector(RandomPitch, RandomYaw, RandomRoll));
+	return FQuat::MakeFromEulerZYX(FVector(RandomPitch, RandomYaw, RandomRoll));
 }
 
 void UPrimitiveSpawnWidget::RenderWidget()

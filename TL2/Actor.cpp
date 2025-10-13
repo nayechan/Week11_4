@@ -251,7 +251,7 @@ void AActor::SetActorRotation(const FVector& EulerDegree)
 {
 	if (RootComponent)
 	{
-		FQuat NewRotation = FQuat::MakeFromEuler(EulerDegree);
+		FQuat NewRotation = FQuat::MakeFromEulerZYX(EulerDegree);
 		FQuat OldRotation = RootComponent->GetWorldRotation();
 		if (!(OldRotation == NewRotation)) // 회전이 실제로 변경되었을 때만
 		{

@@ -397,11 +397,11 @@ struct FQuat
 
 	// 오일러 → 쿼터니언 (Pitch=X, Yaw=Y, Roll=Z in degrees)
 	// ZYX 순서 (Roll → Yaw → Pitch) - 로컬 축 회전
-	static FQuat MakeFromEuler(const FVector& EulerRad)
+	static FQuat MakeFromEulerZYX(const FVector& EulerDeg)
 	{
-		float PitchDeg = DegreesToRadians(EulerRad.X);
-		float YawDeg = DegreesToRadians(EulerRad.Y);
-		float RollDeg = DegreesToRadians(EulerRad.Z);
+		float PitchDeg = DegreesToRadians(EulerDeg.X);
+		float YawDeg = DegreesToRadians(EulerDeg.Y);
+		float RollDeg = DegreesToRadians(EulerDeg.Z);
 
 		const float PX = PitchDeg * 0.5f; // Pitch about X
 		const float PY = YawDeg * 0.5f; // Yaw   about Y
@@ -413,33 +413,12 @@ struct FQuat
 
 		// Order: Rx * Ry * Rz  (intrinsic X→Y→Z)
 		// Mapping: X=Pitch, Y=Yaw, Z=Roll
-		FQuat q;
-		q.X = SX * CY * CZ + CX * SY * SZ;
-		q.Y = CX * SY * CZ - SX * CY * SZ;
-		q.Z = CX * CY * SZ + SX * SY * CZ;
-		q.W = CX * CY * CZ - SX * SY * SZ;
-		return q.GetNormalized(); // 필요하면 정규화
-	}
-
-	// ZYX(Tait–Bryan) 순서 오일러(deg) → Quaternion
-	// eulerDeg: X=Roll, Y=Pitch, Z=Yaw  [deg]
-	static FQuat QuatFromEulerZYX_Deg(const FVector& eulerDeg)
-	{
-		const float x = DegreesToRadians((float)eulerDeg.X);
-		const float y = DegreesToRadians((float)eulerDeg.Y);
-		const float z = DegreesToRadians((float)eulerDeg.Z);
-
-		const float cx = std::cosf(x * 0.5f), sx = std::sinf(x * 0.5f);
-		const float cy = std::cosf(y * 0.5f), sy = std::sinf(y * 0.5f);
-		const float cz = std::cosf(z * 0.5f), sz = std::sinf(z * 0.5f);
-
-		// q = qz * qy * qx
-		float qw = cz * cy * cx + sz * sy * sx;
-		float qx = cz * cy * sx - sz * sy * cx;
-		float qy = cz * sy * cx + sz * cy * sx;
-		float qz = sz * cy * cx - cz * sy * sx;
-		NormalizeQuat(qx, qy, qz, qw);
-		return FQuat((float)qx, (float)qy, (float)qz, (float)qw);
+		FQuat Quat;
+		Quat.X = SX * CY * CZ + CX * SY * SZ;
+		Quat.Y = CX * SY * CZ - SX * CY * SZ;
+		Quat.Z = CX * CY * SZ + SX * SY * CZ;
+		Quat.W = CX * CY * CZ - SX * SY * SZ;
+		return Quat.GetNormalized(); // 필요하면 정규화
 	}
 
 	/**
@@ -505,6 +484,7 @@ struct FQuat
 			RadiansToDegrees(Yaw)
 		);
 	}
+
 
 	FVector GetForwardVector() const
 	{
@@ -1006,7 +986,6 @@ inline FMatrix FMatrix::LookAtLH(const FVector& Eye, const FVector& At, const FV
 	return View.Transpose(); // Transpose to get the final row-major matrix
 }
 
-
 inline FMatrix FMatrix::PerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf)
 {
 	float YScale = 1.0f / std::tan(FovY * 0.5f);
@@ -1072,25 +1051,6 @@ inline FMatrix FMatrix::OrthoLH_XForward(float Width, float Height, float Xn, fl
 //         Translation.X, Translation.Y, Translation.Z, 1.0f
 //     );
 // }
-
-// Q = Q2 * Q1인데 Q1먼저 적용 되는거로 하고 싶을 때 이거 사용
-inline FQuat QuatMul(const FQuat& Q2, const FQuat& Q1)
-{
-	return {
-		Q2.W * Q1.X + Q2.X * Q1.W + Q2.Y * Q1.Z - Q2.Z * Q1.Y,
-		Q2.W * Q1.Y - Q2.X * Q1.Z + Q2.Y * Q1.W + Q2.Z * Q1.X,
-		Q2.W * Q1.Z + Q2.X * Q1.Y - Q2.Y * Q1.X + Q2.Z * Q1.W,
-		Q2.W * Q1.W - Q2.X * Q1.X - Q2.Y * Q1.Y - Q2.Z * Q1.Z
-	};
-}
-
-inline FQuat MakeQuatLocalXYZ(float RX, float RY, float RZ)
-{
-	const FQuat QX = FQuat::FromAxisAngle({ 1,0,0 }, RX);
-	const FQuat QY = FQuat::FromAxisAngle({ 0,1,0 }, RY);
-	const FQuat QZ = FQuat::FromAxisAngle({ 0,0,1 }, RZ);
-	return QuatMul(QuatMul(QZ, QY), QX); // q = qz * qy * qx
-}
 
 inline FMatrix MakeRotationRowMajorFromQuat(const FQuat& Q)
 {

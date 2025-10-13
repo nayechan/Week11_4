@@ -73,7 +73,7 @@ void UWorld::InitializeGizmo()
 {
 	GizmoActor = NewObject<AGizmoActor>();
 	GizmoActor->SetWorld(this);
-	GizmoActor->SetActorTransform(FTransform(FVector{ 0, 0, 0 }, FQuat::MakeFromEuler(FVector{ 0, -90, 0 }),
+	GizmoActor->SetActorTransform(FTransform(FVector{ 0, 0, 0 }, FQuat::MakeFromEulerZYX(FVector{ 0, -90, 0 }),
 		FVector{ 1, 1, 1 }));
 
 	EditorActors.push_back(GizmoActor);
