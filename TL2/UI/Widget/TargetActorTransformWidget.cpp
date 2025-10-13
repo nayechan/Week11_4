@@ -188,17 +188,38 @@ namespace
 // 파일명 스템(Cube 등) 추출 + .obj 확장자 제거
 static inline FString GetBaseNameNoExt(const FString& Path)
 {
+	// 1. 마지막 경로 구분자('/' 또는 '\')를 찾아 파일 이름의 시작 위치를 결정합니다.
 	const size_t sep = Path.find_last_of("/\\");
 	const size_t start = (sep == FString::npos) ? 0 : sep + 1;
 
 	const FString ext = ".obj";
 	size_t end = Path.size();
-	if (end >= ext.size() && Path.compare(end - ext.size(), ext.size(), ext) == 0)
+
+	// 2. 경로의 길이가 비교할 확장자보다 긴지 확인합니다.
+	if (end >= ext.size())
 	{
-		end -= ext.size();
+		// 3. 경로의 끝에서 확장자 길이만큼의 문자열을 복사합니다.
+		FString PathExt = Path.substr(end - ext.size());
+
+		// 4. 복사된 확장자 문자열을 모두 소문자로 변환합니다.
+		std::transform(PathExt.begin(), PathExt.end(), PathExt.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+		// 5. 소문자로 변환된 문자열을 ".obj"와 비교하여 일치하면 파일명의 끝 위치를 조정합니다.
+		if (PathExt == ext)
+		{
+			end -= ext.size();
+		}
 	}
-	if (start <= end) return Path.substr(start, end - start);
-	return Path;
+
+	// 6. 계산된 시작과 끝 위치를 기반으로 최종 파일 이름을 잘라내어 반환합니다.
+	if (start <= end)
+	{
+		return Path.substr(start, end - start);
+	}
+
+	// 예외적인 경우(경로 구분자만 있는 경우 등)를 대비해 안전한 값을 반환합니다.
+	return Path.substr(start);
 }
 
 UTargetActorTransformWidget::UTargetActorTransformWidget()
@@ -738,7 +759,7 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 
 			ImGui::SetNextItemWidth(240);
 
-			// [핵심 수정] ImGui::Combo가 true를 반환하면(선택이 바뀌면) 즉시 메시를 적용합니다.
+			// ImGui::Combo가 true를 반환하면(선택이 바뀌면) 즉시 메시를 적용합니다.
 			if (ImGui::Combo("StaticMesh", &SelectedMeshIdx, Items.data(), static_cast<int>(Items.size())))
 			{
 				if (SelectedMeshIdx >= 0 && SelectedMeshIdx < static_cast<int>(Paths.size()))

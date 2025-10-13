@@ -105,6 +105,12 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
     {
         // obj 정보 bin으로 가져오기
         FWindowsBinReader Reader(BinPathFileName);
+        if (!Reader.IsOpen()) // 파일 열기 성공 여부 확인
+        {
+            UE_LOG("Failed to open bin file for reading: %s", BinPathFileName.c_str());
+            delete NewFStaticMesh; // 아래 2번 문제와 연관
+            return nullptr;
+        }
         Reader << *NewFStaticMesh;
         Reader.Close();
 
@@ -113,7 +119,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
         if (!std::filesystem::exists(MatBinPathFileName))
         {
             UE_LOG("\'%s\' does not exists!", MatBinPathFileName);
-            assert(std::filesystem::exists(StemPath + "Mat.bin") && "material bin file dont exists!");
+            //assert(std::filesystem::exists(StemPath + "Mat.bin") && "material bin file dont exists!");
 
             // 존재하지 않으므로 obj(mtl 파싱 위해선 obj도 파싱 필요) 및 Mtl 파싱
             FObjInfo RawObjInfo;
