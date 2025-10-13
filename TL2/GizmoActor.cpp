@@ -44,11 +44,9 @@ AGizmoActor::AGizmoActor()
 	ArrowY->SetDefaultScale({ 1.0f * GizmoTotalSize, 1.0f * GizmoTotalSize, 1.0f * GizmoTotalSize });
 	ArrowZ->SetDefaultScale({ 1.0f * GizmoTotalSize, 1.0f * GizmoTotalSize, 1.0f * GizmoTotalSize });
 
-	// NOTE: 화살표 Mesh가 아래 방향으로 보고 있어서 이렇게 처리
-	if (ArrowX) ArrowX->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, -90, 0)));
-	if (ArrowY) ArrowY->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(90, 0, 0)));
-	if (ArrowZ) ArrowZ->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, 180, 0)));
-
+	if (ScaleX) ScaleX->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, 0, 0)));
+	if (ScaleY) ScaleY->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, 0, 90)));
+	if (ScaleZ) ScaleZ->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, -90, 0)));
 
 	AddOwnedComponent(ArrowX);
 	AddOwnedComponent(ArrowY);

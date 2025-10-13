@@ -10,7 +10,7 @@ UDecalComponent::UDecalComponent()
 	UResourceManager::GetInstance().Load<UMaterial>("DecalVS.hlsl", EVertexLayoutType::PositionColorTexturNormal);
 	UResourceManager::GetInstance().Load<UMaterial>("DecalPS.hlsl", EVertexLayoutType::PositionColorTexturNormal);
 
-	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/cube_texture.dds");
+	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/Textures/grass.jpg");
 
 	// PIE에서 fade in, fade out 위함
 	SetTickEnabled(true);

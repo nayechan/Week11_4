@@ -3,7 +3,7 @@
 
 UGizmoRotateComponent::UGizmoRotateComponent()
 {
-    SetStaticMesh("Data/RotationHandle.obj");
+    SetStaticMesh("Data/Gizmo/RotationHandle.obj");
     SetMaterial("StaticMeshShader.hlsl", EVertexLayoutType::PositionColorTexturNormal);
 }
 
