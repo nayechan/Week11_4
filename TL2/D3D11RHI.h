@@ -159,6 +159,9 @@ private:
 	ID3D11RenderTargetView* RenderTargetView{};//
 	ID3D11DepthStencilView* DepthStencilView{};//
 
+	ID3D11Texture2D* DepthBuffer = nullptr;
+	ID3D11ShaderResourceView* DepthSRV = nullptr;
+
     // 버퍼 핸들
     ID3D11Buffer* ModelCB{};
     ID3D11Buffer* ViewProjCB{};

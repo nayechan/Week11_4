@@ -94,7 +94,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
 
         float opticalDepth = 0.0f;
 
-        // f = GlobalDensity * exp(-HeightFalloff * z) 함수에 대한 적분 [0, z]
+        // f = GlobalDensity * exp(-HeightFalloff * (특정 픽셀 높이 - FogHeight)) 함수에 대한 적분 [0, 해당 픽셀까지 거리]
         if (abs(dz) > 1e-5)
         {
             float termC = exp(-FogHeightFalloff * zc);

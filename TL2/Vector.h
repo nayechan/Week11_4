@@ -1006,7 +1006,7 @@ inline FMatrix FMatrix::PerspectiveFovLH(float FovY, float Aspect, float Zn, flo
 	FMatrix proj{};
 	proj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, XScale);
 	proj.Rows[1] = _mm_set_ps(0.0f, 0.0f, YScale, 0.0f);
-	proj.Rows[2] = _mm_set_ps(1.0f, Zf / (Zf - Zn), 0.0f, 0.0f); // ??
+	proj.Rows[2] = _mm_set_ps(1.0f, Zf / (Zf - Zn), 0.0f, 0.0f); // ?? 왜 마지막에 1.0f ??
 	proj.Rows[3] = _mm_set_ps(0.0f, (-Zn * Zf) / (Zf - Zn), 0.0f, 0.0f);
 	return proj;
 }

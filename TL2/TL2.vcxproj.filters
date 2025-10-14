@@ -476,6 +476,9 @@
     <FxCompile Include="DecalVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Quad.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -846,6 +849,9 @@
     </ClInclude>
     <ClInclude Include="Color.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="HeightFogComponent.h">
+      <Filter>헤더 파일\Component</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

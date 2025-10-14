@@ -78,6 +78,8 @@ private:
 	/** @brief BVH 등 디버그 시각화 요소를 렌더링하는 패스입니다. */
 	void RenderDebugPass();
 
+	/** @brief FullSc/
+
 	/** @brief 프레임 렌더링의 마무리 작업을 수행합니다. (예: 로그 출력) */
 	void FinalizeFrame();
 private:
