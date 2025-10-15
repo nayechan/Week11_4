@@ -56,10 +56,11 @@ void FSceneRenderer::Render()
 	// 2. 렌더링할 대상 수집 (Cull + Gather)
 	GatherVisibleProxies();
 
+	EffectiveViewMode = EViewModeIndex::VMI_SceneDepth; // 임시: Lit 모드에서 SceneDepth 경로 테스트
+
 	if (EffectiveViewMode == EViewModeIndex::VMI_Lit)
 	{
-		//RenderLitPath();
-		RenderSceneDepthPath(); // 임시: Lit 모드에서 SceneDepth 경로 테스트
+		RenderLitPath();
 	}
 	else if (EffectiveViewMode == EViewModeIndex::VMI_Wireframe)
 	{
@@ -74,8 +75,12 @@ void FSceneRenderer::Render()
 	RenderEditorPrimitivesPass();	// 기즈모, 그리드 출력
 	RenderDebugPass();	// 빌보드나 선택한 물체의 경계 출력
 
+	// FXAA 등 화면에서 최종 이미지 품질을 위해 적용되는 효과를 적용
+	ApplyScreenEffectsPass();
 
-	
+	// 최종적으로 Scene에 그려진 텍스쳐를 Back 버퍼에 그힌다
+	//CompositeToBackBuffer();
+
 	// --- 렌더링 종료 ---
 	FinalizeFrame();
 }
@@ -537,6 +542,41 @@ void FSceneRenderer::RenderDebugPass()
 			BVH->DebugDraw(OwnerRenderer); // DebugDraw가 LineBatcher를 직접 받도록 수정 필요
 		}
 	}
+}
+
+void FSceneRenderer::ApplyScreenEffectsPass()
+{
+}
+
+void FSceneRenderer::CompositeToBackBuffer()
+{
+	// 1. Scene RTV와 Depth Buffer Clear
+	RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithoutDepth);
+
+	// 텍스쳐 관련 설정
+	ID3D11ShaderResourceView* DepthSRV = RHIDevice->GetSRV(RHI_SRV_Index::Scene);
+	ID3D11SamplerState* SamplerState = RHIDevice->GetSamplerState(RHI_Sampler_Index::LinearClamp);
+	if (!DepthSRV || !SamplerState)
+	{
+		UE_LOG("PointClamp Sampler is null!\n");
+		return;
+	}
+
+	// Shader Resource 바인딩 (슬롯 확인!)
+	RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &DepthSRV);  // t0
+	RHIDevice->GetDeviceContext()->PSSetSamplers(0, 1, &SamplerState);
+
+	UShader* FullScreenTriangleVS = UResourceManager::GetInstance().Load<UShader>("FullScreenTriangle.vs.hlsl");
+	UShader* CopyTexturePS = UResourceManager::GetInstance().Load<UShader>("CopyTexture.ps.hlsl");
+	if (!FullScreenTriangleVS || !CopyTexturePS)
+	{
+		UE_LOG("셰이더 없음!\n");
+		return;
+	}
+
+	RHIDevice->PrepareShader(FullScreenTriangleVS, CopyTexturePS);
+
+	RHIDevice->DrawFullScreenQuad();
 }
 
 void FSceneRenderer::FinalizeFrame()

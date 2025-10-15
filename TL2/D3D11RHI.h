@@ -75,9 +75,11 @@ public:
 	void RSSetViewport();
 	void OMSetRenderTargets(ERTVMode RTVMode);
 	void OMSetBlendState(bool bIsBlendMode);
-	void Present();
 	void PSSetDefaultSampler(UINT StartSlot);
 	void PSSetClampSampler(UINT StartSlot);
+
+	void DrawFullScreenQuad();
+	void Present();
 
 	// RHI가 관리하는 Texture들을 SRV로 가져오기, SamplerState 가져오기
 	ID3D11ShaderResourceView* GetSRV(RHI_SRV_Index SRVIndex) const;
@@ -107,6 +109,7 @@ public:
 
 	void PrepareShader(FShader& InShader);
 	void PrepareShader(UShader* InShader);
+	void PrepareShader(UShader* InVertexShader, UShader* InPixelShader);
 
 public:
 	// getter

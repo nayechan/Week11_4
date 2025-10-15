@@ -581,7 +581,6 @@ void D3D11RHI::OMSetRenderTargets(ERTVMode RTVMode)
     default:
         break;
     }
-    
 }
 
 void D3D11RHI::OMSetBlendState(bool bIsBlendMode)
@@ -595,6 +594,20 @@ void D3D11RHI::OMSetBlendState(bool bIsBlendMode)
     {
         DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
     }
+}
+
+// 전체 화면 사각형 그리기
+void D3D11RHI::DrawFullScreenQuad()
+{
+    // 1. 입력 버퍼를 사용하지 않겠다고 명시적으로 설정합니다.
+    //    Input Assembler (IA) 단계가 사실상 생략됩니다.
+    DeviceContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+    DeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    DeviceContext->IASetInputLayout(nullptr); // Input Layout도 필요 없습니다.
+
+    // 2. 정점 셰이더를 3번 실행하여 삼각형 하나를 그리도록 명령합니다.
+    //    이 삼각형은 화면보다 더 크게 그려져 전체를 덮게 됩니다.
+    DeviceContext->Draw(3, 0);
 }
 
 void D3D11RHI::Present()
@@ -1303,4 +1316,12 @@ void D3D11RHI::PrepareShader(UShader* InShader)
     GetDeviceContext()->VSSetShader(InShader->GetVertexShader(), nullptr, 0);
     GetDeviceContext()->PSSetShader(InShader->GetPixelShader(), nullptr, 0);
     GetDeviceContext()->IASetInputLayout(InShader->GetInputLayout());
+}
+
+void D3D11RHI::PrepareShader(UShader* InVertexShader, UShader* InPixelShader)
+{
+    GetDeviceContext()->IASetInputLayout(InVertexShader->GetInputLayout());
+    GetDeviceContext()->VSSetShader(InVertexShader->GetVertexShader(), nullptr, 0);
+
+    GetDeviceContext()->PSSetShader(InPixelShader->GetPixelShader(), nullptr, 0);
 }

@@ -508,6 +508,7 @@ void UResourceManager::InitShaderILMap()
     ShaderToInputLayoutMap["SceneDepth.hlsl"] = layout;
     layout.clear();
     
+    ShaderToInputLayoutMap["FullScreenTriangle.vs.hlsl"] = {};  // FullScreenTriangle 는 InputLayout을 사용하지 않는다
 }
 
 TArray<D3D11_INPUT_ELEMENT_DESC>& UResourceManager::GetProperInputLayout(const FString& InShaderName)
