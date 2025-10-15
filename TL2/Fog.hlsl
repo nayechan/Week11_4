@@ -1,5 +1,5 @@
-Texture2D g_PrePathResultTex : register(t0);
-Texture2D g_DepthTex : register(t1);
+Texture2D g_DepthTex : register(t0);
+Texture2D g_PrePathResultTex : register(t1);
 
 SamplerState g_Sample : register(s0);
 
@@ -17,10 +17,8 @@ struct PS_INPUT
 
 cbuffer PostProcessCB : register(b0)
 {
-    int RenderMode; // 0: fog, 1: depth
     float Near;
     float Far;
-    float Padding;
 }
 
 cbuffer InvViewProjBuffer : register(b1)
@@ -84,58 +82,48 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     float L = length(ray);
     float3 rayDir = ray / L;
 
-    if (RenderMode == 0) // exponential height fog
+    // -----------------------------
+    // 4. Exponential Height Fog 적분 (z축 기준)
+    // -----------------------------
+    float zc = cameraWorldPos.z - FogHeight;
+    float dz = rayDir.z;
+
+    float opticalDepth = 0.0f;
+
+    // f = GlobalDensity * exp(-HeightFalloff * (특정 픽셀 높이 - FogHeight)) 함수에 대한 적분 [0, 해당 픽셀까지 거리]
+    if (abs(dz) > 1e-5)
     {
-        // -----------------------------
-        // 4. Exponential Height Fog 적분 (z축 기준)
-        // -----------------------------
-        float zc = cameraWorldPos.z - FogHeight;
-        float dz = rayDir.z;
+        float termC = exp(-FogHeightFalloff * zc);
+        float termP = exp(-FogHeightFalloff * (zc + dz * L));
 
-        float opticalDepth = 0.0f;
-
-        // f = GlobalDensity * exp(-HeightFalloff * (특정 픽셀 높이 - FogHeight)) 함수에 대한 적분 [0, 해당 픽셀까지 거리]
-        if (abs(dz) > 1e-5)
-        {
-            float termC = exp(-FogHeightFalloff * zc);
-            float termP = exp(-FogHeightFalloff * (zc + dz * L));
-
-            opticalDepth = FogDensity * (termC - termP) / (FogHeightFalloff * dz);
-        }
-        else
-        {
-            // dz ≈ 0 → Taylor 전개 근사
-            // exp(-h(zc + dz*L)) ≈ exp(-h*zc) * (1 - h*dz*L + 0.5*(h*dz*L)^2 ...)
-            float expTerm = exp(-FogHeightFalloff * zc);
-            float hL = FogHeightFalloff * L;
-
-            // 1차 근사: FogDensity * exp(-h*zc) * L
-            opticalDepth = FogDensity * expTerm * (L - 0.5f * dz * hL * L);
-        }
-
-        // -----------------------------
-        // 5. Transmittance & Fog Factor
-        // -----------------------------
-        float transmittance = exp(-opticalDepth);
-        float fogFactor = 1.0 - transmittance;
-
-        // 시작 거리와 컷오프 적용
-        float distFactor = saturate((L - StartDistance) / (FogCutoffDistance - StartDistance));
-        fogFactor *= distFactor;
-
-        // 최대 불투명도 적용
-        fogFactor = saturate(fogFactor * FogMaxOpacity);
-
-        // 최종 색상
-        color.rgb = lerp(color.rgb, FogInscatteringColor.rgb, fogFactor);
+        opticalDepth = FogDensity * (termC - termP) / (FogHeightFalloff * dz);
     }
-    else if (RenderMode == 1) // depth
+    else
     {
-        // View-space depth 복원
-        float zView = Near * Far / (Far - depth * (Far - Near));
-        float NormalizedDepth = saturate((zView - Near) / (Far - Near));
-        color = float4(NormalizedDepth, NormalizedDepth, NormalizedDepth, 1.0f);
+         // dz ≈ 0 → Taylor 전개 근사
+        // exp(-h(zc + dz*L)) ≈ exp(-h*zc) * (1 - h*dz*L + 0.5*(h*dz*L)^2 ...)
+        float expTerm = exp(-FogHeightFalloff * zc);
+        float hL = FogHeightFalloff * L;
+
+        // 1차 근사: FogDensity * exp(-h*zc) * L
+        opticalDepth = FogDensity * expTerm * (L - 0.5f * dz * hL * L);
     }
+
+    // -----------------------------
+    // 5. Transmittance & Fog Factor
+    // -----------------------------
+    float transmittance = exp(-opticalDepth);
+    float fogFactor = 1.0 - transmittance;
+
+    // 시작 거리와 컷오프 적용
+    float distFactor = saturate((L - StartDistance) / (FogCutoffDistance - StartDistance));
+    fogFactor *= distFactor;
+
+    // 최대 불투명도 적용
+    fogFactor = saturate(fogFactor * FogMaxOpacity);
+
+    // 최종 색상
+    color.rgb = lerp(color.rgb, FogInscatteringColor.rgb, fogFactor);
 
     return color;
 }
