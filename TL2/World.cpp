@@ -23,6 +23,7 @@
 #include "StaticMeshComponent.h"
 #include "Frustum.h"
 #include "Level.h"
+#include "FireBallActor.h"
 
 UWorld::UWorld()
 	: Partition(new UWorldPartitionManager())
@@ -202,11 +203,10 @@ bool UWorld::DestroyActor(AActor* Actor)
 
 void UWorld::OnActorSpawned(AActor* Actor)
 {
-	if (Actor)
+	if (Actor && Actor->IsA<AFireBallActor>())
 	{
-		// UWorld::AddActorToLevel에서 중복호출 중이어서 주석처리.
-		// OnActorSpawned만 호출되는 로직 생성시 주석 해제 바람.
-		// Partition->Register(Actor);
+		// 파이어볼은 스폰 직후 스태틱메시컴포넌트 추가되므로 파티션 등록 재수행
+		Partition->Register(Actor);
 	}
 }
 

@@ -169,6 +169,7 @@
     <ClCompile Include="DecalActor.cpp" />
     <ClCompile Include="DecalComponent.cpp" />
     <ClCompile Include="FakeSpotLightActor.cpp" />
+    <ClCompile Include="FireBallActor.cpp" />
     <ClCompile Include="FireBallComponent.cpp" />
     <ClCompile Include="FSceneRenderer.cpp" />
     <ClCompile Include="Level.cpp" />
@@ -381,6 +382,7 @@
     <ClInclude Include="DecalComponent.h" />
     <ClInclude Include="DecalStatManager.h" />
     <ClInclude Include="FakeSpotLightActor.h" />
+    <ClInclude Include="FireBallActor.h" />
     <ClInclude Include="FireBallComponent.h" />
     <ClInclude Include="FSceneRenderer.h" />
     <ClInclude Include="JsonSerializer.h" />

@@ -14,6 +14,7 @@
 #include "GridActor.h"
 #include "DecalActor.h"
 #include "FakeSpotLightActor.h"
+#include "FireBallActor.h"
 
 #include "MeshComponent.h"
 #include "GizmoRotateComponent.h"
@@ -85,6 +86,7 @@ IMPLEMENT_CLASS(AGizmoActor)
 IMPLEMENT_CLASS(AGridActor)
 IMPLEMENT_CLASS(ADecalActor)
 IMPLEMENT_CLASS(AFakeSpotLightActor)
+IMPLEMENT_CLASS(AFireBallActor)
 
 IMPLEMENT_CLASS(UGizmoArrowComponent)
 IMPLEMENT_CLASS(UGizmoScaleComponent)
