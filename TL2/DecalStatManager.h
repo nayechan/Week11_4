@@ -73,7 +73,7 @@ public:
 
 	// NOTE: 추후 데칼 생성/소멸 시 호출하여 실제 컴포넌트 수만큼만 표시
 	/** @brief 씬의 전체 데칼 수를 1 증가시킵니다 */
-	void IncrementTotalDecalCount() { ++TotalDecalCount; }
+	void AddTotalDecalCount(uint32_t InCount) { TotalDecalCount += InCount; }
 
 	/** @brief 그릴 데칼 수를 더합니다. (Gather 단계 이후 호출) */
 	void AddVisibleDecalCount(uint32_t InCount) { VisibleDecalCount += InCount; }

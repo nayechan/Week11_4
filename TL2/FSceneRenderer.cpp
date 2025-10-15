@@ -173,9 +173,9 @@ void FSceneRenderer::GatherVisibleProxies()
 				continue;
 			}
 
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component); Primitive && bDrawPrimitives)
+			if (UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component); PrimitiveComponent && bDrawPrimitives)
 			{
-				if (UMeshComponent* MeshComponent = Cast<UMeshComponent>(Primitive))
+				if (UMeshComponent* MeshComponent = Cast<UMeshComponent>(PrimitiveComponent))
 				{
 					bool bShouldAdd = true;
 
@@ -194,24 +194,22 @@ void FSceneRenderer::GatherVisibleProxies()
 						Proxies.Meshes.Add(MeshComponent);
 					}
 				}
-				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Primitive))
+				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(PrimitiveComponent))
 				{
 					Proxies.Billboards.Add(BillboardComponent);
 				}
-				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Primitive))
+				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(PrimitiveComponent))
 				{
 					Proxies.Billboards.Add(BillboardComponent);
+				}
+				else if (UDecalComponent* DecalComponent = Cast<UDecalComponent>(PrimitiveComponent); DecalComponent && bDrawDecals)
+				{
+					Proxies.Decals.Add(DecalComponent);
 				}
 				//else if (UFireBallComponent* FireBallComponent = Cast<UFireBallComponent>(Primitive))
 				//{
 				//	Proxies.FireBalls.Add(FireBallComponent);
 				//}
-			}
-			else if (UDecalComponent* DecalComponent = Cast<UDecalComponent>(Component); DecalComponent && bDrawDecals)
-			{
-				FDecalStatManager::GetInstance().IncrementTotalDecalCount();
-
-				Proxies.Decals.Add(DecalComponent);
 			}
 			//else if (UHeightFogComponent* FogComponent = Cast<UHeightFogComponent>(Component); FogComponent && bDrawFog)
 			//{
@@ -297,7 +295,8 @@ void FSceneRenderer::RenderDecalPass()
 	if (!BVH)
 		return;
 
-	FDecalStatManager::GetInstance().AddVisibleDecalCount(Proxies.Decals.Num());
+	FDecalStatManager::GetInstance().AddTotalDecalCount(Proxies.Decals.Num());	// TODO: 추후 월드 컴포넌트 추가/삭제 이벤트에서 데칼 컴포넌트의 개수만 추적하도록 수정 필요
+	FDecalStatManager::GetInstance().AddVisibleDecalCount(Proxies.Decals.Num());	// 그릴 Decal 개수 수집
 
 	// 데칼 렌더 설정
 	RHIDevice->RSSetState(ERasterizerMode::Decal);
