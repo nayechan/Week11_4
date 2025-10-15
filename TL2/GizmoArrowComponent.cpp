@@ -56,8 +56,7 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     EViewModeIndex saved = RS.GetViewModeIndex();
     Renderer->GetRHIDevice()->RSSetState(ERasterizerMode::Solid);
     // 스텐실에 1을 기록해, 이후 라인 렌더링이 겹치는 픽셀을 그리지 않도록 마스크
-    Renderer->GetRHIDevice()->OMSetDepthStencilState_OverlayWriteStencil();
-    Renderer->GetRHIDevice()->OMSetBlendState(true);
+    //Renderer->GetRHIDevice()->OMSetBlendState(true);
 
     // 하이라이트 상수
     Renderer->GetRHIDevice()->UpdateHighLightConstantBuffers(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1);
@@ -72,8 +71,7 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     UStaticMeshComponent::Render(Renderer, View, Proj);
 
     // 상태 복구
-    Renderer->GetRHIDevice()->OMSetBlendState(false);
-    Renderer->GetRHIDevice()->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+    //Renderer->GetRHIDevice()->OMSetBlendState(false);
 }
 
 UGizmoArrowComponent::~UGizmoArrowComponent()

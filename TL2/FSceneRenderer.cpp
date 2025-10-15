@@ -705,9 +705,10 @@ void FSceneRenderer::RenderDebugPass()
 
 void FSceneRenderer::RenderOverayEditorPrimitivesPass()
 {
+	RHIDevice->SwapPostProcessTextures();
 	RHIDevice->OMSetRenderTargets(ERTVMode::PostProcessDestination);
 
-	//RHIDevice->ClearDepthBuffer(1.0f, 0);
+	RHIDevice->ClearDepthBuffer(1.0f, 0);
 
 	for (AActor* EngineActor : World->GetEditorActors())
 	{
