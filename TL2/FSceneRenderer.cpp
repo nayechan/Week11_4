@@ -51,24 +51,64 @@ void FSceneRenderer::Render()
 
 	// 1. 뷰(View) 준비: 행렬, 절두체 등 프레임에 필요한 기본 데이터 계산
 	PrepareView();
-
-	// NOTE: 일단 컴포넌트 단위와 데칼 관련 이슈 해결까지 컬링 무시
-	//// 2-1. 절두체 컬링 수행 -> 결과가 멤버 변수 PotentiallyVisibleActors에 저장됨
-	//PerformFrustumCulling();
-	//// 2-2. 오클루전 컬링 수행 -> PotentiallyVisibleActors를 입력으로 사용
-	//PerformCPUOcclusion();
-
-	// 3. 렌더링할 대상 수집 (Gather)
+	// 2. 렌더링할 대상 수집 (Cull + Gather)
 	GatherVisibleProxies();
 
-	// 4. 각 렌더링 패스(Pass) 실행
-	RenderOpaquePass();
-	RenderDecalPass();
-	RenderEditorPrimitivesPass();
-	RenderDebugPass();
+	if(EffectiveViewMode == EViewModeIndex::VMI_Lit)
+	{
+		RenderLitPath();
+	}
+	else if(EffectiveViewMode == EViewModeIndex::VMI_Wireframe)
+	{
+		RenderWireframePath();
+	}
+	else if(EffectiveViewMode == EViewModeIndex::VMI_SceneDepth)
+	{
+		RenderSceneDepthPath();
+	}
+
+    // 3. 공통 오버레이(Overlay) 렌더링
+    RenderEditorPrimitivesPass();	// 기즈모, 그리드 출력
+    RenderDebugPass();	// 빌보드나 선택한 물체의 경계 출력
 
 	// --- 렌더링 종료 ---
 	FinalizeFrame();
+}
+
+
+//====================================================================================
+// Render Path 함수 구현
+//====================================================================================
+
+void FSceneRenderer::RenderLitPath()
+{
+	// Base Pass
+	RenderOpaquePass();
+	RenderDecalPass();
+
+	// 이곳에서 Post 프로세싱 처리
+}
+
+void FSceneRenderer::RenderWireframePath()
+{
+	// 상태 변경: Wireframe으로 레스터라이즈 모드 설정하도록 설정
+    // RHI->RSSetState(EViewModeIndex::VMI_Wireframe);
+
+	RenderOpaquePass();
+
+	// Wireframe은 Post 프로세싱 처리하지 않음
+
+    // 상태 복구: 원래의 Lit(Solid) 상태로 되돌림 (매우 중요!)
+    // RHI->RSSetState(EViewModeIndex::VMI_Lit);
+}
+
+void FSceneRenderer::RenderSceneDepthPath()
+{
+	// Base Pass
+	RenderOpaquePass();
+	RenderDecalPass();
+
+	// 이곳에서 SceneDepth Post 프로세싱 처리
 }
 
 //====================================================================================
@@ -105,50 +145,15 @@ void FSceneRenderer::PrepareView()
 	}
 }
 
-void FSceneRenderer::PerformFrustumCulling()
-{
-	PotentiallyVisibleComponents.clear();	// 할 필요 없는데 명목적으로 초기화
-
-	// Todo: 프로스텀 컬링 수행, 추후 프로스텀 컬링이 컴포넌트 단위로 변경되면 적용
-
-	//World->GetPartitionManager()->FrustumQuery(ViewFrustum)
-
-	//for (AActor* Actor : World->GetActors())
-	//{
-	//	if (!Actor || Actor->GetActorHiddenInGame()) continue;
-
-	//	// 절두체 컬링을 통과한 액터만 목록에 추가
-	//	if (ViewFrustum.Intersects(Actor->GetBounds()))
-	//	{
-	//		PotentiallyVisibleActors.Add(Actor);
-	//	}
-	//}
-}
-
-void FSceneRenderer::PerformCPUOcclusion()
-{
-	// Todo: 추후 오클루전이 컴포넌트 단위로 변경되면 적용
-
-	//if (!bUseCPUOcclusion) return;
-
-	//UpdateOcclusionGridSizeForViewport(Viewport);
-
-	//TArray<FCandidateDrawable> Occluders, Occludees;
-	//BuildCpuOcclusionSets(ViewFrustum, ViewMatrix, ProjectionMatrix, ZNear, ZFar, Occluders, Occludees);
-
-	//OcclusionCPU->BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
-	//OcclusionCPU->BuildHZB();
-
-	//uint32_t maxUUID = 0;
-	//for (auto& C : Occludees) maxUUID = std::max(maxUUID, C.ActorIndex);
-	//if (VisibleFlags.size() <= size_t(maxUUID))
-	//	VisibleFlags.assign(size_t(maxUUID + 1), 1);
-
-	//OcclusionCPU->TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
-}
-
 void FSceneRenderer::GatherVisibleProxies()
 {
+	
+	// NOTE: 일단 컴포넌트 단위와 데칼 관련 이슈 해결까지 컬링 무시
+	//// 2-1. 절두체 컬링 수행 -> 결과가 멤버 변수 PotentiallyVisibleActors에 저장됨
+	//PerformFrustumCulling();
+	//// 2-2. 오클루전 컬링 수행 -> PotentiallyVisibleActors를 입력으로 사용
+	//PerformCPUOcclusion();
+
 	const bool bDrawPrimitives = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
 	const bool bDrawStaticMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
 	const bool bDrawDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
@@ -200,6 +205,48 @@ void FSceneRenderer::GatherVisibleProxies()
 			}
 		}
 	}
+}
+
+void FSceneRenderer::PerformFrustumCulling()
+{
+	PotentiallyVisibleComponents.clear();	// 할 필요 없는데 명목적으로 초기화
+
+	// Todo: 프로스텀 컬링 수행, 추후 프로스텀 컬링이 컴포넌트 단위로 변경되면 적용
+
+	//World->GetPartitionManager()->FrustumQuery(ViewFrustum)
+
+	//for (AActor* Actor : World->GetActors())
+	//{
+	//	if (!Actor || Actor->GetActorHiddenInGame()) continue;
+
+	//	// 절두체 컬링을 통과한 액터만 목록에 추가
+	//	if (ViewFrustum.Intersects(Actor->GetBounds()))
+	//	{
+	//		PotentiallyVisibleActors.Add(Actor);
+	//	}
+	//}
+}
+
+void FSceneRenderer::PerformCPUOcclusion()
+{
+	// Todo: 추후 오클루전이 컴포넌트 단위로 변경되면 적용
+
+	//if (!bUseCPUOcclusion) return;
+
+	//UpdateOcclusionGridSizeForViewport(Viewport);
+
+	//TArray<FCandidateDrawable> Occluders, Occludees;
+	//BuildCpuOcclusionSets(ViewFrustum, ViewMatrix, ProjectionMatrix, ZNear, ZFar, Occluders, Occludees);
+
+	//OcclusionCPU->BuildOccluderDepth(Occluders, Viewport->GetSizeX(), Viewport->GetSizeY());
+	//OcclusionCPU->BuildHZB();
+
+	//uint32_t maxUUID = 0;
+	//for (auto& C : Occludees) maxUUID = std::max(maxUUID, C.ActorIndex);
+	//if (VisibleFlags.size() <= size_t(maxUUID))
+	//	VisibleFlags.assign(size_t(maxUUID + 1), 1);
+
+	//OcclusionCPU->TestOcclusion(Occludees, Viewport->GetSizeX(), Viewport->GetSizeY(), VisibleFlags);
 }
 
 void FSceneRenderer::RenderOpaquePass()
@@ -337,7 +384,7 @@ void FSceneRenderer::FinalizeFrame()
 		UE_LOG("Total Actors: %d, Visible Primitives: %llu\r\n", totalActors, visiblePrimitives);
 	}
 }
-//
+
 //void FSceneRenderer::UpdateOcclusionGridSizeForViewport(FViewport* Viewport)
 //{
 //	// 기존 URenderer에 있던 로직과 동일

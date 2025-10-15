@@ -33,6 +33,11 @@ public:
 	void Render();
 
 private:
+	// Render Path
+	void RenderLitPath();
+	void RenderWireframePath();
+	void RenderSceneDepthPath();
+
 	/** @brief 렌더링에 필요한 포인터들이 유효한지 확인합니다. */
 	bool IsValid() const;
 

@@ -553,7 +553,9 @@ void D3D11RHI::CreateFrameBuffer()
 
     Device->CreateDepthStencilView(depthBuffer, &dsvDesc, &DepthStencilView);
 
-    depthBuffer->Release(); // 뷰만 참조 유지
+    // DirectX 객체는 참조 카운트 기반으로 리소스를 관리를 하기 때문에
+    // depthBuffer를 Release 해도 DepthStencilView에 참조를 걸어두었기 때문에 실제 버퍼는 살아 있음
+    depthBuffer->Release();
 }
 
 void D3D11RHI::CreateRasterizerState()
