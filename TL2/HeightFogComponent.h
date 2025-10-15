@@ -45,10 +45,10 @@ public:
 	DECLARE_DUPLICATE(UHeightFogComponent)
     
 private:
-    float FogDensity = 10.02f;
+    float FogDensity = 0.8f;
     float FogHeightFalloff = 0.2f;
     float StartDistance = 0.0f;
-    float FogCutoffDistance = 1000.0f;
+    float FogCutoffDistance = 6000.0f;
     float FogMaxOpacity = 1.0f;
 
     FLinearColor* FogInscatteringColor = nullptr;

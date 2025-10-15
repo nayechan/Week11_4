@@ -540,7 +540,7 @@ void FSceneRenderer::RenderPostProcessingPasses()
 
 	// 상수 버퍼 업데이트
 	RHIDevice->UpdatePostProcessCB(ZNear, ZFar);
-	FMatrix InvView = ViewMatrix.InverseAffineFast();
+	FMatrix InvView = ViewMatrix.InverseAffine();
 	FMatrix InvProjection = ProjectionMatrix.InversePerspectiveProjection();
 	RHIDevice->UpdateInvViewProjCB(InvView, InvProjection);
 	UHeightFogComponent* F = FogComponent;

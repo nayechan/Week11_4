@@ -820,10 +820,15 @@ struct alignas(16) FMatrix
 		float B = (-Zn * Zf) / (Zf - Zn);
 		
 		FMatrix invProj{};
-		invProj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f / XScale);
+		/*invProj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f / XScale);
 		invProj.Rows[1] = _mm_set_ps(0.0f, 0.0f, 1.0f / YScale, 0.0f);
 		invProj.Rows[2] = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
-		invProj.Rows[3] = _mm_set_ps(1.0f / B, 1.0f, 0.0f, -A / B);
+		invProj.Rows[3] = _mm_set_ps(1.0f / B, 1.0f, 0.0f, -A / B);*/
+
+		invProj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f / XScale);
+		invProj.Rows[1] = _mm_set_ps(0.0f, 0.0f, 1.0f / YScale, 0.0f);
+		invProj.Rows[2] = _mm_set_ps(1.0f / B, 0.0f, 0.0f, 0.0f);
+		invProj.Rows[3] = _mm_set_ps(-A / B, 1.0f, 0.0f, 0.0f);
 		
 		return invProj;
 	}
@@ -853,8 +858,8 @@ struct alignas(16) FMatrix
 		FMatrix invProj{};
 		invProj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f / XScale);
 		invProj.Rows[1] = _mm_set_ps(0.0f, 0.0f, 1.0f / YScale, 0.0f);
-		invProj.Rows[2] = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
-		invProj.Rows[3] = _mm_set_ps(1.0f / B, 1.0f, 0.0f, -A / B);
+		invProj.Rows[2] = _mm_set_ps(1.0f/B, 0.0f, 0.0f, 0.0f);
+		invProj.Rows[3] = _mm_set_ps(-A / B, 1.0f, 0.0f, 0.0f);
 		
 		return invProj;
 	}
