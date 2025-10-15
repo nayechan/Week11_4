@@ -9,14 +9,27 @@ class URenderer;
 class D3D11RHI;
 class UPrimitiveComponent;
 class UDecalComponent;
+class UFireBallComponent;
+class UHeightFogComponent;
 
 struct FCandidateDrawable;
 
 // 렌더링할 대상들의 집합을 담는 구조체
 struct FVisibleRenderProxySet
 {
-	TArray<UPrimitiveComponent*> Primitives;
+	TArray<UMeshComponent*> Meshes;
+	TArray<UBillboardComponent*> Billboards;
+	TArray<UTextRenderComponent*> Texts;
+
 	TArray<UDecalComponent*> Decals;
+	TArray<UFireBallComponent*> FireBalls;
+};
+
+// NOTE: 추후 UWorld로 이동해서 등록/해지 방식으로 변경?
+// 전역 효과 및 설정을 담는 구조체
+struct FSceneGlobals
+{
+	TArray<UHeightFogComponent*> Fogs;	// 첫 번째로 찾은 Fog를 사용함
 };
 
 /**
@@ -93,6 +106,9 @@ private:
 
 	// 수집된 렌더링 대상 목록
 	FVisibleRenderProxySet Proxies;
+
+	// 씬 전역 설정
+	FSceneGlobals SceneGlobals;
 
 	// 컬링을 거친 가시성 목록, NOTE: 추후 컴포넌트 단위로 수정
 	TArray<UPrimitiveComponent*> PotentiallyVisibleComponents;

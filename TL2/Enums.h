@@ -372,10 +372,11 @@ enum class EEngineShowFlags : uint64
     SF_BVHDebug = 1ull << 8,  // Show/hide BVH debug bounds
     SF_Culling = 1ull << 9,          // Show/hide world grid
 
-    SF_Decals = 1ull << 10,      // Enable/disable lighting
+    SF_Decals = 1ull << 10,
+    SF_Fog = 1ull << 11,
 
     // Default enabled flags
-    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid | SF_Decals,
+    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid | SF_Decals | SF_Fog,
 
     // All flags (for initialization/reset)
     SF_All = 0xFFFFFFFFFFFFFFFFull

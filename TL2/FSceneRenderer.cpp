@@ -21,6 +21,8 @@
 #include "SelectionManager.h"
 #include "StaticMeshComponent.h"
 #include "DecalStatManager.h"
+#include "BillboardComponent.h"
+#include "TextRenderComponent.h"
 #include "OBB.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, ACameraActor* InCamera, FViewport* InViewport, URenderer* InOwnerRenderer)
@@ -107,7 +109,6 @@ void FSceneRenderer::RenderSceneDepthPath()
 {
 	// Base Pass
 	RenderOpaquePass();
-	RenderDecalPass();
 
 	// SceneDepth Post 프로세싱 처리
 	RenderSceneDepthPostProcess();
@@ -149,16 +150,14 @@ void FSceneRenderer::PrepareView()
 
 void FSceneRenderer::GatherVisibleProxies()
 {
-
 	// NOTE: 일단 컴포넌트 단위와 데칼 관련 이슈 해결까지 컬링 무시
-	//// 2-1. 절두체 컬링 수행 -> 결과가 멤버 변수 PotentiallyVisibleActors에 저장됨
+	//// 절두체 컬링 수행 -> 결과가 멤버 변수 PotentiallyVisibleActors에 저장됨
 	//PerformFrustumCulling();
-	//// 2-2. 오클루전 컬링 수행 -> PotentiallyVisibleActors를 입력으로 사용
-	//PerformCPUOcclusion();
 
 	const bool bDrawPrimitives = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Primitives);
 	const bool bDrawStaticMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
 	const bool bDrawDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
+	const bool bDrawFog = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Fog);
 
 	for (AActor* Actor : World->GetActors())
 	{
@@ -167,10 +166,6 @@ void FSceneRenderer::GatherVisibleProxies()
 			continue;
 		}
 
-		// NOTE: 컬링 코드 삭제, 컬링은 컴포넌트 단위로 수정 필요
-		//if (!Actor || Actor->GetActorHiddenInGame() || Actor->GetCulled()) continue;
-		//if (bUseCPUOcclusion && VisibleFlags.size() > Actor->UUID && VisibleFlags[Actor->UUID] == 0) continue;
-
 		for (USceneComponent* Component : Actor->GetSceneComponents())
 		{
 			if (!Component || !Component->IsActive())
@@ -178,33 +173,50 @@ void FSceneRenderer::GatherVisibleProxies()
 				continue;
 			}
 
-			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component))
+			if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component); Primitive && bDrawPrimitives)
 			{
-				if (bDrawPrimitives)
+				if (UMeshComponent* MeshComponent = Cast<UMeshComponent>(Primitive))
 				{
-					if (UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Primitive))
+					bool bShouldAdd = true;
+
+					// 메시 타입이 '스태틱 메시'인 경우에만 ShowFlag를 검사하여 추가 여부를 결정
+					if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(MeshComponent))
 					{
-						if (bDrawStaticMeshes)
-						{
-							Proxies.Primitives.Add(Primitive);
-						}
+						bShouldAdd = bDrawStaticMeshes;
 					}
-					else
+					// else if (USkeletalMeshComponent* SkeletalMeshComponent = ...)
+					// {
+					//     bShouldAdd = bDrawSkeletalMeshes;
+					// }
+
+					if (bShouldAdd)
 					{
-						// NOTE: 나머지 Primitive 타입 일단 플래그 검사 없이 추가 (추후 수정)
-						Proxies.Primitives.Add(Primitive);
+						Proxies.Meshes.Add(MeshComponent);
 					}
 				}
+				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Primitive))
+				{
+					Proxies.Billboards.Add(BillboardComponent);
+				}
+				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Primitive))
+				{
+					Proxies.Billboards.Add(BillboardComponent);
+				}
+				//else if (UFireBallComponent* FireBallComponent = Cast<UFireBallComponent>(Primitive))
+				//{
+				//	Proxies.FireBalls.Add(FireBallComponent);
+				//}
 			}
-			else if (UDecalComponent* Decal = Cast<UDecalComponent>(Component))
+			else if (UDecalComponent* DecalComponent = Cast<UDecalComponent>(Component); DecalComponent && bDrawDecals)
 			{
 				FDecalStatManager::GetInstance().IncrementTotalDecalCount();
 
-				if (bDrawDecals)
-				{
-					Proxies.Decals.Add(Decal);
-				}
+				Proxies.Decals.Add(DecalComponent);
 			}
+			//else if (UHeightFogComponent* FogComponent = Cast<UHeightFogComponent>(Component); FogComponent && bDrawFog)
+			//{
+			//	SceneGlobals.Fogs.Add(FogComponent);
+			//}
 		}
 	}
 }
@@ -256,9 +268,19 @@ void FSceneRenderer::RenderOpaquePass()
 	RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual); // 깊이 쓰기 ON
 	RHIDevice->OMSetBlendState(false);
 
-	for (UPrimitiveComponent* Primitive : Proxies.Primitives)
+	for (UMeshComponent* MeshComponent : Proxies.Meshes)
 	{
-		Primitive->Render(OwnerRenderer, ViewMatrix, ProjectionMatrix);
+		MeshComponent->Render(OwnerRenderer, ViewMatrix, ProjectionMatrix);
+	}
+
+	for (UBillboardComponent* BillboardComponent : Proxies.Billboards)
+	{
+		BillboardComponent->Render(OwnerRenderer, ViewMatrix, ProjectionMatrix);
+	}
+
+	for (UTextRenderComponent* TextRenderComponent : Proxies.Texts)
+	{
+		TextRenderComponent->Render(OwnerRenderer, ViewMatrix, ProjectionMatrix);
 	}
 }
 
@@ -328,6 +350,14 @@ void FSceneRenderer::RenderDecalPass()
 
 void FSceneRenderer::RenderPostProcessingPasses()
 {
+	if (0 < SceneGlobals.Fogs.Num())
+	{
+		if (SceneGlobals.Fogs[0])
+		{
+			// SceneGlobals.Fogs[0] 를 사용
+		}
+	}
+
 	//// 1-1. 적용할 효과 목록을 구성합니다. (설정에 따라 동적으로 생성)
 	//std::vector<IPostProcessEffect*> effectChain;
 	//if (World->GetRenderSettings().IsFogEnabled())
@@ -458,7 +488,7 @@ void FSceneRenderer::FinalizeFrame()
 	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Culling))
 	{
 		int totalActors = static_cast<int>(World->GetActors().size());
-		uint64 visiblePrimitives = Proxies.Primitives.size();
+		uint64 visiblePrimitives = Proxies.Meshes.size();
 		UE_LOG("Total Actors: %d, Visible Primitives: %llu\r\n", totalActors, visiblePrimitives);
 	}
 }
