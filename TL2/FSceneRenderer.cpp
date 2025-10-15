@@ -114,8 +114,21 @@ void FSceneRenderer::RenderWireframePath()
 
 void FSceneRenderer::RenderSceneDepthPath()
 {
+    // ✅ 디버그: SceneRTV 전환 전 viewport 확인
+    D3D11_VIEWPORT vpBefore;
+    UINT numVP = 1;
+    RHIDevice->GetDeviceContext()->RSGetViewports(&numVP, &vpBefore);
+    UE_LOG("[RenderSceneDepthPath] BEFORE OMSetRenderTargets(Scene): Viewport(%.1f x %.1f) at (%.1f, %.1f)", 
+        vpBefore.Width, vpBefore.Height, vpBefore.TopLeftX, vpBefore.TopLeftY);
+
     // 1. Scene RTV와 Depth Buffer Clear
     RHIDevice->OMSetRenderTargets(ERTVMode::Scene);
+    
+    // ✅ 디버그: SceneRTV 전환 후 viewport 확인
+    D3D11_VIEWPORT vpAfter;
+    RHIDevice->GetDeviceContext()->RSGetViewports(&numVP, &vpAfter);
+    UE_LOG("[RenderSceneDepthPath] AFTER OMSetRenderTargets(Scene): Viewport(%.1f x %.1f) at (%.1f, %.1f)", 
+        vpAfter.Width, vpAfter.Height, vpAfter.TopLeftX, vpAfter.TopLeftY);
     
     float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
     RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetSceneRTV(), ClearColor);
@@ -124,9 +137,19 @@ void FSceneRenderer::RenderSceneDepthPath()
     // 2. Base Pass - Scene에 메시 그리기
     RenderOpaquePass();
 
+    // ✅ 디버그: BackBuffer 전환 전 viewport 확인
+    RHIDevice->GetDeviceContext()->RSGetViewports(&numVP, &vpBefore);
+    UE_LOG("[RenderSceneDepthPath] BEFORE OMSetRenderTargets(BackBuffer): Viewport(%.1f x %.1f)", 
+        vpBefore.Width, vpBefore.Height);
+
     // 3. BackBuffer Clear
     RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithoutDepth);
     RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetBackBufferRTV(), ClearColor);
+
+    // ✅ 디버그: BackBuffer 전환 후 viewport 확인
+    RHIDevice->GetDeviceContext()->RSGetViewports(&numVP, &vpAfter);
+    UE_LOG("[RenderSceneDepthPath] AFTER OMSetRenderTargets(BackBuffer): Viewport(%.1f x %.1f)", 
+        vpAfter.Width, vpAfter.Height);
 
     // 4. SceneDepth Post 프로세싱 처리
     RenderSceneDepthPostProcess();

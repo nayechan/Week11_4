@@ -57,6 +57,17 @@ void URenderer::BeginFrame()
 	// RS
 	RHIDevice->RSSetViewport();
 
+	// ✅ 디버그: BeginFrame에서 설정한 viewport 출력
+	D3D11_VIEWPORT vp;
+	UINT numViewports = 1;
+	RHIDevice->GetDeviceContext()->RSGetViewports(&numViewports, &vp);
+	static int frameCount = 0;
+	if (frameCount++ % 60 == 0) // 60프레임마다 출력
+	{
+		UE_LOG("[BeginFrame] Viewport: TopLeft(%.1f, %.1f), Size(%.1f x %.1f)", 
+			vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height);
+	}
+
 	//OM
 	//RHIDevice->OMSetBlendState();
 	RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithDepth);

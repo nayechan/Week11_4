@@ -48,6 +48,14 @@ void FViewport::BeginRenderFrame()
     viewport.TopLeftX = static_cast<float>(StartX);
     viewport.TopLeftY = static_cast<float>(StartY);
     D3DDeviceContext->RSSetViewports(1, &viewport);
+
+	// ✅ 디버그: 각 뷰포트가 설정한 viewport 출력
+	static int callCount = 0;
+	if (callCount++ % 60 == 0) // 60프레임마다 출력
+	{
+		UE_LOG("[FViewport::BeginRenderFrame] Viewport: TopLeft(%.1f, %.1f), Size(%.1f x %.1f)", 
+			viewport.TopLeftX, viewport.TopLeftY, viewport.Width, viewport.Height);
+	}
 }
 
 void FViewport::Render()
