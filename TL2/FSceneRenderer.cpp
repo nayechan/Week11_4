@@ -87,6 +87,7 @@ void FSceneRenderer::RenderLitPath()
 	// Base Pass
 	RenderOpaquePass();
 	RenderDecalPass();
+	RenderFireBallPass();
 
 	// 후처리 체인 실행
 	RenderPostProcessingPasses();

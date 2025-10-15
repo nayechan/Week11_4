@@ -167,10 +167,10 @@
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Color.cpp" />
     <ClCompile Include="DecalActor.cpp" />
-	<ClCompile Include="DecalComponent.cpp" />
-	<ClCompile Include="FakeSpotLightActor.cpp" />
-	<ClCompile Include="FireBallComponent.cpp" />
-	<ClCompile Include="FSceneRenderer.cpp" />
+    <ClCompile Include="DecalComponent.cpp" />
+    <ClCompile Include="FakeSpotLightActor.cpp" />
+    <ClCompile Include="FireBallComponent.cpp" />
+    <ClCompile Include="FSceneRenderer.cpp" />
     <ClCompile Include="Level.cpp" />
     <ClCompile Include="MeshBVH.cpp" />
     <ClCompile Include="OBB.cpp" />
@@ -327,6 +327,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="FireBallShader.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Primitive.hlsl">

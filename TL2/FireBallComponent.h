@@ -1,12 +1,9 @@
 ﻿#pragma once
-#include "Object.h"
 #include "Color.h"
 #include "PrimitiveComponent.h"
 #include "BoundingSphere.h"
 
-class UMaterial;
-class UStaticMesh;
-class UStaticMeshComponent;
+class UShader;
 
 /**
  * @brief 구 형태의 발광체를 표현하는 컴포넌트.

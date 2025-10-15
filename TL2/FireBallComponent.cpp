@@ -1,16 +1,25 @@
 ﻿#include "pch.h"
 #include "FireBallComponent.h"
+#include "Enums.h"
+#include "ResourceManager.h"
+#include "Shader.h"
 
 UFireBallComponent::UFireBallComponent()
 {
-	SetCanEverTick(true);
-	SetTickEnabled(true);
+	SetCanEverTick(false);
+	SetTickEnabled(false);
 
 	LightingShaderPath = "FireBallShader.hlsl";
+	LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath, EVertexLayoutType::PositionColorTexturNormal);
+	if (!LightingShader)
+	{
+		UE_LOG("UFireBallComponent: failed to load fireball lighting shader '%s'", LightingShaderPath.c_str());
+	}
 }
 
 UFireBallComponent::~UFireBallComponent()
 {
+	LightingShader = nullptr;
 	ShadowResources = nullptr;
 }
 
