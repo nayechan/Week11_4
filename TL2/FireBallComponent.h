@@ -26,7 +26,7 @@ public:
 	// Registration은 ActorComponent의 base 메소드 그대로 사용
 
 	// ─────────────── Rendering ───────────────
-	void Render(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) override;
+	void RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveComponent* Target, const FMatrix& View, const FMatrix& Proj);
 	void RenderDebugVolume(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) const;
 
 	// ─────────────── Parameters ───────────────

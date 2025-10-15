@@ -3,6 +3,8 @@
 #include "ResourceManager.h"
 #include "VertexData.h"
 
+struct FLinearColor;
+
 enum class EComparisonFunc
 {
 	Always,
@@ -61,7 +63,8 @@ public:
     void UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo);
     void UpdateColorConstantBuffers(const FVector4& InColor);
     void UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec);
-    void UpdateDecalBuffer(const FMatrix& DecalMatrix, const float InOpacity);
+	void UpdateDecalBuffer(const FMatrix& DecalMatrix, const float InOpacity);
+	void UpdateFireBallConstantBuffers(const FVector& Center, float Radius, float Intensity, float Falloff, const FLinearColor& Color);
 
 	void IASetPrimitiveTopology();
 	void RSSetState(ERasterizerMode ViewModeIndex);
@@ -168,6 +171,7 @@ private:
     ID3D11Buffer* PixelConstCB{};
     ID3D11Buffer* UVScrollCB{};
     ID3D11Buffer* DecalCB{};
+	ID3D11Buffer* FireBallCB{};
 
 	ID3D11Buffer* ConstantBuffer{};
 

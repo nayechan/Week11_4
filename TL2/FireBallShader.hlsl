@@ -9,10 +9,10 @@ cbuffer ViewProjBuffer : register(b1)
     row_major float4x4 ProjectionMatrix;
 }
 
-cbuffer FireBallCB : register(b2)
+cbuffer FireBallCB : register(b7)
 {
     float3 gCenterW;
-    float gInvRadius; // 1.0 / Radius
+    float gRadius;
 
     float gIntensity;
     float gFalloff; // RadiusFallOff
@@ -56,7 +56,12 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     // 1) exp dist^2 falloff 계산해 Blend Factor 산출
     // f는 fire color 쪽에 곱해지는 값
     float dist = length(gCenterW - input.worldPos);
-    float t = saturate(dist * gInvRadius);
+    if(dist > gRadius)
+    {
+        discard; // radius 밖은 그리지 않음
+    }
+    
+    float t = saturate(dist / gRadius);
     float f = exp(-gFalloff * t * t);
 
     // f > 0이라 경계 뚝 끊기지 않게 smoothstep로 처리
