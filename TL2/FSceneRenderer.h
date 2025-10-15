@@ -33,6 +33,11 @@ public:
 	void Render();
 
 private:
+	// Render Path
+	void RenderLitPath();
+	void RenderWireframePath();
+	void RenderSceneDepthPath();
+
 	/** @brief 렌더링에 필요한 포인터들이 유효한지 확인합니다. */
 	bool IsValid() const;
 
@@ -54,6 +59,9 @@ private:
 	/** @brief 데칼(Decal)을 렌더링하는 패스입니다. */
 	void RenderDecalPass();
 
+	void RenderPostProcessingPasses();
+	void RenderSceneDepthPostProcess();
+
 	/** @brief 그리드 등 에디터 전용 객체들을 렌더링하는 패스입니다. */
 	void RenderEditorPrimitivesPass();
 
@@ -73,7 +81,7 @@ private:
 	ACameraActor* Camera;
 	FViewport* Viewport;
 	URenderer* OwnerRenderer;
-	D3D11RHI* RHI;
+	D3D11RHI* RHIDevice;
 
 	// --- 프레임 동안 계산되고 사용되는 데이터 ---
 	FMatrix ViewMatrix;

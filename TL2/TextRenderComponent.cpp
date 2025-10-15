@@ -151,7 +151,7 @@ void UTextRenderComponent::Render(URenderer* Renderer, const FMatrix& View, cons
 
     Renderer->GetRHIDevice()->OMSetDepthStencilState(EComparisonFunc::LessEqual);
     // 텍스트 빌보드도 이 구간에서만 백페이스 컬링 비활성화
-    Renderer->GetRHIDevice()->RSSetNoCullState();
+    Renderer->GetRHIDevice()->RSSetState(ERasterizerMode::Solid_NoCull);
     Renderer->DrawIndexedPrimitiveComponent(this, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     // 상태 복원
     //Renderer->GetRHIDevice()->RSSetState(EViewModeIndex::VMI_Unlit);

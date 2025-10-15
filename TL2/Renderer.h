@@ -25,7 +25,6 @@ public:
 	void EndFrame();
 
 	// Viewport size for current draw context (used by overlay/gizmo scaling)
-	void SetViewModeType(EViewModeIndex ViewModeIndex);
 	void SetCurrentViewportSize(uint32 InWidth, uint32 InHeight) { CurrentViewportWidth = InWidth; CurrentViewportHeight = InHeight; }
 	uint32 GetCurrentViewportWidth() const { return CurrentViewportWidth; }
 	uint32 GetCurrentViewportHeight() const { return CurrentViewportHeight; }

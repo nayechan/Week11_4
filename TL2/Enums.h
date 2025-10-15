@@ -314,6 +314,7 @@ enum class EVertexLayoutType : uint8
     End,
 };
 
+// 에디터에서 설정할 수 있는 디버깅용 뷰 모드
 enum class EViewModeIndex : uint32
 {
     None,
@@ -322,8 +323,18 @@ enum class EViewModeIndex : uint32
     VMI_Unlit,
     VMI_Wireframe,
     VMI_Decal,
+    VMI_SceneDepth,
 
     End,
+};
+
+// RHI가 사용할 래스터라이저 상태
+enum class ERasterizerMode : uint32
+{
+    Solid,          // 면으로 채움 (기본값)
+    Wireframe,      // 선으로 그림
+    Solid_NoCull,   // 면으로 채우고, 뒷면 컬링 안 함(양면 그리기)
+    Decal           // 데칼 전용 상태 (Z-Fighting 방지용 DepthBias를 추가로 줌)
 };
 
 enum class EPrimitiveType : uint32

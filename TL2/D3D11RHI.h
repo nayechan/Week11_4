@@ -64,14 +64,13 @@ public:
     void UpdateDecalBuffer(const FMatrix& DecalMatrix, const float InOpacity);
 
 	void IASetPrimitiveTopology();
-	void RSSetState(EViewModeIndex ViewModeIndex);
+	void RSSetState(ERasterizerMode ViewModeIndex);
 	void RSSetViewport();
 	void OMSetRenderTargets();
 	void OMSetBlendState(bool bIsBlendMode);
 	void Present();
 	void PSSetDefaultSampler(UINT StartSlot);
 	void PSSetClampSampler(UINT StartSlot);
-	void RSSetNoCullState();
 
 	// Overlay precedence helpers
 	void OMSetDepthStencilState_OverlayWriteStencil();

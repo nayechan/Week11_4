@@ -242,20 +242,6 @@ void URenderer::DrawIndexedPrimitiveComponent(UBillboardComponent* Comp, D3D11_P
 	RHIDevice->OMSetBlendState(false);
 }
 
-void URenderer::SetViewModeType(EViewModeIndex ViewModeIndex)
-{
-	if (PreViewModeIndex != ViewModeIndex)
-	{
-		//UE_LOG("Change ViewMode");
-		RHIDevice->RSSetState(ViewModeIndex);
-		if (ViewModeIndex == EViewModeIndex::VMI_Wireframe)
-			RHIDevice->UpdateColorConstantBuffers(FVector4{ 1.f, 0.f, 0.f, 1.f });
-		else
-			RHIDevice->UpdateColorConstantBuffers(FVector4{ 1.f, 1.f, 1.f, 0.f });
-		PreViewModeIndex = ViewModeIndex;
-	}
-}
-
 void URenderer::InitializeLineBatch()
 {
 	// Create UDynamicMesh for efficient line batching
