@@ -497,7 +497,7 @@ void FSceneRenderer::RenderPostProcessingPasses()
 	RHIDevice->GetDeviceContext()->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	// 텍스쳐 관련 설정
-	ID3D11ShaderResourceView* DepthSRV = RHIDevice->GetSRV(RHI_SRV_Index::Scene);
+	ID3D11ShaderResourceView* DepthSRV = RHIDevice->GetSRV(RHI_SRV_Index::SceneDepth);
 	if (!DepthSRV)
 	{
 		UE_LOG("Depth SRV is null!\n");
