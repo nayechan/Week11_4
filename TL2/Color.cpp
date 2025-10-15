@@ -8,6 +8,15 @@
 // Operators
 // ==============================================================================
 
+inline FLinearColor& FLinearColor::operator=(const FVector4& Other)
+{
+    R = Other.X;
+    G = Other.Y;
+    B = Other.Z;
+    A = 1.0f;
+    return *this;
+}
+
 inline FLinearColor FLinearColor::operator+(const FLinearColor& Other) const
 {
     return FLinearColor(R + Other.R, G + Other.G, B + Other.B, A + Other.A);

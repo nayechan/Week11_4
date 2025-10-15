@@ -66,6 +66,7 @@
 #include "UI/UIManager.h"
 #include "ResourceManager.h"
 
+#include "JsonSerializer.h"
 
 #define RESOURCE UResourceManager::GetInstance()
 #define UI UUIManager::GetInstance()

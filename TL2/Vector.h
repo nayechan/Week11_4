@@ -807,6 +807,57 @@ struct alignas(16) FMatrix
 	static FMatrix PerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf);
 	static FMatrix OrthoLH(float Width, float Height, float Zn, float Zf);
 	static FMatrix OrthoLH_XForward(float Width, float Height, float Xn, float Xf);
+
+	// Perspective Projection 역행렬 계산 (Left-Handed)
+	// PerspectiveFovLH로 생성된 투영 행렬의 역행렬을 계산합니다
+	static FMatrix InversePerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf)
+	{
+		float YScale = 1.0f / std::tan(FovY * 0.5f);
+		float XScale = YScale / Aspect;
+		
+		// 원본 투영 행렬의 주요 성분들
+		float A = Zf / (Zf - Zn);
+		float B = (-Zn * Zf) / (Zf - Zn);
+		
+		FMatrix invProj{};
+		invProj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f / XScale);
+		invProj.Rows[1] = _mm_set_ps(0.0f, 0.0f, 1.0f / YScale, 0.0f);
+		invProj.Rows[2] = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+		invProj.Rows[3] = _mm_set_ps(1.0f / B, 1.0f, 0.0f, -A / B);
+		
+		return invProj;
+	}
+	
+	// 이미 생성된 Perspective Projection 행렬의 역행렬을 계산합니다
+	FMatrix InversePerspectiveProjection() const
+	{
+		// 투영 행렬의 구조:
+		// [XScale,  0,      0,     0]
+		// [0,       YScale, 0,     0]
+		// [0,       0,      A,     1]
+		// [0,       0,      B,     0]
+		
+		float XScale = M[0][0];
+		float YScale = M[1][1];
+		float A = M[2][2];
+		float B = M[3][2];
+		
+		// 안전성 체크
+		if (std::fabs(XScale) < KINDA_SMALL_NUMBER ||
+		    std::fabs(YScale) < KINDA_SMALL_NUMBER ||
+		    std::fabs(B) < KINDA_SMALL_NUMBER)
+		{
+			return FMatrix::Identity();
+		}
+		
+		FMatrix invProj{};
+		invProj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f / XScale);
+		invProj.Rows[1] = _mm_set_ps(0.0f, 0.0f, 1.0f / YScale, 0.0f);
+		invProj.Rows[2] = _mm_set_ps(0.0f, 0.0f, 0.0f, 0.0f);
+		invProj.Rows[3] = _mm_set_ps(1.0f / B, 1.0f, 0.0f, -A / B);
+		
+		return invProj;
+	}
 };
 
 // ─────────────────────────────
@@ -1006,7 +1057,7 @@ inline FMatrix FMatrix::PerspectiveFovLH(float FovY, float Aspect, float Zn, flo
 	FMatrix proj{};
 	proj.Rows[0] = _mm_set_ps(0.0f, 0.0f, 0.0f, XScale);
 	proj.Rows[1] = _mm_set_ps(0.0f, 0.0f, YScale, 0.0f);
-	proj.Rows[2] = _mm_set_ps(1.0f, Zf / (Zf - Zn), 0.0f, 0.0f);
+	proj.Rows[2] = _mm_set_ps(1.0f, Zf / (Zf - Zn), 0.0f, 0.0f); // ?? 왜 마지막에 1.0f ??
 	proj.Rows[3] = _mm_set_ps(0.0f, (-Zn * Zf) / (Zf - Zn), 0.0f, 0.0f);
 	return proj;
 }

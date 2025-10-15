@@ -337,6 +337,28 @@ enum class ERasterizerMode : uint32
     Decal           // 데칼 전용 상태 (Z-Fighting 방지용 DepthBias를 추가로 줌)
 };
 
+// RHI가 사용할 RTV
+enum class ERTVMode : uint32
+{
+    Scene,      // 장면 렌더 (기본값)
+	BackBufferWithDepth,
+	BackBufferWithoutDepth
+};
+
+// RHI가 사용하는 텍스쳐들의 SRV
+enum class RHI_SRV_Index : uint32
+{
+	Scene,      // 장면 렌더 결과
+	SceneDepth  // 장면 깊이
+};
+
+enum class RHI_Sampler_Index : uint32
+{
+    Default,    // 기본 샘플러 (반복, 선형 필터링)
+    LinearClamp,
+	PointClamp
+};
+
 enum class EPrimitiveType : uint32
 {
     None,

@@ -496,6 +496,20 @@ void UResourceManager::InitShaderILMap()
                  D3D11_INPUT_PER_VERTEX_DATA, 0 });
     ShaderToInputLayoutMap["Billboard.hlsl"] = layout;
     layout.clear();
+    
+
+    // ────────────────────────────────
+    // Quad 렌더링을 쓰는 Shader들 (Position + UV)
+    // ────────────────────────────────
+    layout.Add({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+                 D3D11_INPUT_PER_VERTEX_DATA, 0 });
+    layout.Add({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 48,
+                 D3D11_INPUT_PER_VERTEX_DATA, 0 });
+    ShaderToInputLayoutMap["Fog.hlsl"] = layout;
+    ShaderToInputLayoutMap["SceneDepth.hlsl"] = layout;
+    layout.clear();
+    
+    ShaderToInputLayoutMap["FullScreenTriangle.vs.hlsl"] = {};  // FullScreenTriangle 는 InputLayout을 사용하지 않는다
 }
 
 TArray<D3D11_INPUT_ELEMENT_DESC>& UResourceManager::GetProperInputLayout(const FString& InShaderName)

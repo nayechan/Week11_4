@@ -90,7 +90,7 @@ LRESULT CALLBACK UEditorEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
 
             UINT newWidth = static_cast<UINT>(ClientWidth);
             UINT newHeight = static_cast<UINT>(ClientHeight);
-            GEngine.RHIDevice.ResizeSwapChain(newWidth, newHeight);
+            GEngine.RHIDevice.OnResize(newWidth, newHeight);
             EditorINI["WindowWidth"] = std::to_string(newWidth);
             EditorINI["WindowHeight"] = std::to_string(newHeight);
 

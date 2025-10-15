@@ -130,12 +130,19 @@ public:
 					continue;
 				}
 
+				// Parse face line and trim at '#' or newline
 				std::stringstream wss(Face);
 				FString VertexDef;
 
 				TArray<FFaceVertex> LineFaceVertices;
 				while (wss >> VertexDef)
 				{
+					// '#'을 만나면 주석 처리 (이후 데이터 무시)
+					if (VertexDef[0] == '#')
+					{
+						break;
+					}
+					
 					FFaceVertex FaceVertex = ParseVertexDef(VertexDef);
 					LineFaceVertices.push_back(FaceVertex);
 				}

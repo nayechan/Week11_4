@@ -37,7 +37,7 @@ public:
     FMatrix GetViewMatrix() const;
     FMatrix GetProjectionMatrix() const;
     FMatrix GetProjectionMatrix(float ViewportAspectRatio) const;
-    FMatrix GetProjectionMatrix(float ViewportAspectRatio, FViewport* Viewport) const;//직교 투영 화면 heig조정에 대응하기 위한 코드 
+    FMatrix GetProjectionMatrix(float ViewportAspectRatio, FViewport* Viewport) const;//직교 투영 화면 heig조정에 대응하기 위한 코드. 실제로 현재 호출되는 코드
     // Directions in world space
     FVector GetForward() const;
     FVector GetRight() const;

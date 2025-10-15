@@ -258,6 +258,38 @@ public:
 		return false;
 	}
 
+	/**
+	 * @brief JSON 객체에서 키를 찾아 FVector4 값을 안전하게 읽어옵니다.
+	 * @return 성공하면 true, 실패하면 false를 반환합니다.
+	 */
+	static bool ReadVector4(const JSON& InJson, const FString& InKey, FVector4& OutValue, const FVector4& InDefaultValue = FVector4(0,0,0,0), bool bInUseLog = true)
+	{
+		if (InJson.hasKey(InKey))
+		{
+			const JSON& VectorJson = InJson.at(InKey);
+			if (VectorJson.JSONType() == JSON::Class::Array && VectorJson.size() == 4)
+			{
+				try
+				{
+					OutValue = {
+						static_cast<float>(VectorJson.at(0).ToFloat()),
+						static_cast<float>(VectorJson.at(1).ToFloat()),
+						static_cast<float>(VectorJson.at(2).ToFloat()),
+						static_cast<float>(VectorJson.at(3).ToFloat())
+					};
+					return true;
+				}
+				catch (const std::exception&)
+				{
+				}
+			}
+		}
+		if (bInUseLog)
+			UE_LOG("[JsonSerializer] %s Vector4 파싱에 실패했습니다 (기본값 사용)", InKey.c_str());
+		OutValue = InDefaultValue;
+		return false;
+	}
+
 	//====================================================================================
 	// Converting To JSON
 	//====================================================================================
@@ -269,6 +301,12 @@ public:
 		return VectorArray;
 	}
 
+	static JSON Vector4ToJson(const FVector4& InVector)
+	{
+		JSON VectorArray = JSON::Make(JSON::Class::Array);
+		VectorArray.append(InVector.X, InVector.Y, InVector.Z, InVector.W);
+		return VectorArray;
+	}
 
 	static JSON FloatToArrayJson(const float& InFloat)
 	{

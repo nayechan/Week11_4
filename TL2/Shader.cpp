@@ -109,13 +109,17 @@ void UShader::CreateInputLayout(ID3D11Device* Device, const FString& InShaderPat
     const D3D11_INPUT_ELEMENT_DESC* layout = descArray.data();
     uint32 layoutCount = static_cast<uint32>(descArray.size());
 
-    HRESULT hr = Device->CreateInputLayout(
-        layout,
-        layoutCount,
-        VSBlob->GetBufferPointer(), 
-        VSBlob->GetBufferSize(),
-        &InputLayout);
-    assert(SUCCEEDED(hr));
+    // InputLayout을 사용하지 않는 VS를 위한 처리
+    if (0 < layoutCount)
+    {
+        HRESULT hr = Device->CreateInputLayout(
+            layout,
+            layoutCount,
+            VSBlob->GetBufferPointer(),
+            VSBlob->GetBufferSize(),
+            &InputLayout);
+        assert(SUCCEEDED(hr));
+    }
 }
 
 void UShader::ReleaseResources()

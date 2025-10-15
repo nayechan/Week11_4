@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include <string>
 #include "TargetActorTransformWidget.h"
 #include "UI/UIManager.h"
@@ -22,6 +22,8 @@
 #include "DecalComponent.h"
 #include "PerspectiveDecalComponent.h"
 #include "FireBallComponent.h"
+#include "HeightFogComponent.h"
+#include "Color.h"
 
 using namespace std;
 
@@ -42,6 +44,7 @@ namespace
 				Result.push_back({ "Static Mesh Component", UStaticMeshComponent::StaticClass(), "Static mesh 렌더링용 컴포넌트" });
 				Result.push_back({ "Billboard Component", UBillboardComponent::StaticClass(), "빌보드 텍스쳐 표시" });
 				Result.push_back({ "Decal Component", UDecalComponent::StaticClass(), "데칼" });
+				Result.push_back({ "Fog Component", UHeightFogComponent::StaticClass(), "Fog" });
 				Result.push_back({ "FireBall Component", UFireBallComponent::StaticClass(), "파이어볼" });
 				return Result;
 			}();
@@ -711,6 +714,51 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 				Billboard->SetTextureName(kFullPaths[currentIdx]);
 			}
 		}
+		ImGui::Separator();
+	}
+
+	if(UHeightFogComponent* HeightFog = Cast<UHeightFogComponent>(TargetComponentForDetails))
+	{
+		ImGui::Text("Height Fog Settings");
+		float FogDensity = HeightFog->GetFogDensity();
+		if (ImGui::DragFloat("Fog Density", &FogDensity, 0.01f))
+		{
+			HeightFog->SetFogDensity(FogDensity);
+		}
+		float FogHeightFalloff = HeightFog->GetFogHeightFalloff();
+		if (ImGui::DragFloat("Height Falloff", &FogHeightFalloff, 0.1f))
+		{
+			HeightFog->SetFogHeightFalloff(FogHeightFalloff);
+		}
+		float FogStartDistance = HeightFog->GetStartDistance();
+		if (ImGui::DragFloat("Start Distance", &FogStartDistance, 1.0f))
+		{
+			HeightFog->SetStartDistance(FogStartDistance);
+		}
+
+		float FogCutoffDistance = HeightFog->GetFogCutoffDistance();
+		if (ImGui::DragFloat("Cutoff Distance", &FogCutoffDistance, 10.0f))
+		{
+			HeightFog->SetFogCutoffDistance(FogCutoffDistance);
+		}
+
+		float FogMaxOpacity = HeightFog->GetFogMaxOpacity();
+		if (ImGui::SliderFloat("Max Opacity", &FogMaxOpacity, 0.0f, 1.0f))
+		{
+			HeightFog->SetFogMaxOpacity(FogMaxOpacity);
+		}
+
+		FLinearColor* Color = HeightFog->GetFogInscatteringColor();
+		float ColorArr[4] = { Color->R, Color->G, Color->B, Color->A };
+		if (ImGui::ColorEdit4("Inscattering Color", ColorArr))
+		{
+			// 포인터를 새로 할당하지 않고, 기존 객체의 값을 직접 수정
+			Color->R = ColorArr[0];
+			Color->G = ColorArr[1];
+			Color->B = ColorArr[2];
+			Color->A = ColorArr[3];
+		}
+
 		ImGui::Separator();
 	}
 

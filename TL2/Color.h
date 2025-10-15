@@ -10,6 +10,8 @@ struct FLinearColor
     explicit FLinearColor(const FVector& RGB) : R(RGB.X), G(RGB.Y), B(RGB.Z), A(1.0f) {};
     explicit FLinearColor(const FVector4& RGBA) : R(RGBA.X), G(RGBA.Y), B(RGBA.Z), A(RGBA.W) {};;
 
+	inline FLinearColor& operator=(const FVector4& Other);
+
     inline FLinearColor operator+(const FLinearColor& Other) const;
     inline FLinearColor operator+=(const FLinearColor& Other);
     inline FLinearColor operator-(const FLinearColor& Other) const;
@@ -30,6 +32,8 @@ struct FLinearColor
 
     float GetMax() const;
 	float GetMin() const;
+
+	FVector4 ToFVector4() const { return FVector4(R, G, B, A); }
 
     static float Dist(const FLinearColor& C1, const FLinearColor& C2);
     static float DistSquared(const FLinearColor& C1, const FLinearColor& C2);

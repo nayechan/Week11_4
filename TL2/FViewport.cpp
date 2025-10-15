@@ -40,14 +40,22 @@ void FViewport::Cleanup()
 void FViewport::BeginRenderFrame()
 {
     // 뷰포트 설정
-    D3D11_VIEWPORT viewport = {};
-    viewport.Width = static_cast<float>(SizeX);
-    viewport.Height = static_cast<float>(SizeY);
-    viewport.MinDepth = 0.0f;
-    viewport.MaxDepth = 1.0f;
-    viewport.TopLeftX = static_cast<float>(StartX);
-    viewport.TopLeftY = static_cast<float>(StartY);
-    D3DDeviceContext->RSSetViewports(1, &viewport);
+ //   D3D11_VIEWPORT viewport = {};
+ //   viewport.Width = static_cast<float>(SizeX);
+ //   viewport.Height = static_cast<float>(SizeY);
+ //   viewport.MinDepth = 0.0f;
+ //   viewport.MaxDepth = 1.0f;
+ //   viewport.TopLeftX = static_cast<float>(StartX);
+ //   viewport.TopLeftY = static_cast<float>(StartY);
+ //   D3DDeviceContext->RSSetViewports(1, &viewport);
+
+	//// ✅ 디버그: 각 뷰포트가 설정한 viewport 출력
+	//static int callCount = 0;
+	//if (callCount++ % 60 == 0) // 60프레임마다 출력
+	//{
+	//	UE_LOG("[FViewport::BeginRenderFrame] Viewport: TopLeft(%.1f, %.1f), Size(%.1f x %.1f)", 
+	//		viewport.TopLeftX, viewport.TopLeftY, viewport.Width, viewport.Height);
+	//}
 }
 
 void FViewport::Render()
