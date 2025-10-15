@@ -957,6 +957,23 @@ void D3D11RHI::ReleaseFrameBuffer()
         BackBufferRTV = nullptr;
     }
 
+    // ✅ Scene RTV/SRV/Texture 해제 추가
+    if (SceneSRV)
+    {
+        SceneSRV->Release();
+        SceneSRV = nullptr;
+    }
+    if (SceneRTV)
+    {
+        SceneRTV->Release();
+        SceneRTV = nullptr;
+    }
+    if (SceneRenderTexture)
+    {
+        SceneRenderTexture->Release();
+        SceneRenderTexture = nullptr;
+    }
+
     if (DepthStencilView)
     {
         DepthStencilView->Release();
@@ -1066,6 +1083,19 @@ void D3D11RHI::OnResize(UINT NewWidth, UINT NewHeight)
 {
     if (!Device || !DeviceContext || !SwapChain)
         return;
+
+    if (!SwapChain) return;
+
+    // 렌더링 완료까지 대기 (중요!)
+    if (DeviceContext) {
+        DeviceContext->Flush();
+    }
+
+    // 현재 렌더 타겟 언바인딩
+    if (DeviceContext) {
+        DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+    }
+
 
     // 기존 리소스 해제
     ReleaseFrameBuffer();
