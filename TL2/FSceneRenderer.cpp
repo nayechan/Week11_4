@@ -26,6 +26,7 @@
 #include "OBB.h"
 #include "BoundingSphere.h"
 #include "FireBallComponent.h"
+#include "HeightFogComponent.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, ACameraActor* InCamera, FViewport* InViewport, URenderer* InOwnerRenderer)
 	: World(InWorld)
