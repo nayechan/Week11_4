@@ -412,6 +412,11 @@ void FSceneRenderer::RenderSceneDepthPostProcess()
 	//RHI->DrawFullScreenQuad();
 }
 
+void FSceneRenderer::RenderFireBallPass()
+{
+	// FireBall 컴포넌트 렌더링 구현 예정
+}
+
 void FSceneRenderer::RenderEditorPrimitivesPass()
 {
 	for (AActor* EngineActor : World->GetEditorActors())

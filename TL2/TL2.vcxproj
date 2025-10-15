@@ -167,9 +167,10 @@
     <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Color.cpp" />
     <ClCompile Include="DecalActor.cpp" />
-    <ClCompile Include="DecalComponent.cpp" />
-    <ClCompile Include="FakeSpotLightActor.cpp" />
-    <ClCompile Include="FSceneRenderer.cpp" />
+	<ClCompile Include="DecalComponent.cpp" />
+	<ClCompile Include="FakeSpotLightActor.cpp" />
+	<ClCompile Include="FireBallComponent.cpp" />
+	<ClCompile Include="FSceneRenderer.cpp" />
     <ClCompile Include="Level.cpp" />
     <ClCompile Include="MeshBVH.cpp" />
     <ClCompile Include="OBB.cpp" />
@@ -374,6 +375,7 @@
     <ClInclude Include="DecalComponent.h" />
     <ClInclude Include="DecalStatManager.h" />
     <ClInclude Include="FakeSpotLightActor.h" />
+    <ClInclude Include="FireBallComponent.h" />
     <ClInclude Include="FSceneRenderer.h" />
     <ClInclude Include="JsonSerializer.h" />
     <ClInclude Include="Level.h" />
