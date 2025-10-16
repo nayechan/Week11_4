@@ -129,8 +129,8 @@ bool UEditorEngine::CreateMainWindow(HINSTANCE hInstance)
     // 윈도우 생성
     WCHAR WindowClass[] = L"JungleWindowClass";
     WCHAR Title[] = L"Mundi Engine";
-
-    WNDCLASSW wndclass = { 0, WndProc, 0, 0, 0, 0, 0, 0, 0, WindowClass };
+    HICON hIcon = (HICON)LoadImageW(NULL, L"Data\\Icon\\MND.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+    WNDCLASSW wndclass = { 0, WndProc, 0, 0, 0, hIcon, 0, 0, 0, WindowClass };
     RegisterClassW(&wndclass);
 
     int windowWidth = 1620, windowHeight = 1024;
