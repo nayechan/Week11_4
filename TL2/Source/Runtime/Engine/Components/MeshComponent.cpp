@@ -3,8 +3,9 @@
 #include "StaticMesh.h"
 #include "ObjManager.h"
 
+IMPLEMENT_CLASS(UMeshComponent)
+
 UMeshComponent::UMeshComponent()
-    
 {
 }
 
