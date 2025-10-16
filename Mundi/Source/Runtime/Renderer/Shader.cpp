@@ -31,7 +31,7 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
 #endif
 
 
-    if (EndsWith(InShaderPath, "VS.hlsl"))
+    if (EndsWith(InShaderPath, "_VS.hlsl"))
     {
         // Vertex Shader만 컴파일
         hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,
@@ -53,7 +53,7 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice)
 
         CreateInputLayout(InDevice, InShaderPath);
     }
-    else if (EndsWith(InShaderPath, "PS.hlsl"))
+    else if (EndsWith(InShaderPath, "_PS.hlsl"))
     {
         // Pixel Shader만 컴파일
         hr = D3DCompileFromFile(WFilePath.c_str(), nullptr, nullptr,

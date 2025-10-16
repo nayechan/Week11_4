@@ -763,8 +763,8 @@ void FSceneRenderer::ApplyScreenEffectsPass()
 	RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &SourceSRV);
 	RHIDevice->GetDeviceContext()->PSSetSamplers(0, 1, &SamplerState);
 
-	UShader* FullScreenTriangleVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Utility/FullScreenTriangle.vs.hlsl");
-	UShader* CopyTexturePS = UResourceManager::GetInstance().Load<UShader>("Shaders/PostProcess/FXAA.ps.hlsl");
+	UShader* FullScreenTriangleVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Utility/FullScreenTriangle_VS.hlsl");
+	UShader* CopyTexturePS = UResourceManager::GetInstance().Load<UShader>("Shaders/PostProcess/FXAA_PS.hlsl");
 	if (!FullScreenTriangleVS || !FullScreenTriangleVS->GetVertexShader() || !CopyTexturePS || !CopyTexturePS->GetPixelShader())
 	{
 		UE_LOG("FXAA 셰이더 없음!\n");
@@ -822,8 +822,8 @@ void FSceneRenderer::Blit(RHI_SRV_Index InSource, ERTVMode InDestination)
 	RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &SourceSRV);  // t0
 	RHIDevice->GetDeviceContext()->PSSetSamplers(0, 1, &SamplerState);
 
-	UShader* FullScreenTriangleVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Utility/FullScreenTriangle.vs.hlsl");
-	UShader* CopyTexturePS = UResourceManager::GetInstance().Load<UShader>("Shaders/PostProcess/CopyTexture.ps.hlsl");
+	UShader* FullScreenTriangleVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Utility/FullScreenTriangle_VS.hlsl");
+	UShader* CopyTexturePS = UResourceManager::GetInstance().Load<UShader>("Shaders/PostProcess/CopyTexture_PS.hlsl");
 	if (!FullScreenTriangleVS || !CopyTexturePS)
 	{
 		UE_LOG("셰이더 없음!\n");

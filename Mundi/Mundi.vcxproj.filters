@@ -120,9 +120,6 @@
     <FxCompile Include="Shaders\StaticMesh\StaticMeshShader.hlsl">
       <Filter>Shaders\StaticMesh</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\StaticMesh\StaticMeshPS.hlsl">
-      <Filter>Shaders\StaticMesh</Filter>
-    </FxCompile>
     <FxCompile Include="Shaders\Primitives\Primitive.hlsl">
       <Filter>Shaders\Primitives</Filter>
     </FxCompile>
@@ -132,16 +129,16 @@
     <FxCompile Include="Shaders\Effects\Fog.hlsl">
       <Filter>Shaders\Effects</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PostProcess\FXAA.ps.hlsl">
+    <FxCompile Include="Shaders\PostProcess\FXAA_PS.hlsl">
       <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\PostProcess\CopyTexture.ps.hlsl">
+    <FxCompile Include="Shaders\PostProcess\CopyTexture_PS.hlsl">
       <Filter>Shaders\PostProcess</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Utility\SceneDepth.hlsl">
       <Filter>Shaders\Utility</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Utility\FullScreenTriangle.vs.hlsl">
+    <FxCompile Include="Shaders\Utility\FullScreenTriangle_VS.hlsl">
       <Filter>Shaders\Utility</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\UI\Billboard.hlsl">
