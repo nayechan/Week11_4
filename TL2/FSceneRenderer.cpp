@@ -61,7 +61,7 @@ void FSceneRenderer::Render()
 	GatherVisibleProxies();
 
 	RenderEditorPrimitivesPass();	// 그리드 출력
-	RenderDebugPass();	// 빌보드나 선택한 물체의 경계 출력
+	RenderDebugPass();	//  선택한 물체의 경계 출력
 
 	if (EffectiveViewMode == EViewModeIndex::VMI_Lit)
 	{
@@ -258,10 +258,6 @@ void FSceneRenderer::GatherVisibleProxies()
 					{
 						Proxies.Meshes.Add(MeshComponent);
 					}
-				}
-				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(PrimitiveComponent))
-				{
-					Proxies.Billboards.Add(BillboardComponent);
 				}
 				else if (UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(PrimitiveComponent))
 				{
