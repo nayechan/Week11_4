@@ -823,6 +823,9 @@
     <ClInclude Include="Source\Runtime\RHI\SwapGuard.h">
       <Filter>Source\Runtime\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Runtime\RHI\ConstantBufferType.h">
+      <Filter>Source\Runtime\RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">
