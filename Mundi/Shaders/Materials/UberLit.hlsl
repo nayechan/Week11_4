@@ -78,11 +78,12 @@ struct FMaterial
 // --- 상수 버퍼 (Constant Buffers) ---
 // Extended to support both lighting and StaticMeshShader features
 
-// b0: ModelBuffer (VS) - WorldMatrix only for compatibility with existing code
+// b0: ModelBuffer (VS) - Matches ModelBufferType exactly (64 bytes)
 cbuffer ModelBuffer : register(b0)
 {
-    row_major float4x4 WorldMatrix;
-    row_major float4x4 WorldInverseTranspose; // For normal transformation with non-uniform scale
+    row_major float4x4 WorldMatrix;  // 64 bytes only
+    // Note: C++ ModelBufferType doesn't include WorldInverseTranspose
+    // Must use WorldMatrix for normal transformation (works for uniform scale)
 };
 
 // b1: ViewProjBuffer (VS) - Matches ViewProjBufferType
@@ -111,11 +112,14 @@ cbuffer ColorBuffer : register(b3)
 
 // b4: PixelConstBuffer (PS) - Material information from OBJ files
 // Must match FPixelConstBufferType exactly!
+// HLSL bool = 4 bytes, C++ bool = 1 byte -> need careful padding
 cbuffer PixelConstBuffer : register(b4)
 {
-    FMaterial Material;         // FMaterialInPs - 64 bytes
-    bool HasMaterial;           // 4 bytes   
-    bool HasTexture;            // 4 bytes
+    FMaterial Material;         // 64 bytes
+    bool HasMaterial;           // 4 bytes (HLSL)
+    bool HasTexture;            // 4 bytes (HLSL)
+    float2 Padding;             // 8 bytes to reach 80 bytes total
+    // Total: 64 + 4 + 4 + 8 = 80 bytes (matches C++ with 16 bool padding)
 };
 
 // b5: PSScrollCB (PS) - UV scroll animation
@@ -370,8 +374,10 @@ PS_INPUT mainVS(VS_INPUT Input)
     // Finally to clip space
     Out.Position = mul(viewPos, ProjectionMatrix);
 
-    // Transform normal to world space using inverse transpose for correct non-uniform scale handling
-    float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldInverseTranspose));
+    // Transform normal to world space
+    // Using WorldMatrix (works correctly for uniform scale only)
+    // For non-uniform scale, would need transpose(inverse(WorldMatrix))
+    float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldMatrix));
     Out.Normal = worldNormal;
 
     Out.TexCoord = Input.TexCoord;
