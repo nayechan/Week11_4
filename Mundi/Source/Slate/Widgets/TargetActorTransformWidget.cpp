@@ -23,6 +23,10 @@
 #include "PerspectiveDecalComponent.h"
 #include "FireBallComponent.h"
 #include "HeightFogComponent.h"
+#include "DirectionalLightComponent.h"
+#include "AmbientLightComponent.h"
+#include "PointLightComponent.h"
+#include "SpotLightComponent.h"
 #include "Color.h"
 
 using namespace std;
@@ -48,6 +52,10 @@ namespace
 				Result.push_back({ "Decal Component", UDecalComponent::StaticClass(), "데칼" });
 				Result.push_back({ "Fog Component", UHeightFogComponent::StaticClass(), "Fog" });
 				Result.push_back({ "FireBall Component", UFireBallComponent::StaticClass(), "파이어볼" });
+				Result.push_back({ "Directional Light Component", UDirectionalLightComponent::StaticClass(), "방향성 조명 (태양광)" });
+				Result.push_back({ "Ambient Light Component", UAmbientLightComponent::StaticClass(), "환경광 (전역 조명)" });
+				Result.push_back({ "Point Light Component", UPointLightComponent::StaticClass(), "점광원" });
+				Result.push_back({ "Spot Light Component", USpotLightComponent::StaticClass(), "스포트라이트 (원뿔형 조명)" });
 				return Result;
 			}();
 		return Options;
@@ -983,6 +991,363 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails()
 			FireBallComp->SetColor(Color);
 		}
 
+	}
+
+	// DirectionalLightComponent UI
+	if (UDirectionalLightComponent* DirLight = Cast<UDirectionalLightComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		ImGui::Text("방향성 조명 설정 (Directional Light)");
+
+		// Enable/Disable
+		bool bEnabled = DirLight->IsEnabled();
+		if (ImGui::Checkbox("활성화", &bEnabled))
+		{
+			DirLight->SetEnabled(bEnabled);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명을 켜거나 끕니다");
+		}
+
+		// Intensity
+		float Intensity = DirLight->GetIntensity();
+		if (ImGui::DragFloat("강도", &Intensity, 0.01f, 0.0f, 100.0f))
+		{
+			DirLight->SetIntensity(Intensity);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 밝기를 조절합니다 (0.0 ~ 100.0)");
+		}
+
+		// Light Color
+		FLinearColor LightColor = DirLight->GetLightColor();
+		float ColorArr[4] = { LightColor.R, LightColor.G, LightColor.B, LightColor.A };
+		if (ImGui::ColorEdit4("조명 색상", ColorArr))
+		{
+			DirLight->SetLightColor(FLinearColor(ColorArr[0], ColorArr[1], ColorArr[2], ColorArr[3]));
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색상을 설정합니다");
+		}
+
+		// Temperature
+		float Temperature = DirLight->GetTemperature();
+		if (ImGui::DragFloat("색온도 (K)", &Temperature, 10.0f, 1000.0f, 15000.0f))
+		{
+			DirLight->SetTemperature(Temperature);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)");
+		}
+
+		ImGui::Separator();
+	}
+
+	// AmbientLightComponent UI
+	if (UAmbientLightComponent* AmbientLight = Cast<UAmbientLightComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		ImGui::Text("환경광 설정 (Ambient Light)");
+
+		// Enable/Disable
+		bool bEnabled = AmbientLight->IsEnabled();
+		if (ImGui::Checkbox("활성화", &bEnabled))
+		{
+			AmbientLight->SetEnabled(bEnabled);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명을 켜거나 끕니다");
+		}
+
+		// Intensity
+		float Intensity = AmbientLight->GetIntensity();
+		if (ImGui::DragFloat("강도", &Intensity, 0.01f, 0.0f, 100.0f))
+		{
+			AmbientLight->SetIntensity(Intensity);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("환경광의 밝기를 조절합니다 (0.0 ~ 100.0)\n전체 씬에 균일하게 적용되는 기본 조명입니다");
+		}
+
+		// Light Color
+		FLinearColor LightColor = AmbientLight->GetLightColor();
+		float ColorArr[4] = { LightColor.R, LightColor.G, LightColor.B, LightColor.A };
+		if (ImGui::ColorEdit4("조명 색상", ColorArr))
+		{
+			AmbientLight->SetLightColor(FLinearColor(ColorArr[0], ColorArr[1], ColorArr[2], ColorArr[3]));
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("환경광의 색상을 설정합니다");
+		}
+
+		// Temperature
+		float Temperature = AmbientLight->GetTemperature();
+		if (ImGui::DragFloat("색온도 (K)", &Temperature, 10.0f, 1000.0f, 15000.0f))
+		{
+			AmbientLight->SetTemperature(Temperature);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)");
+		}
+
+		ImGui::Separator();
+	}
+
+	// SpotLightComponent UI (먼저 체크하여 PointLight UI가 표시되지 않도록 함)
+	if (USpotLightComponent* SpotLight = Cast<USpotLightComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		ImGui::Text("스포트라이트 설정 (Spot Light)");
+
+		// Enable/Disable
+		bool bEnabled = SpotLight->IsEnabled();
+		if (ImGui::Checkbox("활성화", &bEnabled))
+		{
+			SpotLight->SetEnabled(bEnabled);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명을 켜거나 끕니다");
+		}
+
+		// Intensity
+		float Intensity = SpotLight->GetIntensity();
+		if (ImGui::DragFloat("강도", &Intensity, 0.01f, 0.0f, 100.0f))
+		{
+			SpotLight->SetIntensity(Intensity);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 밝기를 조절합니다 (0.0 ~ 100.0)");
+		}
+
+		// Light Color
+		FLinearColor LightColor = SpotLight->GetLightColor();
+		float ColorArr[4] = { LightColor.R, LightColor.G, LightColor.B, LightColor.A };
+		if (ImGui::ColorEdit4("조명 색상", ColorArr))
+		{
+			SpotLight->SetLightColor(FLinearColor(ColorArr[0], ColorArr[1], ColorArr[2], ColorArr[3]));
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색상을 설정합니다");
+		}
+
+		// Temperature
+		float Temperature = SpotLight->GetTemperature();
+		if (ImGui::DragFloat("색온도 (K)", &Temperature, 10.0f, 1000.0f, 15000.0f))
+		{
+			SpotLight->SetTemperature(Temperature);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)");
+		}
+
+		// Attenuation Radius
+		float AttenuationRadius = SpotLight->GetAttenuationRadius();
+		if (ImGui::DragFloat("감쇠 반경", &AttenuationRadius, 1.0f, 0.0f, 10000.0f))
+		{
+			SpotLight->SetAttenuationRadius(AttenuationRadius);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명이 영향을 미치는 최대 거리를 설정합니다");
+		}
+
+		// Use Attenuation Coefficients
+		bool bUseCoefficients = SpotLight->IsUsingAttenuationCoefficients();
+		if (ImGui::Checkbox("감쇠 계수 사용", &bUseCoefficients))
+		{
+			SpotLight->SetUseAttenuationCoefficients(bUseCoefficients);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("감쇠 계수(C, L, Q)를 사용할지 감쇠 지수를 사용할지 선택합니다");
+		}
+
+		if (bUseCoefficients)
+		{
+			// Attenuation Coefficients (Constant, Linear, Quadratic)
+			FVector Attenuation = SpotLight->GetAttenuation();
+			if (ImGui::DragFloat3("감쇠 계수 (C, L, Q)", &Attenuation.X, 0.01f, 0.0f, 10.0f))
+			{
+				SpotLight->SetAttenuation(Attenuation);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("감쇠 계수 (상수, 일차, 이차)\n거리에 따른 조명 감쇠를 계산합니다\n1 / (C + L*d + Q*d²)");
+			}
+		}
+		else
+		{
+			// Falloff Exponent
+			float FalloffExponent = SpotLight->GetFalloffExponent();
+			if (ImGui::DragFloat("감쇠 지수", &FalloffExponent, 0.01f, 0.0f, 10.0f))
+			{
+				SpotLight->SetFalloffExponent(FalloffExponent);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("거리에 따른 조명 감쇠 정도를 조절합니다\n값이 클수록 빠르게 감쇠됩니다");
+			}
+		}
+
+		// Source Radius
+		float SourceRadius = SpotLight->GetSourceRadius();
+		if (ImGui::DragFloat("광원 반경", &SourceRadius, 1.0f, 0.0f, 1000.0f))
+		{
+			SpotLight->SetSourceRadius(SourceRadius);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("광원의 물리적 크기를 설정합니다\n큰 값일수록 부드러운 그림자를 생성합니다");
+		}
+
+		// Inner Cone Angle
+		float InnerConeAngle = SpotLight->GetInnerConeAngle();
+		if (ImGui::SliderFloat("내부 원뿔 각도", &InnerConeAngle, 0.0f, 90.0f, "%.1f deg"))
+		{
+			SpotLight->SetInnerConeAngle(InnerConeAngle);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("스포트라이트 중심의 밝은 영역 각도\n이 각도 내에서는 최대 밝기가 유지됩니다");
+		}
+
+		// Outer Cone Angle
+		float OuterConeAngle = SpotLight->GetOuterConeAngle();
+		if (ImGui::SliderFloat("외부 원뿔 각도", &OuterConeAngle, 0.0f, 90.0f, "%.1f deg"))
+		{
+			SpotLight->SetOuterConeAngle(OuterConeAngle);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("스포트라이트가 영향을 미치는 최대 각도\n내부 각도와 외부 각도 사이에서 감쇠됩니다");
+		}
+
+		ImGui::Separator();
+	}
+	// PointLightComponent UI (SpotLight가 아닐 때만 표시)
+	else if (UPointLightComponent* PointLight = Cast<UPointLightComponent>(TargetComponentForDetails))
+	{
+		ImGui::Separator();
+		ImGui::Text("점광원 설정 (Point Light)");
+
+		// Enable/Disable
+		bool bEnabled = PointLight->IsEnabled();
+		if (ImGui::Checkbox("활성화", &bEnabled))
+		{
+			PointLight->SetEnabled(bEnabled);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명을 켜거나 끕니다");
+		}
+
+		// Intensity
+		float Intensity = PointLight->GetIntensity();
+		if (ImGui::DragFloat("강도", &Intensity, 0.01f, 0.0f, 100.0f))
+		{
+			PointLight->SetIntensity(Intensity);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 밝기를 조절합니다 (0.0 ~ 100.0)");
+		}
+
+		// Light Color
+		FLinearColor LightColor = PointLight->GetLightColor();
+		float ColorArr[4] = { LightColor.R, LightColor.G, LightColor.B, LightColor.A };
+		if (ImGui::ColorEdit4("조명 색상", ColorArr))
+		{
+			PointLight->SetLightColor(FLinearColor(ColorArr[0], ColorArr[1], ColorArr[2], ColorArr[3]));
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색상을 설정합니다");
+		}
+
+		// Temperature
+		float Temperature = PointLight->GetTemperature();
+		if (ImGui::DragFloat("색온도 (K)", &Temperature, 10.0f, 1000.0f, 15000.0f))
+		{
+			PointLight->SetTemperature(Temperature);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)");
+		}
+
+		// Attenuation Radius
+		float AttenuationRadius = PointLight->GetAttenuationRadius();
+		if (ImGui::DragFloat("감쇠 반경", &AttenuationRadius, 1.0f, 0.0f, 10000.0f))
+		{
+			PointLight->SetAttenuationRadius(AttenuationRadius);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명이 영향을 미치는 최대 거리를 설정합니다");
+		}
+
+		// Use Attenuation Coefficients
+		bool bUseCoefficients = PointLight->IsUsingAttenuationCoefficients();
+		if (ImGui::Checkbox("감쇠 계수 사용", &bUseCoefficients))
+		{
+			PointLight->SetUseAttenuationCoefficients(bUseCoefficients);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("감쇠 계수(C, L, Q)를 사용할지 감쇠 지수를 사용할지 선택합니다");
+		}
+
+		if (bUseCoefficients)
+		{
+			// Attenuation Coefficients (Constant, Linear, Quadratic)
+			FVector Attenuation = PointLight->GetAttenuation();
+			if (ImGui::DragFloat3("감쇠 계수 (C, L, Q)", &Attenuation.X, 0.01f, 0.0f, 10.0f))
+			{
+				PointLight->SetAttenuation(Attenuation);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("감쇠 계수 (상수, 일차, 이차)\n거리에 따른 조명 감쇠를 계산합니다\n1 / (C + L*d + Q*d²)");
+			}
+		}
+		else
+		{
+			// Falloff Exponent
+			float FalloffExponent = PointLight->GetFalloffExponent();
+			if (ImGui::DragFloat("감쇠 지수", &FalloffExponent, 0.01f, 0.0f, 10.0f))
+			{
+				PointLight->SetFalloffExponent(FalloffExponent);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("거리에 따른 조명 감쇠 정도를 조절합니다\n값이 클수록 빠르게 감쇠됩니다");
+			}
+		}
+
+		// Source Radius
+		float SourceRadius = PointLight->GetSourceRadius();
+		if (ImGui::DragFloat("광원 반경", &SourceRadius, 1.0f, 0.0f, 1000.0f))
+		{
+			PointLight->SetSourceRadius(SourceRadius);
+		}
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("광원의 물리적 크기를 설정합니다\n큰 값일수록 부드러운 그림자를 생성합니다");
+		}
+
+		ImGui::Separator();
 	}
 }
 

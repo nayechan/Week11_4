@@ -17,11 +17,9 @@ public:
 	UBillboardComponent* GetBillboardComponent() const { return BillboardComponent; }
 	UPerspectiveDecalComponent* GetDecalComponent() const { return DecalComponent; }
 
-	// ───── 복사 관련 ────────────────────────────
 	void DuplicateSubObjects() override;
 	DECLARE_DUPLICATE(AFakeSpotLightActor)
 
-	// Serialize
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 protected:
 	UBillboardComponent* BillboardComponent{};

@@ -1,12 +1,18 @@
 ﻿#pragma once
 #include "ResourceBase.h"
 
+struct FShaderMacro
+{
+	FString Name;
+	FString Definition;
+};
+
 class UShader : public UResourceBase
 {
 public:
 	DECLARE_CLASS(UShader, UResourceBase)
 
-	void Load(const FString& ShaderPath, ID3D11Device* InDevice);
+	void Load(const FString& ShaderPath, ID3D11Device* InDevice, const TArray<FShaderMacro>& InMacros = TArray<FShaderMacro>());
 
 	ID3D11InputLayout* GetInputLayout() const { return InputLayout; }
 	ID3D11VertexShader* GetVertexShader() const { return VertexShader; }

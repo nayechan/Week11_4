@@ -4,9 +4,9 @@
 
 IMPLEMENT_CLASS(UPrimitiveComponent)
 
-void UPrimitiveComponent::SetMaterial(const FString& FilePath, EVertexLayoutType layoutType)
+void UPrimitiveComponent::SetMaterial(const FString& FilePath)
 {
-    Material = UResourceManager::GetInstance().Load<UMaterial>(FilePath, layoutType);
+    Material = UResourceManager::GetInstance().Load<UMaterial>(FilePath);
 }
 
 void UPrimitiveComponent::DuplicateSubObjects()

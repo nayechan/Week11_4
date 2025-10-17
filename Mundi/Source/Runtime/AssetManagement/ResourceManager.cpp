@@ -20,6 +20,23 @@ UResourceManager::~UResourceManager()
     Clear();
 }
 
+FString UResourceManager::GenerateShaderKey(const FString& InFilePath, const TArray<FShaderMacro>& InMacros)
+{
+    // 매크로 순서가 달라도 동일한 키를 생성하기 위해 정렬합니다.
+    TArray<FShaderMacro> SortedMacros = InMacros;
+    SortedMacros.Sort([](const FShaderMacro& A, const FShaderMacro& B)
+        {
+            return A.Name < B.Name;
+        });
+
+    FString Key = InFilePath;
+    for (const FShaderMacro& Macro : SortedMacros)
+    {
+        Key += "_" + Macro.Name + "=" + Macro.Definition;
+    }
+    return Key;
+}
+
 UResourceManager& UResourceManager::GetInstance()
 {
     static UResourceManager* Instance = nullptr;
@@ -69,7 +86,7 @@ UMaterial* UResourceManager::GetOrCreateMaterial(const FString& Name, EVertexLay
     }
     else
     {
-        Shader = UResourceManager::GetInstance().Load<UShader>(Name, layoutType);
+        Shader = UResourceManager::GetInstance().Load<UShader>(Name);
     }
     if (UResourceManager::GetInstance().Get<UTexture>(Name))
     {
@@ -458,10 +475,10 @@ void UResourceManager::CreateBoxWireframeMesh(const FVector& Min, const FVector&
 void UResourceManager::CreateDefaultShader()
 {
     // 템플릿 Load 멤버함수 호출해서 Resources[UShader의 typeIndex][shader 파일 이름]에 UShader 포인터 할당
-    Load<UShader>("Shaders/Primitives/Primitive.hlsl", EVertexLayoutType::PositionColor);
-    Load<UShader>("Shaders/StaticMesh/StaticMeshShader.hlsl", EVertexLayoutType::PositionColorTexturNormal);
-    Load<UShader>("Shaders/UI/TextBillboard.hlsl", EVertexLayoutType::PositionTextBillBoard);
-    Load<UShader>("Shaders/UI/Billboard.hlsl", EVertexLayoutType::PositionBillBoard);
+    Load<UShader>("Shaders/Primitives/Primitive.hlsl");
+    Load<UShader>("Shaders/StaticMesh/StaticMeshShader.hlsl");
+    Load<UShader>("Shaders/UI/TextBillboard.hlsl");
+    Load<UShader>("Shaders/UI/Billboard.hlsl");
 }
 
 void UResourceManager::InitShaderILMap()

@@ -56,7 +56,7 @@ public:
 
 	// ───── 복사 관련 ────────────────────────────
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UFireBallComponent);
+	DECLARE_DUPLICATE(UFireBallComponent)
 
 protected:
 	void OnTransformUpdatedChildImpl() override;

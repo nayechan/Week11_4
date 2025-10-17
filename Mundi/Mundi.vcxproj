@@ -199,6 +199,10 @@
     <ClCompile Include="Source\Runtime\Engine\Components\LocalLightComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\PointLightComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SpotLightComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -436,6 +440,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\PointLightActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Renderer\LightInfo.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AmbientLightComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\DirectionalLightComponent.h" />
@@ -473,7 +481,6 @@
     <ClInclude Include="Source\Runtime\AssetManagement\Quad.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\ResourceBase.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\ResourceManager.h" />
-    <ClInclude Include="Source\Runtime\AssetManagement\Sphere.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\StaticMesh.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\Texture.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\Triangle.h" />

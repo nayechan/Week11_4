@@ -23,7 +23,7 @@ UBillboardComponent::UBillboardComponent()
 	}
 
 	// HSLS 설정 
-	SetMaterial("Shaders/UI/Billboard.hlsl", EVertexLayoutType::PositionBillBoard);
+	SetMaterial("Shaders/UI/Billboard.hlsl");
 	//Material->SetShader(".hlsl", EVertexLayoutType::PositionColorTexturNormal);
 
 	// 일단 디폴트 텍스쳐로 설정하기 .
