@@ -44,32 +44,47 @@ struct FSpotLightInfo
 };
 
 // --- 상수 버퍼 (Constant Buffers) ---
-cbuffer PerObject : register(b0)
+// Following the existing codebase pattern from ConstantBufferType.h
+
+// b0: ModelBuffer (VS) - Matches ModelBufferType, extended with WorldInverseTranspose
+cbuffer ModelBuffer : register(b0)
 {
-    row_major float4x4 World;
+    row_major float4x4 WorldMatrix;
     row_major float4x4 WorldInverseTranspose; // For normal transformation with non-uniform scale
-    row_major float4x4 View;
-    row_major float4x4 Projection;
 };
 
-cbuffer Lighting : register(b1)
+// b1: ViewProjBuffer (VS) - Matches ViewProjBufferType
+cbuffer ViewProjBuffer : register(b1)
 {
-    FAmbientLightInfo Ambient;
-    FDirectionalLightInfo Directional;
-    FPointLightInfo PointLights[NUM_POINT_LIGHT];
-    FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
+    row_major float4x4 ViewMatrix;
+    row_major float4x4 ProjectionMatrix;
 };
 
+// b2: CameraBuffer (VS+PS) - Camera properties
 cbuffer CameraBuffer : register(b2)
 {
     float3 CameraPosition;
     float CameraPadding; // 16-byte alignment
 };
 
+// b3: MaterialBuffer (VS+PS) - Material properties
 cbuffer MaterialBuffer : register(b3)
 {
     float SpecularPower; // Material specular exponent (shininess)
     float3 MaterialPadding; // 16-byte alignment
+};
+
+// b8: LightBuffer (VS+PS) - Matches FLightBufferType from ConstantBufferType.h
+cbuffer LightBuffer : register(b8)
+{
+    FAmbientLightInfo AmbientLight;
+    FDirectionalLightInfo DirectionalLight;
+    FPointLightInfo PointLights[NUM_POINT_LIGHT];
+    FSpotLightInfo SpotLights[NUM_SPOT_LIGHT];
+    uint DirectionalLightCount;
+    uint PointLightCount;
+    uint SpotLightCount;
+    uint LightPadding;
 };
 
 // --- 텍스처 및 샘플러 리소스 ---
@@ -222,14 +237,14 @@ PS_INPUT mainVS(VS_INPUT Input)
     PS_INPUT Out;
 
     // Transform position to world space first
-    float4 worldPos = mul(float4(Input.Position, 1.0f), World);
+    float4 worldPos = mul(float4(Input.Position, 1.0f), WorldMatrix);
     Out.WorldPos = worldPos.xyz;
-    
+
     // Then to view space
-    float4 viewPos = mul(worldPos, View);
-    
+    float4 viewPos = mul(worldPos, ViewMatrix);
+
     // Finally to clip space
-    Out.Position = mul(viewPos, Projection);
+    Out.Position = mul(viewPos, ProjectionMatrix);
 
     // Transform normal to world space using inverse transpose for correct non-uniform scale handling
     float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldInverseTranspose));
@@ -245,10 +260,10 @@ PS_INPUT mainVS(VS_INPUT Input)
     float3 viewDir = normalize(CameraPosition - Out.WorldPos);
 
     // Ambient light
-    finalColor += CalculateAmbientLight(Ambient, Input.Color);
+    finalColor += CalculateAmbientLight(AmbientLight, Input.Color);
 
     // Directional light (diffuse + specular)
-    finalColor += CalculateDirectionalLight(Directional, worldNormal, viewDir, Input.Color, true, SpecularPower);
+    finalColor += CalculateDirectionalLight(DirectionalLight, worldNormal, viewDir, Input.Color, true, SpecularPower);
 
     // Point lights (diffuse + specular)
     for (int i = 0; i < NUM_POINT_LIGHT; i++)
@@ -298,10 +313,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float3 litColor = float3(0.0f, 0.0f, 0.0f);
 
     // Ambient light
-    litColor += CalculateAmbientLight(Ambient, baseColor);
+    litColor += CalculateAmbientLight(AmbientLight, baseColor);
 
     // Directional light (diffuse only)
-    litColor += CalculateDirectionalLight(Directional, normal, float3(0, 0, 0), baseColor, false, 0.0f);
+    litColor += CalculateDirectionalLight(DirectionalLight, normal, float3(0, 0, 0), baseColor, false, 0.0f);
 
     // Point lights (diffuse only)
     for (int i = 0; i < NUM_POINT_LIGHT; i++)
@@ -326,10 +341,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     float3 litColor = float3(0.0f, 0.0f, 0.0f);
 
     // Ambient light
-    litColor += CalculateAmbientLight(Ambient, baseColor);
+    litColor += CalculateAmbientLight(AmbientLight, baseColor);
 
     // Directional light (diffuse + specular)
-    litColor += CalculateDirectionalLight(Directional, normal, viewDir, baseColor, true, SpecularPower);
+    litColor += CalculateDirectionalLight(DirectionalLight, normal, viewDir, baseColor, true, SpecularPower);
 
     // Point lights (diffuse + specular)
     for (int i = 0; i < NUM_POINT_LIGHT; i++)
