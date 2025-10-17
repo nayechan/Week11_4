@@ -9,6 +9,11 @@
 // #define LIGHTING_MODEL_LAMBERT 1
 // #define LIGHTING_MODEL_PHONG 1
 
+// --- 감마 보정 옵션 ---
+// StaticMeshShader 호환을 위해 기본적으로 꺼져있음
+// 조명 사용 시 활성화 권장
+// #define USE_GAMMA_CORRECTION 1
+
 // --- 전역 상수 정의 ---
 #define NUM_POINT_LIGHT_MAX 16
 #define NUM_SPOT_LIGHT_MAX 16
@@ -105,19 +110,12 @@ cbuffer ColorBuffer : register(b3)
 };
 
 // b4: PixelConstBuffer (PS) - Material information from OBJ files
+// Must match FPixelConstBufferType exactly!
 cbuffer PixelConstBuffer : register(b4)
 {
-    FMaterial Material;         // OBJ material properties
-    // Flags
-    bool HasMaterial;
-    bool MaterialPadding1;
-    bool MaterialPadding2;
-    bool MaterialPadding3;
-    bool HasTexture;
-    bool TexturePadding1;
-    bool TexturePadding2;
-    bool TexturePadding3;
-    float4 ExtraPadding;        // Extra padding for 16-byte alignment
+    FMaterial Material;         // FMaterialInPs - 64 bytes
+    bool HasMaterial;           // 4 bytes   
+    bool HasTexture;            // 4 bytes
 };
 
 // b5: PSScrollCB (PS) - UV scroll animation
@@ -485,8 +483,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
         finalPixel.rgb = lerp(finalPixel.rgb, LerpColor.rgb, LerpColor.a);
     }
     
+#ifdef USE_GAMMA_CORRECTION
     // Apply gamma correction (Linear to sRGB)
     finalPixel.rgb = LinearToSRGB(finalPixel.rgb);
+#endif
 
     return finalPixel;
 
@@ -538,8 +538,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
         litColor += Material.EmissiveColor;
     }
 
+#ifdef USE_GAMMA_CORRECTION
     // Apply gamma correction (Linear to sRGB)
     litColor = LinearToSRGB(litColor);
+#endif
 
     // Preserve original alpha (lighting doesn't affect transparency)
     return float4(litColor, baseColor.a);
@@ -593,8 +595,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
         litColor += Material.EmissiveColor;
     }
 
+#ifdef USE_GAMMA_CORRECTION
     // Apply gamma correction (Linear to sRGB)
     litColor = LinearToSRGB(litColor);
+#endif
 
     // Preserve original alpha (lighting doesn't affect transparency)
     return float4(litColor, baseColor.a);
@@ -621,8 +625,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
         finalPixel.rgb *= texColor.rgb;
     }
     
+#ifdef USE_GAMMA_CORRECTION
     // Apply gamma correction (Linear to sRGB)
     finalPixel.rgb = LinearToSRGB(finalPixel.rgb);
+#endif
     
     return finalPixel;
 #endif
