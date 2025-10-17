@@ -97,7 +97,7 @@ void FSceneRenderer::Render()
 
 void FSceneRenderer::RenderLitPath()
 {
-	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorIdTarget);
+	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
 
 	// Base Pass
 	RenderOpaquePass();
@@ -737,7 +737,7 @@ void FSceneRenderer::RenderDebugPass()
 void FSceneRenderer::RenderOverayEditorPrimitivesPass()
 {
 	// 후처리된 최종 이미지 위에 원본 씬의 뎁스 버퍼를 사용하여 3D 오버레이를 렌더링합니다.
-	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
+	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
 
 	// 뎁스 버퍼를 Clear하고 LessEqual로 그리기 때문에 오버레이로 표시되는데 오버레이 끼리는 깊이 테스트가 가능함
 	RHIDevice->ClearDepthBuffer(1.0f, 0);

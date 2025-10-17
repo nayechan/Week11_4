@@ -343,7 +343,7 @@ enum class ERTVMode : uint32
 	BackBufferWithoutDepth,
     SceneColorTarget,
     SceneColorTargetWithoutDepth,
-    SceneColorIdTarget, //모델 그릴때만 사용, 후처리는 별도
+    SceneColorTargetWithId, //모델 그릴때만 사용, 후처리는 별도
 };
 
 // RHI가 사용하는 텍스쳐들의 SRV

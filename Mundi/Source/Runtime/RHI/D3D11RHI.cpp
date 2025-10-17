@@ -389,7 +389,7 @@ void D3D11RHI::OMSetRenderTargets(ERTVMode RTVMode)
         DeviceContext->OMSetRenderTargets(1, &CurrentTargetRTV, DepthStencilView);
         break;
     }
-    case ERTVMode::SceneColorIdTarget:
+    case ERTVMode::SceneColorTargetWithId:
     {
         ID3D11RenderTargetView* RTVList[2]{ GetCurrentTargetRTV(), IdBufferRTV };
         DeviceContext->OMSetRenderTargets(2, RTVList, DepthStencilView);
