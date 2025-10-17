@@ -61,7 +61,7 @@ public:
 
 public:
 	// clear
-	void ClearBackBuffer();
+	void ClearAllBuffer();
 	void ClearDepthBuffer(float Depth, UINT Stencil);
 	void CreateBlendState();
 

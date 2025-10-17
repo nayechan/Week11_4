@@ -81,18 +81,20 @@ void D3D11RHI::Release()
     ReleaseDeviceAndSwapChain();
 }
 
-void D3D11RHI::ClearBackBuffer()
+void D3D11RHI::ClearAllBuffer()
 {
     float ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f };
     float ClearId[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     DeviceContext->ClearRenderTargetView(BackBufferRTV, ClearColor);
+    DeviceContext->ClearRenderTargetView(GetCurrentTargetRTV(), ClearId);
     DeviceContext->ClearRenderTargetView(IdBufferRTV, ClearId);
+    
+    ClearDepthBuffer(1.0f, 0);                 // 깊이값 초기화
 }
 
 void D3D11RHI::ClearDepthBuffer(float Depth, UINT Stencil)
 {
     DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, Depth, Stencil);
-
 }
 
 void D3D11RHI::CreateBlendState()

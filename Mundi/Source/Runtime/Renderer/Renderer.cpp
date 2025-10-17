@@ -49,38 +49,14 @@ URenderer::~URenderer()
 
 void URenderer::BeginFrame()
 {
-	// 백버퍼/깊이버퍼를 클리어
-	//RHIDevice->ClearBackBuffer();  // 배경색
-	//RHIDevice->ClearDepthBuffer(1.0f, 0);                 // 깊이값 초기화
-	//RHIDevice->CreateBlendState();
 	RHIDevice->IASetPrimitiveTopology();
-	// RS
-	//RHIDevice->RSSetViewport();
 
-	// ✅ 디버그: BeginFrame에서 설정한 viewport 출력
-	//D3D11_VIEWPORT vp;
-	//UINT numViewports = 1;
-	//RHIDevice->GetDeviceContext()->RSGetViewports(&numViewports, &vp);
-	//static int frameCount = 0;
-	//if (frameCount++ % 60 == 0) // 60프레임마다 출력
-	//{
-	//	UE_LOG("[BeginFrame] Viewport: TopLeft(%.1f, %.1f), Size(%.1f x %.1f)", 
-	//		vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height);
-	//}
-
-	//OM
-	//RHIDevice->OMSetBlendState();
 	RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithDepth);
 
 	// 프레임별 데칼 통계를 추적하기 위해 초기화
 	FDecalStatManager::GetInstance().ResetFrameStats();
 
-	// TODO - 한 종류 메쉬만 스폰했을 때 깨지는 현상 방지 임시이므로 고쳐야합니다
-	// ★ 캐시 무효화
-	//PreShader = nullptr;
-	//PreUMaterial = nullptr; // 이거 주석 처리 시: 피킹하면 그 UStatucjMesh의 텍스쳐가 전부 사라짐
-	//PreStaticMesh = nullptr; // 이거 주석 처리 시: 메시가 이상해짐
-	//PreViewModeIndex = EViewModeIndex::VMI_Wireframe; // 어차피 SetViewModeType이 다시 셋
+	RHIDevice->ClearAllBuffer();
 }
 
 void URenderer::EndFrame()

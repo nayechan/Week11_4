@@ -197,13 +197,6 @@ void FSceneRenderer::PrepareView()
 
 	EffectiveViewMode = World->GetRenderSettings().GetViewModeIndex();
 
-
-	//RHIDevice->OnResize(Viewport->GetSizeX(), Viewport->GetSizeY());
-	float ClearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-	RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetCurrentTargetRTV(), ClearColor);
-	RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetIdBufferRTV(), ClearColor);
-	RHIDevice->ClearDepthBuffer(1.0f, 0);                 // 깊이값 초기화
-
 	// 뷰포트 크기 설정
 	D3D11_VIEWPORT Vp = {};
 	Vp.TopLeftX = static_cast<float>(Viewport->GetStartX());
