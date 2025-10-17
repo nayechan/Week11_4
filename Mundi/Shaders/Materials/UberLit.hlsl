@@ -127,6 +127,8 @@ float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float
 }
 
 // Specular Light Calculation (Blinn-Phong)
+// Note: Does not multiply by materialColor - specular is treated as light color only
+// If you want material-based specular, pass specular color as a parameter
 float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float intensity, float specularPower)
 {
     float3 halfVec = normalize(lightDir + viewDir);
@@ -139,6 +141,15 @@ float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 
 float CalculateAttenuation(float3 attenuation, float distance)
 {
     return 1.0f / (attenuation.x + attenuation.y * distance + attenuation.z * distance * distance);
+}
+
+// Attenuation with Falloff Exponent (for Point Lights)
+float CalculateAttenuationWithFalloff(float3 attenuation, float distance, float falloffExponent)
+{
+    float baseAttenuation = CalculateAttenuation(attenuation, distance);
+    // Apply falloff exponent to create steeper or gentler falloff curves
+    // falloffExponent = 1.0 means linear, > 1.0 means sharper falloff, < 1.0 means gentler
+    return pow(baseAttenuation, falloffExponent);
 }
 
 // Directional Light Calculation (Diffuse + Specular)
@@ -159,7 +170,7 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, flo
     return diffuse + specular;
 }
 
-// Point Light Calculation (Diffuse + Specular with Attenuation)
+// Point Light Calculation (Diffuse + Specular with Attenuation and Falloff)
 float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
 {
     float3 lightVec = light.Position - worldPos;
@@ -170,7 +181,9 @@ float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal
         return float3(0.0f, 0.0f, 0.0f);
 
     float3 lightDir = lightVec / distance;
-    float attenuation = CalculateAttenuation(light.Attenuation, distance);
+
+    // Use FalloffExponent to control attenuation curve
+    float attenuation = CalculateAttenuationWithFalloff(light.Attenuation, distance, light.FalloffExponent);
 
     // Diffuse
     float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor) * attenuation;
@@ -287,6 +300,10 @@ PS_INPUT mainVS(VS_INPUT Input)
     // Phong Shading: Pass data to pixel shader for per-pixel calculation
     Out.Color = Input.Color;
 
+#else
+    // No lighting model defined - use vertex color as-is
+    Out.Color = Input.Color;
+
 #endif
 
     return Out;
@@ -361,7 +378,10 @@ float4 mainPS(PS_INPUT Input) : SV_TARGET
     // Preserve original alpha (lighting doesn't affect transparency)
     return float4(litColor, baseColor.a);
 
+#else
+    // No lighting model defined - use texture color with vertex color
+    float4 finalPixel = Input.Color * texColor;
+    return finalPixel;
+
 #endif
-    
-    return float4(1.0f, 0.0f, 1.0f, 1.0f); // Magenta for error indication
 }
