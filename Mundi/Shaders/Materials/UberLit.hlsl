@@ -18,19 +18,20 @@ struct FAmbientLightInfo
 struct FDirectionalLightInfo
 {
     float4 Color;       // FLinearColor
-    float3 Direction;   // FVector
     float Intensity;
+    float3 Direction;   // FVector
 };
 
 struct FPointLightInfo
 {
     float4 Color;           // FLinearColor
     float3 Position;        // FVector
-    float AttenuationRadius; // float
-    float3 Attenuation;     // FVector (constant, linear, quadratic)
     float FalloffExponent;  // float
+    float3 Attenuation;     // FVector (constant, linear, quadratic)
+    float AttenuationRadius; // float
     float Intensity;
-    float3 Padding;         // FVector Padding
+    uint bUseAttenuationCoefficients; // uint32
+    float2 Padding;         // FVector2D Padding
 };
 
 struct FSpotLightInfo
@@ -42,8 +43,10 @@ struct FSpotLightInfo
     float OuterConeAngle;   // float
     float3 Attenuation;     // FVector
     float AttenuationRadius; // float
+    float FalloffExponent;  // float
     float Intensity;
-    float3 Padding;         // FVector Padding
+    uint bUseAttenuationCoefficients; // uint32
+    float Padding;          // float Padding
 };
 
 // --- 상수 버퍼 (Constant Buffers) ---
@@ -197,10 +200,26 @@ float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal
     if (distance > light.AttenuationRadius)
         return float3(0.0f, 0.0f, 0.0f);
 
+    // Protect against division by zero with epsilon
+    distance = max(distance, 0.0001f);
     float3 lightDir = lightVec / distance;
 
-    // Use FalloffExponent to control attenuation curve
-    float attenuation = CalculateAttenuationWithFalloff(light.Attenuation, distance, light.FalloffExponent);
+    // Calculate attenuation based on bUseAttenuationCoefficients flag
+    float attenuation;
+    if (light.bUseAttenuationCoefficients)
+    {
+        // Use FalloffExponent to control attenuation curve
+        attenuation = CalculateAttenuationWithFalloff(light.Attenuation, distance, light.FalloffExponent);
+    }
+    else
+    {
+        // Inverse square falloff (physically accurate)
+        // Scale by radius squared to normalize brightness across different radius values
+        float radiusSq = light.AttenuationRadius * light.AttenuationRadius;
+        attenuation = radiusSq / (distance * distance);
+        // Clamp to avoid over-bright values at very close distances
+        attenuation = min(attenuation, 1.0f);
+    }
 
     // Diffuse
     float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor) * attenuation;
@@ -225,6 +244,8 @@ float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, 
     if (distance > light.AttenuationRadius)
         return float3(0.0f, 0.0f, 0.0f);
 
+    // Protect against division by zero with epsilon
+    distance = max(distance, 0.0001f);
     float3 lightDir = lightVec / distance;
     float3 spotDir = normalize(light.Direction);
 
@@ -237,8 +258,22 @@ float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, 
     if (cosAngle < outerCos)
         return float3(0.0f, 0.0f, 0.0f);
 
-    // Distance attenuation using the Attenuation field from C++ struct
-    float distanceAttenuation = CalculateAttenuation(light.Attenuation, distance);
+    // Calculate distance attenuation based on bUseAttenuationCoefficients flag
+    float distanceAttenuation;
+    if (light.bUseAttenuationCoefficients)
+    {
+        // Use FalloffExponent to control attenuation curve
+        distanceAttenuation = CalculateAttenuationWithFalloff(light.Attenuation, distance, light.FalloffExponent);
+    }
+    else
+    {
+        // Inverse square falloff (physically accurate)
+        // Scale by radius squared to normalize brightness across different radius values
+        float radiusSq = light.AttenuationRadius * light.AttenuationRadius;
+        distanceAttenuation = radiusSq / (distance * distance);
+        // Clamp to avoid over-bright values at very close distances
+        distanceAttenuation = min(distanceAttenuation, 1.0f);
+    }
 
     // Smooth falloff between inner and outer cone
     float spotAttenuation = smoothstep(outerCos, innerCos, cosAngle);
