@@ -2,6 +2,34 @@
 #include "RHIDevice.h"
 #include "ResourceManager.h"
 #include "VertexData.h"
+#include "ConstantBufferType.h"
+
+
+#define DECLARE_CONSTANT_BUFFER(TYPE)\
+ID3D11Buffer* TYPE##Buffer{};
+#define CREATE_CONSTANT_BUFFER(TYPE)\
+CreateConstantBuffer(&TYPE##Buffer, sizeof(TYPE));
+#define RELEASE_CONSTANT_BUFFER(TYPE)\
+{TYPE##Buffer->Release(); TYPE##Buffer = nullptr;}
+
+
+#define DECLARE_UPDATE_CONSTANT_BUFFER_FUNC(TYPE) \
+	void UpdateConstantBuffer(const TYPE& Data)	\
+	{\
+		ConstantBufferUpdate(TYPE##Buffer, Data);\
+	}
+#define DECLARE_SET_CONSTANT_BUFFER_FUNC(TYPE) \
+	void SetConstantBuffer(const TYPE& Data)\
+	{\
+		ConstantBufferSet(TYPE##Buffer, TYPE##Slot, TYPE##IsVS, TYPE##IsPS);	\
+	}
+#define DECLARE_SET_UPDATE_CONSTANT_BUFFER_FUNC(TYPE) \
+	void SetAndUpdateConstantBuffer(const TYPE& Data)	\
+	{\
+		ConstantBufferSetUpdate(TYPE##Buffer, Data, TYPE##Slot, TYPE##IsVS, TYPE##IsPS);	\
+	}
+
+
 
 struct FLinearColor;
 
@@ -55,25 +83,28 @@ public:
 
 
 
-    void UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
-    void UpdateViewProjectionBuffers(const FMatrix& ViewMatrix, const FMatrix& ProjMatrix);
-    void UpdateModelBuffer(const FMatrix& ModelMatrix);
-    void UpdateBillboardConstantBuffers(const FVector& pos, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix, const FVector& CameraRight, const FVector& CameraUp);
-    void UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture);
-    void UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo);
-    void UpdateColorConstantBuffers(const FVector4& InColor);
+	CONSTANT_BUFFER_LIST(DECLARE_UPDATE_CONSTANT_BUFFER_FUNC)
+	CONSTANT_BUFFER_LIST(DECLARE_SET_CONSTANT_BUFFER_FUNC)
+	CONSTANT_BUFFER_LIST(DECLARE_SET_UPDATE_CONSTANT_BUFFER_FUNC)
+	template <typename T>
+	void ConstantBufferUpdate(ID3D11Buffer* ConstantBuffer, T& Data)
+	{
+		D3D11_MAPPED_SUBRESOURCE MSR;
+
+		DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR);
+		memcpy(MSR.pData, &Data, sizeof(T));
+		DeviceContext->Unmap(ConstantBuffer, 0);
+	}
+	template <typename T>
+	void ConstantBufferSetUpdate(ID3D11Buffer* ConstantBuffer, T& Data, const uint32 Slot, const bool bIsVS, const bool bIsPS)
+	{
+		ConstantBufferUpdate(ConstantBuffer, Data);
+		ConstantBufferSet(ConstantBuffer, Slot, bIsVS, bIsPS);
+		
+	}
+	void ConstantBufferSet(ID3D11Buffer* ConstantBuffer, uint32 Slot, bool bIsVS, bool bIsPS);
     void UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec);
-	void UpdateDecalBuffer(const FMatrix& DecalMatrix, const float InOpacity);
-	void UpdateFireBallConstantBuffers(const FVector& Center, float Radius, float Intensity, float Falloff, const FLinearColor& Color);
-
-	// D3D11RHI.h에 선언 추가
-	void UpdatePostProcessCB(float Near, float Far, bool IsOrthographic);
-	void UpdateInvViewProjCB(const FMatrix& InvView, const FMatrix& InvProj);
-	void UpdateFogCB(float FogDensity, float FogHeightFalloff, float StartDistance,
-		float FogCutoffDistance, const FVector4& FogInscatteringColor,
-		float FogMaxOpacity, float FogHeight);
-	void UpdateFXAACB(const FVector2D& InScreenSize, const FVector2D& InInvScreenSize, float InEdgeThresholdMin, float InEdgeThresholdMax, float InQualitySubPix, int InQualityIterations);
-
+	
 	void IASetPrimitiveTopology();
 	void RSSetState(ERasterizerMode ViewModeIndex);
 	void RSSetViewport();
@@ -142,7 +173,7 @@ private:
 	void CreateDeviceAndSwapChain(HWND hWindow); // 여기서 디바이스, 디바이스 컨택스트, 스왑체인, 뷰포트를 초기화한다
 	void CreateFrameBuffer();
 	void CreateRasterizerState();
-	void CreateConstantBuffer();
+	void CreateConstantBuffer(ID3D11Buffer** ConstantBuffer, uint32 Size);
 	void CreateDepthStencilState();
 	void CreateSamplerState();
 
@@ -202,23 +233,24 @@ private:
 	ID3D11ShaderResourceView* DepthSRV = nullptr;
 
     // 버퍼 핸들
-    ID3D11Buffer* ModelCB{};
-    ID3D11Buffer* ViewProjCB{};
-    ID3D11Buffer* HighLightCB{};
-    ID3D11Buffer* BillboardCB{};
-    ID3D11Buffer* ColorCB{};
-    ID3D11Buffer* PixelConstCB{};
-    ID3D11Buffer* UVScrollCB{};
-    ID3D11Buffer* DecalCB{};
-	ID3D11Buffer* FireBallCB{};
+	CONSTANT_BUFFER_LIST(DECLARE_CONSTANT_BUFFER)
+ //   ID3D11Buffer* ModelCB{};
+ //   ID3D11Buffer* ViewProjCB{};
+ //   ID3D11Buffer* HighLightCB{};
+ //   ID3D11Buffer* BillboardCB{};
+ //   ID3D11Buffer* ColorCB{};
+ //   ID3D11Buffer* PixelConstCB{};
+	  ID3D11Buffer* UVScrollCB{};
+ //   ID3D11Buffer* DecalCB{};
+	//ID3D11Buffer* FireBallCB{};
 
-	// PostProcess용 상수 버퍼
-	ID3D11Buffer* PostProcessCB{};
-	ID3D11Buffer* InvViewProjCB{};
-	ID3D11Buffer* FogCB{};
-	ID3D11Buffer* FXAACB{};
+	//// PostProcess용 상수 버퍼
+	//ID3D11Buffer* PostProcessCB{};
+	//ID3D11Buffer* InvViewProjCB{};
+	//ID3D11Buffer* FogCB{};
+	//ID3D11Buffer* FXAACB{};
 
-	ID3D11Buffer* ConstantBuffer{};
+	//ID3D11Buffer* ConstantBuffer{};
 
 	ID3D11SamplerState* DefaultSamplerState = nullptr;
 	ID3D11SamplerState* LinearClampSamplerState = nullptr;

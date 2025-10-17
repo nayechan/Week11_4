@@ -480,7 +480,8 @@ void FSceneRenderer::RenderPostProcessingPasses()
 
 	// 상수 버퍼 업데이트
 	ECameraProjectionMode ProjectionMode = Camera->GetCameraComponent()->GetProjectionMode();
-	RHIDevice->UpdatePostProcessCB(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic);
+	//RHIDevice->UpdatePostProcessCB(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic);
+	RHIDevice->SetAndUpdateConstantBuffer(PostProcessBufferType(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic));
 	FMatrix InvView = ViewMatrix.InverseAffine();
 	FMatrix InvProjection;
 	if (ProjectionMode == ECameraProjectionMode::Perspective)
@@ -491,9 +492,11 @@ void FSceneRenderer::RenderPostProcessingPasses()
 	{
 		InvProjection = ProjectionMatrix.InverseOrthographicProjection();
 	}
-	RHIDevice->UpdateInvViewProjCB(InvView, InvProjection);
+	//RHIDevice->UpdateInvViewProjCB(InvView, InvProjection);
+	RHIDevice->SetAndUpdateConstantBuffer(InvViewProjBufferType(InvView, InvProjection));
 	UHeightFogComponent* F = FogComponent;
-	RHIDevice->UpdateFogCB(F->GetFogDensity(), F->GetFogHeightFalloff(), F->GetStartDistance(), F->GetFogCutoffDistance(), F->GetFogInscatteringColor()->ToFVector4(), F->GetFogMaxOpacity(), F->GetFogHeight());
+	//RHIDevice->UpdateFogCB(F->GetFogDensity(), F->GetFogHeightFalloff(), F->GetStartDistance(), F->GetFogCutoffDistance(), F->GetFogInscatteringColor()->ToFVector4(), F->GetFogMaxOpacity(), F->GetFogHeight());
+	RHIDevice->SetAndUpdateConstantBuffer(FogBufferType(F->GetFogDensity(), F->GetFogHeightFalloff(), F->GetStartDistance(), F->GetFogCutoffDistance(), F->GetFogInscatteringColor()->ToFVector4(), F->GetFogMaxOpacity(), F->GetFogHeight()));
 
 	// Draw
 	RHIDevice->DrawFullScreenQuad();
@@ -546,7 +549,8 @@ void FSceneRenderer::RenderSceneDepthPostProcess()
 
 	// 상수 버퍼 업데이트
 	ECameraProjectionMode ProjectionMode = Camera->GetCameraComponent()->GetProjectionMode();
-	RHIDevice->UpdatePostProcessCB(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic);
+	//RHIDevice->UpdatePostProcessCB(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic);
+	RHIDevice->SetAndUpdateConstantBuffer(PostProcessBufferType(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic));
 
 	// Draw
 	RHIDevice->DrawFullScreenQuad();
@@ -681,14 +685,21 @@ void FSceneRenderer::ApplyScreenEffectsPass()
 		return;
 	}
 
-	RHIDevice->UpdateFXAACB(
+	//RHIDevice->UpdateFXAACB(
+	//FVector2D(static_cast<float>(RHIDevice->GetViewportWidth()), static_cast<float>(RHIDevice->GetViewportHeight())),
+	//	FVector2D(1.0f / static_cast<float>(RHIDevice->GetViewportWidth()), 1.0f / static_cast<float>(RHIDevice->GetViewportHeight())),
+	//	0.0833f,
+	//	0.166f,
+	//	1.0f,	// 0.75 가 기본값이지만 효과 강조를 위해 1로 설정
+	//	12
+		//);
+	RHIDevice->SetAndUpdateConstantBuffer(FXAABufferType(
 		FVector2D(static_cast<float>(RHIDevice->GetViewportWidth()), static_cast<float>(RHIDevice->GetViewportHeight())),
 		FVector2D(1.0f / static_cast<float>(RHIDevice->GetViewportWidth()), 1.0f / static_cast<float>(RHIDevice->GetViewportHeight())),
 		0.0833f,
 		0.166f,
 		1.0f,	// 0.75 가 기본값이지만 효과 강조를 위해 1로 설정
-		12
-	);
+		12));
 
 	RHIDevice->PrepareShader(FullScreenTriangleVS, CopyTexturePS);
 
@@ -751,7 +762,9 @@ void FSceneRenderer::CompositeToBackBuffer()
 
 void FSceneRenderer::FinalizeFrame()
 {
-	RHIDevice->UpdateHighLightConstantBuffers(false, FVector(1, 1, 1), 0, 0, 0, 0);
+	//RHIDevice->UpdateHighLightConstantBuffers(false, FVector(1, 1, 1), 0, 0, 0, 0);
+	RHIDevice->SetAndUpdateConstantBuffer(HighLightBufferType(false, FVector(1, 1, 1), 0, 0, 0, 0));
+
 
 	if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Culling))
 	{

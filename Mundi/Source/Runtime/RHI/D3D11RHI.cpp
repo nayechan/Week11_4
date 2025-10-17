@@ -2,144 +2,6 @@
 #include "StatsOverlayD2D.h"
 #include "Color.h"
 
-struct FConstants
-{
-    FVector WorldPosition;
-    float Scale;
-};
-// b0 in VS
-struct ModelBufferType
-{
-    FMatrix Model;
-};
-
-struct DecalBufferType
-{
-    FMatrix DecalMatrix;
-    float Opacity;
-};
-
-struct PostProcessBufferType // b0
-{
-    float Near;
-    float Far;
-    int IsOrthographic; // 0 = Perspective, 1 = Orthographic
-    float Padding; // 16바이트 정렬을 위한 패딩
-};
-
-static_assert(sizeof(PostProcessBufferType) % 16 == 0, "PostProcessBufferType size must be multiple of 16!");
-
-struct InvViewProjBufferType // b1
-{
-    FMatrix InvView;
-    FMatrix InvProj;
-};
-
-static_assert(sizeof(InvViewProjBufferType) % 16 == 0, "InvViewProjBufferType size must be multiple of 16!");
-
-struct FogBufferType // b2
-{
-    float FogDensity;
-    float FogHeightFalloff;
-    float StartDistance;
-    float FogCutoffDistance;
-
-	FVector4 FogInscatteringColor; // 16 bytes alignment 위해 중간에 넣음
-
-    float FogMaxOpacity;
-    float FogHeight; // fog base height
-    float Padding[2]; // 16바이트 정렬을 위한 패딩
-};
-static_assert(sizeof(FogBufferType) % 16 == 0, "FogBufferType size must be multiple of 16!");
-
-
-struct FXAABufferType // b2
-{
-    FVector2D ScreenSize; // 화면 해상도 (e.g., float2(1920.0f, 1080.0f))
-    FVector2D InvScreenSize; // 1.0f / ScreenSize (픽셀 하나의 크기)
-
-    float EdgeThresholdMin; // 엣지 감지 최소 휘도 차이 (0.0833f 권장)
-    float EdgeThresholdMax; // 엣지 감지 최대 휘도 차이 (0.166f 권장)
-    float QualitySubPix; // 서브픽셀 품질 (낮을수록 부드러움, 0.75 권장)
-    int32_t QualityIterations; // 엣지 탐색 반복 횟수 (12 권장)
-};
-static_assert(sizeof(FXAABufferType) % 16 == 0, "FXAABufferType size must be multiple of 16!");
-
-
-// b0 in PS
-struct FMaterialInPs
-{
-    FVector DiffuseColor; // Kd
-    float OpticalDensity; // Ni
-
-    FVector AmbientColor; // Ka
-    float Transparency; // Tr Or d
-
-    FVector SpecularColor; // Ks
-    float SpecularExponent; // Ns
-
-    FVector EmissiveColor; // Ke
-    uint32 IlluminationModel; // illum. Default illumination model to Phong for non-Pbr materials
-
-    FVector TransmissionFilter; // Tf
-    float dummy; // 4 bytes padding
-};
-
-struct FPixelConstBufferType
-{
-    FMaterialInPs Material;
-    bool bHasMaterial; // 1 bytes
-    bool Dummy[3]; // 3 bytes padding
-    bool bHasTexture; // 1 bytes
-    bool Dummy2[11]; // 11 bytes padding
-};
-
-static_assert(sizeof(FPixelConstBufferType) % 16 == 0, "PixelConstData size mismatch!");
-
-// b1
-struct ViewProjBufferType
-{
-    FMatrix View;
-    FMatrix Proj;
-};
-
-// b2
-struct HighLightBufferType
-{
-    uint32 Picked;
-    FVector Color;
-    uint32 X;
-    uint32 Y;
-    uint32 Z;
-    uint32 Gizmo;
-};
-
-struct ColorBufferType
-{
-    FVector4 Color;
-};
-
-
-struct BillboardBufferType
-{
-    FVector pos;
-    FMatrix View;
-    FMatrix Proj;
-    FMatrix InverseViewMat;
-    /*FVector cameraRight;
-    FVector cameraUp;*/
-};
-
-struct FireBallBufferType
-{
-	FVector Center;
-    float Radius;
-	float Intensity;
-    float Falloff;
-    float Padding[2];
-    FLinearColor Color;
-};
-
 void D3D11RHI::Initialize(HWND hWindow)
 {
     // 이곳에서 Device, DeviceContext, viewport, swapchain를 초기화한다
@@ -147,7 +9,8 @@ void D3D11RHI::Initialize(HWND hWindow)
     CreateFrameBuffer();
     CreateRasterizerState();
     CreateBlendState();
-    CreateConstantBuffer();
+    CONSTANT_BUFFER_LIST(CREATE_CONSTANT_BUFFER);
+
 	CreateDepthStencilState();
 	CreateSamplerState();
     UResourceManager::GetInstance().Initialize(Device,DeviceContext);
@@ -190,22 +53,23 @@ void D3D11RHI::Release()
     ReleaseSamplerState();
 
     // 상수버퍼
-    if (HighLightCB) { HighLightCB->Release(); HighLightCB = nullptr; }
-    if (ModelCB) { ModelCB->Release(); ModelCB = nullptr; }
-    if (ColorCB) { ColorCB->Release(); ColorCB = nullptr; }
-    if (ViewProjCB) { ViewProjCB->Release(); ViewProjCB = nullptr; }
-    if (BillboardCB) { BillboardCB->Release(); BillboardCB = nullptr; }
-    if (PixelConstCB) { PixelConstCB->Release(); PixelConstCB = nullptr; }
-    if (UVScrollCB) { UVScrollCB->Release(); UVScrollCB = nullptr; }
-    if (DecalCB) { DecalCB->Release(); DecalCB = nullptr; }
-    if (FireBallCB) { FireBallCB->Release(); FireBallCB = nullptr; }
-    if (ConstantBuffer) { ConstantBuffer->Release(); ConstantBuffer = nullptr; }
+    CONSTANT_BUFFER_LIST(RELEASE_CONSTANT_BUFFER);
+    //if (HighLightCB) { HighLightCB->Release(); HighLightCB = nullptr; }
+    //if (ModelCB) { ModelCB->Release(); ModelCB = nullptr; }
+    //if (ColorCB) { ColorCB->Release(); ColorCB = nullptr; }
+    //if (ViewProjCB) { ViewProjCB->Release(); ViewProjCB = nullptr; }
+    //if (BillboardCB) { BillboardCB->Release(); BillboardCB = nullptr; }
+    //if (PixelConstCB) { PixelConstCB->Release(); PixelConstCB = nullptr; }
+    //if (UVScrollCB) { UVScrollCB->Release(); UVScrollCB = nullptr; }
+    //if (DecalCB) { DecalCB->Release(); DecalCB = nullptr; }
+    //if (FireBallCB) { FireBallCB->Release(); FireBallCB = nullptr; }
+    //if (ConstantBuffer) { ConstantBuffer->Release(); ConstantBuffer = nullptr; }
 
-    // PostProcess 상수버퍼
-    if (PostProcessCB) { PostProcessCB->Release(); PostProcessCB = nullptr; }
-    if (InvViewProjCB) { InvViewProjCB->Release(); InvViewProjCB = nullptr; }
-    if (FogCB) { FogCB->Release(); FogCB = nullptr; }
-    if (FXAACB) { FXAACB->Release(); FXAACB = nullptr; }
+    //// PostProcess 상수버퍼
+    //if (PostProcessCB) { PostProcessCB->Release(); PostProcessCB = nullptr; }
+    //if (InvViewProjCB) { InvViewProjCB->Release(); InvViewProjCB = nullptr; }
+    //if (FogCB) { FogCB->Release(); FogCB = nullptr; }
+    //if (FXAACB) { FXAACB->Release(); FXAACB = nullptr; }
 
     // 상태 객체
     if (DepthStencilState) { DepthStencilState->Release(); DepthStencilState = nullptr; }
@@ -400,204 +264,18 @@ HRESULT D3D11RHI::CreateIndexBuffer(ID3D11Device* device, const FStaticMesh* mes
     return device->CreateBuffer(&ibd, &iinitData, outBuffer);
 }
 
-//이거 두개를 나눔
-void D3D11RHI::UpdateConstantBuffers(const FMatrix& ModelMatrix, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix)
+void D3D11RHI::ConstantBufferSet(ID3D11Buffer* ConstantBuffer, uint32 Slot, bool bIsVS, bool bIsPS)
 {
-    UpdateModelBuffer(ModelMatrix);
-    UpdateViewProjectionBuffers(ViewMatrix, ProjMatrix);
-}
-
-// 뷰/프로젝션은 프레임당 한 번만 업데이트
-void D3D11RHI::UpdateViewProjectionBuffers(const FMatrix& ViewMatrix, const FMatrix& ProjMatrix)
-{
-    static FMatrix LastViewMatrix;
-    static FMatrix LastProjMatrix;
-    static bool bFirstTime = true;
-    
-    // 뷰/프로젝션이 변경되었을 때만 업데이트
-    if (bFirstTime || ViewMatrix != LastViewMatrix || ProjMatrix != LastProjMatrix)
+    if (bIsVS)
     {
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        DeviceContext->Map(ViewProjCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        auto* dataPtr = reinterpret_cast<ViewProjBufferType*>(mapped.pData);
-
-        dataPtr->View = ViewMatrix;
-        dataPtr->Proj = ProjMatrix;
-
-        DeviceContext->Unmap(ViewProjCB, 0);
-        DeviceContext->VSSetConstantBuffers(1, 1, &ViewProjCB); // b1 슬롯
-        
-        LastViewMatrix = ViewMatrix;
-        LastProjMatrix = ProjMatrix;
-        bFirstTime = false;
+        DeviceContext->VSSetConstantBuffers(Slot, 1, &ConstantBuffer);
+    }
+    if (bIsPS)
+    {
+        DeviceContext->PSSetConstantBuffers(Slot, 1, &ConstantBuffer);
     }
 }
 
-// 모델 행렬만 업데이트
-void D3D11RHI::UpdateModelBuffer(const FMatrix& ModelMatrix)
-{
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    DeviceContext->Map(ModelCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    auto* dataPtr = reinterpret_cast<ModelBufferType*>(mapped.pData);
-
-    dataPtr->Model = ModelMatrix;
-
-    DeviceContext->Unmap(ModelCB, 0);
-    DeviceContext->VSSetConstantBuffers(0, 1, &ModelCB); // b0 슬롯
-}
-
-void D3D11RHI::UpdateBillboardConstantBuffers(const FVector& pos, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix,
-    const FVector& CameraRight, const FVector& CameraUp)
-{
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    DeviceContext->Map(BillboardCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    auto* dataPtr = reinterpret_cast<BillboardBufferType*>(mapped.pData);
-
-    // HLSL 기본 row-major와 맞추기 위해 전치
-    dataPtr->pos = pos;
-    dataPtr->View = ViewMatrix;
-    dataPtr->Proj = ProjMatrix;
-
-    // TODO 09/27 11:44 (Dongmin) - 문제 생기면 InverseAffine()으로 수정
-	// 현재 빌보드 안보이게 해둬서 테스트 못함
-    dataPtr->InverseViewMat = ViewMatrix.InverseAffineFast();
-    //dataPtr->cameraRight = CameraRight;
-    //dataPtr->cameraUp = CameraUp;
-
-    DeviceContext->Unmap(BillboardCB, 0);
-    DeviceContext->VSSetConstantBuffers(0, 1, &BillboardCB); // b0 슬롯
-}
-
-void D3D11RHI::UpdatePixelConstantBuffers(const FObjMaterialInfo& InMaterialInfo, bool bHasMaterial, bool bHasTexture)
-{
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    DeviceContext->Map(PixelConstCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    FPixelConstBufferType* dataPtr = reinterpret_cast<FPixelConstBufferType*>(mapped.pData);
-
-    // 이후 다양한 material들이 맵핑될 수도 있음.
-    dataPtr->bHasMaterial = bHasMaterial;
-    dataPtr->bHasTexture = bHasTexture;
-    dataPtr->Material.DiffuseColor = InMaterialInfo.DiffuseColor;
-    dataPtr->Material.AmbientColor = InMaterialInfo.AmbientColor;
-
-    DeviceContext->Unmap(PixelConstCB, 0);
-    DeviceContext->PSSetConstantBuffers(4, 1, &PixelConstCB); // b4 슬롯
-}
-
-void D3D11RHI::UpdateHighLightConstantBuffers(const uint32 InPicked, const FVector& InColor, const uint32 X, const uint32 Y, const uint32 Z, const uint32 Gizmo)
-{
-    // b2 : 색 강조
-    {
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        DeviceContext->Map(HighLightCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        auto* dataPtr = reinterpret_cast<HighLightBufferType*>(mapped.pData);
-
-        dataPtr->Picked = InPicked;
-        dataPtr->Color = InColor;
-        dataPtr->X = X;
-        dataPtr->Y = Y;
-        dataPtr->Z = Z;
-        dataPtr->Gizmo = Gizmo;
-        DeviceContext->Unmap(HighLightCB, 0);
-        DeviceContext->VSSetConstantBuffers(2, 1, &HighLightCB); // b2 슬롯
-    }
-}
-
-void D3D11RHI::UpdateColorConstantBuffers(const FVector4& InColor)
-{
-    // b3 : 색 설정
-    {
-        D3D11_MAPPED_SUBRESOURCE mapped;
-        DeviceContext->Map(ColorCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        auto* dataPtr = reinterpret_cast<ColorBufferType*>(mapped.pData);
-        {
-            dataPtr->Color = InColor;
-        }
-        DeviceContext->Unmap(ColorCB, 0);
-        DeviceContext->PSSetConstantBuffers(3, 1, &ColorCB); // b3 슬롯
-    }
-}
-
-// D3D11RHI.cpp에 구현 추가
-void D3D11RHI::UpdatePostProcessCB(float Near, float Far, bool IsOrthographic)
-{
-    if (!PostProcessCB) return;
-
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    if (SUCCEEDED(DeviceContext->Map(PostProcessCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-    {
-        auto* dataPtr = reinterpret_cast<PostProcessBufferType*>(mapped.pData);
-        dataPtr->Near = Near;
-        dataPtr->Far = Far;
-        dataPtr->IsOrthographic = IsOrthographic;
-        DeviceContext->Unmap(PostProcessCB, 0);
-        DeviceContext->PSSetConstantBuffers(0, 1, &PostProcessCB);
-    }
-}
-
-void D3D11RHI::UpdateInvViewProjCB(const FMatrix& InvView, const FMatrix& InvProj)
-{
-    if (!InvViewProjCB) return;
-
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    if (SUCCEEDED(DeviceContext->Map(InvViewProjCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-    {
-        auto* dataPtr = reinterpret_cast<InvViewProjBufferType*>(mapped.pData);
-        dataPtr->InvView = InvView;
-        dataPtr->InvProj = InvProj;
-        DeviceContext->Unmap(InvViewProjCB, 0);
-        DeviceContext->PSSetConstantBuffers(1, 1, &InvViewProjCB);
-    }
-}
-
-void D3D11RHI::UpdateFogCB(float FogDensity, float FogHeightFalloff, float StartDistance,
-    float FogCutoffDistance, const FVector4& FogInscatteringColor,
-    float FogMaxOpacity, float FogHeight)
-{
-    if (!FogCB) return;
-
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    if (SUCCEEDED(DeviceContext->Map(FogCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-    {
-        auto* dataPtr = reinterpret_cast<FogBufferType*>(mapped.pData);
-        dataPtr->FogDensity = FogDensity;
-        dataPtr->FogHeightFalloff = FogHeightFalloff;
-        dataPtr->StartDistance = StartDistance;
-        dataPtr->FogCutoffDistance = FogCutoffDistance;
-        dataPtr->FogInscatteringColor = FogInscatteringColor;
-        dataPtr->FogMaxOpacity = FogMaxOpacity;
-        dataPtr->FogHeight = FogHeight;
-        DeviceContext->Unmap(FogCB, 0);
-        DeviceContext->PSSetConstantBuffers(2, 1, &FogCB);
-    }
-}
-
-void D3D11RHI::UpdateFXAACB(
-    const FVector2D& InScreenSize,
-    const FVector2D& InInvScreenSize,
-    float InEdgeThresholdMin,
-    float InEdgeThresholdMax,
-    float InQualitySubPix,
-    int InQualityIterations
-)
-{
-    if (!FXAACB) return;
-
-    D3D11_MAPPED_SUBRESOURCE Mapped;
-    if (SUCCEEDED(DeviceContext->Map(FXAACB, 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped)))
-    {
-        auto* DataPtr = reinterpret_cast<FXAABufferType*>(Mapped.pData);
-        DataPtr->ScreenSize = InScreenSize;
-        DataPtr->InvScreenSize = InInvScreenSize;
-        DataPtr->EdgeThresholdMin = InEdgeThresholdMin;
-        DataPtr->EdgeThresholdMax = InEdgeThresholdMax;
-        DataPtr->QualitySubPix = InQualitySubPix;
-        DataPtr->QualityIterations = InQualityIterations;
-        DeviceContext->Unmap(FXAACB, 0);
-
-        DeviceContext->PSSetConstantBuffers(2, 1, &FXAACB);
-    }
-}
 
 void D3D11RHI::IASetPrimitiveTopology()
 {
@@ -880,144 +558,14 @@ void D3D11RHI::CreateRasterizerState()
     Device->CreateRasterizerState(&DecalRasterizerDesc, &DecalRasterizerState);
 }
 
-void D3D11RHI::CreateConstantBuffer()
+void D3D11RHI::CreateConstantBuffer(ID3D11Buffer** ConstantBuffer, uint32 Size)
 {
-    D3D11_BUFFER_DESC modelDesc = {};
-    modelDesc.Usage = D3D11_USAGE_DYNAMIC;
-    modelDesc.ByteWidth = sizeof(ModelBufferType);
-    modelDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    modelDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&modelDesc, nullptr, &ModelCB);
-
-    // b0 in StaticMeshPS
-    D3D11_BUFFER_DESC pixelConstDesc = {};
-    pixelConstDesc.Usage = D3D11_USAGE_DYNAMIC;
-    pixelConstDesc.ByteWidth = sizeof(FPixelConstBufferType);
-    pixelConstDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    pixelConstDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    HRESULT Hr = Device->CreateBuffer(&pixelConstDesc, nullptr, &PixelConstCB);
-    if (FAILED(Hr))
-    {
-        assert(FAILED(Hr));
-    }
-
-    // b1 : ViewProjBuffer
-    D3D11_BUFFER_DESC vpDesc = {};
-    vpDesc.Usage = D3D11_USAGE_DYNAMIC;
-    vpDesc.ByteWidth = sizeof(ViewProjBufferType);
-    vpDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    vpDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&vpDesc, nullptr, &ViewProjCB);
-
-    // b2 : HighLightBuffer  (← 기존 코드에서 vpDesc를 다시 써서 버그났던 부분)
-    D3D11_BUFFER_DESC hlDesc = {};
-    hlDesc.Usage = D3D11_USAGE_DYNAMIC;
-    hlDesc.ByteWidth = sizeof(HighLightBufferType);
-    hlDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    hlDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&hlDesc, nullptr, &HighLightCB);
-
-    // b0
-    D3D11_BUFFER_DESC billboardDesc = {};
-    billboardDesc.Usage = D3D11_USAGE_DYNAMIC;
-    billboardDesc.ByteWidth = sizeof(BillboardBufferType);
-    billboardDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    billboardDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&billboardDesc, nullptr, &BillboardCB);
-
-    // b3
-    D3D11_BUFFER_DESC ColorDesc = {};
-    ColorDesc.Usage = D3D11_USAGE_DYNAMIC;
-    ColorDesc.ByteWidth = sizeof(ColorBufferType);
-    ColorDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    ColorDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&ColorDesc, nullptr, &ColorCB);
-
-    D3D11_BUFFER_DESC uvScrollDesc = {};
-    uvScrollDesc.Usage = D3D11_USAGE_DYNAMIC;
-    uvScrollDesc.ByteWidth = sizeof(float) * 4; // float2 speed + float time + pad
-    uvScrollDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    uvScrollDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&uvScrollDesc, nullptr, &UVScrollCB);
-    if (UVScrollCB)
-    {
-        D3D11_MAPPED_SUBRESOURCE mapped{};
-        if (SUCCEEDED(DeviceContext->Map(UVScrollCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-        {
-            float init[4] = { 0,0,0,0 };
-            memcpy(mapped.pData, init, sizeof(init));
-            DeviceContext->Unmap(UVScrollCB, 0);
-        }
-        DeviceContext->PSSetConstantBuffers(5, 1, &UVScrollCB);
-    }
-
-    // b6: DecalCB
-    D3D11_BUFFER_DESC decalDesc = {};
-    decalDesc.Usage = D3D11_USAGE_DYNAMIC;
-    decalDesc.ByteWidth = sizeof(DecalBufferType);
-    decalDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    decalDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&decalDesc, nullptr, &DecalCB);
-
-    // b7: FireBallCB
-    D3D11_BUFFER_DESC fireBallDesc = {};
-    fireBallDesc.Usage = D3D11_USAGE_DYNAMIC;
-    fireBallDesc.ByteWidth = sizeof(FireBallBufferType);
-    fireBallDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    fireBallDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Device->CreateBuffer(&fireBallDesc, nullptr, &FireBallCB);
-
-    // ──────────────────────────────────────────────────────
-    // PostProcess 상수 버퍼 생성
-    // ──────────────────────────────────────────────────────
-    
-    // PostProcessCB (b0 in PostProcess PS)
-    D3D11_BUFFER_DESC postProcessDesc = {};
-    postProcessDesc.Usage = D3D11_USAGE_DYNAMIC;
-    postProcessDesc.ByteWidth = sizeof(PostProcessBufferType);
-    postProcessDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    postProcessDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Hr = Device->CreateBuffer(&postProcessDesc, nullptr, &PostProcessCB);
-    if (FAILED(Hr))
-    {
-        assert(false && "Failed to create PostProcessCB");
-    }
-
-    // InvViewProjCB (b1 in PostProcess PS)
-    D3D11_BUFFER_DESC invViewProjDesc = {};
-    invViewProjDesc.Usage = D3D11_USAGE_DYNAMIC;
-    invViewProjDesc.ByteWidth = sizeof(InvViewProjBufferType);
-    invViewProjDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    invViewProjDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Hr = Device->CreateBuffer(&invViewProjDesc, nullptr, &InvViewProjCB);
-    if (FAILED(Hr))
-    {
-        assert(false && "Failed to create InvViewProjCB");
-    }
-
-    // FogCB (b2 in PostProcess PS)
-    D3D11_BUFFER_DESC fogDesc = {};
-    fogDesc.Usage = D3D11_USAGE_DYNAMIC;
-    fogDesc.ByteWidth = sizeof(FogBufferType);
-    fogDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    fogDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Hr = Device->CreateBuffer(&fogDesc, nullptr, &FogCB);
-    if (FAILED(Hr))
-    {
-        assert(false && "Failed to create FogCB");
-    }
-
-    // FXAACB (b2 in PostProcess PS)
-    D3D11_BUFFER_DESC FXAADesc = {};
-    FXAADesc.Usage = D3D11_USAGE_DYNAMIC;
-    FXAADesc.ByteWidth = sizeof(FXAABufferType);
-    FXAADesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    FXAADesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-    Hr = Device->CreateBuffer(&FXAADesc, nullptr, &FXAACB);
-    if (FAILED(Hr))
-    {
-        assert(false && "Failed to create FXAACB");
-    }
+    D3D11_BUFFER_DESC BufferDesc{};
+    BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+    BufferDesc.ByteWidth = (Size+15) & ~15;
+    BufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    Device->CreateBuffer(&BufferDesc, nullptr, ConstantBuffer);
 }
 
 void D3D11RHI::UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec)
@@ -1034,47 +582,6 @@ void D3D11RHI::UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeS
         DeviceContext->PSSetConstantBuffers(5, 1, &UVScrollCB);
     }
 }
-
-void D3D11RHI::UpdateDecalBuffer(const FMatrix& DecalMatrix, const float InOpacity)
-{
-    D3D11_MAPPED_SUBRESOURCE mapped;
-    DeviceContext->Map(DecalCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-    auto* dataPtr = reinterpret_cast<DecalBufferType*>(mapped.pData);
-
-    dataPtr->DecalMatrix = DecalMatrix;
-    dataPtr->Opacity = InOpacity;
-
-    DeviceContext->Unmap(DecalCB, 0);
-    DeviceContext->VSSetConstantBuffers(6, 1, &DecalCB); // b6 슬롯
-    DeviceContext->PSSetConstantBuffers(6, 1, &DecalCB); // b6 슬롯
-}
-
-void D3D11RHI::UpdateFireBallConstantBuffers(const FVector& Center, float Radius, float Intensity, float Falloff, const FLinearColor& Color)
-{
-	if (!FireBallCB)
-	{
-		return;
-	}
-
-	D3D11_MAPPED_SUBRESOURCE mapped;
-	if (FAILED(DeviceContext->Map(FireBallCB, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-	{
-		return;
-	}
-
-	auto* dataPtr = reinterpret_cast<FireBallBufferType*>(mapped.pData);
-	dataPtr->Center = Center;
-	dataPtr->Radius = Radius;
-	dataPtr->Intensity = Intensity;
-	dataPtr->Falloff = Falloff;
-	dataPtr->Padding[0] = 0.0f;
-	dataPtr->Padding[1] = 0.0f;
-	dataPtr->Color = Color;
-
-	DeviceContext->Unmap(FireBallCB, 0);
-	DeviceContext->PSSetConstantBuffers(7, 1, &FireBallCB); // b7 슬롯
-}
-
 
 void D3D11RHI::ReleaseSamplerState()
 {

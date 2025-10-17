@@ -61,15 +61,16 @@ void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, cons
     //Renderer->GetRHIDevice()->OMSetBlendState(true);
 
     // 하이라이트 상수
-    Renderer->GetRHIDevice()->UpdateHighLightConstantBuffers(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1);
-
+    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(HighLightBufferType(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1));
     // 리사이징
     const float ScaleFactor = ComputeScreenConstantScale(Renderer, View, Proj, 30.0f);
 
     SetWorldScale(DefaultScale * ScaleFactor);
 
     FMatrix M = GetWorldMatrix();
-    Renderer->GetRHIDevice()->UpdateConstantBuffers(M, View, Proj);
+    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(ModelBufferType(M));
+    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(ViewProjBufferType(View, Proj));
+
     UStaticMeshComponent::Render(Renderer, View, Proj);
 
     // 상태 복구

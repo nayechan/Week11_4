@@ -166,14 +166,21 @@ void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITI
 				}
 			}
 			RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &srv);
-			RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // 성공 여부 기반
+			//RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // 성공 여부 기반
+			FPixelConstBufferType PixelConst{ FPixelConstBufferType(FMaterialInPs(MaterialInfo), true) };
+			PixelConst.bHasTexture = bHasTexture;
+			RHIDevice->SetAndUpdateConstantBuffer(PixelConst);
 			RHIDevice->GetDeviceContext()->DrawIndexed(MeshGroupInfos[i].IndexCount, MeshGroupInfos[i].StartIndex, 0);
 		}
 	}
 	else
 	{
 		FObjMaterialInfo ObjMaterialInfo;
-		RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
+		FPixelConstBufferType PixelConst{ FPixelConstBufferType(FMaterialInPs(ObjMaterialInfo)) };
+		PixelConst.bHasTexture = false;
+		PixelConst.bHasMaterial = false;
+		//RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
+		RHIDevice->SetAndUpdateConstantBuffer(PixelConst);
 		RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
 	}
 }
@@ -365,7 +372,8 @@ void URenderer::EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatr
 	}
 
 	// Set up rendering state
-	RHIDevice->UpdateConstantBuffers(ModelMatrix, ViewMatrix, ProjectionMatrix);
+	RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(ModelMatrix));
+	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewMatrix, ProjectionMatrix));
 	RHIDevice->PrepareShader(LineShader);
 
 	// Render using dynamic mesh
