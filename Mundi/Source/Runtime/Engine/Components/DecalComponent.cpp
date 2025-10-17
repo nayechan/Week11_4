@@ -9,7 +9,7 @@ IMPLEMENT_CLASS(UDecalComponent)
 
 UDecalComponent::UDecalComponent()
 {
-	UResourceManager::GetInstance().Load<UMaterial>("Shaders/Effects/Decal.hlsl", EVertexLayoutType::PositionColorTexturNormal);
+	UResourceManager::GetInstance().Load<UMaterial>("Shaders/Effects/Decal.hlsl");
 
 	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/Textures/grass.jpg");
 

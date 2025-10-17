@@ -17,7 +17,7 @@ UFireBallComponent::UFireBallComponent()
 	SetTickEnabled(false);
 
 	LightingShaderPath = "Shaders/Effects/FireBallShader.hlsl";
-	LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath, EVertexLayoutType::PositionColorTexturNormal);
+	LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath);
 	if (!LightingShader)
 	{
 		UE_LOG("UFireBallComponent: failed to load fireball lighting shader '%s'", LightingShaderPath.c_str());
@@ -74,7 +74,7 @@ void UFireBallComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiv
 
 	if (!LightingShader)
 	{
-		LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath, EVertexLayoutType::PositionColorTexturNormal);
+		LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath);
 		if (!LightingShader)
 		{
 			UE_LOG("UFireBallComponent: failed to resolve fireball shader at runtime ('%s')", LightingShaderPath.c_str());
@@ -198,7 +198,7 @@ void UFireBallComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			if (!ShaderPath.empty())
 			{
 				LightingShaderPath = ShaderPath;
-				LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath, EVertexLayoutType::PositionColorTexturNormal);
+				LightingShader = UResourceManager::GetInstance().Load<UShader>(LightingShaderPath);
 				if (!LightingShader)
 				{
 					UE_LOG("UFireBallComponent: failed to load fireball lighting shader '%s'", LightingShaderPath.c_str());

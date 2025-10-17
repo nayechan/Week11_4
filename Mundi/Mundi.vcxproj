@@ -473,7 +473,6 @@
     <ClInclude Include="Source\Runtime\AssetManagement\Quad.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\ResourceBase.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\ResourceManager.h" />
-    <ClInclude Include="Source\Runtime\AssetManagement\Sphere.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\StaticMesh.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\Texture.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\Triangle.h" />
