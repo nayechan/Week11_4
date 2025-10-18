@@ -55,16 +55,6 @@ UShader* UMaterial::GetShader()
 	return Shader;
 }
 
-void UMaterial::SetDiffuseTexture(const FString& TexturePath)
-{
-    MaterialInfo.DiffuseTextureFileName = TexturePath;
-}
-
-UTexture* UMaterial::GetDiffuseTexture()
-{
-    return UResourceManager::GetInstance().Load<UTexture>(MaterialInfo.DiffuseTextureFileName);
-}
-
 void UMaterial::SetTexture(EMaterialTextureSlot Slot, const FString& TexturePath)
 {
     // 1. 슬롯 인덱스 계산

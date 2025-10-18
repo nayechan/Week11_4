@@ -39,7 +39,7 @@ public:
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
 	
 	UMaterial* GetMaterial(uint32 InSectionIndex) const override;
-	void SetMaterial(uint32 InElementIndex, const FString& InMaterialName) override;
+	void SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial) override;
 
 	void SetMaterialByUser(const uint32 InMaterialSlotIndex, const FString& InMaterialName);
 	const TArray<UMaterial*> GetMaterialSlots() const { return MaterialSlots; }

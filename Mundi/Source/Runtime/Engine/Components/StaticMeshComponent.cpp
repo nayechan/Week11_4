@@ -346,15 +346,15 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
 	//assert(MaterialSlots[InMaterialSlotIndex].bChangedByUser == true);
 }
 
-void UStaticMeshComponent::SetMaterial(uint32 InMaterialSlotIndex, const FString& InMaterialName)
+void UStaticMeshComponent::SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial)
 {
-	if (0 <= InMaterialSlotIndex && InMaterialSlotIndex < MaterialSlots.size())
+	if (0 <= InElementIndex && InElementIndex < MaterialSlots.Num())
 	{
-		MaterialSlots[InMaterialSlotIndex] = UResourceManager::GetInstance().Load<UMaterial>(InMaterialName);
+		MaterialSlots[InElementIndex] = InNewMaterial;
 	}
 	else
 	{
-		UE_LOG("out of range InMaterialSlotIndex: %d", InMaterialSlotIndex);
+		UE_LOG("out of range InMaterialSlotIndex: %d", InElementIndex);
 	}
 }
 

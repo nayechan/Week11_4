@@ -27,10 +27,14 @@ public:
         // 기본 구현: UPrimitiveComponent 자체는 머티리얼을 소유하지 않으므로 nullptr 반환
         return nullptr;
     }
-    virtual void SetMaterial(uint32 InElementIndex, const FString& InMaterialName)
+    virtual void SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial)
     {
         // 기본 구현: 아무것도 하지 않음 (머티리얼을 지원하지 않거나 설정 불가)
     }
+
+    // 내부적으로 ResourceManager를 통해 UMaterial*를 찾아 SetMaterial을 호출합니다.
+    void SetMaterialByName(uint32 InElementIndex, const FString& MaterialName);
+
 
     void SetCulled(bool InCulled)
     {

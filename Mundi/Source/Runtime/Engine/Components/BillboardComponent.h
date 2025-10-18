@@ -29,7 +29,7 @@ public:
     FString& GetTextureName() { return TextureName; }
 
     UMaterial* GetMaterial(uint32 InSectionIndex) const override;
-    void SetMaterial(uint32 InElementIndex, const FString& InMaterialName) override;
+    void SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial) override;
 
     // Serialize
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

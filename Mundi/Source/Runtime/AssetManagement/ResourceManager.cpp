@@ -98,7 +98,7 @@ UMaterial* UResourceManager::GetOrCreateMaterial(const FString& Name)
     // Material 생성
     UMaterial* Mat = NewObject<UMaterial>();
     if (Shader)  Mat->SetShader(Shader);
-    if (Texture) Mat->SetDiffuseTexture(Name);
+    if (Texture) Mat->SetTexture(EMaterialTextureSlot::Diffuse, Name);
 
     MaterialMap[Name] = Mat;
     return Mat;

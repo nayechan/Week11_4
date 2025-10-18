@@ -30,9 +30,6 @@ public:
     void SetShader(UShader* ShaderResource);
     UShader* GetShader();
 
-    void SetDiffuseTexture(const FString& TexturePath);
-    UTexture* GetDiffuseTexture();
-
     // MaterialInfo의 텍스처 경로들을 기반으로 ResolvedTextures 배열을 채웁니다.
     void ResolveTextures();
 

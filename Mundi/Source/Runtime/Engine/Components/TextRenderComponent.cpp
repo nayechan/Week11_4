@@ -19,7 +19,7 @@ UTextRenderComponent::UTextRenderComponent()
 {
     auto& RM = UResourceManager::GetInstance();
     TextQuad = RM.Get<UQuad>("TextBillboard");
-    SetMaterial(0, "TextBillboard");
+    SetMaterialByName(0, "TextBillboard");
 
     //if (auto* M = RM.Get<UMaterial>("TextBillboard"))
     //{
@@ -184,10 +184,9 @@ UMaterial* UTextRenderComponent::GetMaterial(uint32 InSectionIndex) const
     return Material;
 }
 
-void UTextRenderComponent::SetMaterial(uint32 InElementIndex, const FString& InMaterialName)
+void UTextRenderComponent::SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial)
 {
-    // 슬롯 상관없이 항상 기본 머티리얼 설정
-    Material = UResourceManager::GetInstance().Load<UMaterial>(InMaterialName);
+    Material = InNewMaterial;
 }
 
 void UTextRenderComponent::DuplicateSubObjects()

@@ -25,7 +25,7 @@ public:
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 	UMaterial* GetMaterial(uint32 InSectionIndex) const override;
-	void SetMaterial(uint32 InElementIndex, const FString& InMaterialName) override;
+	void SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial) override;
 
 	// ───── 복사 관련 ────────────────────────────
 	void DuplicateSubObjects() override;

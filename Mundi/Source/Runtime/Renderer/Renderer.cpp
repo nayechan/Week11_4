@@ -221,7 +221,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UTextRenderComponent* Comp, D3D11_
 	RHIDevice->GetDeviceContext()->IASetIndexBuffer(
 		IndexBuff, DXGI_FORMAT_R32_UINT, 0
 	);
-	ID3D11ShaderResourceView* TextureSRV = Comp->GetMaterial(0)->GetDiffuseTexture()->GetShaderResourceView();
+	ID3D11ShaderResourceView* TextureSRV = Comp->GetMaterial(0)->GetTexture(EMaterialTextureSlot::Diffuse)->GetShaderResourceView();
 	RHIDevice->PSSetDefaultSampler(0);
 	RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 1, &TextureSRV);
 	RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(InTopology);
