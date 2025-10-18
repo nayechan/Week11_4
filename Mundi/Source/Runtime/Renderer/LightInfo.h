@@ -4,23 +4,23 @@ constexpr uint32 NUM_SPOT_LIGHT_MAX = 16;
 
 struct FAmbientLightInfo
 {
-    FLinearColor Color;
+    FLinearColor Color;     // Color already includes Intensity and Temperature
 
-    float Intensity;
+    float Padding0;         // Padding for 16-byte alignment
     FVector Padding;
 };
 
 struct FDirectionalLightInfo
 {
-    FLinearColor Color;
+    FLinearColor Color;     // Color already includes Intensity and Temperature
 
-    float Intensity;
+    float Padding0;         // Padding for 16-byte alignment
     FVector Direction;
 };
 
 struct FPointLightInfo
 {
-    FLinearColor Color;
+    FLinearColor Color;     // Color already includes Intensity and Temperature
 
     FVector Position;
     float FalloffExponent;
@@ -28,14 +28,13 @@ struct FPointLightInfo
     FVector Attenuation;    // 상수, 일차항, 이차항
     float AttenuationRadius;
 
-    float Intensity;
     uint32 bUseAttenuationCoefficients;
-    FVector2D Padding;
+    FVector Padding;        // 12 bytes padding for 16-byte alignment
 };
 
 struct FSpotLightInfo
 {
-    FLinearColor Color;
+    FLinearColor Color;     // Color already includes Intensity and Temperature
 
     FVector Position;
     float InnerConeAngle;
@@ -47,7 +46,6 @@ struct FSpotLightInfo
     float AttenuationRadius;
 
     float FalloffExponent;
-    float Intensity;
     uint32 bUseAttenuationCoefficients;
-    float Padding;
+    FVector2D Padding;      // 8 bytes padding for 16-byte alignment
 };

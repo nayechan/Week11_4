@@ -19,35 +19,35 @@
 #define NUM_SPOT_LIGHT_MAX 16
 
 // --- 조명 정보 구조체 (LightInfo.h와 완전히 일치) ---
+// Note: Color already includes Intensity and Temperature (calculated in C++)
 struct FAmbientLightInfo
 {
-    float4 Color;       // FLinearColor
-    float Intensity;
+    float4 Color;       // FLinearColor (includes Intensity + Temperature)
+    float Padding0;     // float padding
     float3 Padding;     // FVector Padding
 };
 
 struct FDirectionalLightInfo
 {
-    float4 Color;       // FLinearColor
-    float Intensity;
+    float4 Color;       // FLinearColor (includes Intensity + Temperature)
+    float Padding0;     // float padding
     float3 Direction;   // FVector
 };
 
 struct FPointLightInfo
 {
-    float4 Color;           // FLinearColor
+    float4 Color;           // FLinearColor (includes Intensity + Temperature)
     float3 Position;        // FVector
     float FalloffExponent;  // float
     float3 Attenuation;     // FVector (constant, linear, quadratic)
     float AttenuationRadius; // float
-    float Intensity;
     uint bUseAttenuationCoefficients; // uint32
-    float2 Padding;         // FVector2D Padding
+    float3 Padding;         // FVector Padding (12 bytes)
 };
 
 struct FSpotLightInfo
 {
-    float4 Color;           // FLinearColor
+    float4 Color;           // FLinearColor (includes Intensity + Temperature)
     float3 Position;        // FVector
     float InnerConeAngle;   // float
     float3 Direction;       // FVector
@@ -55,9 +55,8 @@ struct FSpotLightInfo
     float3 Attenuation;     // FVector
     float AttenuationRadius; // float
     float FalloffExponent;  // float
-    float Intensity;
     uint bUseAttenuationCoefficients; // uint32
-    float Padding;          // float Padding
+    float2 Padding;         // FVector2D Padding (8 bytes)
 };
 
 // --- Material 구조체 (OBJ 머티리얼 정보) ---
@@ -154,24 +153,27 @@ struct PS_INPUT
 
 // Ambient Light Calculation
 // Uses the provided materialColor (which includes texture if available)
+// Note: light.Color already includes Intensity and Temperature
 float3 CalculateAmbientLight(FAmbientLightInfo light, float4 materialColor)
 {
     // Use materialColor directly (already contains texture if available)
-    return light.Color.rgb * light.Intensity * materialColor.rgb;
+    return light.Color.rgb * materialColor.rgb;
 }
 
 // Diffuse Light Calculation (Lambert)
 // Uses the provided materialColor (which includes texture if available)
-float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float intensity, float4 materialColor)
+// Note: lightColor already includes Intensity (calculated in C++)
+float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float4 materialColor)
 {
     float NdotL = max(dot(normal, lightDir), 0.0f);
     // Use materialColor directly (already contains texture if available)
-    return lightColor.rgb * intensity * materialColor.rgb * NdotL;
+    return lightColor.rgb * materialColor.rgb * NdotL;
 }
 
 // Specular Light Calculation (Blinn-Phong)
 // Uses material's SpecularColor (Ks) if available - this is important!
-float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float intensity, float specularPower)
+// Note: lightColor already includes Intensity (calculated in C++)
+float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
 {
     float3 halfVec = normalize(lightDir + viewDir);
     float NdotH = max(dot(normal, halfVec), 0.0f);
@@ -179,7 +181,7 @@ float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 
 
     // Apply material's specular color (Ks) - metallic materials have colored specular!
     float3 specularMaterial = HasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f);
-    return lightColor.rgb * intensity * specularMaterial * specular;
+    return lightColor.rgb * specularMaterial * specular;
 }
 
 // Attenuation Calculation for Point/Spot Lights
@@ -219,14 +221,14 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, flo
 {
     float3 lightDir = normalize(-light.Direction);
 
-    // Diffuse
-    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor);
+    // Diffuse (light.Color already includes Intensity)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor);
 
     // Specular (optional)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
-        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, light.Intensity, specularPower);
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower);
     }
 
     return diffuse + specular;
@@ -263,14 +265,14 @@ float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal
         attenuation = pow(min(1.0f - attenuation, 1.0f), light.FalloffExponent);
     }
 
-    // Diffuse
-    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor) * attenuation;
+    // Diffuse (light.Color already includes Intensity)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
 
     // Specular (optional)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
-        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, light.Intensity, specularPower) * attenuation;
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower) * attenuation;
     }
 
     return diffuse + specular;
@@ -322,14 +324,14 @@ float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, 
     // Combine both attenuations
     float attenuation = distanceAttenuation * spotAttenuation;
 
-    // Diffuse
-    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor) * attenuation;
+    // Diffuse (light.Color already includes Intensity)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
 
     // Specular (optional)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
-        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, light.Intensity, specularPower) * attenuation;
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower) * attenuation;
     }
 
     return diffuse + specular;

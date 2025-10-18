@@ -21,10 +21,8 @@ FPointLightInfo UPointLightComponent::GetLightInfo() const
 	Info.FalloffExponent = IsUsingAttenuationCoefficients() ? 0.0f : GetFalloffExponent();
 	Info.Attenuation = IsUsingAttenuationCoefficients() ? GetAttenuation() : FVector(1.0f, 0.0f, 0.0f);
 	Info.AttenuationRadius = GetAttenuationRadius();
-	// Intensity is already applied in Color, so set to 1.0
-	Info.Intensity = 1.0f;
 	Info.bUseAttenuationCoefficients = IsUsingAttenuationCoefficients() ? 1u : 0u;
-	Info.Padding = FVector2D(0.0f, 0.0f);
+	Info.Padding = FVector(0.0f, 0.0f, 0.0f);
 	return Info;
 }
 
