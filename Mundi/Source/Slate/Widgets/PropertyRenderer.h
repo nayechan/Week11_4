@@ -28,4 +28,6 @@ private:
 	static bool RenderNameProperty(const FProperty& Prop, void* Instance);
 	static bool RenderObjectPtrProperty(const FProperty& Prop, void* Instance);
 	static bool RenderStructProperty(const FProperty& Prop, void* Instance);
+	static bool RenderTextureProperty(const FProperty& Prop, void* Instance);
+	static bool RenderStaticMeshProperty(const FProperty& Prop, void* Instance);
 };

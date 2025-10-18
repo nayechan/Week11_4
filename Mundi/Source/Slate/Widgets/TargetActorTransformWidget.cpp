@@ -361,26 +361,6 @@ void UTargetActorTransformWidget::RenderWidget()
 	{
 		return;
 	}
-	//if (!SelectedActor)
-	//{
-	//	return;
-	//}
-
-	//// 캐시 갱신
-	//try
-	//{
-	//	const FString LatestName = SelectedActor->GetName().ToString();
-	//	if (CachedActorName != LatestName)
-	//	{
-	//		CachedActorName = LatestName;
-	//	}
-	//}
-	//catch (...)
-	//{
-	//	CachedActorName.clear();
-	//	SelectedActor = nullptr;
-	//	return;
-	//}
 
 	// 1. 헤더 (액터 이름, "+추가" 버튼) 렌더링
 	RenderHeader(SelectedActor, SelectedComponent);
@@ -395,9 +375,6 @@ void UTargetActorTransformWidget::RenderWidget()
 	RenderSelectedComponentDetails(SelectedComponent);
 }
 
-// -----------------------------------------------------------------------------
-// 헤더 UI 렌더링
-// -----------------------------------------------------------------------------
 void UTargetActorTransformWidget::RenderHeader(AActor* SelectedActor, USceneComponent* SelectedComponent)
 {
 	ImGui::Text(SelectedActor->GetName().ToString().c_str());
@@ -691,169 +668,22 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent
 	ImGui::Separator();
 
 	USceneComponent* TargetComponentForDetails = SelectedComponent;
-
-	// 액터가 선택되 경우 액터의 중요 컴포넌트를 출력
-	/*if (!TargetComponentForDetails)
-	{
-		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
-		{
-			TargetComponentForDetails = StaticMeshActor->GetStaticMeshComponent();
-		}
-		else if (AFakeSpotLightActor* FakeSpotLightActor = Cast<AFakeSpotLightActor>(SelectedActor))
-		{
-			TargetComponentForDetails = FakeSpotLightActor->GetDecalComponent();
-		}
-		else
-		{
-			TargetComponentForDetails = SelectedActor->GetRootComponent();
-		}
-	}*/
-
 	if (!TargetComponentForDetails) return;
 
-	// BillboardComponent UI
-	if (UBillboardComponent* Billboard = Cast<UBillboardComponent>(TargetComponentForDetails))
-	{
-		ImGui::Text("Billboard Texture");
-
-		int currentIdx = -1;
-		const FString& cur = Billboard->GetTextureName();
-		for (int i = 0; i < 3; ++i)
-		{
-			const FString item = kDisplayItems[i];
-			if (cur.size() >= item.size() && cur.compare(cur.size() - item.size(), item.size(), item) == 0)
-			{
-				currentIdx = i;
-				break;
-			}
-		}
-		ImGui::SetNextItemWidth(240);
-		if (ImGui::Combo("Texture", &currentIdx, kDisplayItems, 3))
-		{
-			if (currentIdx >= 0 && currentIdx < 3)
-			{
-				Billboard->SetTextureName(kFullPaths[currentIdx]);
-			}
-		}
-		ImGui::Separator();
-	}
-
-	if(UHeightFogComponent* HeightFog = Cast<UHeightFogComponent>(TargetComponentForDetails))
-	{
-		ImGui::Text("Height Fog Settings");
-		float FogDensity = HeightFog->GetFogDensity();
-		if (ImGui::DragFloat("Fog Density", &FogDensity, 0.01f))
-		{
-			HeightFog->SetFogDensity(FogDensity);
-		}
-		float FogHeightFalloff = HeightFog->GetFogHeightFalloff();
-		if (ImGui::DragFloat("Height Falloff", &FogHeightFalloff, 0.1f))
-		{
-			HeightFog->SetFogHeightFalloff(FogHeightFalloff);
-		}
-		float FogStartDistance = HeightFog->GetStartDistance();
-		if (ImGui::DragFloat("Start Distance", &FogStartDistance, 1.0f))
-		{
-			HeightFog->SetStartDistance(FogStartDistance);
-		}
-
-		float FogCutoffDistance = HeightFog->GetFogCutoffDistance();
-		if (ImGui::DragFloat("Cutoff Distance", &FogCutoffDistance, 10.0f))
-		{
-			HeightFog->SetFogCutoffDistance(FogCutoffDistance);
-		}
-
-		float FogMaxOpacity = HeightFog->GetFogMaxOpacity();
-		if (ImGui::SliderFloat("Max Opacity", &FogMaxOpacity, 0.0f, 1.0f))
-		{
-			HeightFog->SetFogMaxOpacity(FogMaxOpacity);
-		}
-
-		FLinearColor* Color = HeightFog->GetFogInscatteringColor();
-		float ColorArr[4] = { Color->R, Color->G, Color->B, Color->A };
-		if (ImGui::ColorEdit4("Inscattering Color", ColorArr))
-		{
-			// 포인터를 새로 할당하지 않고, 기존 객체의 값을 직접 수정
-			Color->R = ColorArr[0];
-			Color->G = ColorArr[1];
-			Color->B = ColorArr[2];
-			Color->A = ColorArr[3];
-		}
-
-		ImGui::Separator();
-	}
-
-	// StaticMeshComponent UI
-	if (UStaticMeshComponent* TargetSMC = Cast<UStaticMeshComponent>(TargetComponentForDetails))
+	// StaticMeshComponent Material UI (수동 유지)
+	if (UStaticMeshComponent* TargetStaticMeshComponent = Cast<UStaticMeshComponent>(TargetComponentForDetails))
 	{
 		ImGui::Separator();
-		ImGui::Text("Static Mesh Override");
-
-		FString CurrentPath;
-		if (UStaticMesh* CurMesh = TargetSMC->GetStaticMesh())
-		{
-			CurrentPath = ToUtf8(CurMesh->GetAssetPathFileName());
-		}
-
-		auto& RM = UResourceManager::GetInstance();
-		TArray<FString> Paths = RM.GetAllStaticMeshFilePaths();
-
-		if (Paths.empty())
-		{
-			ImGui::TextColored(ImVec4(1, 0.6f, 0.6f, 1), "No StaticMesh resources loaded.");
-		}
-		else
-		{
-			TArray<FString> DisplayNames;
-			DisplayNames.reserve(Paths.size());
-			for (const FString& p : Paths)
-				DisplayNames.push_back(GetBaseNameNoExt(p));
-
-			TArray<const char*> Items;
-			Items.reserve(DisplayNames.size());
-			for (const FString& n : DisplayNames)
-				Items.push_back(n.c_str());
-
-			// 매 프레임마다 현재 메시에 맞는 인덱스를 찾습니다.
-			int SelectedMeshIdx = -1;
-			if (!CurrentPath.empty())
-			{
-				for (int i = 0; i < static_cast<int>(Paths.size()); ++i)
-				{
-					if (Paths[i] == CurrentPath)
-					{
-						SelectedMeshIdx = i;
-						break;
-					}
-				}
-			}
-
-			ImGui::SetNextItemWidth(240);
-
-			// ImGui::Combo가 true를 반환하면(선택이 바뀌면) 즉시 메시를 적용합니다.
-			if (ImGui::Combo("StaticMesh", &SelectedMeshIdx, Items.data(), static_cast<int>(Items.size())))
-			{
-				if (SelectedMeshIdx >= 0 && SelectedMeshIdx < static_cast<int>(Paths.size()))
-				{
-					const FString& NewPath = Paths[SelectedMeshIdx];
-					TargetSMC->SetStaticMesh(NewPath);
-
-					const FString LogPath = ToUtf8(NewPath);
-					UE_LOG("Applied StaticMesh: %s", LogPath.c_str());
-				}
-			}
-		}
-
-		ImGui::Separator();
+		ImGui::Text("Materials");
 
 		// Material UI
-		if (UStaticMesh* CurMesh = TargetSMC->GetStaticMesh())
+		if (UStaticMesh* CurMesh = TargetStaticMeshComponent->GetStaticMesh())
 		{
 			const TArray<FString> MaterialNames = UResourceManager::GetInstance().GetAllFilePaths<UMaterial>();
-			TArray<const char*> MaterialNamesCharP;
-			MaterialNamesCharP.reserve(MaterialNames.size());
+			TArray<const char*> MaterialNamesCharPtr;
+			MaterialNamesCharPtr.reserve(MaterialNames.size());
 			for (const FString& n : MaterialNames)
-				MaterialNamesCharP.push_back(n.c_str());
+				MaterialNamesCharPtr.push_back(n.c_str());
 
 			const TArray<FGroupInfo>& GroupInfos = CurMesh->GetMeshGroupInfo();
 			const uint32 NumGroupInfos = static_cast<uint32>(GroupInfos.size());
@@ -864,9 +694,9 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent
 				const char* Label = GroupInfos[i].InitialMaterialName.c_str();
 				int SelectedMaterialIdx = -1;
 
-				if (i < TargetSMC->GetMaterialSlots().size())
+				if (i < TargetStaticMeshComponent->GetMaterialSlots().size())
 				{
-					const FString& AssignedName = TargetSMC->GetMaterialSlots()[i].MaterialName.ToString();
+					const FString& AssignedName = TargetStaticMeshComponent->GetMaterialSlots()[i].MaterialName.ToString();
 					for (int idx = 0; idx < static_cast<int>(MaterialNames.size()); ++idx)
 					{
 						if (MaterialNames[idx] == AssignedName)
@@ -878,12 +708,12 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent
 				}
 
 				ImGui::SetNextItemWidth(240);
-				if (ImGui::Combo(Label, &SelectedMaterialIdx, MaterialNamesCharP.data(),
-					static_cast<int>(MaterialNamesCharP.size())))
+				if (ImGui::Combo(Label, &SelectedMaterialIdx, MaterialNamesCharPtr.data(),
+					static_cast<int>(MaterialNamesCharPtr.size())))
 				{
 					if (SelectedMaterialIdx >= 0 && SelectedMaterialIdx < static_cast<int>(MaterialNames.size()))
 					{
-						TargetSMC->SetMaterialByUser(i, MaterialNames[SelectedMaterialIdx]);
+						TargetStaticMeshComponent->SetMaterialByUser(i, MaterialNames[SelectedMaterialIdx]);
 						UE_LOG("Set material slot %u to %s", i, MaterialNames[SelectedMaterialIdx].c_str());
 					}
 				}
@@ -891,226 +721,6 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent
 			}
 		}
 	}
-
-	// DecalComponent UI
-	if (UDecalComponent* DecalCmp = Cast<UDecalComponent>(TargetComponentForDetails))
-	{
-		ImGui::Separator();
-		ImGui::Text("Set Decal Texture");
-
-		FString CurrentPath;
-		if (UTexture* Texture = DecalCmp->GetDecalTexture())
-		{
-			CurrentPath = ToUtf8(Texture->GetTextureName());
-			ImGui::Text("Current: %s", CurrentPath.c_str());
-		}
-		else
-		{
-			ImGui::Text("Current: <None>");
-		}
-
-		const TArray<FString> TexturePaths = UResourceManager::GetInstance().GetAllFilePaths<UTexture>();
-
-		if (TexturePaths.empty())
-		{
-			ImGui::TextColored(ImVec4(1, 0.6f, 0.6f, 1), "No Texture resources loaded.");
-		}
-		else
-		{
-			// const char* 배열 생성
-			TArray<const char*> TexturePathsCharP;
-			TexturePathsCharP.reserve(TexturePaths.size());
-			for (const FString& n : TexturePaths)
-				TexturePathsCharP.push_back(n.c_str());
-
-			// CurrentPath와 일치하는 인덱스를 찾습니다.
-			int SelectedTextureIdx = -1;
-			for (int i = 0; i < TexturePaths.size(); ++i)
-			{
-				if (TexturePaths[i] == CurrentPath)
-				{
-					SelectedTextureIdx = i;
-					break; // 찾았으면 루프 종료
-				}
-			}
-
-			// Texture 목록 출력
-			if (ImGui::Combo("Texture", &SelectedTextureIdx, TexturePathsCharP.data(),
-				static_cast<int>(TexturePathsCharP.size())))
-			{
-				if (SelectedTextureIdx >= 0 && SelectedTextureIdx < static_cast<int>(TexturePaths.size()))
-				{
-					DecalCmp->SetDecalTexture(TexturePaths[SelectedTextureIdx]);
-					UE_LOG("Set Decal Texture to %s", TexturePaths[SelectedTextureIdx].c_str());
-				}
-			}
-		}
-
-		ImGui::Separator();
-		ImGui::Text("Set Opacity");
-
-		float DecalBlendFactor = DecalCmp->GetOpacity();
-		ImGui::SliderFloat("Blend Factor", &DecalBlendFactor, 0.0f, 1.0f);
-		DecalCmp->SetOpacity(DecalBlendFactor);
-	}
-
-	// PerspectiveDecalComponent UI
-	if (UPerspectiveDecalComponent* PerDecalComp = Cast<UPerspectiveDecalComponent>(TargetComponentForDetails))
-	{
-		ImGui::Separator();
-		// UI 헤더 텍스트를 "원뿔 데칼 속성"으로 변경
-		ImGui::Text("원뿔 데칼 속성 (Perspective Decal)");
-
-		// 1. Getter를 호출하여 현재 FovY 값을 가져옵니다. 이 값이 원뿔의 꼭지각(apex angle)입니다.
-		float coneAngle = PerDecalComp->GetFovY();
-
-		// 2. ImGui 슬라이더의 라벨을 "원뿔 각도"로 변경하고, 로컬 변수 coneAngle의 주소를 전달합니다.
-		//    사용자가 더 다양한 형태를 만들 수 있도록 범위를 1.0 ~ 80.0으로 확장합니다.
-		if (ImGui::SliderFloat("Cone Angle", &coneAngle, 1.0f, 80.0f, "%.1f deg"))
-		{
-			// 3. 값이 변경되면 Setter를 호출하여 컴포넌트의 실제 각도를 업데이트합니다.
-			PerDecalComp->SetFovY(coneAngle);
-		}
-	}
-
-	if(UFireBallComponent* FireBallComp = Cast<UFireBallComponent>(TargetComponentForDetails))
-	{
-		ImGui::Separator();
-		ImGui::Text("Fire Ball Component");
-
-		float Intensity = FireBallComp->GetIntensity();
-		if (ImGui::DragFloat("Intensity", &Intensity, 0.01f, 0.0f, 1.0f))
-		{
-			FireBallComp->SetIntensity(Intensity);
-		}
-
-		float Radius = FireBallComp->GetRadius();
-		if (ImGui::DragFloat("Radius", &Radius, 1.0f, 10.0f, 100.0f))
-		{
-			FireBallComp->SetRadius(Radius);
-		}
-
-		float FallOff = FireBallComp->GetRadiusFallOff();
-		if (ImGui::DragFloat("Fall Off", &FallOff, 0.1f, 0.0f, 10.0f))
-		{
-			FireBallComp->SetRadiusFallOff(FallOff);
-		}
-
-		FLinearColor Color = FireBallComp->GetColor();
-		if (ImGui::DragFloat3("Color", &Color.R, 0.01f, 0.0f, 1.0f))
-		{
-			FireBallComp->SetColor(Color);
-		}
-
-	}
-
-	// DirectionalLightComponent UI
-	if (UDirectionalLightComponent* DirLight = Cast<UDirectionalLightComponent>(TargetComponentForDetails))
-	{
-		ImGui::Separator();
-		ImGui::Text("방향성 조명 설정 (Directional Light)");
-
-		// Enable/Disable
-		bool bEnabled = DirLight->IsEnabled();
-		if (ImGui::Checkbox("활성화", &bEnabled))
-		{
-			DirLight->SetEnabled(bEnabled);
-		}
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("조명을 켜거나 끕니다");
-		}
-
-		// Intensity
-		float Intensity = DirLight->GetIntensity();
-		if (ImGui::DragFloat("강도", &Intensity, 0.01f, 0.0f, 100.0f))
-		{
-			DirLight->SetIntensity(Intensity);
-		}
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("조명의 밝기를 조절합니다 (0.0 ~ 100.0)");
-		}
-
-		// Light Color
-		FLinearColor LightColor = DirLight->GetLightColor();
-		float ColorArr[4] = { LightColor.R, LightColor.G, LightColor.B, LightColor.A };
-		if (ImGui::ColorEdit4("조명 색상", ColorArr))
-		{
-			DirLight->SetLightColor(FLinearColor(ColorArr[0], ColorArr[1], ColorArr[2], ColorArr[3]));
-		}
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("조명의 색상을 설정합니다");
-		}
-
-		// Temperature
-		float Temperature = DirLight->GetTemperature();
-		if (ImGui::DragFloat("색온도 (K)", &Temperature, 10.0f, 1000.0f, 15000.0f))
-		{
-			DirLight->SetTemperature(Temperature);
-		}
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)");
-		}
-
-		ImGui::Separator();
-	}
-
-	// AmbientLightComponent UI
-	//if (UAmbientLightComponent* AmbientLight = Cast<UAmbientLightComponent>(TargetComponentForDetails))
-	//{
-	//	ImGui::Separator();
-	//	ImGui::Text("환경광 설정 (Ambient Light)");
-
-	//	// Enable/Disable
-	//	bool bEnabled = AmbientLight->IsEnabled();
-	//	if (ImGui::Checkbox("활성화", &bEnabled))
-	//	{
-	//		AmbientLight->SetEnabled(bEnabled);
-	//	}
-	//	if (ImGui::IsItemHovered())
-	//	{
-	//		ImGui::SetTooltip("조명을 켜거나 끕니다");
-	//	}
-
-	//	// Intensity
-	//	float Intensity = AmbientLight->GetIntensity();
-	//	if (ImGui::DragFloat("강도", &Intensity, 0.01f, 0.0f, 100.0f))
-	//	{
-	//		AmbientLight->SetIntensity(Intensity);
-	//	}
-	//	if (ImGui::IsItemHovered())
-	//	{
-	//		ImGui::SetTooltip("환경광의 밝기를 조절합니다 (0.0 ~ 100.0)\n전체 씬에 균일하게 적용되는 기본 조명입니다");
-	//	}
-
-	//	// Light Color
-	//	FLinearColor LightColor = AmbientLight->GetLightColor();
-	//	float ColorArr[4] = { LightColor.R, LightColor.G, LightColor.B, LightColor.A };
-	//	if (ImGui::ColorEdit4("조명 색상", ColorArr))
-	//	{
-	//		AmbientLight->SetLightColor(FLinearColor(ColorArr[0], ColorArr[1], ColorArr[2], ColorArr[3]));
-	//	}
-	//	if (ImGui::IsItemHovered())
-	//	{
-	//		ImGui::SetTooltip("환경광의 색상을 설정합니다");
-	//	}
-
-	//	// Temperature
-	//	float Temperature = AmbientLight->GetTemperature();
-	//	if (ImGui::DragFloat("색온도 (K)", &Temperature, 10.0f, 1000.0f, 15000.0f))
-	//	{
-	//		AmbientLight->SetTemperature(Temperature);
-	//	}
-	//	if (ImGui::IsItemHovered())
-	//	{
-	//		ImGui::SetTooltip("조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)");
-	//	}
-
-	//	ImGui::Separator();
-	//}
 
 	// 리플렉션이 적용된 컴포넌트는 자동으로 UI 생성
 	if (TargetComponentForDetails)
@@ -1134,19 +744,6 @@ void UTargetActorTransformWidget::PostProcess()
 
 void UTargetActorTransformWidget::UpdateTransformFromComponent(USceneComponent* SelectedComponent)
 {
-
-	/*if (USceneComponent* EditingComponent = GetEditingComponent())
-	{
-		EditLocation = EditingComponent->GetRelativeLocation();
-		EditRotation = EditingComponent->GetRelativeRotation().ToEulerZYXDeg();
-		EditScale = EditingComponent->GetRelativeScale();
-	}
-	else
-	{
-		EditLocation = SelectedActor->GetActorLocation();
-		EditRotation = SelectedActor->GetActorRotation().ToEulerZYXDeg();
-		EditScale = SelectedActor->GetActorScale();
-	}*/
 	if (SelectedComponent)
 	{
 		EditLocation = SelectedComponent->GetRelativeLocation();

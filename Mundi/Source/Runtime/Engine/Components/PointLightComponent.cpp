@@ -5,7 +5,7 @@ IMPLEMENT_CLASS(UPointLightComponent)
 
 BEGIN_PROPERTIES(UPointLightComponent)
 	MARK_AS_COMPONENT("포인트 라이트", "포인트 라이트 컴포넌트를 추가합니다.")
-	ADD_PROPERTY_RANGE(float, SourceRadius, "Light", 0.0f, 1000.0f, true, "광원의 반경입니다.")
+	ADD_PROPERTY_RANGE(float, SourceRadius, "Light", 0.0f, 1000.0f, false, "광원의 반경입니다.")
 END_PROPERTIES()
 
 UPointLightComponent::UPointLightComponent()

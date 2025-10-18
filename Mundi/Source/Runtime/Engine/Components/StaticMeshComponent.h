@@ -26,20 +26,14 @@ protected:
     ~UStaticMeshComponent() override;
 
 public:
-    // ViewMode에 따른 셰이더 설정 (SceneRenderer에서 호출)
     void SetViewModeShader(UShader* InShader) override;
 
     void Render(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) override;
 
     void SetStaticMesh(const FString& PathFileName);
+
     UStaticMesh* GetStaticMesh() const { return StaticMesh; }
 
-    // 씬 포맷(FPrimitiveData)을 이용한 컴포넌트 직렬화/역직렬화
-    // - bIsLoading == true  : InOut로부터 읽어서 컴포넌트 상태(메시) 설정
-    // - bIsLoading == false : 컴포넌트 상태를 InOut에 기록
-    /*void Serialize(bool bIsLoading, FSceneCompData& InOut);*/
-
-    // Serialize
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
     void SetMaterialByUser(const uint32 InMaterialSlotIndex, const FString& InMaterialName);
@@ -52,8 +46,7 @@ public:
     }
 
     FAABB GetWorldAABB() const;
-    
-    // ───── 복사 관련 ────────────────────────────
+
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(UStaticMeshComponent)
     

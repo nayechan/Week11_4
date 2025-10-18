@@ -13,7 +13,9 @@ enum class EPropertyType : uint8
 	FName,
 	ObjectPtr,      // UObject* 및 파생 타입
 	Struct,
-	
+	Texture,        // UTexture* 타입 (리소스 선택 UI)
+	StaticMesh,     // UStaticMesh* 타입 (리소스 선택 UI)
+
 	// 추후 추가될 프로퍼티들은 직접 해줘야함.
 };
 

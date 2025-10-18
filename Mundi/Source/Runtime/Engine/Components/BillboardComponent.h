@@ -33,6 +33,7 @@ public:
 
 private:
     FString TextureName;
+    UTexture* Texture = nullptr;  // 리플렉션 시스템용 Texture 포인터
     UQuad* Quad = nullptr;
     float Width = 100.f;
     float Height = 100.f;

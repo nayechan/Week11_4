@@ -4,6 +4,13 @@
 #include "Vector.h"
 #include "Color.h"
 #include "SceneComponent.h"
+#include "ResourceManager.h"
+#include "Texture.h"
+#include "StaticMesh.h"
+#include "Material.h"
+#include "BillboardComponent.h"
+#include "DecalComponent.h"
+#include "StaticMeshComponent.h"
 
 bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectInstance)
 {
@@ -45,6 +52,14 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 
 	case EPropertyType::Struct:
 		bChanged = RenderStructProperty(Property, ObjectInstance);
+		break;
+
+	case EPropertyType::Texture:
+		bChanged = RenderTextureProperty(Property, ObjectInstance);
+		break;
+
+	case EPropertyType::StaticMesh:
+		bChanged = RenderStaticMeshProperty(Property, ObjectInstance);
 		break;
 
 	default:
@@ -266,5 +281,122 @@ bool UPropertyRenderer::RenderStructProperty(const FProperty& Prop, void* Instan
 	// Struct는 읽기 전용으로 표시
 	// FVector, FLinearColor 등 주요 타입은 이미 별도로 처리됨
 	ImGui::Text("%s: [Struct]", Prop.Name);
+	return false;
+}
+
+bool UPropertyRenderer::RenderTextureProperty(const FProperty& Prop, void* Instance)
+{
+	UTexture** TexturePtr = Prop.GetValuePtr<UTexture*>(Instance);
+
+	FString CurrentPath;
+	if (*TexturePtr)
+	{
+		CurrentPath = (*TexturePtr)->GetTextureName();
+	}
+
+	const TArray<FString> TexturePaths = UResourceManager::GetInstance().GetAllFilePaths<UTexture>();
+
+	if (TexturePaths.empty())
+	{
+		ImGui::Text("%s: <No Textures>", Prop.Name);
+		return false;
+	}
+
+	TArray<const char*> Items;
+	Items.reserve(TexturePaths.size());
+	for (const FString& path : TexturePaths)
+		Items.push_back(path.c_str());
+
+	int SelectedIdx = -1;
+	for (int i = 0; i < static_cast<int>(TexturePaths.size()); ++i)
+	{
+		if (TexturePaths[i] == CurrentPath)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, Items.data(), static_cast<int>(Items.size())))
+	{
+		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(TexturePaths.size()))
+		{
+			*TexturePtr = UResourceManager::GetInstance().Load<UTexture>(TexturePaths[SelectedIdx]);
+			if (*TexturePtr)
+			{
+				(*TexturePtr)->SetTextureName(TexturePaths[SelectedIdx]);
+			}
+
+			// 컴포넌트별 Setter 호출
+			UObject* Obj = static_cast<UObject*>(Instance);
+			if (UBillboardComponent* Billboard = Cast<UBillboardComponent>(Obj))
+			{
+				Billboard->SetTextureName(TexturePaths[SelectedIdx]);
+			}
+			else if (UDecalComponent* Decal = Cast<UDecalComponent>(Obj))
+			{
+				Decal->SetDecalTexture(TexturePaths[SelectedIdx]);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UPropertyRenderer::RenderStaticMeshProperty(const FProperty& Prop, void* Instance)
+{
+	UStaticMesh** MeshPtr = Prop.GetValuePtr<UStaticMesh*>(Instance);
+
+	FString CurrentPath;
+	if (*MeshPtr)
+	{
+		CurrentPath = (*MeshPtr)->GetFilePath();
+	}
+
+	const TArray<FString> MeshPaths = UResourceManager::GetInstance().GetAllFilePaths<UStaticMesh>();
+
+	if (MeshPaths.empty())
+	{
+		ImGui::Text("%s: <No Meshes>", Prop.Name);
+		return false;
+	}
+
+	TArray<const char*> Items;
+	Items.reserve(MeshPaths.size());
+	for (const FString& path : MeshPaths)
+		Items.push_back(path.c_str());
+
+	int SelectedIdx = -1;
+	for (int i = 0; i < static_cast<int>(MeshPaths.size()); ++i)
+	{
+		if (MeshPaths[i] == CurrentPath)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, Items.data(), static_cast<int>(Items.size())))
+	{
+		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(MeshPaths.size()))
+		{
+			// 컴포넌트별 Setter 호출
+			UObject* Object = static_cast<UObject*>(Instance);
+			if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Object))
+			{
+				StaticMeshComponent->SetStaticMesh(MeshPaths[SelectedIdx]);
+			}
+			else
+			{
+				*MeshPtr = UResourceManager::GetInstance().Load<UStaticMesh>(MeshPaths[SelectedIdx]);
+			}
+			return true;
+		}
+	}
+
 	return false;
 }
