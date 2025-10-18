@@ -137,7 +137,7 @@ void UGizmoArrowComponent::CollectMeshBatches(
 
 		// --- 인스턴스 데이터 ---
 		BatchElement.WorldMatrix = GetWorldMatrix();
-		BatchElement.ObjectID = InternalIndex;
+		BatchElement.ObjectID = 0;
 		BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		OutMeshBatchElements.Add(BatchElement);
@@ -169,7 +169,7 @@ void UGizmoArrowComponent::CollectMeshBatches(
 
 			// --- 인스턴스 데이터 ---
 			BatchElement.WorldMatrix = GetWorldMatrix();
-			BatchElement.ObjectID = InternalIndex;
+			BatchElement.ObjectID = 0;
 			BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 			OutMeshBatchElements.Add(BatchElement);
