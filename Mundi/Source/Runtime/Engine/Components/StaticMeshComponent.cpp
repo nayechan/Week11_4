@@ -348,7 +348,7 @@ void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, c
 
 void UStaticMeshComponent::SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial)
 {
-	if (0 <= InElementIndex && InElementIndex < MaterialSlots.Num())
+	if (0 <= InElementIndex && InElementIndex < static_cast<uint32>(MaterialSlots.Num()))
 	{
 		MaterialSlots[InElementIndex] = InNewMaterial;
 	}

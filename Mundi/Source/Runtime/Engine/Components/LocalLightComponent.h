@@ -38,7 +38,7 @@ public:
 	DECLARE_DUPLICATE(ULocalLightComponent)
 
 protected:
-	float AttenuationRadius = 30.0f;		// 감쇠 반경
+	float AttenuationRadius = 5.0f;			// 감쇠 반경
 	float FalloffExponent = 2.0f;			// 감쇠 지수 (bUseInverseSquareFalloff = false일 때 사용)
 	bool bUseInverseSquareFalloff = true;	// true: Inverse Square Falloff (물리 법칙), false: Exponent Falloff (예술적 제어)
 };
