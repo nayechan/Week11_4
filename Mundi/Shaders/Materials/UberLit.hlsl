@@ -19,45 +19,44 @@
 #define NUM_SPOT_LIGHT_MAX 16
 
 // --- 조명 정보 구조체 (LightInfo.h와 완전히 일치) ---
+// Note: Color already includes Intensity and Temperature (calculated in C++)
+// Optimized padding for minimal memory usage
+
 struct FAmbientLightInfo
 {
-    float4 Color;       // FLinearColor
-    float Intensity;
-    float3 Padding;     // FVector Padding
+    float4 Color;       // 16 bytes - FLinearColor (includes Intensity + Temperature)
 };
 
 struct FDirectionalLightInfo
 {
-    float4 Color;       // FLinearColor
-    float Intensity;
-    float3 Direction;   // FVector
+    float4 Color;       // 16 bytes - FLinearColor (includes Intensity + Temperature)
+    float3 Direction;   // 12 bytes - FVector
+    float Padding;      // 4 bytes - Padding for alignment
 };
 
 struct FPointLightInfo
 {
-    float4 Color;           // FLinearColor
-    float3 Position;        // FVector
-    float FalloffExponent;  // float
-    float3 Attenuation;     // FVector (constant, linear, quadratic)
-    float AttenuationRadius; // float
-    float Intensity;
-    uint bUseAttenuationCoefficients; // uint32
-    float2 Padding;         // FVector2D Padding
+    float4 Color;           // 16 bytes - FLinearColor (includes Intensity + Temperature)
+    float3 Position;        // 12 bytes - FVector
+    float AttenuationRadius; // 4 bytes (moved up to fill slot)
+    float3 Attenuation;     // 12 bytes - FVector (constant, linear, quadratic)
+    float FalloffExponent;  // 4 bytes
+    uint bUseAttenuationCoefficients; // 4 bytes - uint32
+    float3 Padding;         // 12 bytes - Padding for alignment
 };
 
 struct FSpotLightInfo
 {
-    float4 Color;           // FLinearColor
-    float3 Position;        // FVector
-    float InnerConeAngle;   // float
-    float3 Direction;       // FVector
-    float OuterConeAngle;   // float
-    float3 Attenuation;     // FVector
-    float AttenuationRadius; // float
-    float FalloffExponent;  // float
-    float Intensity;
-    uint bUseAttenuationCoefficients; // uint32
-    float Padding;          // float Padding
+    float4 Color;           // 16 bytes - FLinearColor (includes Intensity + Temperature)
+    float3 Position;        // 12 bytes - FVector
+    float InnerConeAngle;   // 4 bytes
+    float3 Direction;       // 12 bytes - FVector
+    float OuterConeAngle;   // 4 bytes
+    float3 Attenuation;     // 12 bytes - FVector
+    float AttenuationRadius; // 4 bytes
+    float FalloffExponent;  // 4 bytes
+    uint bUseAttenuationCoefficients; // 4 bytes - uint32
+    float2 Padding;         // 8 bytes - Padding for alignment
 };
 
 // --- Material 구조체 (OBJ 머티리얼 정보) ---
@@ -72,18 +71,17 @@ struct FMaterial
     float3 EmissiveColor;       // Ke - Emissive color (self-illumination)
     uint IlluminationModel;     // illum - Illumination model
     float3 TransmissionFilter;  // Tf - Transmission filter color
-    float MaterialDummy;        // Padding
+    float Padding;              // Padding for alignment
 };
 
 // --- 상수 버퍼 (Constant Buffers) ---
 // Extended to support both lighting and StaticMeshShader features
 
-// b0: ModelBuffer (VS) - Matches ModelBufferType exactly (64 bytes)
+// b0: ModelBuffer (VS) - Matches ModelBufferType exactly (128 bytes)
 cbuffer ModelBuffer : register(b0)
 {
-    row_major float4x4 WorldMatrix;  // 64 bytes only
-    // Note: C++ ModelBufferType doesn't include WorldInverseTranspose
-    // Must use WorldMatrix for normal transformation (works for uniform scale)
+    row_major float4x4 WorldMatrix;              // 64 bytes
+    row_major float4x4 WorldInverseTranspose;    // 64 bytes - For correct normal transformation
 };
 
 // b1: ViewProjBuffer (VS) - Matches ViewProjBufferType
@@ -102,19 +100,17 @@ cbuffer ColorBuffer : register(b3)
 
 // b4: PixelConstBuffer (PS) - Material information from OBJ files
 // Must match FPixelConstBufferType exactly!
-// HLSL bool = 4 bytes, C++ bool = 1 byte -> need careful padding
 cbuffer PixelConstBuffer : register(b4)
 {
     FMaterial Material;         // 64 bytes
-    bool HasMaterial;           // 4 bytes (HLSL)
-    bool HasTexture;            // 4 bytes (HLSL)
+    uint bHasMaterial;          // 4 bytes (HLSL)
+    uint bHasTexture;           // 4 bytes (HLSL)
 };
 
 // b7: CameraBuffer (VS+PS) - Camera properties (moved from b2)
 cbuffer CameraBuffer : register(b7)
 {
     float3 CameraPosition;
-    float CameraPadding;
 };
 
 // b8: LightBuffer (VS+PS) - Matches FLightBufferType from ConstantBufferType.h
@@ -126,7 +122,6 @@ cbuffer LightBuffer : register(b8)
     FSpotLightInfo SpotLights[NUM_SPOT_LIGHT_MAX];
     uint PointLightCount;
     uint SpotLightCount;
-    float2 LightPadding;
 };
 
 // --- 텍스처 및 샘플러 리소스 ---
@@ -161,32 +156,35 @@ struct PS_OUTPUT
 
 // Ambient Light Calculation
 // Uses the provided materialColor (which includes texture if available)
+// Note: light.Color already includes Intensity and Temperature
 float3 CalculateAmbientLight(FAmbientLightInfo light, float4 materialColor)
 {
     // Use materialColor directly (already contains texture if available)
-    return light.Color.rgb * light.Intensity * materialColor.rgb;
+    return light.Color.rgb * materialColor.rgb;
 }
 
 // Diffuse Light Calculation (Lambert)
 // Uses the provided materialColor (which includes texture if available)
-float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float intensity, float4 materialColor)
+// Note: lightColor already includes Intensity (calculated in C++)
+float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float4 materialColor)
 {
     float NdotL = max(dot(normal, lightDir), 0.0f);
     // Use materialColor directly (already contains texture if available)
-    return lightColor.rgb * intensity * materialColor.rgb * NdotL;
+    return lightColor.rgb * materialColor.rgb * NdotL;
 }
 
 // Specular Light Calculation (Blinn-Phong)
 // Uses material's SpecularColor (Ks) if available - this is important!
-float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float intensity, float specularPower)
+// Note: lightColor already includes Intensity (calculated in C++)
+float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
 {
     float3 halfVec = normalize(lightDir + viewDir);
     float NdotH = max(dot(normal, halfVec), 0.0f);
     float specular = pow(NdotH, specularPower);
 
     // Apply material's specular color (Ks) - metallic materials have colored specular!
-    float3 specularMaterial = HasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f);
-    return lightColor.rgb * intensity * specularMaterial * specular;
+    float3 specularMaterial = bHasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f);
+    return lightColor.rgb * specularMaterial * specular;
 }
 
 // Attenuation Calculation for Point/Spot Lights
@@ -226,14 +224,14 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, flo
 {
     float3 lightDir = normalize(-light.Direction);
 
-    // Diffuse
-    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor);
+    // Diffuse (light.Color already includes Intensity)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor);
 
     // Specular (optional)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
-        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, light.Intensity, specularPower);
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower);
     }
 
     return diffuse + specular;
@@ -270,14 +268,14 @@ float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal
         attenuation = pow(min(1.0f - attenuation, 1.0f), light.FalloffExponent);
     }
 
-    // Diffuse
-    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor) * attenuation;
+    // Diffuse (light.Color already includes Intensity)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
 
     // Specular (optional)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
-        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, light.Intensity, specularPower) * attenuation;
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower) * attenuation;
     }
 
     return diffuse + specular;
@@ -329,14 +327,14 @@ float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, 
     // Combine both attenuations
     float attenuation = distanceAttenuation * spotAttenuation;
 
-    // Diffuse
-    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, light.Intensity, materialColor) * attenuation;
+    // Diffuse (light.Color already includes Intensity)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
 
     // Specular (optional)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
-        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, light.Intensity, specularPower) * attenuation;
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower) * attenuation;
     }
 
     return diffuse + specular;
@@ -360,15 +358,15 @@ PS_INPUT mainVS(VS_INPUT Input)
     Out.Position = mul(viewPos, ProjectionMatrix);
 
     // Transform normal to world space
-    // Using WorldMatrix (works correctly for uniform scale only)
-    // For non-uniform scale, would need transpose(inverse(WorldMatrix))
-    float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldMatrix));
+    // Using WorldInverseTranspose for correct normal transformation with non-uniform scale
+    // Normal vectors transform by transpose(inverse(WorldMatrix))
+    float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldInverseTranspose));
     Out.Normal = worldNormal;
 
     Out.TexCoord = Input.TexCoord;
 
     // Use SpecularExponent from material, or default value if no material
-    float specPower = HasMaterial ? Material.SpecularExponent : 32.0f;
+    float specPower = bHasMaterial ? Material.SpecularExponent : 32.0f;
 
 #if LIGHTING_MODEL_GOURAUD
     // Gouraud Shading: Calculate lighting per-vertex (diffuse + specular)
@@ -423,7 +421,7 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     Output.UUID = UUID;
     // Apply UV scrolling if enabled
     float2 uv = Input.TexCoord;
-    //if (HasMaterial && HasTexture)
+    //if (bHasMaterial && bHasTexture)
     //{
     //    uv += UVScrollSpeed * UVScrollTime;
     //}
@@ -432,26 +430,26 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv);
 
     // Use SpecularExponent from material, or default value if no material
-    float specPower = HasMaterial ? Material.SpecularExponent : 32.0f;
+    float specPower = bHasMaterial ? Material.SpecularExponent : 32.0f;
 
 #if LIGHTING_MODEL_GOURAUD
     // Gouraud Shading: Lighting already calculated in vertex shader
     float4 finalPixel = Input.Color;
 
     // Apply texture modulation if available
-    if (HasTexture)
+    if (bHasTexture)
     {
         finalPixel.rgb *= texColor.rgb;
     }
 
     // Add emissive (self-illumination) - not affected by lighting
-    if (HasMaterial)
+    if (bHasMaterial)
     {
         finalPixel.rgb += Material.EmissiveColor;
     }
 
     // Apply material/color blending for non-material objects
-    if (!HasMaterial)
+    if (!bHasMaterial)
     {
         finalPixel.rgb = lerp(finalPixel.rgb, LerpColor.rgb, LerpColor.a);
     }
@@ -469,11 +467,11 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     float4 baseColor = Input.Color;
 
     // Start with texture if available
-    if (HasTexture)
+    if (bHasTexture)
     {
         baseColor.rgb = texColor.rgb;
     }
-    else if (HasMaterial)
+    else if (bHasMaterial)
     {
         // No texture, use material diffuse color
         baseColor.rgb = Material.DiffuseColor;
@@ -505,7 +503,7 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     }
 
     // Add emissive (self-illumination) after lighting calculation
-    if (HasMaterial)
+    if (bHasMaterial)
     {
         litColor += Material.EmissiveColor;
     }
@@ -525,11 +523,11 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     float4 baseColor = Input.Color;
 
     // Start with texture if available
-    if (HasTexture)
+    if (bHasTexture)
     {
         baseColor.rgb = texColor.rgb;
     }
-    else if (HasMaterial)
+    else if (bHasMaterial)
     {
         // No texture, use material diffuse color
         baseColor.rgb = Material.DiffuseColor;
@@ -561,7 +559,7 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     }
 
     // Add emissive (self-illumination) after lighting calculation
-    if (HasMaterial)
+    if (bHasMaterial)
     {
         litColor += Material.EmissiveColor;
     }
@@ -580,10 +578,10 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     float4 finalPixel = Input.Color;
 
     // Apply material/texture blending
-    if (HasMaterial)
+    if (bHasMaterial)
     {
         finalPixel.rgb = Material.DiffuseColor;
-        if (HasTexture)
+        if (bHasTexture)
         {
             finalPixel.rgb = texColor.rgb;
         }

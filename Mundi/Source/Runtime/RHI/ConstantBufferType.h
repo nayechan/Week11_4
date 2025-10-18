@@ -6,6 +6,7 @@
 struct ModelBufferType
 {
     FMatrix Model;
+    FMatrix ModelInverseTranspose;  // For correct normal transformation with non-uniform scale
 };
 
 struct DecalBufferType
@@ -99,12 +100,10 @@ struct FMaterialInPs
 struct FPixelConstBufferType
 {
     FMaterialInPs Material;
-    bool bHasMaterial; // 1 bytes
-    bool Dummy[3]; // 3 bytes padding
-    bool bHasTexture; // 1 bytes
-    bool Dummy2[11]; // 11 bytes padding
+    uint32 bHasMaterial;
+    uint32 bHasTexture;
+	FVector2D Padding; // 16바이트 정렬을 위한 패딩
 };
-
 
 static_assert(sizeof(FPixelConstBufferType) % 16 == 0, "PixelConstData size mismatch!");
 

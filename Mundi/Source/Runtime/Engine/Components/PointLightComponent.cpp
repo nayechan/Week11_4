@@ -15,14 +15,15 @@ UPointLightComponent::~UPointLightComponent()
 FPointLightInfo UPointLightComponent::GetLightInfo() const
 {
 	FPointLightInfo Info;
-	Info.Color = GetLightColor();
+	// Use GetLightColorWithIntensity() to include Temperature + Intensity
+	Info.Color = GetLightColorWithIntensity();
 	Info.Position = GetWorldLocation();
-	Info.FalloffExponent = IsUsingAttenuationCoefficients() ? 0.0f : GetFalloffExponent();
+	Info.AttenuationRadius = GetAttenuationRadius();  // Moved up for optimal packing
 	Info.Attenuation = IsUsingAttenuationCoefficients() ? GetAttenuation() : FVector(1.0f, 0.0f, 0.0f);
-	Info.AttenuationRadius = GetAttenuationRadius();
-	Info.Intensity = GetIntensity();
+	Info.FalloffExponent = IsUsingAttenuationCoefficients() ? 0.0f : GetFalloffExponent();
 	Info.bUseAttenuationCoefficients = IsUsingAttenuationCoefficients() ? 1u : 0u;
-	Info.Padding = FVector2D(0.0f, 0.0f);
+	Info.Padding = FVector(0.0f, 0.0f, 0.0f); // 패딩 초기화
+
 	return Info;
 }
 

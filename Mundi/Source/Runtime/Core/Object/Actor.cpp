@@ -150,11 +150,14 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 			RootComponent = nullptr;
 		}
 		SceneComponents.Remove(SC);
+		GWorld->GetPartitionManager()->Unregister(SC);
 		UnregisterComponentTree(SC);
 		SC->DetachFromParent(true);
 	}
 	Component->UnregisterComponent();
 	Component->DestroyComponent();
+	
+	
 }
 
 void AActor::UnregisterAllComponents(bool bCallEndPlayOnBegun)

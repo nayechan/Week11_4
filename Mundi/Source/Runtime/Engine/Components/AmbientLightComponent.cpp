@@ -14,9 +14,9 @@ UAmbientLightComponent::~UAmbientLightComponent()
 FAmbientLightInfo UAmbientLightComponent::GetLightInfo() const
 {
 	FAmbientLightInfo Info;
-	Info.Color = GetLightColor();
-	Info.Intensity = GetIntensity();
-	Info.Padding = FVector(0.0f, 0.0f, 0.0f);
+	// Use GetLightColorWithIntensity() to include Temperature + Intensity
+	Info.Color = GetLightColorWithIntensity();
+	// Optimized: No padding needed (16 bytes perfect alignment)
 	return Info;
 }
 

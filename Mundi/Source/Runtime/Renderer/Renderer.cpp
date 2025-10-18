@@ -182,6 +182,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITI
 			//RHIDevice->UpdatePixelConstantBuffers(MaterialInfo, true, bHasTexture); // 성공 여부 기반
 			FPixelConstBufferType PixelConst{ FPixelConstBufferType(FMaterialInPs(MaterialInfo), true) };
 			PixelConst.bHasTexture = bHasTexture;
+			PixelConst.Padding = FVector2D(0.0f, 0.0f);
 			RHIDevice->SetAndUpdateConstantBuffer(PixelConst);
 			RHIDevice->GetDeviceContext()->DrawIndexed(MeshGroupInfos[i].IndexCount, MeshGroupInfos[i].StartIndex, 0);
 		}
@@ -192,6 +193,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITI
 		FPixelConstBufferType PixelConst{ FPixelConstBufferType(FMaterialInPs(ObjMaterialInfo)) };
 		PixelConst.bHasTexture = false;
 		PixelConst.bHasMaterial = false;
+		PixelConst.Padding = FVector2D(0.0f, 0.0f);
 		//RHIDevice->UpdatePixelConstantBuffers(ObjMaterialInfo, false, false); // PSSet도 해줌
 		RHIDevice->SetAndUpdateConstantBuffer(PixelConst);
 		RHIDevice->GetDeviceContext()->DrawIndexed(IndexCount, 0, 0);
@@ -385,7 +387,8 @@ void URenderer::EndLineBatch(const FMatrix& ModelMatrix, const FMatrix& ViewMatr
 	}
 
 	// Set up rendering state
-	RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(ModelMatrix));
+	FMatrix ModelInvTranspose = ModelMatrix.InverseAffine().Transpose();
+	RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(ModelMatrix, ModelInvTranspose));
 	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewMatrix, ProjectionMatrix));
 	RHIDevice->PrepareShader(LineShader);
 

@@ -34,6 +34,12 @@ namespace FMath
 	static T Max(T A, T B) { return std::max(A, B); }
 
 	template<typename T>
+	static T Min(T A, T B) { return std::min(A, B); }
+
+	template<typename T>
+	static T Abs(T Value) { return Value < 0 ? -Value : Value; }
+
+	template<typename T>
 	static T Clamp(T Value, T Min, T Max)
 	{
 		return Value < Min ? Min : (Value > Max ? Max : Value);

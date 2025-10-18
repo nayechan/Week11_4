@@ -29,6 +29,7 @@ public:
 	void BulkRegister(const TArray<AActor*>& Actors); // 여러 액터 한 번에 추가 (+즉시 리빌드)
 	
 	void Unregister(AActor* Actor);
+	void Unregister(USceneComponent* Component);
 
 	// 업데이트 큐 등록 API
 	void MarkDirty(AActor* Actor);

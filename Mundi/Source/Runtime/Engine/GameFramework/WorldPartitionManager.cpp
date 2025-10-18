@@ -93,12 +93,17 @@ void UWorldPartitionManager::Unregister(AActor* Actor)
 	const TArray<USceneComponent*> Components = Actor->GetSceneComponents();
 	for (USceneComponent* Component : Components)
 	{
-		if (UStaticMeshComponent* Smc = Cast<UStaticMeshComponent>(Component))
-		{
-			if (BVH) BVH->Remove(Smc);
+		Unregister(Component);
+	}
+}
 
-			ComponentDirtySet.erase(Smc);
-		}
+void UWorldPartitionManager::Unregister(USceneComponent* Component)
+{
+	if (UStaticMeshComponent* Smc = Cast<UStaticMeshComponent>(Component))
+	{
+		if (BVH) BVH->Remove(Smc);
+
+		ComponentDirtySet.erase(Smc);
 	}
 }
 
