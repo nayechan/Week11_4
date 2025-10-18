@@ -26,9 +26,8 @@ protected:
     ~UStaticMeshComponent() override;
 
 public:
-    // 조명 모델 설정
-    void SetLightingModel(ELightingModel InModel);
-    ELightingModel GetLightingModel() const { return LightingModel; }
+    // ViewMode에 따른 셰이더 설정 (SceneRenderer에서 호출)
+    void SetViewModeShader(UShader* InShader) override;
 
     void Render(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) override;
 
@@ -63,9 +62,6 @@ protected:
     void MarkWorldPartitionDirty();
 
 protected:
-    // 조명 모델 설정
-    ELightingModel LightingModel = ELightingModel::Phong; // 기본값: Phong
-
     UStaticMesh* StaticMesh = nullptr;
     TArray<FMaterialSlot> MaterialSlots;
 

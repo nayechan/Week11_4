@@ -21,5 +21,5 @@ public:
 
 private:
     EEngineShowFlags ShowFlags = EEngineShowFlags::SF_DefaultEnabled;
-    EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Lit;
+    EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Lit_Phong;
 };

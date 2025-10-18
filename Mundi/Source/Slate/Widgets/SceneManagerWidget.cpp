@@ -523,11 +523,13 @@ void USceneManagerWidget::RenderToolbar()
     {
         // Convert enum value to UI index (subtract 1 because enum starts with None=0)
 EViewModeIndex CurrentEnum = World->GetRenderSettings().GetViewModeIndex();
-        int CurrentViewMode = 0; // Default to Lit
-        
+        int CurrentViewMode = 0; // Default to Phong
+
         switch (CurrentEnum)
         {
-        case EViewModeIndex::VMI_Lit:
+        case EViewModeIndex::VMI_Lit_Phong:
+        case EViewModeIndex::VMI_Lit_Gouraud:
+        case EViewModeIndex::VMI_Lit_Lambert:
             CurrentViewMode = 0;
             break;
         case EViewModeIndex::VMI_Unlit:
@@ -540,15 +542,15 @@ EViewModeIndex CurrentEnum = World->GetRenderSettings().GetViewModeIndex();
             CurrentViewMode = 0;
             break;
         }
-        
+
         if (ImGui::Combo("##ViewMode", &CurrentViewMode, ViewModeNames, IM_ARRAYSIZE(ViewModeNames)))
         {
             // Convert UI index back to enum value
-            EViewModeIndex NewEnum = EViewModeIndex::VMI_Lit;
+            EViewModeIndex NewEnum = EViewModeIndex::VMI_Lit_Phong;
             switch (CurrentViewMode)
             {
             case 0:
-                NewEnum = EViewModeIndex::VMI_Lit;
+                NewEnum = EViewModeIndex::VMI_Lit_Phong;
                 break;
             case 1:
                 NewEnum = EViewModeIndex::VMI_Unlit;

@@ -4,7 +4,6 @@
 IMPLEMENT_CLASS(ULocalLightComponent)
 
 BEGIN_PROPERTIES(ULocalLightComponent)
-	MARK_AS_COMPONENT("로컬 라이트", "위치 기반 로컬 라이트 컴포넌트입니다.")
 	ADD_PROPERTY_RANGE(float, AttenuationRadius, "Light", 0.0f, 10000.0f, true, "감쇠 반경입니다.")
 	ADD_PROPERTY(bool, bUseAttenuationCoefficients, "Light", true, "감쇠 방식 선택: true = Attenuation 사용, false = FalloffExponent 사용.")
 	ADD_PROPERTY_RANGE(float, FalloffExponent, "Light", 0.1f, 10.0f, true, "감쇠 지수입니다 (bUseAttenuationCoefficients = false일 때 사용).")
