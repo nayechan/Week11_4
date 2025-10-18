@@ -33,12 +33,16 @@ void USelectionManager::SelectComponent(USceneComponent* Component)
     {
         SelectedComponent = Component;
     }
-    //오너 엑터가 선택 안돼있거나 Editable하지 않은 컴포넌트 피킹, 루트 컴포넌트 피킹
+    //오너 엑터가 선택 안돼있거나 Editable하지 않은 컴포넌트 피킹, 부모 컴포넌트 피킹
     else
     {
         ClearSelection();
         SelectedActors.Add(SelectedActor);
-        SelectedComponent = SelectedActor->GetRootComponent();
+        if (!(SelectedComponent = Component->GetAttachParent()))
+        {
+            SelectedComponent = SelectedActor->GetRootComponent();
+        }
+  
     }
     
 }
