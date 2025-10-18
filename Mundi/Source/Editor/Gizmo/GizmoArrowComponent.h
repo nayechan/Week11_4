@@ -25,6 +25,9 @@ public:
     bool IsHighlighted() const { return bHighlighted; }
     uint32 GetAxisIndex() const { return AxisIndex; }
 
+    UMaterial* GetMaterial(uint32 InSectionIndex) const override;
+    void SetMaterial(uint32 InElementIndex, UMaterial* InNewMaterial) override;
+
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(UGizmoArrowComponent)

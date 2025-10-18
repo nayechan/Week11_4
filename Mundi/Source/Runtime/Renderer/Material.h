@@ -27,7 +27,8 @@ protected:
     ~UMaterial() override = default;
 
 public:
-    void SetShader(UShader* ShaderResource);
+    void SetShader(UShader* InShaderResource);
+    void SetShaderByName(const FString& InShaderName);
     UShader* GetShader();
 
     // MaterialInfo의 텍스처 경로들을 기반으로 ResolvedTextures 배열을 채웁니다.

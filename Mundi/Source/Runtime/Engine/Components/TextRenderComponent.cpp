@@ -180,7 +180,6 @@ void UTextRenderComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 UMaterial* UTextRenderComponent::GetMaterial(uint32 InSectionIndex) const
 {
-    // 슬롯 상관없이 항상 기본 머티리얼 반환
     return Material;
 }
 

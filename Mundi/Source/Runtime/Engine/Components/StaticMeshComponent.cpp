@@ -234,7 +234,7 @@ void UStaticMeshComponent::SetStaticMesh(const FString& PathFileName)
 		// MaterailSlots.size()가 GroupInfos.size() 보다 클 수 있기 때문에, GroupInfos.size()로 설정
 		for (int i = 0; i < GroupInfos.size(); ++i)
 		{
-			MaterialSlots[i] = UResourceManager::GetInstance().Load<UMaterial>(GroupInfos[i].InitialMaterialName);
+			SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
 		}
 		MarkWorldPartitionDirty();
 	}

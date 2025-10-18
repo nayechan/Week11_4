@@ -448,7 +448,6 @@ void FSceneRenderer::RenderOpaquePass()
 		// 수집된 UMeshComponent 배치 요소의 셰이더를 ViewModeShader로 강제 변경
 		for (FMeshBatchElement& BatchElement : MeshBatchElements)
 		{
-			// 예시: 모든 요소의 셰이더를 변경
 			BatchElement.VertexShader = ViewModeShader;
 			BatchElement.PixelShader = ViewModeShader;
 		}
