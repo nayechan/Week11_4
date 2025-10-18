@@ -21,9 +21,11 @@ FVector UDirectionalLightComponent::GetLightDirection() const
 FDirectionalLightInfo UDirectionalLightComponent::GetLightInfo() const
 {
 	FDirectionalLightInfo Info;
-	Info.Color = GetLightColor();
+	// Use GetLightColorWithIntensity() to include Temperature + Intensity
+	Info.Color = GetLightColorWithIntensity();
 	Info.Direction = GetLightDirection();
-	Info.Intensity = GetIntensity();
+	// Intensity is already applied in Color, so set to 1.0
+	Info.Intensity = 1.0f;
 	return Info;
 }
 

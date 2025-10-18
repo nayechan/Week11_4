@@ -51,7 +51,8 @@ float USpotLightComponent::GetConeAttenuation(const FVector& WorldPosition) cons
 FSpotLightInfo USpotLightComponent::GetLightInfo() const
 {
 	FSpotLightInfo Info;
-	Info.Color = GetLightColor();
+	// Use GetLightColorWithIntensity() to include Temperature + Intensity
+	Info.Color = GetLightColorWithIntensity();
 	Info.Position = GetWorldLocation();
 	Info.InnerConeAngle = GetInnerConeAngle();
 	Info.Direction = GetDirection();
@@ -59,7 +60,8 @@ FSpotLightInfo USpotLightComponent::GetLightInfo() const
 	Info.Attenuation = IsUsingAttenuationCoefficients() ? GetAttenuation() : FVector(1.0f, 0.0f, 0.0f);
 	Info.AttenuationRadius = GetAttenuationRadius();
 	Info.FalloffExponent = IsUsingAttenuationCoefficients() ? 0.0f : GetFalloffExponent();
-	Info.Intensity = GetIntensity();
+	// Intensity is already applied in Color, so set to 1.0
+	Info.Intensity = 1.0f;
 	Info.bUseAttenuationCoefficients = IsUsingAttenuationCoefficients() ? 1u : 0u;
 	Info.Padding = 0.0f;
 	return Info;
