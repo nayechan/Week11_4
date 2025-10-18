@@ -85,7 +85,7 @@ void UBillboardComponent::Render(URenderer* Renderer, const FMatrix& View, const
     //Renderer->GetRHIDevice()->UpdateBillboardConstantBuffers(Owner->GetActorLocation() + GetRelativeLocation() + FVector(0.f, 0.f, 1.f) * Owner->GetActorScale().Z, View, Proj, CamRight, CamUp);
 	//정작 location, view proj만 사용하고 있길래 그냥 Identity넘김
 	Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(BillboardBufferType(
-		Owner->GetActorLocation() + GetRelativeLocation() + FVector(0.f, 0.f, 1.f) * Owner->GetActorScale().Z,
+		GetWorldLocation(),
 		View,
 		Proj,
 		View.InverseAffineFast()));

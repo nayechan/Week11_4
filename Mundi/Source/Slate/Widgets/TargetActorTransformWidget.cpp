@@ -269,14 +269,6 @@ void UTargetActorTransformWidget::Initialize()
 		UIManager->RegisterTargetTransformWidget(this);
 	}
 }
-
-AActor* UTargetActorTransformWidget::GetCurrentSelectedActor() const
-{
-	if (!UIManager)
-		return nullptr;
-
-	return UIManager->GetSelectedActor();
-}
 //
 //USceneComponent* UTargetActorTransformWidget::GetEditingComponent() const
 //{
