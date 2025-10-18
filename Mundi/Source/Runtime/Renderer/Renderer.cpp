@@ -115,27 +115,27 @@ UPrimitiveComponent* URenderer::GetPrimitiveCollided(int MouseX, int MouseY) con
 
 void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITIVE_TOPOLOGY InTopology, const TArray<FMaterialSlot>& InComponentMaterialSlots)
 {
-	UINT stride = 0;
+	UINT Stride = 0;
 	switch (InMesh->GetVertexType())
 	{
 	case EVertexLayoutType::PositionColor:
-		stride = sizeof(FVertexSimple);
+		Stride = sizeof(FVertexSimple);
 		break;
 	case EVertexLayoutType::PositionColorTexturNormal:
-		stride = sizeof(FVertexDynamic);
+		Stride = sizeof(FVertexDynamic);
 		break;
 	case EVertexLayoutType::PositionTextBillBoard:
-		stride = sizeof(FBillboardVertexInfo_GPU);
+		Stride = sizeof(FBillboardVertexInfo_GPU);
 		break;
 	case EVertexLayoutType::PositionBillBoard:
-		stride = sizeof(FBillboardVertex);
+		Stride = sizeof(FBillboardVertex);
 		break;
 	default:
 		// Handle unknown or unsupported vertex types
 		assert(false && "Unknown vertex type!");
 		return; // or log an error
 	}
-	UINT offset = 0;
+	UINT Offset = 0;
 
 	ID3D11Buffer* VertexBuffer = InMesh->GetVertexBuffer();
 	ID3D11Buffer* IndexBuffer = InMesh->GetIndexBuffer();
@@ -143,7 +143,7 @@ void URenderer::DrawIndexedPrimitiveComponent(UStaticMesh* InMesh, D3D11_PRIMITI
 	uint32 IndexCount = InMesh->GetIndexCount();
 
 	RHIDevice->GetDeviceContext()->IASetVertexBuffers(
-		0, 1, &VertexBuffer, &stride, &offset
+		0, 1, &VertexBuffer, &Stride, &Offset
 	);
 
 	RHIDevice->GetDeviceContext()->IASetIndexBuffer(

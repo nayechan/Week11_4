@@ -66,7 +66,7 @@ void UResourceManager::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* I
     CreateDefaultShader();
 }
 
-UMaterial* UResourceManager::GetOrCreateMaterial(const FString& Name, EVertexLayoutType layoutType)
+UMaterial* UResourceManager::GetOrCreateMaterial(const FString& Name)
 {
     auto it = MaterialMap.find(Name);
     if (it != MaterialMap.end())
@@ -580,6 +580,12 @@ void UResourceManager::UpdateDynamicVertexBuffer(const FString& Name, TArray<FBi
     Context->Map(Mesh->GetVertexBuffer(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     memcpy(mappedResource.pData, vertices.data(), sizeof(FBillboardVertexInfo_GPU) * vertices.size()); //vertices.size()만큼의 Character info를 vertices에서 pData로 복사해가라
     Context->Unmap(Mesh->GetVertexBuffer(), 0);
+}
+
+UMaterial* UResourceManager::GetDefaultMaterial()
+{
+    // 기본 Material 생성 (기본 Phong 셰이더 사용)
+    return GetOrCreateMaterial("Shaders/Materials/UberLit.hlsl");
 }
 
 // 여기서 텍스처 데이터 로드 및 

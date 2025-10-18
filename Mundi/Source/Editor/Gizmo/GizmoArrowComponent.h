@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "StaticMeshComponent.h"
 class UGizmoArrowComponent : public UStaticMeshComponent
 {
@@ -6,7 +6,7 @@ public:
     DECLARE_CLASS(UGizmoArrowComponent, UStaticMeshComponent)
     UGizmoArrowComponent();
     
-    void Render(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) override;
+    void CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View) override;
 
 protected:
     ~UGizmoArrowComponent() override;
@@ -29,8 +29,7 @@ public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(UGizmoArrowComponent)
 protected:
-    // Compute uniform scale so gizmo appears with a constant on-screen size per viewport
-    float ComputeScreenConstantScale(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj, float targetPixels = 30.0f) const;
+    float ComputeScreenConstantScale(const FSceneView* View, float TargetPixels) const;
 
 protected:
     FVector Direction;
@@ -38,5 +37,8 @@ protected:
     FVector Color;
     bool bHighlighted = false;
     uint32 AxisIndex = 0;
+    
+    // 기즈모가 항상 사용할 고정 머티리얼입니다.
+    UMaterial* GizmoMaterial = nullptr;
 };
 

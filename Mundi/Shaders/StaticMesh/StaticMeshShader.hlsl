@@ -1,7 +1,7 @@
 cbuffer ModelBuffer : register(b0)
 {
     row_major float4x4 WorldMatrix;
-    row_major float4x4 WorldInverseTranspose;  // For normal transformation (not used in this shader)
+    row_major float4x4 WorldInverseTranspose; // For normal transformation (not used in this shader)
 }
 
 cbuffer ViewProjBuffer : register(b1)
@@ -17,7 +17,7 @@ cbuffer HighLightBuffer : register(b2)
     int X;
     int Y;
     int Z;
-    int GIzmo;
+    int Gizmo;
 }
 
 struct FAmbientLightInfo
@@ -109,8 +109,8 @@ cbuffer PixelConstData : register(b4)
 cbuffer PSScrollCB : register(b5)
 {
     float2 UVScrollSpeed;
-    float  UVScrollTime;
-    float  _pad_scrollcb;
+    float UVScrollTime;
+    float _pad_scrollcb;
 }
 
 struct PS_INPUT
@@ -160,7 +160,7 @@ PS_INPUT mainVS(VS_INPUT input)
       //  c.a = 0.5;
     }
     
-    if (GIzmo == 1)
+    if (Gizmo == 1)
     {
         if (Y == 1)
         {
@@ -175,9 +175,7 @@ PS_INPUT mainVS(VS_INPUT input)
             else if (X == 3)
                 c = float4(0.0, 0.0, 1.0, c.a); // Blue
         }
-        
     }
-    
     
     // Pass the color to the pixel shader
     output.color = c;
@@ -191,15 +189,20 @@ PS_INPUT mainVS(VS_INPUT input)
 PS_OUTPUT mainPS(PS_INPUT input)
 {
     PS_OUTPUT Output;
+    
     // Lerp the incoming color with the global LerpColor
     float4 finalColor = input.color;
-    finalColor.rgb = lerp(finalColor.rgb, LerpColor.rgb, LerpColor.a) * (1.0f - HasMaterial);
-    finalColor.rgb += Material.DiffuseColor * HasMaterial;
     
-    if (HasMaterial && HasTexture)
+    if (Gizmo == 0)
     {
-        float2 uv = input.texCoord + UVScrollSpeed * UVScrollTime;
-        finalColor.rgb = g_DiffuseTexColor.Sample(g_Sample, uv);
+        finalColor.rgb = lerp(finalColor.rgb, LerpColor.rgb, LerpColor.a) * (1.0f - HasMaterial);
+        finalColor.rgb += Material.DiffuseColor * HasMaterial;
+    
+        if (HasMaterial && HasTexture)
+        {
+            float2 uv = input.texCoord + UVScrollSpeed * UVScrollTime;
+            finalColor.rgb = g_DiffuseTexColor.Sample(g_Sample, uv);
+        }
     }
     
     Output.Color = finalColor;

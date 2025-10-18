@@ -29,7 +29,6 @@ public:
     void SetViewModeShader(UShader* InShader) override;
 
     void Render(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) override;
-
     void CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View) override;
 
     void SetStaticMesh(const FString& PathFileName);
@@ -60,7 +59,7 @@ protected:
 protected:
     UStaticMesh* StaticMesh = nullptr;
     TArray<FMaterialSlot> MaterialSlots;
+    // TArray<UMaterial*> MaterialSlots;
 
     bool bChangedMaterialByUser = false;
 };
-

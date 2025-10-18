@@ -32,8 +32,7 @@ UStaticMeshComponent::UStaticMeshComponent()
 	if (DefaultShader)
 	{
 		Material = UResourceManager::GetInstance().GetOrCreateMaterial(
-			ShaderPath + "_DefaultMaterial",
-			EVertexLayoutType::PositionColorTexturNormal
+			ShaderPath + "_DefaultMaterial"
 		);
 		Material->SetShader(DefaultShader);
 	}
@@ -56,8 +55,7 @@ void UStaticMeshComponent::SetViewModeShader(UShader* InShader)
 	if (!Material)
 	{
 		Material = UResourceManager::GetInstance().GetOrCreateMaterial(
-			"Shaders/Materials/UberLit.hlsl_Material",
-			EVertexLayoutType::PositionColorTexturNormal
+			"Shaders/Materials/UberLit.hlsl_Material"
 		);
 	}
 
@@ -93,61 +91,131 @@ void UStaticMeshComponent::Render(URenderer* Renderer, const FMatrix& ViewMatrix
 	}
 }
 
-void UStaticMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View)
+void UStaticMeshComponent::CollectMeshBatches(
+	TArray<FMeshBatchElement>& OutMeshBatchElements,
+	const FSceneView* View)
 {
-	// 1. 렌더링할 메시와 머티리얼이 유효한지 검사
+	// 1. 렌더링할 메시 애셋이 유효한지 검사
 	if (!StaticMesh || !StaticMesh->GetStaticMeshAsset())
 	{
-		return;
+		return; // 그릴 메시 데이터 없음
 	}
 
-	// 2. 메시의 서브 그룹(섹션) 정보와 컴포넌트의 머티리얼 슬롯 가져오기
+	// 2. 메시의 서브 그룹(섹션) 정보 가져오기
 	const TArray<FGroupInfo>& MeshGroupInfos = StaticMesh->GetMeshGroupInfo();
-	const TArray<FMaterialSlot>& ComponentMaterialSlots = GetMaterialSlots();
-	const uint32 NumSections = static_cast<uint32>(MeshGroupInfos.size());
 
-	if (NumSections == 0)
-	{
-		// 섹션 정보가 없는 메시는 그릴 수 없음 (혹은 단일 머티리얼로 처리)
-		return;
-	}
-
-	// 3. [핵심] 서브 메시(섹션)의 수만큼 FMeshBatchElement 생성
-	for (uint32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
-	{
-		// 4. 이 섹션에 해당하는 머티리얼 가져오기
-		UMaterial* Material = GetMaterial(SectionIndex); // (GetMaterial(int) 헬퍼 함수)
-
-		// 셰이더가 없는 머티리얼은 그릴 수 없음 (Default Material로 대체 가능)
-		if (!Material || !Material->GetShader())
+	// 3. 사용할 머티리얼과 셰이더를 결정하는 람다 함수 (코드 중복 방지)
+	auto DetermineMaterialAndShader = [&](uint32 SectionIndex) -> std::pair<UMaterial*, UShader*>
 		{
-			continue;
+			UMaterial* Material = GetMaterial(SectionIndex); // 컴포넌트 슬롯에서 머티리얼 가져오기
+			UShader* Shader = nullptr;
+
+			if (Material && Material->GetShader())
+			{
+				Shader = Material->GetShader();
+			}
+			else
+			{
+				// [Fallback 로직]
+				// 머티리얼이 없거나 셰이더가 없으면 기본 머티리얼 사용
+				UE_LOG("UStaticMeshComponent: Material or Shader invalid for section %u. Falling back to default.", SectionIndex);
+
+				Material = UResourceManager::GetInstance().GetDefaultMaterial(); // 기본 머티리얼 요청
+				if (Material)
+				{
+					Shader = Material->GetShader();
+				}
+
+				// 기본 머티리얼/셰이더조차 없으면 렌더링 불가
+				if (!Material || !Shader)
+				{
+					UE_LOG("UStaticMeshComponent: Default material/shader not found!");
+					return { nullptr, nullptr }; // 렌더링 불가 표시
+				}
+			}
+			return { Material, Shader };
+		};
+
+	// 4. GroupInfos 유무에 따라 분기 처리
+	if (MeshGroupInfos.IsEmpty())
+	{
+		// --- [단일 배치 처리] ---
+		// GroupInfos가 없으면 메시 전체를 0번 머티리얼 슬롯을 사용하여 단일 배치로 생성합니다.
+
+		// 메시 전체 인덱스 수가 0이면 그릴 수 없습니다.
+		if (StaticMesh->GetIndexCount() == 0)
+		{
+			return;
 		}
 
-		// 5. 이 섹션(드로우 콜 1개)을 위한 FMeshBatchElement 생성
+		// 0번 슬롯의 머티리얼과 셰이더 결정 (Fallback 포함)
+		auto [MaterialToUse, ShaderToUse] = DetermineMaterialAndShader(0);
+		if (!MaterialToUse || !ShaderToUse)
+		{
+			return; // 렌더링 불가
+		}
+
 		FMeshBatchElement BatchElement;
 
 		// --- 정렬 키 ---
-		BatchElement.VertexShader = Material->GetShader();
-		BatchElement.PixelShader = Material->GetShader();
-		BatchElement.Material = Material;
+		BatchElement.VertexShader = ShaderToUse;
+		BatchElement.PixelShader = ShaderToUse;
+		BatchElement.Material = MaterialToUse;
 		BatchElement.Mesh = StaticMesh;
 
-		// --- 드로우 데이터 (서브 메시 정보) ---
-		const FGroupInfo& Group = MeshGroupInfos[SectionIndex];
-		BatchElement.IndexCount = Group.IndexCount;
-		BatchElement.StartIndex = Group.StartIndex;
-		BatchElement.BaseVertexIndex = 0; // (일반적으로 0)
+		// --- 드로우 데이터 (메시 전체 범위 사용) ---
+		BatchElement.IndexCount = StaticMesh->GetIndexCount(); // 전체 인덱스 수
+		BatchElement.StartIndex = 0;                          // 시작은 0
+		BatchElement.BaseVertexIndex = 0;
 
-		// --- 인스턴스 데이터 (컴포넌트 정보) ---
+		// --- 인스턴스 데이터 ---
 		BatchElement.WorldMatrix = GetWorldMatrix();
-		BatchElement.ObjectID = InternalIndex; // (UObject의 고유 ID)
-
-		// --- 파이프라인 상태 ---
+		BatchElement.ObjectID = InternalIndex;
 		BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-		// 6. 렌더러의 마스터 리스트에 추가
 		OutMeshBatchElements.Add(BatchElement);
+	}
+	else
+	{
+		// --- [서브 메시 처리] ---
+		// GroupInfos가 있으면 각 그룹별로 배치를 생성합니다.
+		const uint32 NumSections = static_cast<uint32>(MeshGroupInfos.size());
+		for (uint32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+		{
+			const FGroupInfo& Group = MeshGroupInfos[SectionIndex];
+			// 그룹의 인덱스 수가 0이면 그릴 수 없습니다.
+			if (Group.IndexCount == 0)
+			{
+				continue;
+			}
+
+			// 이 섹션의 머티리얼과 셰이더 결정 (Fallback 포함)
+			auto [MaterialToUse, ShaderToUse] = DetermineMaterialAndShader(SectionIndex);
+			if (!MaterialToUse || !ShaderToUse)
+			{
+				continue; // 이 섹션 렌더링 불가
+			}
+
+			FMeshBatchElement BatchElement;
+
+			// --- 정렬 키 ---
+			BatchElement.VertexShader = ShaderToUse;
+			BatchElement.PixelShader = ShaderToUse;
+			BatchElement.Material = MaterialToUse;
+			BatchElement.Mesh = StaticMesh;
+
+			// --- 드로우 데이터 (그룹 정보 사용) ---
+			BatchElement.IndexCount = Group.IndexCount;
+			BatchElement.StartIndex = Group.StartIndex;
+			BatchElement.BaseVertexIndex = 0;
+
+			// --- 인스턴스 데이터 ---
+			BatchElement.WorldMatrix = GetWorldMatrix();
+			BatchElement.ObjectID = InternalIndex;
+			BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+			OutMeshBatchElements.Add(BatchElement);
+		}
 	}
 }
 

@@ -1,85 +1,165 @@
 ﻿#include "pch.h"
 #include "GizmoArrowComponent.h"
 #include "EditorEngine.h"
+#include "MeshBatchElement.h"
+#include "SceneView.h"
 
 IMPLEMENT_CLASS(UGizmoArrowComponent)
 
 UGizmoArrowComponent::UGizmoArrowComponent()
 {
     SetStaticMesh("Data/Gizmo/TranslationHandle.obj");
-    //MaterialSlots 크기 체크 필요
+    // 임시 코드 MaterialSlots 크기 체크 필요?
     MaterialSlots[0].MaterialName = "Shaders/StaticMesh/StaticMeshShader.hlsl";
-
     //UShader* FixedShader = UResourceManager::GetInstance().Load<UShader>("Shaders/StaticMesh/StaticMeshShader.hlsl");
 }
 
-float UGizmoArrowComponent::ComputeScreenConstantScale(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj, float targetPixels) const
+float UGizmoArrowComponent::ComputeScreenConstantScale(const FSceneView* View, float TargetPixels) const
 {
-    float h = (float)std::max<uint32>(1, Renderer->GetCurrentViewportHeight());
-    float w = (float)std::max<uint32>(1, Renderer->GetCurrentViewportWidth());
-    if (h <= 1.0f || w <= 1.0f)
-    {
-        // Fallback to RHI viewport if not set
-        if (auto* rhi = dynamic_cast<D3D11RHI*>(Renderer->GetRHIDevice()))
-        {
-            h = (float)std::max<UINT>(1, rhi->GetViewportHeight());
-            w = (float)std::max<UINT>(1, rhi->GetViewportWidth());
-        }
-    }
+    float H = (float)std::max<uint32>(1, View->ViewRect.Height());
+    float W = (float)std::max<uint32>(1, View->ViewRect.Width());
+
+    const FMatrix& Proj = View->ProjectionMatrix;
+    const FMatrix& ViewMatrix = View->ViewMatrix;
 
     const bool bOrtho = std::fabs(Proj.M[3][3] - 1.0f) < KINDA_SMALL_NUMBER;
-    float worldPerPixel = 0.0f;
+    float WorldPerPixel = 0.0f;
     if (bOrtho)
     {
-        const float halfH = 1.0f / Proj.M[1][1];
-        worldPerPixel = (2.0f * halfH) / h;
+        const float HalfH = 1.0f / Proj.M[1][1];
+        WorldPerPixel = (2.0f * HalfH) / H;
     }
     else
     {
-        const float yScale = Proj.M[1][1];
-        const FVector gizPosWorld = GetWorldLocation();
-        const FVector4 gizPos4(gizPosWorld.X, gizPosWorld.Y, gizPosWorld.Z, 1.0f);
-        const FVector4 viewPos4 = gizPos4 * View;
-        float z = viewPos4.Z;
-        if (z < 1.0f) z = 1.0f;
-        worldPerPixel = (2.0f * z) / (h * yScale);
+        const float YScale = Proj.M[1][1];
+        const FVector GizPosWorld = GetWorldLocation();
+        const FVector4 GizPos4(GizPosWorld.X, GizPosWorld.Y, GizPosWorld.Z, 1.0f);
+        const FVector4 ViewPos4 = GizPos4 * ViewMatrix;
+        float Z = ViewPos4.Z;
+        if (Z < 1.0f) Z = 1.0f;
+        WorldPerPixel = (2.0f * Z) / (H * YScale);
     }
 
-    float ScaleFactor = targetPixels * worldPerPixel;
+    float ScaleFactor = TargetPixels * WorldPerPixel;
     if (ScaleFactor < 0.001f) ScaleFactor = 0.001f;
     if (ScaleFactor > 10000.0f) ScaleFactor = 10000.0f;
     return ScaleFactor;
 }
 
-//뷰포트 사이즈에 맞게 기즈모 resize => render 로직에 scale 변경... 
-void UGizmoArrowComponent::Render(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj)
+void UGizmoArrowComponent::CollectMeshBatches(
+    TArray<FMeshBatchElement>& OutMeshBatchElements,
+    const FSceneView* View)
 {
-    if (!IsActive()) return;
+    if (!IsActive() || !StaticMesh)
+    {
+        return; // 그릴 메시 애셋이 없음
+    }
 
-    // 모드/상태 적용(오버레이)
-    auto& RS = GEngine.GetDefaultWorld()->GetRenderSettings();
-    EViewModeIndex saved = RS.GetViewModeIndex();
-    Renderer->GetRHIDevice()->RSSetState(ERasterizerMode::Solid);
-    // 스텐실에 1을 기록해, 이후 라인 렌더링이 겹치는 픽셀을 그리지 않도록 마스크
-    //Renderer->GetRHIDevice()->OMSetBlendState(true);
+    // --- 스케일 계산 ---
+    if (!View)
+    {
+        UE_LOG("GizmoArrowComponent requires a valid FSceneView to compute scale. Gizmo might not scale correctly.");
+        return;
+    }
+    else
+    {
+        const float ScaleFactor = ComputeScreenConstantScale(View, 30.0f);
+        SetWorldScale(DefaultScale * ScaleFactor);
+    }
 
-    // 하이라이트 상수
-    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(HighLightBufferType(true, FVector(1, 1, 1), AxisIndex, bHighlighted ? 1 : 0, 0, 1));
-    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(ColorBufferType(FLinearColor(), 0));
-    // 리사이징
-    const float ScaleFactor = ComputeScreenConstantScale(Renderer, View, Proj, 30.0f);
+    // --- 사용할 머티리얼 결정 ---
+    UMaterial* MaterialToUse = GizmoMaterial;
+    UShader* ShaderToUse = nullptr;
 
-    SetWorldScale(DefaultScale * ScaleFactor);
+    if (MaterialToUse && MaterialToUse->GetShader())
+    {
+        ShaderToUse = MaterialToUse->GetShader();
+    }
+    else
+    {
+        // [Fallback 로직]
+        UE_LOG("GizmoArrowComponent: GizmoMaterial is invalid. Falling back to default vertex color shader.");
+        MaterialToUse = UResourceManager::GetInstance().Load<UMaterial>("Shaders/StaticMesh/StaticMeshShader.hlsl");
+        if (MaterialToUse)
+        {
+            ShaderToUse = MaterialToUse->GetShader();
+        }
 
-    FMatrix M = GetWorldMatrix();
-    FMatrix MInvTranspose = M.InverseAffine().Transpose();
-    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(ModelBufferType(M, MInvTranspose));
-    Renderer->GetRHIDevice()->SetAndUpdateConstantBuffer(ViewProjBufferType(View, Proj));
+        if (!MaterialToUse || !ShaderToUse)
+        {
+            UE_LOG("GizmoArrowComponent: Default vertex color material/shader not found!");
+            return;
+        }
+    }
 
-    UStaticMeshComponent::Render(Renderer, View, Proj);
+    // --- FMeshBatchElement 수집 ---
+    const TArray<FGroupInfo>& MeshGroupInfos = StaticMesh->GetMeshGroupInfo();
 
-    // 상태 복구
-    //Renderer->GetRHIDevice()->OMSetBlendState(false);
+    // GroupInfos가 비어 있는지 확인
+    if (MeshGroupInfos.IsEmpty())
+    {
+        // --- 단일 메시 처리 ---
+        // GroupInfos가 없으면 메시 전체를 단일 배치로 생성합니다.
+
+        // 메시 전체 인덱스 수가 0이면 그릴 수 없습니다.
+        if (StaticMesh->GetIndexCount() == 0)
+        {
+            return;
+        }
+
+        FMeshBatchElement BatchElement;
+
+        // --- 정렬 키 ---
+        BatchElement.VertexShader = ShaderToUse;
+        BatchElement.PixelShader = ShaderToUse;
+        BatchElement.Material = MaterialToUse;
+        BatchElement.Mesh = StaticMesh;
+
+        // --- 드로우 데이터 (메시 전체 범위 사용) ---
+        BatchElement.IndexCount = StaticMesh->GetIndexCount(); // 전체 인덱스 수
+        BatchElement.StartIndex = 0;                          // 시작은 0
+        BatchElement.BaseVertexIndex = 0;
+
+        // --- 인스턴스 데이터 ---
+        BatchElement.WorldMatrix = GetWorldMatrix();
+        BatchElement.ObjectID = InternalIndex;
+        BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+        OutMeshBatchElements.Add(BatchElement);
+    }
+    else
+    {
+        // --- 서브 메시 처리 (기존 로직) ---
+        // GroupInfos가 있으면 각 그룹별로 배치를 생성합니다.
+        for (const FGroupInfo& Group : MeshGroupInfos)
+        {
+            // 그룹의 인덱스 수가 0이면 그릴 수 없습니다.
+            if (Group.IndexCount == 0)
+            {
+                continue;
+            }
+
+            FMeshBatchElement BatchElement;
+
+            // --- 정렬 키 ---
+            BatchElement.VertexShader = ShaderToUse;
+            BatchElement.PixelShader = ShaderToUse;
+            BatchElement.Material = MaterialToUse;
+            BatchElement.Mesh = StaticMesh;
+
+            // --- 드로우 데이터 (그룹 정보 사용) ---
+            BatchElement.IndexCount = Group.IndexCount;
+            BatchElement.StartIndex = Group.StartIndex;
+            BatchElement.BaseVertexIndex = 0;
+
+            // --- 인스턴스 데이터 ---
+            BatchElement.WorldMatrix = GetWorldMatrix();
+            BatchElement.ObjectID = InternalIndex;
+            BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+            OutMeshBatchElements.Add(BatchElement);
+        }
+    }
 }
 
 UGizmoArrowComponent::~UGizmoArrowComponent()
