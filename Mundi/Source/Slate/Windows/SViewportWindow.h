@@ -38,4 +38,7 @@ private:
 
     bool bIsActive;
     bool bIsMouseDown;
+
+    // ViewMode 관련 상태 저장
+    int CurrentLitSubMode = 2; // 0=Gouraud, 1=Lambert, 2=Phong (기본값: Phong)
 };

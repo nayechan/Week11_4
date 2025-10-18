@@ -42,7 +42,7 @@ public:
     FViewportRect ViewRect{}; // 이 뷰가 그려질 뷰포트상의 영역
 
     // 렌더링 설정
-    EViewModeIndex ViewMode = EViewModeIndex::VMI_Lit;
+	EViewModeIndex ViewMode = EViewModeIndex::VMI_Lit_Phong;
     ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;
     float ZNear{}, ZFar{};
 };

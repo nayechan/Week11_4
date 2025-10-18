@@ -65,7 +65,7 @@ protected:
     uint32  OrthographicAddYPosition;
     float OrthographicZoom = 30.0f;
     //뷰모드
-    EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Lit;
+    EViewModeIndex ViewModeIndex = EViewModeIndex::VMI_Lit_Phong;
 
     //원근 투영 기본값
     bool PerspectiveCameraInput = false;

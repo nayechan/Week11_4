@@ -19,10 +19,22 @@ END_PROPERTIES()
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
-	/*SetMaterial("Shaders/Materials/UberLit.hlsl");*/
-
 	SetStaticMesh("Data/cube-tex.obj");     // 임시 기본 static mesh 설정
-	SetLightingModel(ELightingModel::Phong); // 기본 조명 모델 설정 (Phong)
+
+	// 기본 Material 생성 (기본 Phong 셰이더 사용)
+	FString ShaderPath = "Shaders/Materials/UberLit.hlsl";
+	TArray<FShaderMacro> DefaultMacros;
+	DefaultMacros.push_back(FShaderMacro{ "LIGHTING_MODEL_PHONG", "1" });
+
+	UShader* DefaultShader = UResourceManager::GetInstance().Load<UShader>(ShaderPath, DefaultMacros);
+	if (DefaultShader)
+	{
+		Material = UResourceManager::GetInstance().GetOrCreateMaterial(
+			ShaderPath + "_DefaultMaterial",
+			EVertexLayoutType::PositionColorTexturNormal
+		);
+		Material->SetShader(DefaultShader);
+	}
 }
 
 UStaticMeshComponent::~UStaticMeshComponent()
@@ -33,65 +45,22 @@ UStaticMeshComponent::~UStaticMeshComponent()
 	}
 }
 
-void UStaticMeshComponent::SetLightingModel(ELightingModel InModel)
+void UStaticMeshComponent::SetViewModeShader(UShader* InShader)
 {
-    // Material이 이미 생성되어 있고 모델이 같다면 반환 (최적화)
-    if (Material && LightingModel == InModel)
-        return;
+	if (!InShader)
+		return;
 
-    LightingModel = InModel;
+	// Material이 없으면 생성
+	if (!Material)
+	{
+		Material = UResourceManager::GetInstance().GetOrCreateMaterial(
+			"Shaders/Materials/UberLit.hlsl_Material",
+			EVertexLayoutType::PositionColorTexturNormal
+		);
+	}
 
-    // 조명 모델에 따라 적절한 셰이더로 전환
-    FString ShaderPath = "Shaders/Materials/UberLit.hlsl";
-    
-    TArray<FShaderMacro> Macros;
-    
-    switch (LightingModel)
-    {
-        case ELightingModel::Gouraud:
-            Macros.push_back(FShaderMacro{ "LIGHTING_MODEL_GOURAUD", "1" });
-            break;
-            
-        case ELightingModel::Lambert:
-            Macros.push_back(FShaderMacro{ "LIGHTING_MODEL_LAMBERT", "1" });
-            break;
-            
-        case ELightingModel::Phong:
-            Macros.push_back(FShaderMacro{ "LIGHTING_MODEL_PHONG", "1" });
-            break;
-            
-        case ELightingModel::None:
-        default:
-            // 매크로 없이 기본 동작 (조명 없음)
-            break;
-    }
-
-    // UResourceManager를 통해 매크로가 적용된 셰이더 로드
-    UShader* NewShader = UResourceManager::GetInstance().Load<UShader>(ShaderPath, Macros);
-    
-    if (NewShader)
-    {
-        // Material이 없으면 생성
-        if (!Material)
-        {
-            Material = UResourceManager::GetInstance().GetOrCreateMaterial(
-                ShaderPath + "_Material", 
-                EVertexLayoutType::PositionColorTexturNormal
-            );
-        }
-        
-        // 셰이더 교체
-        Material->SetShader(NewShader);
-        
-        UE_LOG("Lighting model changed to %s", 
-            LightingModel == ELightingModel::Gouraud ? "Gouraud" :
-            LightingModel == ELightingModel::Lambert ? "Lambert" :
-            LightingModel == ELightingModel::Phong ? "Phong" : "None");
-    }
-    else
-    {
-        UE_LOG("Failed to load shader for lighting model");
-    }
+	// ViewMode에 맞는 셰이더로 교체
+	Material->SetShader(InShader);
 }
 
 void UStaticMeshComponent::Render(URenderer* Renderer, const FMatrix& ViewMatrix, const FMatrix& ProjectionMatrix)

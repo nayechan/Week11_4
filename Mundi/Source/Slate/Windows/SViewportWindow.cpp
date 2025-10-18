@@ -212,27 +212,73 @@ void SViewportWindow::RenderToolbar()
 
 		if (ImGui::Button("Reset")) { /* TODO: 카메라 Reset */ }
 
-		const char* viewModes[] = { "Lit (Phong)", "Gouraud", "Lambert", "Phong", "Unlit", "Wireframe", "SceneDepth" };
-		int currentViewMode = static_cast<int>(ViewportClient->GetViewModeIndex()) - 1; // -1이유: None=0이므로 1부터 시작
+		// 1단계: 메인 ViewMode 선택 (Lit, Unlit, Wireframe, SceneDepth)
+		const char* mainViewModes[] = { "Lit", "Unlit", "Wireframe", "SceneDepth" };
+
+		// 현재 ViewMode에서 메인 모드 인덱스 계산
+		int currentMainMode = 0; // 기본값: Lit
+		EViewModeIndex currentViewMode = ViewportClient->GetViewModeIndex();
+		if (currentViewMode == EViewModeIndex::VMI_Unlit)
+			currentMainMode = 1;
+		else if (currentViewMode == EViewModeIndex::VMI_Wireframe)
+			currentMainMode = 2;
+		else if (currentViewMode == EViewModeIndex::VMI_SceneDepth)
+			currentMainMode = 3;
+		else // Lit 계열 (Gouraud, Lambert, Phong)
+		{
+			currentMainMode = 0;
+			// 현재 Lit 서브모드도 동기화
+			if (currentViewMode == EViewModeIndex::VMI_Lit_Gouraud)
+				CurrentLitSubMode = 0;
+			else if (currentViewMode == EViewModeIndex::VMI_Lit_Lambert)
+				CurrentLitSubMode = 1;
+			else if (currentViewMode == EViewModeIndex::VMI_Lit_Phong)
+				CurrentLitSubMode = 2;
+		}
 
 		ImGui::SameLine();
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 2)); // 버튼/콤보 내부 여백 축소
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0)); // 아이템 간 간격 축소
-		ImGui::SetNextItemWidth(100.0f);                                // ✅ 폭 늘리기 (조명 모델 이름 표시)
-		bool changed = ImGui::Combo("##ViewMode", &currentViewMode, viewModes, IM_ARRAYSIZE(viewModes));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 2));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6, 0));
+		ImGui::SetNextItemWidth(80.0f);
+		bool mainModeChanged = ImGui::Combo("##MainViewMode", &currentMainMode, mainViewModes, IM_ARRAYSIZE(mainViewModes));
+
+		// 2단계: Lit 서브모드 선택 (Lit 선택 시에만 표시)
+		if (currentMainMode == 0) // Lit 선택됨
+		{
+			ImGui::SameLine();
+			const char* litSubModes[] = { "Gouraud", "Lambert", "Phong" };
+			ImGui::SetNextItemWidth(80.0f);
+			bool subModeChanged = ImGui::Combo("##LitSubMode", &CurrentLitSubMode, litSubModes, IM_ARRAYSIZE(litSubModes));
+
+			if (subModeChanged && ViewportClient)
+			{
+				switch (CurrentLitSubMode)
+				{
+				case 0: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Gouraud); break;
+				case 1: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Lambert); break;
+				case 2: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Phong); break;
+				}
+			}
+		}
+
 		ImGui::PopStyleVar(2);
 
-		if (changed && ViewportClient)
+		// 메인 모드 변경 시 처리
+		if (mainModeChanged && ViewportClient)
 		{
-			switch (currentViewMode)
+			switch (currentMainMode)
 			{
-			case 0: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit); break;
-			case 1: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Gouraud); break;
-			case 2: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Lambert); break;
-			case 3: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Phong); break;
-			case 4: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Unlit); break;
-			case 5: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Wireframe); break;
-			case 6: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_SceneDepth); break;
+			case 0: // Lit - 현재 선택된 서브모드 적용
+				switch (CurrentLitSubMode)
+				{
+				case 0: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Gouraud); break;
+				case 1: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Lambert); break;
+				case 2: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Phong); break;
+				}
+				break;
+			case 1: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Unlit); break;
+			case 2: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Wireframe); break;
+			case 3: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_SceneDepth); break;
 			}
 		}
 		// 🔘 여기 ‘한 번 클릭’ 버튼 추가
