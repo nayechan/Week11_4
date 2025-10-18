@@ -269,6 +269,8 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			InOutHandle["ObjStaticMeshAsset"] = "";
 		}
 	}
+
+	AutoSerialize(bInIsLoading, InOutHandle, UStaticMeshComponent::StaticClass());
 }
 
 void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, const FString& InMaterialName)

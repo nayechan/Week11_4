@@ -31,10 +31,8 @@ public:
 	void Initialize() override;
 	void Update() override;
 	void RenderWidget() override;
-	void PostProcess() override;
 
 	void UpdateTransformFromComponent(USceneComponent* SelectedComponent);
-	void ApplyTransformToActor(USceneComponent* SelectedComponent) const;
 
 	// Special Member Function
 	UTargetActorTransformWidget();
@@ -45,13 +43,10 @@ public:
 
 	void RenderHeader(AActor* SelectedActor, USceneComponent* SelectedComponent);
 	void RenderComponentHierarchy(AActor* SelectedActor, USceneComponent* SelectedComponent);
-	void RenderTransformEditor(AActor* SelectedActor, USceneComponent* SelectedComponent);
 	void RenderSelectedComponentDetails(USceneComponent* SelectedComponent);
-
 
 private:
 	UUIManager* UIManager = nullptr;
-	//AActor* SelectedActor = nullptr;
 	FString CachedActorName; // 액터 이름 캐시 (안전한 출력을 위해)
 
 	// Transform UI 상태
@@ -70,14 +65,5 @@ private:
 	bool bRotationEditing = false;               // 현재 회전 필드가 편집(active) 중인가
 
 	// 헬퍼 메서드
-	AActor* GetCurrentSelectedActor() const;
 	void ResetChangeFlags();
-
-	// 선택된 컴포넌트
-	//USceneComponent* SelectedComponent = nullptr;
-
-	//// 선택된 컴포넌트 가져오기
-	//USceneComponent* GetEditingComponent() const;  // ← 추가
-	//// 스태틱메쉬컴포넌트	가져오기
-	//UStaticMeshComponent* GetEditingStaticMeshComponent() const;
 };

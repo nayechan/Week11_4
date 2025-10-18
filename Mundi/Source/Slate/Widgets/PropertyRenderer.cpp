@@ -218,7 +218,8 @@ bool UPropertyRenderer::RenderFloatProperty(const FProperty& Prop, void* Instanc
 bool UPropertyRenderer::RenderVectorProperty(const FProperty& Prop, void* Instance)
 {
 	FVector* Value = Prop.GetValuePtr<FVector>(Instance);
-	return ImGui::DragFloat3(Prop.Name, &Value->X, 0.01f);
+
+	return ImGui::DragFloat3(Prop.Name, &Value->X, 0.1f);
 }
 
 bool UPropertyRenderer::RenderColorProperty(const FProperty& Prop, void* Instance)

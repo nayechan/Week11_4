@@ -213,37 +213,30 @@ namespace
 // 파일명 스템(Cube 등) 추출 + .obj 확장자 제거
 static inline FString GetBaseNameNoExt(const FString& Path)
 {
-	// 1. 마지막 경로 구분자('/' 또는 '\')를 찾아 파일 이름의 시작 위치를 결정합니다.
 	const size_t sep = Path.find_last_of("/\\");
 	const size_t start = (sep == FString::npos) ? 0 : sep + 1;
 
 	const FString ext = ".obj";
 	size_t end = Path.size();
 
-	// 2. 경로의 길이가 비교할 확장자보다 긴지 확인합니다.
 	if (end >= ext.size())
 	{
-		// 3. 경로의 끝에서 확장자 길이만큼의 문자열을 복사합니다.
 		FString PathExt = Path.substr(end - ext.size());
 
-		// 4. 복사된 확장자 문자열을 모두 소문자로 변환합니다.
 		std::transform(PathExt.begin(), PathExt.end(), PathExt.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-		// 5. 소문자로 변환된 문자열을 ".obj"와 비교하여 일치하면 파일명의 끝 위치를 조정합니다.
 		if (PathExt == ext)
 		{
 			end -= ext.size();
 		}
 	}
 
-	// 6. 계산된 시작과 끝 위치를 기반으로 최종 파일 이름을 잘라내어 반환합니다.
 	if (start <= end)
 	{
 		return Path.substr(start, end - start);
 	}
 
-	// 예외적인 경우(경로 구분자만 있는 경우 등)를 대비해 안전한 값을 반환합니다.
 	return Path.substr(start);
 }
 
@@ -258,11 +251,6 @@ UTargetActorTransformWidget::~UTargetActorTransformWidget() = default;
 
 void UTargetActorTransformWidget::OnSelectedActorCleared()
 {
-	// 즉시 내부 캐시/플래그 정리
-	/*SelectedActor = nullptr;
-	CachedActorName.clear();
-	
-	SelectedComponent = nullptr;*/
 	ResetChangeFlags();
 }
 
@@ -277,78 +265,16 @@ void UTargetActorTransformWidget::Initialize()
 		UIManager->RegisterTargetTransformWidget(this);
 	}
 }
-//
-//USceneComponent* UTargetActorTransformWidget::GetEditingComponent() const
-//{
-//	if (!SelectedActor)
-//		return nullptr;
-//
-//	USceneComponent* RootComponent = SelectedActor->GetRootComponent();
-//	if (!SelectedComponent || SelectedComponent == RootComponent)
-//		return nullptr;
-//
-//	return SelectedComponent;
-//}
-//
-//UStaticMeshComponent* UTargetActorTransformWidget::GetEditingStaticMeshComponent() const
-//{
-//	if (USceneComponent* EditingComp = GetEditingComponent())
-//		return Cast<UStaticMeshComponent>(EditingComp);
-//
-//	if (SelectedActor)
-//		if (AStaticMeshActor* StaticMeshActor = Cast<AStaticMeshActor>(SelectedActor))
-//			return StaticMeshActor->GetStaticMeshComponent();
-//
-//	return nullptr;
-//}
+
 
 void UTargetActorTransformWidget::Update()
 {
-	// UIManager를 통해 현재 선택된 액터 가져오기
-	//AActor* CurrentSelectedActor = GetCurrentSelectedActor();
-	//if (SelectedActor != CurrentSelectedActor)
-	//{
-	//	SelectedActor = CurrentSelectedActor;
-	//	SelectedComponent = nullptr;
-	//	// 새로 선택된 액터의 이름 캐시
-	//	if (SelectedActor)
-	//	{
-	//		try
-	//		{
-	//			CachedActorName = SelectedActor->GetName().ToString();
-
-	//			// ★ 선택 변경 시 한 번만 초기화
-	//			const FVector S = SelectedActor->GetActorScale();
-	//			bUniformScale = (fabs(S.X - S.Y) < 0.01f && fabs(S.Y - S.Z) < 0.01f);
-
-	//			// 스냅샷
-	//			UpdateTransformFromActor();
-	//			PrevEditRotationUI = EditRotation; // 회전 UI 기준값 초기화
-	//			bRotationEditing = false;          // 편집 상태 초기화
-	//		}
-	//		catch (...)
-	//		{
-	//			CachedActorName = "[Invalid Actor]";
-	//			SelectedActor = nullptr;
-	//		}
-	//	}
-	//	else
-	//	{
-	//		CachedActorName.clear();
-	//	}
-	//}
-
 	USceneComponent* SelectedComponent = GWorld->GetSelectionManager()->GetSelectedComponent();
 	if (SelectedComponent)
 	{
-		// 컴포넌트가 선택되어 있으면 항상 트랜스폼 정보를 업데이트하여
-		// 기즈모 조작을 실시간으로 UI에 반영합니다.
-		// 회전 필드 편집 중이면 그 프레임은 엔진→UI 역동기화(회전)를 막는다.
 		if (!bRotationEditing)
 		{
 			UpdateTransformFromComponent(SelectedComponent);
-			// 회전을 제외하고 위치/스케일도 여기서 갱신하고 싶다면,
-			// UpdateTransformFromActor()에서 회전만 건너뛰는 오버로드를 따로 만들어도 OK.
 		}
 	}
 }
@@ -368,10 +294,7 @@ void UTargetActorTransformWidget::RenderWidget()
 	// 2. 컴포넌트 계층 구조 렌더링
 	RenderComponentHierarchy(SelectedActor, SelectedComponent);
 
-	// 3. 트랜스폼 편집 UI (Location, Rotation, Scale) 렌더링
-	RenderTransformEditor(SelectedActor, SelectedComponent);
-
-	// 4. 선택된 컴포넌트의 상세 정보 렌더링
+	// 3. 선택된 컴포넌트의 상세 정보 렌더링 (Transform 포함)
 	RenderSelectedComponentDetails(SelectedComponent);
 }
 
@@ -417,9 +340,6 @@ void UTargetActorTransformWidget::RenderHeader(AActor* SelectedActor, USceneComp
 	ImGui::Spacing();
 }
 
-// -----------------------------------------------------------------------------
-// [신규 분리 함수 2] 컴포넌트 계층 구조 UI 렌더링
-// -----------------------------------------------------------------------------
 void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor, USceneComponent* SelectedComponent)
 {
 	AActor* ActorPendingRemoval = nullptr;
@@ -526,142 +446,6 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 	ImGui::Spacing();
 }
 
-// -----------------------------------------------------------------------------
-// 트랜스폼 편집 UI 렌더링
-// -----------------------------------------------------------------------------
-//여기서 드래그 처리를 왜 하는 건지 모르겠어서 일단 원본 유지하고 인자만 넘겨줌
-void UTargetActorTransformWidget::RenderTransformEditor(AActor* SelectedActor, USceneComponent* SelectedComponent)
-{
-	// Location 편집
-	if (ImGui::DragFloat3("Location", &EditLocation.X, 0.1f))
-	{
-		bPositionChanged = true;
-	}
-
-	// Rotation 편집
-	// ───────── Rotation: DragFloat3 하나로 "드래그=증분", "입력=절대" 처리 ─────────
-	{
-		
-		// 1) 컨트롤 그리기 전에 이전값 스냅
-		const FVector Before = EditRotation;
-
-		// 2) DragFloat3 호출
-		//    (키보드 입력도 허용되는 컨트롤이므로 라벨에 ZYX 오더 명시 권장)
-		bool ChangedThisFrame = ImGui::DragFloat3("Rotation", &EditRotation.X, 0.5f);
-		// 3) 컨트롤 상태 읽기
-		ImGuiIO& IO = ImGui::GetIO();
-		const bool Activated = ImGui::IsItemActivated();              // 이번 프레임에 포커스/활성 시작
-		const bool Active = ImGui::IsItemActive();                 // 현재 편집 중
-		const bool Edited = ImGui::IsItemEdited();                 // 이번 프레임에 값이 변함
-		const bool Deactivated = ImGui::IsItemDeactivatedAfterEdit();   // 편집 종료(값 변함 포함)
-
-		// "드래그 중" 판정: 마우스 좌클릭이 눌린 상태에서 활성이고, 실제 드래그가 발생
-		const bool MouseHeld = ImGui::IsMouseDown(ImGuiMouseButton_Left);
-		const bool MouseDrag = ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f) ||
-			(std::fabs(IO.MouseDelta.x) + std::fabs(IO.MouseDelta.y) > 0.0f);
-		const bool Dragging = Active && MouseHeld && MouseDrag;
-
-		// 4) 편집 세션 시작 시(이번 프레임 Activate) 기준값 스냅
-		//    - 절대 적용용으로 쓸 시작 회전과 UI 기준값 저장
-		static FQuat StartQuatOnEdit;
-		if (Activated)
-		{
-			StartQuatOnEdit = SelectedActor ? SelectedActor->GetActorRotation() : FQuat();
-			PrevEditRotationUI = EditRotation;
-			bRotationEditing = true;   // Update() 역동기화 방지
-		}
-
-		// 5) 값이 변한 프레임에 처리
-		if (Edited && (SelectedActor || SelectedComponent))
-		{
-			if (Dragging)
-			{
-				FVector DeltaEuler = EditRotation - PrevEditRotationUI;
-				auto Wrap = [](float a)->float { while (a > 180.f) a -= 360.f; while (a < -180.f) a += 360.f; return a; };
-				DeltaEuler.X = Wrap(DeltaEuler.X);
-				DeltaEuler.Y = Wrap(DeltaEuler.Y);
-				DeltaEuler.Z = Wrap(DeltaEuler.Z);
-
-				const FQuat Qx = FQuat::FromAxisAngle(FVector(1, 0, 0), DegreesToRadians(DeltaEuler.X));
-				const FQuat Qy = FQuat::FromAxisAngle(FVector(0, 1, 0), DegreesToRadians(DeltaEuler.Y));
-				const FQuat Qz = FQuat::FromAxisAngle(FVector(0, 0, 1), DegreesToRadians(DeltaEuler.Z));
-				const FQuat DeltaQuat = (Qz * Qy * Qx).GetNormalized();
-
-				if (SelectedComponent)
-				{
-					FQuat Cur = SelectedComponent->GetRelativeRotation();
-					SelectedComponent->SetRelativeRotation((DeltaQuat * Cur).GetNormalized());
-				}
-				else if (SelectedActor)
-				{
-					FQuat Cur = SelectedActor->GetActorRotation();
-					SelectedActor->SetActorRotation(DeltaQuat * Cur);
-				}
-
-				PrevEditRotationUI = EditRotation;
-				bRotationChanged = false; // PostProcess에서 다시 적용하지 않도록
-			}
-			else
-			{
-				const FQuat NewQ = FQuat::MakeFromEulerZYX(EditRotation).GetNormalized();
-				if (SelectedComponent)
-				{
-					SelectedComponent->SetRelativeRotation(NewQ);
-				}
-				else if (SelectedActor)
-				{
-					SelectedActor->SetActorRotation(NewQ);
-				}
-
-				EditRotation = NewQ.ToEulerZYXDeg();
-				PrevEditRotationUI = EditRotation;
-				bRotationChanged = false;
-			}
-		}
-
-		// 6) 편집 종료 시(포커스 빠짐) 최종 스냅 & 상태 리셋
-		if (Deactivated)
-		{
-			if (SelectedComponent)
-			{
-				EditRotation = SelectedComponent->GetRelativeRotation().ToEulerZYXDeg();
-				PrevEditRotationUI = EditRotation;
-			}
-			else if (SelectedActor)
-			{
-				EditRotation = SelectedActor->GetActorRotation().ToEulerZYXDeg();
-				PrevEditRotationUI = EditRotation;
-			}
-			bRotationEditing = false;
-			bRotationChanged = false;
-		}
-	}
-
-	// Scale 편집
-	ImGui::Checkbox("Uniform Scale", &bUniformScale);
-	if (bUniformScale)
-	{
-		float UniformScale = EditScale.X;
-		if (ImGui::DragFloat("Scale", &UniformScale, 0.01f, 0.01f, 10.0f))
-		{
-			EditScale = FVector(UniformScale, UniformScale, UniformScale);
-			bScaleChanged = true;
-		}
-	}
-	else
-	{
-		if (ImGui::DragFloat3("Scale", &EditScale.X, 0.01f, 0.01f, 10.0f))
-		{
-			bScaleChanged = true;
-		}
-	}
-
-	ImGui::Spacing();
-}
-
-// -----------------------------------------------------------------------------
-// 선택된 컴포넌트 상세 정보 UI 렌더링
-// -----------------------------------------------------------------------------
 void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent* SelectedComponent)
 {
 	ImGui::Spacing();
@@ -670,6 +454,7 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent
 	USceneComponent* TargetComponentForDetails = SelectedComponent;
 	if (!TargetComponentForDetails) return;
 
+	// TODO: 리플렉션으로 그려줘야함
 	// StaticMeshComponent Material UI (수동 유지)
 	if (UStaticMeshComponent* TargetStaticMeshComponent = Cast<UStaticMeshComponent>(TargetComponentForDetails))
 	{
@@ -731,17 +516,6 @@ void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent
 	}
 }
 
-void UTargetActorTransformWidget::PostProcess()
-{
-	// 자동 적용이 활성화된 경우 변경사항을 즉시 적용
-	if (bPositionChanged || bRotationChanged || bScaleChanged)
-	{
-		USceneComponent* SelectedComponent = GWorld->GetSelectionManager()->GetSelectedComponent();
-		ApplyTransformToActor(SelectedComponent);
-		ResetChangeFlags(); // 적용 후 플래그 리셋
-	}
-}
-
 void UTargetActorTransformWidget::UpdateTransformFromComponent(USceneComponent* SelectedComponent)
 {
 	if (SelectedComponent)
@@ -752,58 +526,6 @@ void UTargetActorTransformWidget::UpdateTransformFromComponent(USceneComponent* 
 	}
 
 	ResetChangeFlags();
-}
-
-void UTargetActorTransformWidget::ApplyTransformToActor(USceneComponent* SelectedComponent) const
-{
-
-	if (SelectedComponent)
-	{
-		bool bDirty = false;
-
-		if (bPositionChanged)
-		{
-			SelectedComponent->SetRelativeLocation(EditLocation);
-			bDirty = true;
-		}
-
-		if (bRotationChanged)
-		{
-			FQuat NewRotation = FQuat::MakeFromEulerZYX(EditRotation);
-			SelectedComponent->SetRelativeRotation(NewRotation);
-			bDirty = true;
-		}
-
-		if (bScaleChanged)
-		{
-			SelectedComponent->SetRelativeScale(EditScale);
-			bDirty = true;
-		}
-
-		if (bDirty)
-		{
-			SelectedComponent->OnTransformUpdated();
-		}
-		return;
-	}
-
-	//왜 중복으로 Transform을 적용하는지 모르겠어서 주석 처리 해봤는데 정상작동함
-	// 기존 액터 적용 분기
-	/*if (bPositionChanged)
-	{
-		SelectedActor->SetActorLocation(EditLocation);
-	}
-
-	if (bRotationChanged)
-	{
-		FQuat NewRotation = FQuat::MakeFromEulerZYX(EditRotation);
-		SelectedActor->SetActorRotation(NewRotation);
-	}
-
-	if (bScaleChanged)
-	{
-		SelectedActor->SetActorScale(EditScale);
-	}*/
 }
 
 void UTargetActorTransformWidget::ResetChangeFlags()
