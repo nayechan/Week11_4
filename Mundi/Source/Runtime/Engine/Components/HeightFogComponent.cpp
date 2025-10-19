@@ -37,17 +37,12 @@ UHeightFogComponent::~UHeightFogComponent()
 void UHeightFogComponent::OnRegister()
 {
 	Super_t::OnRegister();
-	UBillboardComponent* Icon = NewObject<UBillboardComponent>();
-	Icon->SetOwner(this->GetOwner());
-	Icon->SetupAttachment(this, EAttachmentRule::KeepRelative);
-	//SetupAttachment는 오너엑터의 OwnedComponent에 컴포넌트를 추가해주지 않으며
-	//이 기능을 추가한다고 해도 AddOwnedComponent 함수가 단순히 Add만 하는 게 아니라
-	//Scene에 Register하고 루트 컴포넌트까지 지정하고 RemoveOwnedComponent도 비슷하게 작동하는데,
-	//기즈모들도 그 대상에 포함되고 Owner 설정도 안 해주고 있어서 어떤 오류가 생길지 모르겠어서 
-	//일단 가장 문제가 없을 만한 방식으로 아래처럼 처리함
-	this->GetOwner()->AddOwnedComponent(Icon);
-	Icon->SetEditability(false);
-	Icon->SetTextureName("Data/UI/Icons/S_AtmosphericHeightFog.dds");
+	if (!SpriteComponent)
+	{
+		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
+		SpriteComponent->SetTextureName("Data/UI/Icons/S_AtmosphericHeightFog.dds");
+
+	}
 
 }
 

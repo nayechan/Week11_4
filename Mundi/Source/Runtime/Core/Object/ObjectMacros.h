@@ -176,3 +176,11 @@ public:
 	Class->bIsComponent = true; \
 	Class->DisplayName = InDisplayName; \
 	Class->Description = InDesc;
+
+
+#define CREATE_EDITOR_COMPONENT(InVariableName, Type)\
+	InVariableName = NewObject<Type>();\
+	InVariableName->SetOwner(this->GetOwner());\
+	InVariableName->SetupAttachment(this, EAttachmentRule::KeepRelative);\
+	this->GetOwner()->AddOwnedComponent(InVariableName);\
+	InVariableName->SetEditability(false);

@@ -125,15 +125,8 @@ void USpotLightComponent::OnRegister()
 	// Create Direction Gizmo if not already created
 	if (!DirectionGizmo)
 	{
-		DirectionGizmo = NewObject<UGizmoArrowComponent>();
-		DirectionGizmo->SetOwner(this->GetOwner());
-		DirectionGizmo->SetupAttachment(this, EAttachmentRule::KeepRelative);
+		CREATE_EDITOR_COMPONENT(DirectionGizmo, UGizmoArrowComponent);
 
-		// Add to owner's component list (similar to SpriteComponent)
-		this->GetOwner()->AddOwnedComponent(DirectionGizmo);
-
-		// Hide from Scene UI and disable picking
-		DirectionGizmo->SetEditability(false);
 		// DirectionGizmo->SetCanEverPick(false);
 
 		// Set gizmo mesh (using the same mesh as GizmoActor's arrow)
