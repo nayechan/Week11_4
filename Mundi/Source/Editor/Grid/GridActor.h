@@ -38,6 +38,6 @@ private:
     float CellSize = 1.0f;
     float AxisLength = 100.0f;
 
-    float LineSize = 1.f;
+    float LineSize = 1.0f;   // 기본값으로 사용됨
 };
 

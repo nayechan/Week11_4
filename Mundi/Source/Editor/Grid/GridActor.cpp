@@ -24,12 +24,12 @@ void AGridActor::Initialize()
         }
         catch (...)
         {
-            SetLineSize(0.1f);
+            SetLineSize(LineSize);
         }
     }
     else
     {
-        SetLineSize(0.1f);
+        SetLineSize(LineSize);
     }
 }
 
