@@ -12,14 +12,16 @@ public:
 	void Shutdown();
     void Draw();
 
-    void SetShowFPS(bool b); 
+    void SetShowFPS(bool b);
     void SetShowMemory(bool b);
     void SetShowPicking(bool b);
     void SetShowDecal(bool b);
+    void SetShowTileCulling(bool b);
     void ToggleFPS();
     void ToggleMemory();
     void TogglePicking();
     void ToggleDecal();
+    void ToggleTileCulling();
     bool IsFPSVisible() const { return bShowFPS; }
     bool IsMemoryVisible() const { return bShowMemory; }
 
@@ -37,7 +39,8 @@ private:
     bool bShowFPS = false;
     bool bShowMemory = false;
     bool bShowPicking = false;
-    bool bShowDecal = true;     // NOTE: Week06 에서는 데칼 stat을 기본으로 표시
+    bool bShowDecal = false;     // NOTE: Week06 에서는 데칼 stat을 기본으로 표시
+    bool bShowTileCulling = true;
 
     ID3D11Device* D3DDevice = nullptr;
     ID3D11DeviceContext* D3DContext = nullptr;

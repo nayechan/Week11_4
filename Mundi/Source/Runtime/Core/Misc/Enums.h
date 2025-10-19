@@ -403,6 +403,9 @@ enum class EEngineShowFlags : uint64
 
     SF_FXAA = 1ull << 12,
 
+    // Tile-based light culling debug
+    SF_TileCullingDebug = 1ull << 13,  // Show tile culling debug visualization
+
     // Default enabled flags
     SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid | SF_Lighting | SF_Decals | SF_Fog | SF_FXAA,
 

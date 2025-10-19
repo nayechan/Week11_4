@@ -10,6 +10,7 @@
 #include "Picking.h"
 #include "PlatformTime.h"
 #include "DecalStatManager.h"
+#include "TileCullingStats.h"
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
@@ -95,7 +96,7 @@ static void DrawTextBlock(
 
 void UStatsOverlayD2D::Draw()
 {
-	if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking && !bShowDecal) || !SwapChain)
+	if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking && !bShowDecal && !bShowTileCulling) || !SwapChain)
 		return;
 
 	ID2D1Factory1* D2dFactory = nullptr;
@@ -266,6 +267,39 @@ void UStatsOverlayD2D::Draw()
 		NextY += decalPanelHeight + Space;
 	}
 
+	if (bShowTileCulling)
+	{
+		// 1. FTileCullingStatManager로부터 통계 데이터를 가져옵니다.
+		const FTileCullingStats& TileStats = FTileCullingStatManager::GetInstance().GetStats();
+
+		// 2. 출력할 문자열 버퍼를 만듭니다.
+		wchar_t Buf[512];
+		swprintf_s(Buf, L"[Tile Culling Stats]\nTiles: %u x %u (%u)\nLights: %u (P:%u S:%u)\nMin/Avg/Max: %u / %.1f / %u\nCulling Eff: %.1f%%\nBuffer: %u KB",
+			TileStats.TileCountX,
+			TileStats.TileCountY,
+			TileStats.TotalTileCount,
+			TileStats.TotalLights,
+			TileStats.TotalPointLights,
+			TileStats.TotalSpotLights,
+			TileStats.MinLightsPerTile,
+			TileStats.AvgLightsPerTile,
+			TileStats.MaxLightsPerTile,
+			TileStats.CullingEfficiency,
+			TileStats.LightIndexBufferSizeBytes / 1024);
+
+		// 3. 텍스트를 여러 줄 표시해야 하므로 패널 높이를 늘립니다.
+		const float tilePanelHeight = 160.0f;
+		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + tilePanelHeight);
+
+		// 4. DrawTextBlock 함수를 호출하여 화면에 그립니다. 색상은 구분을 위해 cyan으로 설정합니다.
+		DrawTextBlock(
+			D2dCtx, Dwrite, Buf, rc, 16.0f,
+			D2D1::ColorF(0, 0, 0, 0.6f),
+			D2D1::ColorF(D2D1::ColorF::Cyan));
+
+		NextY += tilePanelHeight + Space;
+	}
+
 	D2dCtx->EndDraw();
 	D2dCtx->SetTarget(nullptr);
 
@@ -316,4 +350,14 @@ void UStatsOverlayD2D::TogglePicking()
 void UStatsOverlayD2D::ToggleDecal()
 {
 	bShowDecal = !bShowDecal;
+}
+
+void UStatsOverlayD2D::SetShowTileCulling(bool b)
+{
+	bShowTileCulling = b;
+}
+
+void UStatsOverlayD2D::ToggleTileCulling()
+{
+	bShowTileCulling = !bShowTileCulling;
 }

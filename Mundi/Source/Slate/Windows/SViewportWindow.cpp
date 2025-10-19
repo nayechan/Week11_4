@@ -299,6 +299,50 @@ void SViewportWindow::RenderToolbar()
 
 		ImGui::PopStyleVar(2);
 
+		// 디버그 ShowFlag 토글 버튼들 (ViewMode와 독립적)
+		if (ViewportClient && ViewportClient->GetWorld())
+		{
+			ImGui::SameLine();
+			ImGui::Text("|"); // 구분선
+			ImGui::SameLine();
+
+			URenderSettings& RenderSettings = ViewportClient->GetWorld()->GetRenderSettings();
+
+			// Tile Culling Debug
+			bool bTileCullingDebug = RenderSettings.IsShowFlagEnabled(EEngineShowFlags::SF_TileCullingDebug);
+			if (ImGui::Checkbox("TileCull", &bTileCullingDebug))
+			{
+				RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_TileCullingDebug);
+			}
+
+			ImGui::SameLine();
+
+			// BVH Debug
+			bool bBVHDebug = RenderSettings.IsShowFlagEnabled(EEngineShowFlags::SF_BVHDebug);
+			if (ImGui::Checkbox("BVH", &bBVHDebug))
+			{
+				RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_BVHDebug);
+			}
+
+			ImGui::SameLine();
+
+			// Grid
+			bool bGrid = RenderSettings.IsShowFlagEnabled(EEngineShowFlags::SF_Grid);
+			if (ImGui::Checkbox("Grid", &bGrid))
+			{
+				RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_Grid);
+			}
+
+			ImGui::SameLine();
+
+			// Bounding Boxes
+			bool bBoundingBoxes = RenderSettings.IsShowFlagEnabled(EEngineShowFlags::SF_BoundingBoxes);
+			if (ImGui::Checkbox("Bounds", &bBoundingBoxes))
+			{
+				RenderSettings.ToggleShowFlag(EEngineShowFlags::SF_BoundingBoxes);
+			}
+		}
+
 		// 메인 모드 변경 시 처리
 		if (MainModeChanged && ViewportClient)
 		{

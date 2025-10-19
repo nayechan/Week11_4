@@ -48,6 +48,7 @@ void UConsoleWidget::Initialize()
 	HelpCommandList.Add("STAT DECAL");
 	HelpCommandList.Add("STAT ALL");
 	HelpCommandList.Add("STAT NONE");
+	HelpCommandList.Add("STAT LIGHT");
 
 	// Add welcome messages
 	AddLog("=== Console Widget Initialized ===");
@@ -273,6 +274,7 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 		AddLog("- STAT PICKING");
 		AddLog("- STAT DECAL");
 		AddLog("- STAT ALL");
+		AddLog("- STAT LIGHT");
 		AddLog("- STAT NONE");
 	}
 	else if (Stricmp(command_line, "STAT FPS") == 0)
@@ -295,12 +297,18 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 		UStatsOverlayD2D::Get().ToggleDecal();
 		AddLog("STAT DECAL TOGGLED");
 	}
+	else if (Stricmp(command_line, "STAT LIGHT") == 0)
+	{
+		UStatsOverlayD2D::Get().ToggleTileCulling();
+		AddLog("STAT LIGHT TOGGLED");
+	}
 	else if (Stricmp(command_line, "STAT ALL") == 0)
 	{
 		UStatsOverlayD2D::Get().SetShowFPS(true);
 		UStatsOverlayD2D::Get().SetShowMemory(true);
 		UStatsOverlayD2D::Get().SetShowPicking(true);
 		UStatsOverlayD2D::Get().SetShowDecal(true);
+		UStatsOverlayD2D::Get().SetShowTileCulling(true);
 		AddLog("STAT: ON");
 	}
 	else if (Stricmp(command_line, "STAT NONE") == 0)
