@@ -96,8 +96,9 @@ cbuffer ColorBuffer : register(b3)
     uint UUID;
 };
 
-// b4: PixelConstBuffer (PS) - Material information from OBJ files
+// b4: PixelConstBuffer (VS+PS) - Material information from OBJ files
 // Must match FPixelConstBufferType exactly!
+// Note: Used in Vertex Shader for GOURAUD lighting model
 cbuffer PixelConstBuffer : register(b4)
 {
     FMaterial Material;         // 64 bytes
@@ -377,25 +378,35 @@ PS_INPUT mainVS(VS_INPUT Input)
     // Calculate view direction for specular
     float3 viewDir = normalize(CameraPosition - Out.WorldPos);
 
+    // Determine base color (same logic as Lambert/Phong for consistency)
+    float4 baseColor = Input.Color;
+    if (bHasMaterial)
+    {
+        // Use material diffuse color
+        // Note: Textures will be multiplied in pixel shader
+        baseColor.rgb = Material.DiffuseColor;
+        baseColor.a = 1.0f;  // Ensure alpha is set properly
+    }
+
     // Ambient light
-    finalColor += CalculateAmbientLight(AmbientLight, Input.Color);
+    finalColor += CalculateAmbientLight(AmbientLight, baseColor);
 
     // Directional light (diffuse + specular)
-    finalColor += CalculateDirectionalLight(DirectionalLight, worldNormal, viewDir, Input.Color, true, specPower);
+    finalColor += CalculateDirectionalLight(DirectionalLight, worldNormal, viewDir, baseColor, true, specPower);
 
     // Point lights (diffuse + specular)
     for (int i = 0; i < PointLightCount; i++)
     {
-        finalColor += CalculatePointLight(PointLights[i], Out.WorldPos, worldNormal, viewDir, Input.Color, true, specPower);
+        finalColor += CalculatePointLight(PointLights[i], Out.WorldPos, worldNormal, viewDir, baseColor, true, specPower);
     }
 
     // Spot lights (diffuse + specular)
     for (int j = 0; j < SpotLightCount; j++)
     {
-        finalColor += CalculateSpotLight(SpotLights[j], Out.WorldPos, worldNormal, viewDir, Input.Color, true, specPower);
+        finalColor += CalculateSpotLight(SpotLights[j], Out.WorldPos, worldNormal, viewDir, baseColor, true, specPower);
     }
 
-    Out.Color = float4(finalColor, Input.Color.a);
+    Out.Color = float4(finalColor, baseColor.a);
 
 #elif LIGHTING_MODEL_LAMBERT
     // Lambert Shading: Pass data to pixel shader for per-pixel calculation
@@ -447,11 +458,14 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     // Gouraud Shading: Lighting already calculated in vertex shader
     float4 finalPixel = Input.Color;
 
-    // Apply texture modulation if available
+    // Apply texture or material color
     if (bHasTexture)
     {
+        // Texture modulation: multiply lighting result by texture
         finalPixel.rgb *= texColor.rgb;
     }
+    // Note: Material.DiffuseColor is already applied in Vertex Shader
+    // No additional color application needed here
 
     // Add emissive (self-illumination) - not affected by lighting
     if (bHasMaterial)

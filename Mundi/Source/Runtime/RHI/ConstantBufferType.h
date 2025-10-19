@@ -222,7 +222,7 @@ CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
 CONSTANT_BUFFER_INFO(InvViewProjBufferType, 1, false, true)
 CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
-CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, false, true)
+CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true)  // VS+PS: GOURAUD lighting model uses Material in VS
 CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, false)
 CONSTANT_BUFFER_INFO(HighLightBufferType, 2, true, false)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, false, true)
