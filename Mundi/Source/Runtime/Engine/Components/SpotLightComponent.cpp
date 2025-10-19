@@ -137,7 +137,7 @@ void USpotLightComponent::OnRegister()
 		DirectionGizmo->SetUseScreenConstantScale(false);
 
 		// Set default scale
-		DirectionGizmo->SetDefaultScale(FVector(0.3f, 0.3f, 0.3f));
+		DirectionGizmo->SetDefaultScale(FVector(0.5f, 0.3f, 0.3f));
 
 		// Update gizmo properties to match light
 		UpdateDirectionGizmo();

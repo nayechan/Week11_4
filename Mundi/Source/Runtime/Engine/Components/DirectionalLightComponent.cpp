@@ -52,8 +52,8 @@ void UDirectionalLightComponent::OnRegister()
 		// Use world-space scale (not screen-constant scale like typical gizmos)
 		DirectionGizmo->SetUseScreenConstantScale(false);
 
-		// Set default scale (larger than SpotLight for better visibility)
-		DirectionGizmo->SetDefaultScale(FVector(0.5f, 0.5f, 0.5f));
+		// Set default scale
+		DirectionGizmo->SetDefaultScale(FVector(0.5f, 0.3f, 0.3f));
 
 		// Update gizmo properties to match light
 		UpdateDirectionGizmo();
