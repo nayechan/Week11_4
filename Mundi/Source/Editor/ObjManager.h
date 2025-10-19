@@ -259,7 +259,7 @@ public:
 			}
 			else if (MatCount > 0)
 			{
-				// (머티리얼 속성 파싱 로직은 변경 없음)
+				// Kd, Ka 등 다른 속성 파싱은 변경 없이 그대로 둡니다.
 				if (line.rfind("Kd ", 0) == 0) { std::stringstream wss(line.substr(3)); float vx, vy, vz; wss >> vx >> vy >> vz; OutMaterialInfos[MatCount - 1].DiffuseColor = FVector(vx, vy, vz); }
 				else if (line.rfind("Ka ", 0) == 0) { std::stringstream wss(line.substr(3)); float vx, vy, vz; wss >> vx >> vy >> vz; OutMaterialInfos[MatCount - 1].AmbientColor = FVector(vx, vy, vz); }
 				else if (line.rfind("Ke ", 0) == 0) { std::stringstream wss(line.substr(3)); float vx, vy, vz; wss >> vx >> vy >> vz; OutMaterialInfos[MatCount - 1].EmissiveColor = FVector(vx, vy, vz); }
@@ -270,13 +270,108 @@ public:
 				else if (line.rfind("Ni ", 0) == 0) { std::stringstream wss(line.substr(3)); float value; wss >> value; OutMaterialInfos[MatCount - 1].OpticalDensity = value; }
 				else if (line.rfind("Ns ", 0) == 0) { std::stringstream wss(line.substr(3)); float value; wss >> value; OutMaterialInfos[MatCount - 1].SpecularExponent = value; }
 				else if (line.rfind("illum ", 0) == 0) { std::stringstream wss(line.substr(6)); float value; wss >> value; OutMaterialInfos[MatCount - 1].IlluminationModel = static_cast<int32>(value); }
-				else if (line.rfind("map_Kd ", 0) == 0) { FString TextureRel = line.substr(7); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].DiffuseTextureFileName = TextureRel; }
-				else if (line.rfind("map_d ", 0) == 0) { FString TextureRel = line.substr(7); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].TransparencyTextureFileName = TextureRel; }
-				else if (line.rfind("map_Ka ", 0) == 0) { FString TextureRel = line.substr(7); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].AmbientTextureFileName = TextureRel; }
-				else if (line.rfind("map_Ks ", 0) == 0) { FString TextureRel = line.substr(7); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].SpecularTextureFileName = TextureRel; }
-				else if (line.rfind("map_Ns ", 0) == 0) { FString TextureRel = line.substr(7); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].SpecularExponentTextureFileName = TextureRel; }
-				else if (line.rfind("map_Ke ", 0) == 0) { FString TextureRel = line.substr(7); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].EmissiveTextureFileName = TextureRel; }
-				else if (line.rfind("map_Bump ", 0) == 0) { FString TextureRel = line.substr(9); std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/'); OutMaterialInfos[MatCount - 1].NormalTextureFileName = TextureRel; }
+
+				// --- 텍스처 맵 파싱 로직 (수정됨) ---
+				// (참고: std::vector 사용을 위해 <vector> 헤더 필요)
+
+				else if (line.rfind("map_Kd ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(7));
+					std::string token;
+					while (wss >> token); // 마지막 토큰(파일 경로)만 가져옴
+					FString TextureRel = token.c_str();
+					std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+					OutMaterialInfos[MatCount - 1].DiffuseTextureFileName = TextureRel;
+				}
+				else if (line.rfind("map_d ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(7));
+					std::string token;
+					while (wss >> token); // 마지막 토큰(파일 경로)만 가져옴
+					FString TextureRel = token.c_str();
+					std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+					OutMaterialInfos[MatCount - 1].TransparencyTextureFileName = TextureRel;
+				}
+				else if (line.rfind("map_Ka ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(7));
+					std::string token;
+					while (wss >> token); // 마지막 토큰(파일 경로)만 가져옴
+					FString TextureRel = token.c_str();
+					std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+					OutMaterialInfos[MatCount - 1].AmbientTextureFileName = TextureRel;
+				}
+				else if (line.rfind("map_Ks ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(7));
+					std::string token;
+					while (wss >> token); // 마지막 토큰(파일 경로)만 가져옴
+					FString TextureRel = token.c_str();
+					std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+					OutMaterialInfos[MatCount - 1].SpecularTextureFileName = TextureRel;
+				}
+				else if (line.rfind("map_Ns ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(7));
+					std::string token;
+					while (wss >> token); // 마지막 토큰(파일 경로)만 가져옴
+					FString TextureRel = token.c_str();
+					std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+					OutMaterialInfos[MatCount - 1].SpecularExponentTextureFileName = TextureRel;
+				}
+				else if (line.rfind("map_Ke ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(7));
+					std::string token;
+					while (wss >> token); // 마지막 토큰(파일 경로)만 가져옴
+					FString TextureRel = token.c_str();
+					std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+					OutMaterialInfos[MatCount - 1].EmissiveTextureFileName = TextureRel;
+				}
+				else if (line.rfind("map_Bump ", 0) == 0)
+				{
+					std::stringstream wss(line.substr(9));
+					std::string token;
+					// 옵션과 파일명을 분리하기 위해 std::vector 사용
+					std::vector<std::string> tokens;
+					while (wss >> token)
+					{
+						tokens.push_back(token);
+					}
+
+					if (!tokens.empty())
+					{
+						// 파일명은 항상 마지막 토큰
+						FString TextureRel = tokens.back().c_str();
+						std::replace(TextureRel.begin(), TextureRel.end(), '\\', '/');
+						OutMaterialInfos[MatCount - 1].NormalTextureFileName = TextureRel;
+
+						// BumpMultiplier 기본값 설정
+						OutMaterialInfos[MatCount - 1].BumpMultiplier = 1.0f;
+
+						// 옵션 파싱 (파일명을 제외하고 검색)
+						for (size_t i = 0; i < tokens.size() - 1; ++i)
+						{
+							if (tokens[i] == "-bm")
+							{
+								// -bm 플래그 다음 토큰이 값이어야 함
+								if (i + 1 < tokens.size() - 1) // 값 토큰이 존재하고, 그 토큰이 파일명이 아닌지 확인
+								{
+									try
+									{
+										OutMaterialInfos[MatCount - 1].BumpMultiplier = std::stof(tokens[i + 1]);
+									}
+									catch (...)
+									{
+										// float 변환 실패 시 무시하고 기본값(1.0f) 유지
+									}
+									i++; // 값 토큰을 읽었으므로 건너뜀
+								}
+							}
+							// (필요시 -o, -s 같은 다른 옵션 파싱 로직을 여기에 추가)
+						}
+					}
+				}
 			}
 		}
 		FileIn.close();
