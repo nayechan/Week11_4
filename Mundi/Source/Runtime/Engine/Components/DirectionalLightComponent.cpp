@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "DirectionalLightComponent.h"
 #include "BillboardComponent.h"
+#include "Gizmo/GizmoArrowComponent.h"
 
 UDirectionalLightComponent::UDirectionalLightComponent()
 {
@@ -38,13 +39,42 @@ void UDirectionalLightComponent::OnRegister()
 {
 	Super_t::OnRegister();
 	SpriteComponent->SetTextureName("Data/UI/Icons/S_LightDirectional.dds");
-	
+
+	// Create Direction Gizmo if not already created
+	if (!DirectionGizmo)
+	{
+		DirectionGizmo = NewObject<UGizmoArrowComponent>();
+		DirectionGizmo->SetOwner(this->GetOwner());
+		DirectionGizmo->SetupAttachment(this, EAttachmentRule::KeepRelative);
+
+		// Add to owner's component list (similar to SpriteComponent)
+		this->GetOwner()->AddOwnedComponent(DirectionGizmo);
+
+		// Hide from Scene UI and disable picking
+		DirectionGizmo->SetEditability(false);
+
+		// Set gizmo mesh (using the same mesh as GizmoActor's arrow)
+		DirectionGizmo->SetStaticMesh("Data/Gizmo/TranslationHandle.obj");
+		DirectionGizmo->SetMaterialByName(0, "Shaders/StaticMesh/StaticMeshShader.hlsl");
+
+		// Use world-space scale (not screen-constant scale like typical gizmos)
+		DirectionGizmo->SetUseScreenConstantScale(false);
+
+		// Set default scale (larger than SpotLight for better visibility)
+		DirectionGizmo->SetDefaultScale(FVector(0.5f, 0.5f, 0.5f));
+
+		// Update gizmo properties to match light
+		UpdateDirectionGizmo();
+	}
 }
 
 void UDirectionalLightComponent::UpdateLightData()
 {
 	Super::UpdateLightData();
 	// 방향성 라이트 특화 업데이트 로직
+
+	// Update direction gizmo to reflect any changes
+	UpdateDirectionGizmo();
 }
 
 void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
@@ -58,4 +88,22 @@ void UDirectionalLightComponent::Serialize(const bool bInIsLoading, JSON& InOutH
 void UDirectionalLightComponent::DuplicateSubObjects()
 {
 	Super::DuplicateSubObjects();
+}
+
+void UDirectionalLightComponent::UpdateDirectionGizmo()
+{
+	if (!DirectionGizmo)
+		return;
+
+	// Set direction to match light direction (used for hovering/picking, not for rendering)
+	FVector LightDir = GetLightDirection();
+	DirectionGizmo->SetDirection(LightDir);
+
+	// Set color to match base light color (without intensity or temperature multipliers)
+	const FLinearColor& BaseColor = GetLightColor();
+	DirectionGizmo->SetColor(FVector(BaseColor.R, BaseColor.G, BaseColor.B));
+
+	// DirectionGizmo is a child of DirectionalLightComponent, so it inherits the parent's rotation automatically.
+	// Arrow mesh points along +X axis by default, which matches the DirectionalLight's forward direction.
+	// No need to set RelativeRotation - it should remain identity (0, 0, 0)
 }

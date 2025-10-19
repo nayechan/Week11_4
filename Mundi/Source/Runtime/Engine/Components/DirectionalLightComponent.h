@@ -27,4 +27,11 @@ public:
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
 	DECLARE_DUPLICATE(UDirectionalLightComponent)
+
+	// Update Gizmo to match light properties
+	void UpdateDirectionGizmo();
+
+protected:
+	// Direction Gizmo (shows light direction)
+	class UGizmoArrowComponent* DirectionGizmo = nullptr;
 };
