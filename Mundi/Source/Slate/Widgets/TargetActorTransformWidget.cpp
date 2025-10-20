@@ -299,8 +299,11 @@ void UTargetActorTransformWidget::RenderWidget()
 	// 2. 컴포넌트 계층 구조 렌더링
 	RenderComponentHierarchy(SelectedActor, SelectedComponent);
 
+	// 위 함수에서 SelectedComponent를 Delete하는데 아래 함수에서 SelectedComponent를 그대로 인자로 사용하고 있었음.
+	// 댕글링 포인터 참조를 막기 위해 다시 한번 SelectionManager에서 Component를 얻어옴
+	// 기존에는 DestroyComponent에서 DeleteObject를 호출하지도 않았음. Delete를 실제로 진행하면서 발견된 버그.
 	// 3. 선택된 컴포넌트의 상세 정보 렌더링 (Transform 포함)
-	RenderSelectedComponentDetails(SelectedComponent);
+	RenderSelectedComponentDetails(GWorld->GetSelectionManager()->GetSelectedComponent());
 }
 
 void UTargetActorTransformWidget::RenderHeader(AActor* SelectedActor, USceneComponent* SelectedComponent)
