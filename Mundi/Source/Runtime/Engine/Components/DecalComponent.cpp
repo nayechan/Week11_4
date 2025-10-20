@@ -79,6 +79,11 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 		return;
 	}
 
+	// WorldNormal 모드에서는 Decal 렌더링 스킵
+	if (ViewMode == EViewModeIndex::VMI_WorldNormal)
+	{
+		return;
+	}
 
 	D3D11RHI* RHIDevice = Renderer->GetRHIDevice();
 	// Constant Buffer 업데이트
