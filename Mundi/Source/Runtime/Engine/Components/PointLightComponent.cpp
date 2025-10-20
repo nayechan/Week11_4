@@ -39,9 +39,9 @@ void UPointLightComponent::UpdateLightData()
 }
 
 
-void UPointLightComponent::OnRegister()
+void UPointLightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/PointLight_64x.png");
 }
 

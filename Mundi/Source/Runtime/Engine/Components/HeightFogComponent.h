@@ -39,7 +39,7 @@ public:
     void RenderHeightFog(URenderer* Renderer);
 
 
-    void OnRegister() override;
+    void OnRegister(UWorld* InWorld) override;
 	// Serialize
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 

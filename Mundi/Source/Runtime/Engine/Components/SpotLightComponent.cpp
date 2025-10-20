@@ -117,9 +117,9 @@ void USpotLightComponent::UpdateLightData()
 	UpdateDirectionGizmo();
 }
 
-void USpotLightComponent::OnRegister()
+void USpotLightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/SpotLight_64x.png");
 
 	// Create Direction Gizmo if not already created

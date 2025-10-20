@@ -51,7 +51,7 @@ public:
 
 	// Virtual Interface
 	virtual void UpdateLightData() override;
-	void OnRegister() override;
+	void OnRegister(UWorld* InWorld) override;
 
 	// Cone Angle Validation
 	void ValidateConeAngles();

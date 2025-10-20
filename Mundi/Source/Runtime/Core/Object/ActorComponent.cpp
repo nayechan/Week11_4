@@ -29,12 +29,13 @@ UWorld* UActorComponent::GetWorld() const
 
 // ─────────────── Registration
 
-void UActorComponent::RegisterComponent()
+void UActorComponent::RegisterComponent(UWorld* InWorld)
 {
     if (bRegistered) return;
     bRegistered = true;
-    OnRegister();
+    OnRegister(InWorld);
 
+    
     // 여기서는 게임 수명 훅을 직접 부르지 않음.
     // BeginPlay/InitializeComponent는 보통 Actor/World 타이밍에서 호출.
     // 다만 에디터 유틸 컴포넌트라면 필요에 따라 여기서 InitializeComponent를 호출해도 됨.
@@ -55,7 +56,7 @@ void UActorComponent::UnregisterComponent()
     bRegistered = false;
 }
 
-void UActorComponent::OnRegister()
+void UActorComponent::OnRegister(UWorld* InWorld)
 {
     // 리소스/핸들 생성, 메시/버퍼 생성 등(프레임 비의존)
 }

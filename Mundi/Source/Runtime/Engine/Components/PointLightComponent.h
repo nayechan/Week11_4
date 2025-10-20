@@ -22,7 +22,7 @@ public:
 
 	// Virtual Interface
 	virtual void UpdateLightData() override;
-	void OnRegister() override;
+	void OnRegister(UWorld* InWorld) override;
 
 	// Debug Rendering
 	virtual void RenderDebugVolume(class URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) const override;

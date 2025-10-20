@@ -95,8 +95,6 @@ void AActor::SetRootComponent(USceneComponent* InRoot)
 	if (RootComponent)
 	{
 		RootComponent->SetOwner(this);
-		// 월드 등록/트리 등록
-		RegisterComponentTree(RootComponent);
 	}
 }
 
@@ -114,7 +112,6 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 
 	OwnedComponents.insert(Component);
 	Component->SetOwner(this);
-	Component->RegisterComponent(); // Register(씬이면 트리 포함)
 
 	if (USceneComponent* SC = Cast<USceneComponent>(Component))
 	{
@@ -155,6 +152,28 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 	Component->DestroyComponent();
 	
 	
+}
+
+void AActor::RegisterAllComponents(UWorld* InWorld)
+{
+	if (OwnedComponents.Num() > 0)
+	{
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			Component->OnRegister(InWorld);
+		}
+	}
+	else
+	{
+		if (!InWorld->bPie)
+		{
+			RootComponent = CreateDefaultSubobject<USceneComponent>(FName("SceneComponent"));
+			UBillboardComponent* SpriteComponent = CreateDefaultSubobject<UBillboardComponent>("SpriteComponent");
+			SpriteComponent->SetEditability(false);
+			SpriteComponent->SetupAttachment(RootComponent);
+			SpriteComponent->SetTextureName("Data/UI/Icons/EmptyActor.dds");
+		}
+	}
 }
 
 void AActor::UnregisterAllComponents(bool bCallEndPlayOnBegun)
@@ -461,17 +480,7 @@ void AActor::DuplicateSubObjects()
 	}
 }
 
-void AActor::OnRegister()
-{
-	if (!RootComponent)
-	{
-		RootComponent = CreateDefaultSubobject<USceneComponent>(FName("SceneComponent"));
-		UBillboardComponent* SpriteComponent = CreateDefaultSubobject<UBillboardComponent>("SpriteComponent");
-		SpriteComponent->SetEditability(false);
-		SpriteComponent->SetupAttachment(RootComponent);
-		SpriteComponent->SetTextureName("Data/UI/Icons/EmptyActor.dds");
-	}
-}
+
 
 void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
@@ -561,18 +570,18 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 //	return nullptr;
 //}
 
-void AActor::RegisterComponentTree(USceneComponent* SceneComp)
+void AActor::RegisterComponentTree(USceneComponent* SceneComp, UWorld* InWorld)
 {
 	if (!SceneComp)
 	{
 		return;
 	}
 	// 씬 그래프 등록(월드에 등록/렌더 시스템 캐시 등)
-	SceneComp->RegisterComponent();
+	SceneComp->RegisterComponent(InWorld);
 	// 자식들도 재귀적으로
 	for (USceneComponent* Child : SceneComp->GetAttachChildren())
 	{
-		RegisterComponentTree(Child);
+		RegisterComponentTree(Child, InWorld);
 	}
 }
 

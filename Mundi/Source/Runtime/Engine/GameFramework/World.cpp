@@ -32,11 +32,12 @@ UWorld::UWorld()
 {
 	SelectionMgr = std::make_unique<USelectionManager>();
 	Level = std::make_unique<ULevel>();
+
 }
 
 UWorld::~UWorld()
 {
-if (Level)
+	if (Level)
 	{
 		for (AActor* Actor : Level->GetActors())
 		{

@@ -35,9 +35,9 @@ FDirectionalLightInfo UDirectionalLightComponent::GetLightInfo() const
 	return Info;
 }
 
-void UDirectionalLightComponent::OnRegister()
+void UDirectionalLightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/S_LightDirectional.dds");
 
 	// Create Direction Gizmo if not already created

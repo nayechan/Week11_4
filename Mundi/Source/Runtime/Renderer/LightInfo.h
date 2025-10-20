@@ -1,7 +1,22 @@
 ﻿#pragma once
+
 constexpr uint32 NUM_POINT_LIGHT_MAX = 16;
 constexpr uint32 NUM_SPOT_LIGHT_MAX = 16;
 
+class UAmbientLightComponent;
+class UDirectionalLightComponent;
+class UPointLightComponent;
+class USpotLightComponent;
+class ULightComponent;
+class D3D11RHI;
+
+enum class ELightType
+{
+    AmbientLight,
+    DirectionalLight,
+    PointLight,
+    SpotLight,
+};
 struct FAmbientLightInfo
 {
     FLinearColor Color;     // 16 bytes - Color already includes Intensity and Temperature
@@ -39,4 +54,29 @@ struct FSpotLightInfo
     uint32 bUseInverseSquareFalloff; // 4 bytes - true = physically accurate, false = exponent-based
 	float Padding;            // 4 bytes padding to reach 64 bytes (16-byte aligned)
 	// Total: 64 bytes
+};
+
+class FLightManager
+{
+
+public:
+    void UpdateLightBuffer(D3D11RHI* RHIDevice);
+
+    void RegisterLight(ULightComponent* LightComponent, ELightType Type);
+    void DeRegisterLight(ULightComponent* LightComponent, ELightType Type);
+private:
+
+    bool bHaveToUpdate = true;
+    bool bPointLightDirty = true;
+    bool bSpotLightDirty = true;
+
+    TArray<UAmbientLightComponent*> AmbientLightList;
+    TArray<UDirectionalLightComponent*> DIrectionalLightList;
+    TArray<UPointLightComponent*> PointLightList;
+    TArray<USpotLightComponent*> SpotLightList;
+
+    //이미 레지스터된 라이트인지 확인하는 용도
+    TSet<ULightComponent*> LightComponentList;
+    uint32 PointLightNum = 0;
+    uint32 SpotLightNum = 0;
 };

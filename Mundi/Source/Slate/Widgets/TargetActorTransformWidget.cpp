@@ -104,12 +104,13 @@ namespace
 				SceneComp->SetupAttachment(Root, EAttachmentRule::KeepRelative);
 			}
 
+			Actor.RegisterComponentTree(SceneComp, GWorld);
 			SelectedComponent = SceneComp;
 		}
 
 		// AddOwnedComponent 경유 (Register/Initialize 포함)
 		Actor.AddOwnedComponent(NewComp);
-
+		
 		// UStaticMeshComponent라면 World Partition에 추가. (null 체크는 Register 내부에서 수행)
 		if (UWorld* ActorWorld = Actor.GetWorld())
 		{

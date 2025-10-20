@@ -31,9 +31,9 @@ void UAmbientLightComponent::UpdateLightData()
 	// 환경광 특화 업데이트 로직
 }
 
-void UAmbientLightComponent::OnRegister()
+void UAmbientLightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/SkyLight.dds");
 }
 
