@@ -666,6 +666,11 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 		ImGui::OpenPopup("ViewportModePopup");
 	}
 
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("카메라 옵션");
+	}
+
 	// 버튼 위에 내용 렌더링 (아이콘 + 텍스트, 가운데 정렬)
 	float ContentWidth = IconSize.x + 4.0f + TextSize.x;
 	float ContentStartX = CursorPos.x + (ButtonSize.x - ContentWidth) * 0.5f;
@@ -747,6 +752,11 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 			ImGui::CloseCurrentPopup();
 		}
 
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("뷰포트를 원근 보기로 전환합니다.");
+		}
+
 		// Selectable 위에 내용 렌더링
 		ImVec2 ContentPos = ImVec2(SelectableCursorPos.x + 4, SelectableCursorPos.y + (SelectableSize.y - IconSize.y) * 0.5f);
 		ImGui::SetCursorPos(ContentPos);
@@ -771,15 +781,16 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 			EViewportType type;
 			const char* koreanName;
 			UTexture** icon;
+			const char* tooltip;
 		};
 
 		ViewportModeEntry orthographicModes[] = {
-			{ EViewportType::Orthographic_Top, "상단", &IconTop },
-			{ EViewportType::Orthographic_Bottom, "하단", &IconBottom },
-			{ EViewportType::Orthographic_Left, "왼쪽", &IconLeft },
-			{ EViewportType::Orthographic_Right, "오른쪽", &IconRight },
-			{ EViewportType::Orthographic_Front, "정면", &IconFront },
-			{ EViewportType::Orthographic_Back, "후면", &IconBack }
+			{ EViewportType::Orthographic_Top, "상단", &IconTop, "뷰포트를 상단 보기로 전환합니다." },
+			{ EViewportType::Orthographic_Bottom, "하단", &IconBottom, "뷰포트를 하단 보기로 전환합니다." },
+			{ EViewportType::Orthographic_Left, "왼쪽", &IconLeft, "뷰포트를 왼쪽 보기로 전환합니다." },
+			{ EViewportType::Orthographic_Right, "오른쪽", &IconRight, "뷰포트를 오른쪽 보기로 전환합니다." },
+			{ EViewportType::Orthographic_Front, "정면", &IconFront, "뷰포트를 정면 보기로 전환합니다." },
+			{ EViewportType::Orthographic_Back, "후면", &IconBack, "뷰포트를 후면 보기로 전환합니다." }
 		};
 
 		for (int i = 0; i < 6; i++)
@@ -804,6 +815,11 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 					ViewportClient->SetupCameraMode();
 				}
 				ImGui::CloseCurrentPopup();
+			}
+
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("%s", mode.tooltip);
 			}
 
 			// Selectable 위에 내용 렌더링
@@ -842,6 +858,10 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 			{
 				Camera->SetCameraSpeed(speed);
 			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("WASD 키로 카메라를 이동할 때의 속도 (1-100)");
+			}
 		}
 
 		// --- 섹션 4: 뷰 ---
@@ -866,6 +886,10 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 			{
 				camComp->SetFOV(fov);
 			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("카메라 시야각 (30-120도)\n값이 클수록 넓은 범위가 보입니다");
+			}
 
 			// 근평면
 			if (IconNearClip && IconNearClip->GetShaderResourceView())
@@ -881,6 +905,10 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 			{
 				camComp->SetClipPlanes(nearClip, camComp->GetFarClip());
 			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("카메라에서 가장 가까운 렌더링 거리 (0.01-10)\n이 값보다 가까운 오브젝트는 보이지 않습니다");
+			}
 
 			// 원평면
 			if (IconFarClip && IconFarClip->GetShaderResourceView())
@@ -895,6 +923,10 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 			if (ImGui::SliderFloat("##FarClip", &farClip, 100.0f, 10000.0f, "%.0f"))
 			{
 				camComp->SetClipPlanes(camComp->GetNearClip(), farClip);
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("카메라에서 가장 먼 렌더링 거리 (100-10000)\n이 값보다 먼 오브젝트는 보이지 않습니다");
 			}
 		}
 
