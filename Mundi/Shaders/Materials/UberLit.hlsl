@@ -279,6 +279,12 @@ float3 LinearToGamma(float3 linearColor)
 // Directional Light Calculation (Diffuse + Specular)
 float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
 {
+    // if Light.Direction is zero vector, avoid normalization issues
+    if (all(light.Direction == float3(0.0f, 0.0f, 0.0f)))
+    {
+        return float3(0.0f, 0.0f, 0.0f);
+    }
+    
     float3 lightDir = normalize(-light.Direction);
 
     // Diffuse (light.Color already includes Intensity)
