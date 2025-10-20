@@ -6,6 +6,8 @@
 
 #include "FViewport.h"
 #include "FViewportClient.h"
+#include "Texture.h"
+#include "Gizmo/GizmoActor.h"
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
@@ -30,6 +32,11 @@ SViewportWindow::~SViewportWindow()
 		delete ViewportClient;
 		ViewportClient = nullptr;
 	}
+
+	IconSelect = nullptr;
+	IconMove = nullptr;
+	IconRotate = nullptr;
+	IconScale = nullptr;
 }
 
 bool SViewportWindow::Initialize(float StartX, float StartY, float Width, float Height, UWorld* World, ID3D11Device* Device, EViewportType InViewportType)
@@ -65,6 +72,9 @@ bool SViewportWindow::Initialize(float StartX, float StartY, float Width, float 
 	// 양방향 연결
 	Viewport->SetViewportClient(ViewportClient);
 
+	// 툴바 아이콘 로드
+	LoadToolbarIcons(Device);
+
 	return true;
 }
 
@@ -72,6 +82,7 @@ void SViewportWindow::OnRender()
 {
 	// Slate(UI)만 처리하고 렌더는 FViewport에 위임
 	RenderToolbar();
+
 	if (Viewport)
 		Viewport->Render();
 }
@@ -136,81 +147,25 @@ void SViewportWindow::RenderToolbar()
 	if (!Viewport) return;
 
 	// 툴바 영역 크기
-	float toolbarHeight = 30.0f;
-	ImVec2 toolbarPos(Rect.Left, Rect.Top);
-	ImVec2 toolbarSize(Rect.Right - Rect.Left, toolbarHeight);
+	float ToolbarHeight = 30.0f;
+	ImVec2 ToolbarPosition(Rect.Left, Rect.Top);
+	ImVec2 ToolbarSize(Rect.Right - Rect.Left, ToolbarHeight);
 
 	// 툴바 위치 지정
-	ImGui::SetNextWindowPos(toolbarPos);
-	ImGui::SetNextWindowSize(toolbarSize);
+	ImGui::SetNextWindowPos(ToolbarPosition);
+	ImGui::SetNextWindowSize(ToolbarSize);
 
 	// 뷰포트별 고유한 윈도우 ID
-	char windowId[64];
-	sprintf_s(windowId, "ViewportToolbar_%p", this);
+	char WindowId[64];
+	sprintf_s(WindowId, "ViewportToolbar_%p", this);
 
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+	ImGuiWindowFlags WindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
 		ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-	if (ImGui::Begin(windowId, nullptr, flags))
+	if (ImGui::Begin(WindowId, nullptr, WindowFlags))
 	{
-		// 뷰포트 모드 선택 콤보박스
-		const char* viewportModes[] = {
-			"Perspective",
-			"Top",
-			"Bottom",
-			"Front",
-			"Left",
-			"Right",
-			"Back"
-		};
-
-		int currentMode = static_cast<int>(ViewportType);
-		ImGui::SetNextItemWidth(100);
-		if (ImGui::Combo("##ViewportMode", &currentMode, viewportModes, IM_ARRAYSIZE(viewportModes)))
-		{
-			EViewportType newType = static_cast<EViewportType>(currentMode);
-			if (newType != ViewportType)
-			{
-				ViewportType = newType;
-
-				// ViewportClient 업데이트
-				if (ViewportClient)
-				{
-					ViewportClient->SetViewportType(ViewportType);
-					ViewportClient->SetupCameraMode();
-
-				}
-
-				// 뷰포트 이름 업데이트
-				switch (ViewportType)
-				{
-				case EViewportType::Perspective:       ViewportName = "Perspective"; break;
-				case EViewportType::Orthographic_Front: ViewportName = "Front"; break;
-				case EViewportType::Orthographic_Left:  ViewportName = "Left"; break;
-				case EViewportType::Orthographic_Top:   ViewportName = "Top"; break;
-				case EViewportType::Orthographic_Back: ViewportName = "Back"; break;
-				case EViewportType::Orthographic_Right:  ViewportName = "Right"; break;
-				case EViewportType::Orthographic_Bottom:   ViewportName = "Bottom"; break;
-				}
-			}
-		}
-		ImGui::SameLine();
-
-		// 뷰포트 이름 표시
-		ImGui::Text("%s", ViewportName.ToString().c_str());
-		ImGui::SameLine();
-
-		// 버튼들
-		if (ImGui::Button("Move")) { /* TODO: 이동 모드 전환 */ }
-		ImGui::SameLine();
-
-		if (ImGui::Button("Rotate")) { /* TODO: 회전 모드 전환 */ }
-		ImGui::SameLine();
-
-		if (ImGui::Button("Scale")) { /* TODO: 스케일 모드 전환 */ }
-		ImGui::SameLine();
-
-		if (ImGui::Button("Reset")) { /* TODO: 카메라 Reset */ }
+		// 기즈모 모드 버튼들 렌더링
+		RenderGizmoModeButtons();
 
 		// 1단계: 메인 ViewMode 선택 (Lit, Unlit, Buffer Visualization, Wireframe)
 		const char* MainViewModes[] = { "Lit", "Unlit", "Buffer Visualization", "Wireframe" };
@@ -368,16 +323,61 @@ void SViewportWindow::RenderToolbar()
 			case 3: ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Wireframe); break;
 			}
 		}
-		// 🔘 여기 ‘한 번 클릭’ 버튼 추가
+		// 🔘 여기 '한 번 클릭' 버튼 추가
 		const float btnW = 60.0f;
 		const ImVec2 btnSize(btnW, 0.0f);
 
 		ImGui::SameLine();
 		float avail = ImGui::GetContentRegionAvail().x;      // 현재 라인에서 남은 가로폭
-		if (avail > btnW)
+		// 뷰포트 모드 선택 콤보박스 너비도 고려 (100px)
+		const float comboW = 100.0f;
+		if (avail > (btnW + comboW + 10.0f)) // 10은 여백
 		{
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - btnW));
+			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (avail - btnW - comboW - 10.0f));
 		}
+
+		// 뷰포트 모드 선택 콤보박스
+		static const char* const viewportModes[] = {
+			"Perspective",
+			"Top",
+			"Bottom",
+			"Front",
+			"Left",
+			"Right",
+			"Back"
+		};
+
+		int currentMode = static_cast<int>(ViewportType);
+		ImGui::SetNextItemWidth(comboW);
+		if (ImGui::Combo("##ViewportMode", &currentMode, viewportModes, (int)IM_ARRAYSIZE(viewportModes)))
+		{
+			EViewportType newType = static_cast<EViewportType>(currentMode);
+			if (newType != ViewportType)
+			{
+				ViewportType = newType;
+
+				// ViewportClient 업데이트
+				if (ViewportClient)
+				{
+					ViewportClient->SetViewportType(ViewportType);
+					ViewportClient->SetupCameraMode();
+				}
+
+				// 뷰포트 이름 업데이트
+				switch (ViewportType)
+				{
+				case EViewportType::Perspective:       ViewportName = "Perspective"; break;
+				case EViewportType::Orthographic_Front: ViewportName = "Front"; break;
+				case EViewportType::Orthographic_Left:  ViewportName = "Left"; break;
+				case EViewportType::Orthographic_Top:   ViewportName = "Top"; break;
+				case EViewportType::Orthographic_Back: ViewportName = "Back"; break;
+				case EViewportType::Orthographic_Right:  ViewportName = "Right"; break;
+				case EViewportType::Orthographic_Bottom:   ViewportName = "Bottom"; break;
+				}
+			}
+		}
+
+		ImGui::SameLine();
 
 		if (ImGui::Button("Switch##ToThis", btnSize))
 		{
@@ -388,4 +388,181 @@ void SViewportWindow::RenderToolbar()
 
 	}
 	ImGui::End();
+}
+
+void SViewportWindow::LoadToolbarIcons(ID3D11Device* Device)
+{
+	if (!Device) return;
+
+	// 아이콘 텍스처 생성 및 로드
+	IconSelect = NewObject<UTexture>();
+	IconSelect->Load("Data/Icon/Viewport_Toolbar_Select.png", Device);
+
+	IconMove = NewObject<UTexture>();
+	IconMove->Load("Data/Icon/Viewport_Toolbar_Move.png", Device);
+
+	IconRotate = NewObject<UTexture>();
+	IconRotate->Load("Data/Icon/Viewport_Toolbar_Rotate.png", Device);
+
+	IconScale = NewObject<UTexture>();
+	IconScale->Load("Data/Icon/Viewport_Toolbar_Scale.png", Device);
+}
+
+void SViewportWindow::RenderGizmoModeButtons()
+{
+	const ImVec2 IconSize(14, 14);
+
+	// GizmoActor에서 직접 현재 모드 가져오기
+	EGizmoMode CurrentGizmoMode = EGizmoMode::Select;
+	AGizmoActor* GizmoActor = nullptr;
+	if (ViewportClient && ViewportClient->GetWorld())
+	{
+		GizmoActor = ViewportClient->GetWorld()->GetGizmoActor();
+		if (GizmoActor)
+		{
+			CurrentGizmoMode = GizmoActor->GetMode();
+		}
+	}
+
+	// 버튼 간격 좁히기
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2, 0));
+
+	// 모서리 둥글게
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
+
+	// 배경 투명하게
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
+
+	// Select 버튼
+	bool bIsSelectActive = (CurrentGizmoMode == EGizmoMode::Select);
+	ImVec4 SelectTintColor = bIsSelectActive ? ImVec4(0.3f, 0.6f, 1.0f, 1.0f) : ImVec4(1, 1, 1, 1);
+
+	if (IconSelect && IconSelect->GetShaderResourceView())
+	{
+		if (ImGui::ImageButton("##SelectBtn", (void*)IconSelect->GetShaderResourceView(), IconSize,
+			ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), SelectTintColor))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Select);
+			}
+		}
+	}
+	else
+	{
+		if (ImGui::Button("Select", ImVec2(60, 0)))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Select);
+			}
+		}
+	}
+
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("오브젝트를 선택합니다. [Q]");
+	}
+	ImGui::SameLine();
+
+	// Move 버튼
+	bool bIsMoveActive = (CurrentGizmoMode == EGizmoMode::Translate);
+	ImVec4 MoveTintColor = bIsMoveActive ? ImVec4(0.3f, 0.6f, 1.0f, 1.0f) : ImVec4(1, 1, 1, 1);
+
+	if (IconMove && IconMove->GetShaderResourceView())
+	{
+		if (ImGui::ImageButton("##MoveBtn", (void*)IconMove->GetShaderResourceView(), IconSize,
+			ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), MoveTintColor))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Translate);
+			}
+		}
+	}
+	else
+	{
+		if (ImGui::Button("Move", ImVec2(60, 0)))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Translate);
+			}
+		}
+	}
+
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("오브젝트를 선택하고 이동시킵니다. [W]");
+	}
+	ImGui::SameLine();
+
+	// Rotate 버튼
+	bool bIsRotateActive = (CurrentGizmoMode == EGizmoMode::Rotate);
+	ImVec4 RotateTintColor = bIsRotateActive ? ImVec4(0.3f, 0.6f, 1.0f, 1.0f) : ImVec4(1, 1, 1, 1);
+
+	if (IconRotate && IconRotate->GetShaderResourceView())
+	{
+		if (ImGui::ImageButton("##RotateBtn", (void*)IconRotate->GetShaderResourceView(), IconSize,
+			ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), RotateTintColor))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Rotate);
+			}
+		}
+	}
+	else
+	{
+		if (ImGui::Button("Rotate", ImVec2(60, 0)))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Rotate);
+			}
+		}
+	}
+
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("오브젝트를 선택하고 회전시킵니다. [E]");
+	}
+	ImGui::SameLine();
+
+	// Scale 버튼
+	bool bIsScaleActive = (CurrentGizmoMode == EGizmoMode::Scale);
+	ImVec4 ScaleTintColor = bIsScaleActive ? ImVec4(0.3f, 0.6f, 1.0f, 1.0f) : ImVec4(1, 1, 1, 1);
+
+	if (IconScale && IconScale->GetShaderResourceView())
+	{
+		if (ImGui::ImageButton("##ScaleBtn", (void*)IconScale->GetShaderResourceView(), IconSize,
+			ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ScaleTintColor))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Scale);
+			}
+		}
+	}
+	else
+	{
+		if (ImGui::Button("Scale", ImVec2(60, 0)))
+		{
+			if (GizmoActor)
+			{
+				GizmoActor->SetMode(EGizmoMode::Scale);
+			}
+		}
+	}
+
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::SetTooltip("오브젝트를 선택하고 스케일을 조절합니다. [R]");
+	}
+
+	// 배경 스타일, 버튼 간격 및 모서리 둥글기 스타일 복원
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar(2);
+	ImGui::SameLine();
 }

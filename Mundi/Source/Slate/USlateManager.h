@@ -43,7 +43,6 @@ public:
     void OnMouseUp(FVector2D MousePos, uint32 Button);
 
     void OnShutdown();
-    // Explicit cleanup to release viewports/contexts before D3D device is destroyed
     void Shutdown();
 
     // 상태
@@ -78,8 +77,10 @@ private:
 
     SSplitterH* LeftTop;
     SSplitterH* LeftBottom;
+
     // 오른쪽 고정 UI
     SWindow* SceneIOPanel = nullptr;
+
     // 아래쪽 UI
     SWindow* ControlPanel = nullptr;
     SWindow* DetailPanel = nullptr;
@@ -93,10 +94,5 @@ private:
     EViewportLayoutMode CurrentMode = EViewportLayoutMode::FourSplit;
 
     // 메뉴바 관련
-    //void OnFileMenuAction(const char* action);
-    //void OnEditMenuAction(const char* action);
-    //void OnWindowMenuAction(const char* action);
-    //void OnHelpMenuAction(const char* action);
-
     UMenuBarWidget* MenuBar;
 };

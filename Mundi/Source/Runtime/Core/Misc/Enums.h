@@ -263,7 +263,8 @@ enum class EGizmoMode : uint8
 {
     Translate,
     Rotate,
-    Scale
+    Scale,
+    Select
 };
 enum class EGizmoSpace : uint8
 {

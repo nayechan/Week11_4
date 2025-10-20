@@ -555,11 +555,31 @@ void AGizmoActor::ProcessGizmoDragging(ACameraActor* Camera, FViewport* Viewport
 
 void AGizmoActor::ProcessGizmoModeSwitch()
 {
-	// 스페이스 키로 기즈모 모드 전환
-	if (InputManager->IsKeyPressed(VK_SPACE))
+	// Q 키: Select 모드
+	if (InputManager->IsKeyPressed('Q'))
+	{
+		SetMode(EGizmoMode::Select);
+	}
+	// W 키: Move (Translate) 모드
+	else if (InputManager->IsKeyPressed('W'))
+	{
+		SetMode(EGizmoMode::Translate);
+	}
+	// E 키: Rotate 모드
+	else if (InputManager->IsKeyPressed('E'))
+	{
+		SetMode(EGizmoMode::Rotate);
+	}
+	// R 키: Scale 모드
+	else if (InputManager->IsKeyPressed('R'))
+	{
+		SetMode(EGizmoMode::Scale);
+	}
+	// 스페이스 키로 기즈모 모드 순환 전환 (기존 기능 유지)
+	else if (InputManager->IsKeyPressed(VK_SPACE))
 	{
 		int GizmoModeIndex = static_cast<int>(GetMode());
-		GizmoModeIndex = (GizmoModeIndex + 1) % 3;  // 3 = enum 개수
+		GizmoModeIndex = (GizmoModeIndex + 1) % static_cast<uint32>(EGizmoMode::Select);  // 3 = enum 개수
 		EGizmoMode NewGizmoMode = static_cast<EGizmoMode>(GizmoModeIndex);
 		NextMode(NewGizmoMode);
 	}
