@@ -81,7 +81,7 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 
 
 	D3D11RHI* RHIDevice = Renderer->GetRHIDevice();
-	// Constatn Buffer 업데이트
+	// Constant Buffer 업데이트
 	FMatrix TargetWorld = Target->GetWorldMatrix();
 	FMatrix TargetWorldInvTranspose = TargetWorld.InverseAffine().Transpose();
 	RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(TargetWorld, TargetWorldInvTranspose));
@@ -89,6 +89,14 @@ void UDecalComponent::RenderAffectedPrimitives(URenderer* Renderer, UPrimitiveCo
 
 	const FMatrix DecalMatrix = GetDecalProjectionMatrix();
 	RHIDevice->SetAndUpdateConstantBuffer(DecalBufferType(DecalMatrix, DecalOpacity));
+
+	// CameraBuffer 바인딩 (조명 계산용 - b7)
+	// Note: LightBuffer (b8), TileCullingBuffer (b11), g_TileLightIndices (t2)는
+	// SceneRenderer에서 이미 설정되어 있으므로 추가 바인딩 불필요
+	// View 행렬의 역행렬로부터 카메라 위치 추출
+	FMatrix ViewInverse = View.InverseAffine();
+	FVector CameraPosition(ViewInverse.M[3][0], ViewInverse.M[3][1], ViewInverse.M[3][2]);
+	RHIDevice->SetAndUpdateConstantBuffer(CameraBufferType(CameraPosition));
 
 	// Shader 설정
 	UShader* DecalShader = UResourceManager::GetInstance().Load<UShader>("Shaders/Effects/Decal.hlsl");
