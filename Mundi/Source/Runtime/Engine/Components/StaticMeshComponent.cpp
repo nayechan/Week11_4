@@ -194,7 +194,7 @@ void UStaticMeshComponent::SetStaticMesh(const FString& PathFileName)
 		StaticMesh->EraseUsingComponets(this);
 	}
 
-	StaticMesh = FObjManager::LoadObjStaticMesh(PathFileName);
+	StaticMesh = UResourceManager::GetInstance().Load<UStaticMesh>(PathFileName);
 	if (StaticMesh && StaticMesh->GetStaticMeshAsset())
 	{
 		StaticMesh->AddUsingComponents(this);
@@ -203,6 +203,8 @@ void UStaticMeshComponent::SetStaticMesh(const FString& PathFileName)
 
 		// 배열 크기 늘리기/줄이기 처리
 		MaterialSlots.resize(GroupInfos.size());
+
+		// Todo: GroupInfos.size() 가  0 이면 강제로 기본 uberlit 설정
 
 		// MaterailSlots.size()가 GroupInfos.size() 보다 클 수 있기 때문에, GroupInfos.size()로 설정
 		for (int i = 0; i < GroupInfos.size(); ++i)

@@ -130,14 +130,16 @@ void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 
 void UTexture::ReleaseResources()
 {
-	if(Texture2D)
+	if (Texture2D)
 	{
 		Texture2D->Release();
+		Texture2D = nullptr;
 	}
 
-	if(ShaderResourceView)
+	if (ShaderResourceView)
 	{
 		ShaderResourceView->Release();
+		ShaderResourceView = nullptr;
 	}
 
 	Width = 0;

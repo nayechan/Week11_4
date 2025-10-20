@@ -385,9 +385,58 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 		UE_LOG("Cache regeneration complete for '%s'.", NormalizedPathStr.c_str());
 	}
 
+	// 이 시점에서 NewFStaticMesh와 MaterialInfos는
+	// 캐시에서 로드되었거나(2번), .obj/.mtl로부터 파싱(3번)되었습니다.
+	// 지오메트리 그룹(GroupInfos)은 있으나 머티리얼 정보(MaterialInfos)가 없는지 확인합니다.
+	if (NewFStaticMesh->GroupInfos.size() > 0 && MaterialInfos.empty())
+	{
+		UE_LOG("No materials found for '%s'. Assigning default 'uberlit' material.", NormalizedPathStr.c_str());
+
+		// 1. 기본 FMaterialInfo를 생성합니다.
+		FMaterialInfo DefaultMaterialInfo;
+		UMaterial* DefaultMaterial = UResourceManager::GetInstance().GetDefaultMaterial();
+		DefaultMaterialInfo.MaterialName = DefaultMaterial->GetMaterialInfo().MaterialName; // 엔진 기본 머티리얼 경로
+		MaterialInfos.Add(DefaultMaterialInfo);
+
+		// 2. FStaticMesh의 모든 그룹이 이 기본 머티리얼을 참조하도록 보장합니다.
+		TArray<FGroupInfo>& GroupInfos = NewFStaticMesh->GroupInfos; // 비-상수 참조
+		for (FGroupInfo& Group : GroupInfos)
+		{
+			if (Group.InitialMaterialName.empty())
+			{
+				Group.InitialMaterialName = DefaultMaterialInfo.MaterialName;
+			}
+		}
+
+		// 3. 이 수정 사항을 캐시에도 반영합니다.
+		//    만약 캐시에서 로드한 경우(bLoadedSuccessfully == true),
+		//    캐시가 오래된 것이므로 갱신해주는 것이 좋습니다. (1번 옵션의 구현)
+		if (bLoadedSuccessfully)
+		{
+			UE_LOG("Updating outdated cache for '%s' with default material.", NormalizedPathStr.c_str());
+			try
+			{
+				FWindowsBinWriter Writer(BinPathFileName);
+				Writer << *NewFStaticMesh;
+				Writer.Close();
+
+				FWindowsBinWriter MatWriter(MatBinPathFileName);
+				Serialization::WriteArray<FMaterialInfo>(MatWriter, MaterialInfos);
+				MatWriter.Close();
+			}
+			catch (const std::exception& e)
+			{
+				UE_LOG("Failed to update cache for default material: %s", e.what());
+			}
+		}
+		// else: 캐시를 방금 재생성한 경우(bLoadedSuccessfully == false)
+		// 어차피 이 함수 윗부분의 if (!bLoadedSuccessfully) 블록 안에서
+		// 이 수정된 NewFStaticMesh와 MaterialInfos를 저장했을 것입니다.
+		// (만약 저장 로직이 이 블록보다 위에 있다면, 
+		//  이 로직을 if (!bLoadedSuccessfully) 블록 내부, 저장 직전에도 배치해야 합니다.)
+	}
 
 	// 4. 머티리얼 및 텍스처 경로 처리 (공통 로직)
-	// (이하 로직은 기존과 동일)
 	fs::path BaseDir = fs::path(NormalizedPathStr).parent_path();
 	for (auto& MaterialInfo : MaterialInfos)
 	{
@@ -827,30 +876,27 @@ void FObjImporter::ConvertToStaticMesh(const FObjInfo& InObjInfo, const TArray<F
 		}
 	}
 
-	if (!InObjInfo.bHasMtl)
-	{
-		OutStaticMesh->bHasMaterial = false;
-		return;
-	}
-
+	// bHasMtl 체크를 제거하거나 bHasMaterial = true로 설정 (이후 로더에서 기본값을 주입할 것이므로)
 	OutStaticMesh->bHasMaterial = true;
-	uint32 NumGroup = static_cast<uint32>(InObjInfo.MaterialNames.size());
-	if (NumGroup > 0)
-	{
-		OutStaticMesh->GroupInfos.resize(NumGroup);
-	}
 
-	if (InMaterialInfos.size() == 0 && NumGroup > 0)
+	// 파싱된 지오메트리 그룹(GroupIndexStartArray) 기준으로 그룹 수를 결정
+	uint32 NumGroup = (InObjInfo.GroupIndexStartArray.size() > 0) ? static_cast<uint32>(InObjInfo.GroupIndexStartArray.size() - 1) : 0;
+
+	if (NumGroup == 0)
 	{
+		// 지오메트리가 아예 없는 경우
 		return;
 	}
 
+	OutStaticMesh->GroupInfos.resize(NumGroup);
+
+	// InMaterialInfos가 비어있다고 해서 return하지 않음
 	for (uint32 i = 0; i < NumGroup; ++i)
 	{
 		OutStaticMesh->GroupInfos[i].StartIndex = InObjInfo.GroupIndexStartArray[i];
 		OutStaticMesh->GroupInfos[i].IndexCount = InObjInfo.GroupIndexStartArray[i + 1] - InObjInfo.GroupIndexStartArray[i];
 
-		// [안정성] GroupMaterialArray가 비어있거나 인덱스가 범위를 벗어나는 경우를 대비합니다.
+		// GroupMaterialArray가 비어있거나 인덱스가 범위를 벗어나는 경우를 대비합니다.
 		if (i < InObjInfo.GroupMaterialArray.size())
 		{
 			uint32 matIndex = InObjInfo.GroupMaterialArray[i];
@@ -858,7 +904,9 @@ void FObjImporter::ConvertToStaticMesh(const FObjInfo& InObjInfo, const TArray<F
 			{
 				OutStaticMesh->GroupInfos[i].InitialMaterialName = InMaterialInfos[matIndex].MaterialName;
 			}
+			// else: matIndex가 범위를 벗어났다면 InitialMaterialName은 비어있게 됨 (정상)
 		}
+		// else: InitialMaterialName은 비어있게 됨 (정상)
 	}
 }
 

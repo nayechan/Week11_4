@@ -39,8 +39,8 @@ private:
     bool bShowFPS = false;
     bool bShowMemory = false;
     bool bShowPicking = false;
-    bool bShowDecal = false;     // NOTE: Week06 에서는 데칼 stat을 기본으로 표시
-    bool bShowTileCulling = true;
+    bool bShowDecal = false;
+    bool bShowTileCulling = false;
 
     ID3D11Device* D3DDevice = nullptr;
     ID3D11DeviceContext* D3DContext = nullptr;

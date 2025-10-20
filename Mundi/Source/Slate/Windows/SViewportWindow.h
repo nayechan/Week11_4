@@ -4,6 +4,7 @@
 
 class FViewport;
 class FViewportClient;
+class UTexture;
 
 class SViewportWindow : public SWindow
 {
@@ -28,6 +29,9 @@ public:
     void SetVClientWorld(UWorld* InWorld);
 private:
     void RenderToolbar();
+    void RenderGizmoModeButtons();
+    void RenderGizmoSpaceButton();
+    void LoadToolbarIcons(ID3D11Device* Device);
 
 private:
     FViewport* Viewport = nullptr;
@@ -42,4 +46,12 @@ private:
     // ViewMode 관련 상태 저장
     int CurrentLitSubMode = 0; // 0=default(Phong) 1=Gouraud, 2=Lambert, 3=Phong [기본값: default(Phong)]
     int CurrentBufferVisSubMode = 1; // 0=SceneDepth, 1=WorldNormal (기본값: WorldNormal)
+
+    // 툴바 아이콘 텍스처
+    UTexture* IconSelect = nullptr;
+    UTexture* IconMove = nullptr;
+    UTexture* IconRotate = nullptr;
+    UTexture* IconScale = nullptr;
+    UTexture* IconWorldSpace = nullptr;
+    UTexture* IconLocalSpace = nullptr;
 };

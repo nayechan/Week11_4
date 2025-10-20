@@ -26,6 +26,8 @@ UMaterial::UMaterial()
 // 해당 경로의 셰이더 또는 텍스쳐를 로드해서 머티리얼로 생성 후 반환한다
 void UMaterial::Load(const FString& InFilePath, ID3D11Device* InDevice)
 {
+	MaterialInfo.MaterialName = InFilePath;
+
 	// 기본 쉐이더 로드 (LayoutType에 따라)
 	// dds 의 경우 
 	if (InFilePath.find(".dds") != std::string::npos)

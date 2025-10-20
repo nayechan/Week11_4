@@ -1,0 +1,116 @@
+# Blender 4.5.3 LTS MTL File: 'Office Building.blend'
+# www.blender.org
+
+newmtl Billboard
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Diffuse.png
+map_Ke Diffuse.png
+
+newmtl Blinds
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd Blinds.png
+map_d Blinds.png
+
+newmtl Bulb
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd Bulb.png
+map_d Bulb.png
+
+newmtl Emmisive
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Diffuse.png
+map_Ns Roughness.png
+map_Ke Emmision.png
+map_Bump -bm 1.000000 Normal.png
+
+newmtl Glass
+Ns 360.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Glass_Lobby
+Ns 360.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+
+newmtl Lobby_Interior_Baked
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Diffuse.png
+map_Ns Roughness.png
+map_Ke Emmision.png
+map_Bump -bm 1.000000 Normal.png
+
+newmtl Lobby_Interior_Trimsheet
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd Lobby Interior Vents Diffuse.png
+map_Ns Lobby Interior Vents Roughness.png
+
+newmtl Material
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Diffuse.png
+map_Ns Roughness.png
+map_Bump -bm 1.000000 Normal.png
+
+newmtl Parralax_Mapping
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd Diffuse.png
+map_Ke Diffuse.png
+
+newmtl Windows
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 2
+map_Kd Window_Diffuse.png
+map_Ns Window_Roughness.png
+map_d Window_Diffuse.png
+map_Bump -bm 1.000000 Window_Normal.png

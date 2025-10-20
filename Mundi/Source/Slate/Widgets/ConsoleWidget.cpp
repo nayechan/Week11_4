@@ -317,6 +317,7 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 		UStatsOverlayD2D::Get().SetShowMemory(false);
 		UStatsOverlayD2D::Get().SetShowPicking(false);
 		UStatsOverlayD2D::Get().SetShowDecal(false);
+		UStatsOverlayD2D::Get().SetShowTileCulling(false);
 		AddLog("STAT: OFF");
 	}
 	else
