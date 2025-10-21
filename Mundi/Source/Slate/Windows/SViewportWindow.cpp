@@ -536,8 +536,9 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 	ImVec2 cursorPos = ImGui::GetCursorPos();
 	ImGui::SetCursorPosY(cursorPos.y - 2.0f);
 
-	const float ButtonWidth = 60.0f;
-	float Avail = ImGui::GetContentRegionAvail().x;
+	// 오른쪽 정렬을 위한 여유 공간 계산
+	const float RightMargin = 200.0f; // 오른쪽에서 얼마나 떨어진 위치에 배치할지 (뷰모드 + Switch 버튼 공간)
+	float AvailableWidth = ImGui::GetContentRegionAvail().x; // 현재 남은 가로 공간
 
 	const ImVec2 IconSize(17, 17);
 
@@ -545,25 +546,26 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 	char ButtonText[64];
 	sprintf_s(ButtonText, "%s %s", ViewportName.ToString().c_str(), "▼");
 
-	// 텍스트 길이에 맞게 버튼 너비 계산
+	// 버튼 너비 계산 (아이콘 크기 + 간격 + 텍스트 크기 + 좌우 패딩)
 	ImVec2 TextSize = ImGui::CalcTextSize(ButtonText);
-	const float Padding = 8.0f; // 좌우 여백
-	const float DropdownWidth = IconSize.x + 4.0f + TextSize.x + Padding * 2.0f;
-	const float ButtonSpacing = 15.0f;
-	if (Avail > (ButtonWidth + DropdownWidth + ButtonSpacing))
+	const float HorizontalPadding = 8.0f;
+	const float CameraDropdownWidth = IconSize.x + 4.0f + TextSize.x + HorizontalPadding * 2.0f;
+
+	// 오른쪽 정렬: 남은 공간이 (버튼 너비 + 오른쪽 여백)보다 크면 X 위치 조정
+	if (AvailableWidth > (CameraDropdownWidth + RightMargin))
 	{
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (Avail - ButtonWidth - DropdownWidth - ButtonSpacing));
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (AvailableWidth - CameraDropdownWidth - RightMargin));
 	}
 
-	// 기즈모 버튼 스타일 적용
+	// 드롭다운 버튼 스타일 적용
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.6f));
 
-	// 통합된 드롭다운 버튼 (카메라 아이콘 + 현재 모드명 + 화살표)
-	ImVec2 ButtonSize(DropdownWidth, ImGui::GetFrameHeight());
-	ImVec2 CursorPos = ImGui::GetCursorPos();
+	// 드롭다운 버튼 생성 (카메라 아이콘 + 현재 모드명 + 화살표)
+	ImVec2 ButtonSize(CameraDropdownWidth, ImGui::GetFrameHeight());
+	ImVec2 ButtonCursorPos = ImGui::GetCursorPos();
 
 	// 버튼 클릭 영역
 	if (ImGui::Button("##ViewportModeBtn", ButtonSize))
@@ -577,10 +579,10 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 	}
 
 	// 버튼 위에 내용 렌더링 (아이콘 + 텍스트, 가운데 정렬)
-	float ContentWidth = IconSize.x + 4.0f + TextSize.x;
-	float ContentStartX = CursorPos.x + (ButtonSize.x - ContentWidth) * 0.5f;
-	ImVec2 ContentCursor = ImVec2(ContentStartX, CursorPos.y + (ButtonSize.y - IconSize.y) * 0.5f);
-	ImGui::SetCursorPos(ContentCursor);
+	float ButtonContentWidth = IconSize.x + 4.0f + TextSize.x;
+	float ButtonContentStartX = ButtonCursorPos.x + (ButtonSize.x - ButtonContentWidth) * 0.5f;
+	ImVec2 ButtonContentCursorPos = ImVec2(ButtonContentStartX, ButtonCursorPos.y + (ButtonSize.y - IconSize.y) * 0.5f);
+	ImGui::SetCursorPos(ButtonContentCursorPos);
 
 	// 현재 뷰포트 모드에 따라 아이콘 선택
 	UTexture* CurrentModeIcon = nullptr;
@@ -850,9 +852,10 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 
 	const ImVec2 IconSize(17, 17);
 
-	// 현재 뷰모드 이름 가져오기
+	// 현재 뷰모드 이름 및 아이콘 가져오기
 	EViewModeIndex CurrentViewMode = ViewportClient->GetViewModeIndex();
 	const char* CurrentViewModeName = "뷰모드";
+	UTexture* CurrentViewModeIcon = nullptr;
 
 	switch (CurrentViewMode)
 	{
@@ -860,17 +863,24 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 	case EViewModeIndex::VMI_Lit_Gouraud:
 	case EViewModeIndex::VMI_Lit_Lambert:
 	case EViewModeIndex::VMI_Lit_Phong:
-		CurrentViewModeName = "Lit";
+		CurrentViewModeName = "라이팅 포함";
+		CurrentViewModeIcon = IconViewMode_Lit;
 		break;
 	case EViewModeIndex::VMI_Unlit:
-		CurrentViewModeName = "Unlit";
+		CurrentViewModeName = "언릿";
+		CurrentViewModeIcon = IconViewMode_Unlit;
 		break;
 	case EViewModeIndex::VMI_Wireframe:
-		CurrentViewModeName = "Wireframe";
+		CurrentViewModeName = "와이어프레임";
+		CurrentViewModeIcon = IconViewMode_Wireframe;
 		break;
 	case EViewModeIndex::VMI_WorldNormal:
+		CurrentViewModeName = "월드 노멀";
+		CurrentViewModeIcon = IconViewMode_BufferVis;
+		break;
 	case EViewModeIndex::VMI_SceneDepth:
-		CurrentViewModeName = "BufferVis";
+		CurrentViewModeName = "씬 뎁스";
+		CurrentViewModeIcon = IconViewMode_BufferVis;
 		break;
 	}
 
@@ -878,10 +888,10 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 	char ButtonText[64];
 	sprintf_s(ButtonText, "%s %s", CurrentViewModeName, "▼");
 
-	// 텍스트 길이에 맞게 버튼 너비 계산
+	// 버튼 너비 계산 (아이콘 크기 + 간격 + 텍스트 크기 + 좌우 패딩)
 	ImVec2 TextSize = ImGui::CalcTextSize(ButtonText);
 	const float Padding = 8.0f;
-	const float DropdownWidth = TextSize.x + Padding * 2.0f;
+	const float DropdownWidth = IconSize.x + 4.0f + TextSize.x + Padding * 2.0f;
 
 	// 스타일 적용
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
@@ -889,9 +899,12 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.6f));
 
-	// 드롭다운 버튼
+	// 드롭다운 버튼 생성 (아이콘 + 텍스트)
 	ImVec2 ButtonSize(DropdownWidth, ImGui::GetFrameHeight());
-	if (ImGui::Button(ButtonText, ButtonSize))
+	ImVec2 ButtonCursorPos = ImGui::GetCursorPos();
+
+	// 버튼 클릭 영역
+	if (ImGui::Button("##ViewModeBtn", ButtonSize))
 	{
 		ImGui::OpenPopup("ViewModePopup");
 	}
@@ -900,6 +913,21 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 	{
 		ImGui::SetTooltip("뷰모드 선택");
 	}
+
+	// 버튼 위에 내용 렌더링 (아이콘 + 텍스트, 가운데 정렬)
+	float ButtonContentWidth = IconSize.x + 4.0f + TextSize.x;
+	float ButtonContentStartX = ButtonCursorPos.x + (ButtonSize.x - ButtonContentWidth) * 0.5f;
+	ImVec2 ButtonContentCursorPos = ImVec2(ButtonContentStartX, ButtonCursorPos.y + (ButtonSize.y - IconSize.y) * 0.5f);
+	ImGui::SetCursorPos(ButtonContentCursorPos);
+
+	// 현재 뷰모드 아이콘 표시
+	if (CurrentViewModeIcon && CurrentViewModeIcon->GetShaderResourceView())
+	{
+		ImGui::Image((void*)CurrentViewModeIcon->GetShaderResourceView(), IconSize);
+		ImGui::SameLine(0, 4);
+	}
+
+	ImGui::Text("%s", ButtonText);
 
 	ImGui::PopStyleColor(3);
 	ImGui::PopStyleVar(1);
