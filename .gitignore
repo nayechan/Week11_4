@@ -470,3 +470,4 @@ CLAUDE.md
 
 # Untracked Data Files
 /Mundi/Data/untracked/**
+/Mundi/Data/TextureCache/**
