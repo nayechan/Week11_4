@@ -28,14 +28,14 @@ struct FCandidateDrawable;
 // 렌더링할 대상들의 집합을 담는 구조체
 struct FVisibleRenderProxySet
 {
-	// --- Type 1: Main Scene (PP O, Depth-Write O) ---
+	// --- Type 1: Main Scene (PP O, Depth-Test O) ---
 	TArray<UMeshComponent*> Meshes;
 	TArray<UBillboardComponent*> Billboards; // 인게임 빌보드 (파티클, 잔디 등)
 	TArray<UDecalComponent*> Decals;
 	TArray<UFireBallComponent*> FireBalls;
 	TArray<UTextRenderComponent*> Texts;
 
-	// --- Type 2: In-Scene Editor (PP X, Depth-Test O, Depth-Write X) ---
+	// --- Type 2: In-Scene Editor (PP X, Depth-Test O) ---
 	TArray<UPrimitiveComponent*> EditorPrimitives; // 그리드, 빛 기즈모, *에디터 아이콘 빌보드*
 
 	// --- Type 3: Overlay (PP X, Depth-Test X) ---
@@ -85,6 +85,7 @@ private:
 	/** @brief 월드의 모든 액터를 대상으로 절두체 컬링을 수행합니다. */
 	void PerformFrustumCulling();
 
+
 	/** @brief 씬을 순회하며 컬링을 통과한 모든 렌더링 대상을 수집합니다. */
 	void GatherVisibleProxies();
 
@@ -95,7 +96,7 @@ private:
 	void PerformTileLightCulling();
 
 	/** @brief 불투명(Opaque) 객체들을 렌더링하는 패스입니다. */
-	void RenderOpaquePass();
+	void RenderOpaquePass(EViewModeIndex InRenderViewMode);
 
 	void DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, bool bClearListAfterDraw);
 

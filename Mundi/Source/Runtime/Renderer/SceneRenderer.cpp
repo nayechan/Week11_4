@@ -85,6 +85,7 @@ void FSceneRenderer::Render()
 		GWorld->GetLightManager()->UpdateLightBuffer(RHIDevice);
 		PerformTileLightCulling();	// 타일 기반 라이트 컬링 수행
 		RenderLitPath();
+		RenderPostProcessingPasses();	// 후처리 체인 실행
 		RenderTileCullingDebug();	// 타일 컬링 디버그 시각화 draw
 	}
 	else if (View->ViewMode == EViewModeIndex::VMI_Unlit)
@@ -132,31 +133,25 @@ void FSceneRenderer::RenderLitPath()
 	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
 
 	// Base Pass
-	RenderOpaquePass();
+	RenderOpaquePass(View->ViewMode);
 	RenderDecalPass();
 	RenderFireBallPass();
-
-	// 후처리 체인 실행
-	RenderPostProcessingPasses();
 }
 
 void FSceneRenderer::RenderWireframePath()
 {
+	// 깊이 버퍼 초기화 후 ID만 그리기
 	RHIDevice->RSSetState(ERasterizerMode::Solid);
 	RHIDevice->OMSetRenderTargets(ERTVMode::SceneIdTarget);
+	RenderOpaquePass(EViewModeIndex::VMI_Unlit);
 
-	RHIDevice->SetAndUpdateConstantBuffer(FLightBufferType());
-
-	RenderOpaquePass();
-
-	// 상태 변경: Wireframe으로 레스터라이즈 모드 설정하도록 설정
+	// Wireframe으로 그리기
+	RHIDevice->ClearDepthBuffer(1.0f, 0);
 	RHIDevice->RSSetState(ERasterizerMode::Wireframe);
-
 	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
+	RenderOpaquePass(EViewModeIndex::VMI_Unlit);
 
-	RenderOpaquePass();
-
-	// 상태 복구: 원래의 Lit(Solid) 상태로 되돌림 (매우 중요!)
+	// 상태 복구
 	RHIDevice->RSSetState(ERasterizerMode::Solid);
 }
 
@@ -183,7 +178,7 @@ void FSceneRenderer::RenderSceneDepthPath()
 	RHIDevice->ClearDepthBuffer(1.0f, 0);
 
 	// 2. Base Pass - Scene에 메시 그리기
-	RenderOpaquePass();
+	RenderOpaquePass(EViewModeIndex::VMI_Unlit);
 
 	// ✅ 디버그: BackBuffer 전환 전 viewport 확인
 	RHIDevice->GetDeviceContext()->RSGetViewports(&numVP, &vpBefore);
@@ -530,13 +525,13 @@ void FSceneRenderer::PerformFrustumCulling()
 	//}
 }
 
-void FSceneRenderer::RenderOpaquePass()
+void FSceneRenderer::RenderOpaquePass(EViewModeIndex InRenderViewMode)
 {
 	TArray<FShaderMacro> ShaderMacros;
 	FString ShaderPath = "Shaders/Materials/UberLit.hlsl";
 	bool bNeedsShaderOverride = true; // 뷰 모드가 셰이더를 강제하는지 여부
 
-	switch (View->ViewMode)
+	switch (InRenderViewMode)
 	{
 	case EViewModeIndex::VMI_Lit_Phong:
 		ShaderMacros.push_back(FShaderMacro{ "LIGHTING_MODEL_PHONG", "1" });
