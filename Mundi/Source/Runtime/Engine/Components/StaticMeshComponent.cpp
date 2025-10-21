@@ -62,7 +62,7 @@ void UStaticMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMesh
 
 	const TArray<FGroupInfo>& MeshGroupInfos = StaticMesh->GetMeshGroupInfo();
 
-	auto DetermineMaterialAndShader = [&](uint32 SectionIndex) -> std::pair<UMaterialInterface*, UShader*>
+	auto DetermineMaterialAndShader = [&](uint32 SectionIndex) -> TPair<UMaterialInterface*, UShader*>
 		{
 			UMaterialInterface* Material = GetMaterial(SectionIndex);
 			UShader* Shader = nullptr;
@@ -122,7 +122,7 @@ void UStaticMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMesh
 		FMeshBatchElement BatchElement;
 		BatchElement.VertexShader = ShaderToUse;
 		BatchElement.PixelShader = ShaderToUse;
-		
+
 		// UMaterialInterface를 UMaterial로 캐스팅해야 할 수 있음. 렌더러가 UMaterial을 기대한다면.
 		// 지금은 Material.h 구조상 UMaterialInterface에 필요한 정보가 다 있음.
 		BatchElement.Material = MaterialToUse;
@@ -182,7 +182,7 @@ UMaterialInterface* UStaticMeshComponent::GetMaterial(uint32 InSectionIndex) con
 	{
 		return nullptr;
 	}
-	
+
 	UMaterialInterface* FoundMaterial = MaterialSlots[InSectionIndex];
 
 	if (!FoundMaterial)
@@ -192,58 +192,6 @@ UMaterialInterface* UStaticMeshComponent::GetMaterial(uint32 InSectionIndex) con
 	}
 
 	return FoundMaterial;
-}
-
-//void UStaticMeshComponent::Serialize(bool bIsLoading, FSceneCompData& InOut)
-//{
-//    // 0) 트랜스폼 직렬화/역직렬화는 상위(UPrimitiveComponent)에서 처리
-//    UPrimitiveComponent::Serialize(bIsLoading, InOut);
-//
-//    if (bIsLoading)
-//    {
-//        // 1) 신규 포맷: ObjStaticMeshAsset가 있으면 우선 사용
-//        if (!InOut.ObjStaticMeshAsset.empty())
-//        {
-//            SetStaticMesh(InOut.ObjStaticMeshAsset);
-//            return;
-//        }
-//
-//        // 2) 레거시 호환: Type을 "Data/<Type>.obj"로 매핑
-//        if (!InOut.Type.empty())
-//        {
-//            const FString LegacyPath = "Data/" + InOut.Type + ".obj";
-//            SetStaticMesh(LegacyPath);
-//        }
-//    }
-//    else
-//    {
-//        // 저장 시: 현재 StaticMesh가 있다면 실제 에셋 경로를 기록
-//        if (UStaticMesh* Mesh = GetStaticMesh())
-//        {
-//            InOut.ObjStaticMeshAsset = Mesh->GetAssetPathFileName();
-//        }
-//        else
-//        {
-//            InOut.ObjStaticMeshAsset.clear();
-//        }
-//        // Type은 상위(월드/액터) 정책에 따라 별도 기록 (예: "StaticMeshComp")
-//    }
-//}
-
-void UStaticMeshComponent::OnSerialized()
-{
-	Super::OnSerialized();
-
-	StaticMesh->AddUsingComponents(this);
-
-	const TArray<FGroupInfo>& GroupInfos = StaticMesh->GetMeshGroupInfo();
-	MaterialSlots.resize(GroupInfos.size());
-	for (int i = 0; i < GroupInfos.size(); ++i)
-	{
-		SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
-	}
-
-	MarkWorldPartitionDirty();
 }
 
 void UStaticMeshComponent::SetMaterial(uint32 InElementIndex, UMaterialInterface* InNewMaterial)
@@ -297,29 +245,29 @@ void UStaticMeshComponent::SetMaterial(uint32 InElementIndex, UMaterialInterface
 
 UMaterialInstanceDynamic* UStaticMeshComponent::CreateAndSetMaterialInstanceDynamic(uint32 ElementIndex)
 {
-    UMaterialInterface* CurrentMaterial = GetMaterial(ElementIndex);
-    if (!CurrentMaterial)
-    {
-        return nullptr;
-    }
-    
-    // 이미 MID인 경우, 그대로 반환
-    if (UMaterialInstanceDynamic* ExistingMID = Cast<UMaterialInstanceDynamic>(CurrentMaterial))
-    {
-        return ExistingMID;
-    }
+	UMaterialInterface* CurrentMaterial = GetMaterial(ElementIndex);
+	if (!CurrentMaterial)
+	{
+		return nullptr;
+	}
 
-    // 현재 머티리얼(UMaterial 또는 다른 MID가 아닌 UMaterialInterface)을 부모로 하는 새로운 MID를 생성
-    UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(CurrentMaterial);
-    if (NewMID)
-    {
-        DynamicMaterialInstances.Add(NewMID); // 소멸자에서 해제하기 위해 추적
-        SetMaterial(ElementIndex, NewMID);    // 슬롯에 새로 만든 MID 설정
-		NewMID->SetFilePath("(Instance) "+CurrentMaterial->GetFilePath());
-        return NewMID;
-    }
+	// 이미 MID인 경우, 그대로 반환
+	if (UMaterialInstanceDynamic* ExistingMID = Cast<UMaterialInstanceDynamic>(CurrentMaterial))
+	{
+		return ExistingMID;
+	}
 
-    return nullptr;
+	// 현재 머티리얼(UMaterial 또는 다른 MID가 아닌 UMaterialInterface)을 부모로 하는 새로운 MID를 생성
+	UMaterialInstanceDynamic* NewMID = UMaterialInstanceDynamic::Create(CurrentMaterial);
+	if (NewMID)
+	{
+		DynamicMaterialInstances.Add(NewMID); // 소멸자에서 해제하기 위해 추적
+		SetMaterial(ElementIndex, NewMID);    // 슬롯에 새로 만든 MID 설정
+		NewMID->SetFilePath("(Instance) " + CurrentMaterial->GetFilePath());
+		return NewMID;
+	}
+
+	return nullptr;
 }
 
 FAABB UStaticMeshComponent::GetWorldAABB() const
@@ -440,4 +388,134 @@ void UStaticMeshComponent::DuplicateSubObjects()
 		// else (원본 UMaterial 애셋인 경우)
 		// 얕은 복사된 포인터(애셋 경로)를 그대로 사용해도 안전합니다.
 	}
+}
+
+void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+	Super::Serialize(bInIsLoading, InOutHandle);
+
+	const FString MaterialSlotsKey = "MaterialSlots";
+
+	// 인스턴싱 머티리얼 로직이 복잡해서 프로퍼티 자동 저장/로드 구현이 힘들어서 수동으로 처리
+	if (bInIsLoading)
+	{
+		// 기존 DynamicMaterialInstances 정리 (로드 시 새로 생성해야 함)
+		ClearDynamicMaterials();
+
+		JSON SlotsArrayJson;
+		if (FJsonSerializer::ReadArray(InOutHandle, MaterialSlotsKey, SlotsArrayJson, JSON::Make(JSON::Class::Array), false))
+		{
+			MaterialSlots.resize(SlotsArrayJson.size());
+
+			for (int i = 0; i < SlotsArrayJson.size(); ++i)
+			{
+				const JSON& SlotJson = SlotsArrayJson.at(i);
+				if (SlotJson.IsNull())
+				{
+					MaterialSlots[i] = nullptr;
+					continue;
+				}
+
+				FString ParentPath;
+				if (FJsonSerializer::ReadString(SlotJson, "ParentPath", ParentPath, "", false)) // MID 데이터인 경우
+				{
+					UMaterialInterface* ParentMat = UResourceManager::GetInstance().Load<UMaterial>(ParentPath);
+					if (!ParentMat)
+					{
+						UE_LOG("Serialize: Failed to load MID Parent: %s", ParentPath.c_str());
+						MaterialSlots[i] = UResourceManager::GetInstance().GetDefaultMaterial();
+						continue;
+					}
+
+					// 1. 원본을 임시로 슬롯에 설정 (CreateAndSet이 부모를 참조해야 하므로)
+					MaterialSlots[i] = ParentMat;
+					// 2. MID 생성 (내부적으로 MaterialSlots[i]가 NewMID로 교체되고 DynamicMaterialInstances에 추가됨)
+					UMaterialInstanceDynamic* NewMID = CreateAndSetMaterialInstanceDynamic(i);
+
+					// 3. 저장된 Overrides를 NewMID에 복원합니다.
+					JSON OverridesJson;
+					if (NewMID && FJsonSerializer::ReadObject(SlotJson, "Overrides", OverridesJson, JSON::Make(JSON::Class::Object), false))
+					{
+						JSON TexturesJson;
+						if (FJsonSerializer::ReadObject(OverridesJson, "Textures", TexturesJson, JSON::Make(JSON::Class::Object), false))
+						{
+							TMap<EMaterialTextureSlot, UTexture*> LoadedTextures;
+							// FJsonSerializer에 TMap<string, string> 리더가 없으므로 nlohmann::json의 items() 사용
+							for (auto& [SlotKey, PathJson] : TexturesJson.ObjectRange())
+							{
+								uint8 SlotIndex = static_cast<uint8>(std::stoi(SlotKey));
+								FString TexPath = PathJson.ToString();
+								UTexture* Tex = (TexPath == "None" || TexPath.empty()) ? nullptr : UResourceManager::GetInstance().Load<UTexture>(TexPath);
+								LoadedTextures.Add(static_cast<EMaterialTextureSlot>(SlotIndex), Tex);
+							}
+							NewMID->SetOverriddenTextures(LoadedTextures);
+						}
+						// (향후 스칼라, 벡터 파라미터도 여기에 추가)
+					}
+				}
+				else // UMaterial 애셋인 경우
+				{
+					FString AssetPath;
+					FJsonSerializer::ReadString(SlotJson, "AssetPath", AssetPath, "", false);
+					MaterialSlots[i] = UResourceManager::GetInstance().Load<UMaterial>(AssetPath);
+				}
+			}
+		}
+	}
+	else
+	{
+		JSON SlotsArrayJson = JSON::Make(JSON::Class::Array);
+		for (UMaterialInterface* Mtl : MaterialSlots)
+		{
+			if (Mtl == nullptr)
+			{
+				SlotsArrayJson.append(nullptr);
+				continue;
+			}
+
+			UMaterialInstanceDynamic* MID = Cast<UMaterialInstanceDynamic>(Mtl);
+			if (MID) // MID인 경우
+			{
+				JSON SlotJson = JSON::Make(JSON::Class::Object);
+				UMaterialInterface* Parent = MID->GetParentMaterial();
+				SlotJson["ParentPath"] = Parent ? Parent->GetFilePath() : "None";
+
+				JSON OverridesJson = JSON::Make(JSON::Class::Object);
+				JSON TexturesJson = JSON::Make(JSON::Class::Object);
+				const TMap<EMaterialTextureSlot, UTexture*>& OverriddenTextures = MID->GetOverriddenTextures();
+
+				for (const auto& Pair : OverriddenTextures)
+				{
+					TexturesJson[std::to_string(static_cast<uint8>(Pair.first))] = Pair.second ? Pair.second->GetFilePath() : "None";
+				}
+				OverridesJson["Textures"] = TexturesJson;
+				// (향후 스칼라, 벡터 파라미터도 여기에 추가)
+
+				SlotJson["Overrides"] = OverridesJson;
+				SlotsArrayJson.append(SlotJson);
+			}
+			else // 일반 UMaterial 애셋인 경우
+			{
+				JSON SlotJson = JSON::Make(JSON::Class::Object);
+				SlotJson["AssetPath"] = Mtl->GetFilePath();
+				SlotsArrayJson.append(SlotJson);
+			}
+		}
+		InOutHandle["MaterialSlots"] = SlotsArrayJson;
+	}
+}
+
+// 직렬화 완료 직후 호출됨
+void UStaticMeshComponent::OnSerialized()
+{
+	Super::OnSerialized();
+
+	// 1. AutoSerialize로 로드된 StaticMesh에 AddUsingComponents 호출
+	if (StaticMesh)
+	{
+		StaticMesh->AddUsingComponents(this);
+	}
+
+	// 2. 월드 파티션 업데이트
+	MarkWorldPartitionDirty();
 }

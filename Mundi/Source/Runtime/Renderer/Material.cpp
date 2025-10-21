@@ -129,15 +129,15 @@ const FMaterialInfo& UMaterial::GetMaterialInfo() const
 
 bool UMaterial::HasTexture(EMaterialTextureSlot Slot) const
 {
-    switch (Slot)
-    {
-    case EMaterialTextureSlot::Diffuse:
-        return !MaterialInfo.DiffuseTextureFileName.empty();
-    case EMaterialTextureSlot::Normal:
-        return !MaterialInfo.NormalTextureFileName.empty();
-    default:
-        return false;
-    }
+	switch (Slot)
+	{
+	case EMaterialTextureSlot::Diffuse:
+		return !MaterialInfo.DiffuseTextureFileName.empty();
+	case EMaterialTextureSlot::Normal:
+		return !MaterialInfo.NormalTextureFileName.empty();
+	default:
+		return false;
+	}
 }
 
 void UMaterial::ResolveTextures()
@@ -325,5 +325,11 @@ void UMaterialInstanceDynamic::SetVectorParameterValue(const FString& ParameterN
 void UMaterialInstanceDynamic::SetScalarParameterValue(const FString& ParameterName, float Value)
 {
 	OverriddenScalarParameters.Add(ParameterName, Value);
+	bIsCachedMaterialInfoDirty = true;
+}
+
+void UMaterialInstanceDynamic::SetOverriddenTextures(const TMap<EMaterialTextureSlot, UTexture*>& InTextures)
+{
+	OverriddenTextures = InTextures;
 	bIsCachedMaterialInfoDirty = true;
 }

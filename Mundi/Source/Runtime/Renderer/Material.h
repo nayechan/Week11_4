@@ -16,6 +16,7 @@ enum class EMaterialTextureSlot : uint8
 	Max // 배열 크기 지정용
 };
 
+// 머티리얼 인터페이스
 class UMaterialInterface : public UResourceBase
 {
 	DECLARE_CLASS(UMaterialInterface, UResourceBase)
@@ -26,6 +27,8 @@ public:
 	virtual const FMaterialInfo& GetMaterialInfo() const = 0;
 };
 
+
+// 머티리얼 에셋 인스턴스
 class UMaterial : public UMaterialInterface
 {
 	DECLARE_CLASS(UMaterial, UMaterialInterface)
@@ -56,7 +59,6 @@ public:
 	void SetTexture(EMaterialTextureSlot Slot, const FString& TexturePath);
 	void SetMaterialName(FString& InMaterialName) { MaterialInfo.MaterialName = InMaterialName; }
 
-
 protected:
 	// 이 머티리얼이 사용할 셰이더 프로그램 (예: UberLit.hlsl)
 	UShader* Shader = nullptr;
@@ -65,6 +67,8 @@ protected:
 	TArray<UTexture*> ResolvedTextures;
 };
 
+
+// 동적 머티리얼 인스턴스
 class UMaterialInstanceDynamic : public UMaterialInterface
 {
 	DECLARE_CLASS(UMaterialInstanceDynamic, UMaterialInterface)
@@ -89,6 +93,11 @@ public:
 	void SetVectorParameterValue(const FString& ParameterName, const FLinearColor& Value);
 	// 스칼라 파라미터 값을 런타임에 변경하는 함수
 	void SetScalarParameterValue(const FString& ParameterName, float Value);
+
+	// 덮어쓴 텍스처 맵 반환 (저장 시 사용)
+	const TMap<EMaterialTextureSlot, UTexture*>& GetOverriddenTextures() const { return OverriddenTextures; }
+	// 덮어쓴 텍스처 맵 설정 (로드 시 사용)
+	void SetOverriddenTextures(const TMap<EMaterialTextureSlot, UTexture*>& InTextures);
 
 protected:
 	// 생성자에서 부모 머티리얼의 포인터를 저장합니다.
