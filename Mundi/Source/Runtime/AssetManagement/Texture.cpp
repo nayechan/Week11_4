@@ -95,20 +95,14 @@ void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 	else
 	{
 		hr = DirectX::CreateWICTextureFromFile(
-			InDevice, 
-			WFilePath.c_str(), 
-			reinterpret_cast<ID3D11Resource**>(&Texture2D), 
+			InDevice,
+			WFilePath.c_str(),
+			reinterpret_cast<ID3D11Resource**>(&Texture2D),
 			&ShaderResourceView
 		);
 	}
 
-	if (FAILED(hr))
-	{
-		// 실패 시에도 경로를 UTF-8로 안전하게 변환하여 출력
-		std::string displayPath = WideStringToUTF8(WFilePath);
-		UE_LOG("!!!LOAD TEXTURE FAILED!!! Path: %s", displayPath.c_str());
-	}
-	else
+	if (SUCCEEDED(hr))
 	{
 		if (Texture2D)
 		{
@@ -118,11 +112,6 @@ void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 			Height = desc.Height;
 			Format = desc.Format;
 		}
-
-		// 성공 시에도 경로를 UTF-8로 안전하게 변환하여 출력
-		std::string displayPath = WideStringToUTF8(WFilePath);
-		UE_LOG("Successfully loaded texture: %s (Format: %d, Size: %dx%d)", 
-			displayPath.c_str(), Format, Width, Height);
 	}
 
 	TextureName = InFilePath;

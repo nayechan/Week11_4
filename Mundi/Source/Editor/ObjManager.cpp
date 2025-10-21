@@ -17,6 +17,32 @@ TMap<FString, FStaticMesh*> FObjManager::ObjStaticMeshMap;
 namespace
 {
 	/**
+	 * UTF-8 문자열을 UTF-16 와이드 문자열로 변환 (한글 경로 지원)
+	 * @param utf8str - UTF-8 인코딩된 입력 문자열
+	 * @return UTF-16 인코딩된 와이드 문자열
+	 */
+	std::wstring UTF8ToWide(const FString& utf8str)
+	{
+		if (utf8str.empty()) return std::wstring();
+
+		int needed = ::MultiByteToWideChar(CP_UTF8, 0, utf8str.c_str(), -1, nullptr, 0);
+		if (needed <= 0)
+		{
+			// UTF-8 변환 실패 시 ANSI 시도
+			needed = ::MultiByteToWideChar(CP_ACP, 0, utf8str.c_str(), -1, nullptr, 0);
+			if (needed <= 0) return std::wstring();
+
+			std::wstring result(needed - 1, L'\0');
+			::MultiByteToWideChar(CP_ACP, 0, utf8str.c_str(), -1, result.data(), needed);
+			return result;
+		}
+
+		std::wstring result(needed - 1, L'\0');
+		::MultiByteToWideChar(CP_UTF8, 0, utf8str.c_str(), -1, result.data(), needed);
+		return result;
+	}
+
+	/**
 	 * .mtl 텍스처 맵 라인에서 모든 옵션 토큰과 마지막 파일 경로를 분리하여 추출합니다.
 	 * 예: "-bm 1.0 path/to/file.png" -> OutOptions = ["-bm", "1.0"], OutFilePath = "path/to/file.png"
 	 * * @param line - 파싱할 전체 라인 문자열
@@ -98,7 +124,9 @@ namespace
  */
 static FString FindMtlFilePath(const FString& InObjPath)
 {
-	std::ifstream FileIn(InObjPath);
+	// 한글 경로 지원: UTF-8 → UTF-16 변환 후 파일 열기
+	std::wstring WPath = UTF8ToWide(InObjPath);
+	std::ifstream FileIn(WPath);
 	if (!FileIn)
 	{
 		return "";
@@ -127,7 +155,9 @@ static FString FindMtlFilePath(const FString& InObjPath)
  */
 bool GetMtlDependencies(const FString& ObjPath, TArray<FString>& OutMtlFilePaths)
 {
-	std::ifstream InFile(ObjPath);
+	// 한글 경로 지원: UTF-8 → UTF-16 변환 후 파일 열기
+	std::wstring WPath = UTF8ToWide(ObjPath);
+	std::ifstream InFile(WPath);
 	if (!InFile.is_open())
 	{
 		UE_LOG("Failed to open .obj file for dependency scan: %s", ObjPath.c_str());
@@ -429,19 +459,45 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 	}
 
 	// 4. 머티리얼 및 텍스처 경로 처리 (공통 로직)
-	fs::path BaseDir = fs::path(NormalizedPathStr).parent_path();
+	// 한글 경로 지원: UTF-8 → UTF-16 변환 후 경로 처리
+	std::wstring WNormalizedPath = UTF8ToWide(NormalizedPathStr);
+	fs::path BaseDir = fs::path(WNormalizedPath).parent_path();
+
 	for (auto& MaterialInfo : MaterialInfos)
 	{
 		auto FixPath = [&](FString& TexturePath)
 			{
 				if (TexturePath.empty()) return;
 
-				fs::path TexPath(TexturePath);
-				if (!TexPath.is_absolute())
+				try
 				{
-					fs::path AbsolutePath = fs::weakly_canonical(BaseDir / TexPath);
-					TexturePath = AbsolutePath.string();
-					std::replace(TexturePath.begin(), TexturePath.end(), '\\', '/');
+					// UTF-8 → UTF-16 변환
+					std::wstring WTexPath = UTF8ToWide(TexturePath);
+					fs::path TexPath(WTexPath);
+
+					if (!TexPath.is_absolute())
+					{
+						// weakly_canonical 대신 lexically_normal 사용 (파일 존재 여부 체크 안함)
+						fs::path AbsolutePath = (BaseDir / TexPath).lexically_normal();
+
+						// UTF-16 → UTF-8 변환하여 다시 저장
+						std::wstring WAbsPath = AbsolutePath.wstring();
+						int needed = ::WideCharToMultiByte(CP_UTF8, 0, WAbsPath.c_str(), -1, nullptr, 0, nullptr, nullptr);
+						if (needed > 0)
+						{
+							std::string TempPath;
+							TempPath.resize(needed - 1);
+							::WideCharToMultiByte(CP_UTF8, 0, WAbsPath.c_str(), -1, TempPath.data(), needed, nullptr, nullptr);
+							TexturePath = TempPath;
+						}
+
+						std::replace(TexturePath.begin(), TexturePath.end(), '\\', '/');
+					}
+				}
+				catch (const std::exception& e)
+				{
+					UE_LOG("[FixPath] Error processing texture path '%s': %s", TexturePath.c_str(), e.what());
+					// 예외 발생 시 원본 경로 유지
 				}
 			};
 
@@ -532,7 +588,9 @@ bool FObjImporter::LoadObjModel(const FString& InFileName, FObjInfo* const OutOb
 
 	// [안정성] .obj 파일이 존재하지 않으면 로드 실패를 반환합니다.
 	// 이는 필수 데이터이므로 더 이상 진행할 수 없습니다.
-	std::ifstream FileIn(InFileName.c_str());
+	// 한글 경로 지원: UTF-8 → UTF-16 변환 후 파일 열기
+	std::wstring WPath = UTF8ToWide(InFileName);
+	std::ifstream FileIn(WPath);
 	if (!FileIn)
 	{
 		UE_LOG("Error: The file '%s' does not exist!", InFileName.c_str());
@@ -696,22 +754,29 @@ bool FObjImporter::LoadObjModel(const FString& InFileName, FObjInfo* const OutOb
 	FileIn.close();
 
 	// Material 파싱 시작
-	FileIn.open(MtlFileName.c_str());
+	UE_LOG("[ObjImporter::LoadObjModel] MTL file path: %s", MtlFileName.c_str());
 
 	if (MtlFileName.empty())
 	{
+		UE_LOG("[ObjImporter::LoadObjModel] MTL file path is empty - loading without materials");
 		OutObjInfo->bHasMtl = false;
 		return true;
 	}
+
+	// 한글 경로 지원: UTF-8 → UTF-16 변환 후 파일 열기
+	std::wstring WMtlPath = UTF8ToWide(MtlFileName);
+	FileIn.open(WMtlPath);
 
 	// .mtl 파일이 존재하지 않더라도 로딩을 중단하지 않습니다.
 	// 경고를 로깅하고, 머티리얼이 없는 모델로 처리를 계속합니다.
 	if (!FileIn)
 	{
-		UE_LOG("Warning: Material file '%s' not found for obj '%s'. Loading model without materials.", MtlFileName.c_str(), InFileName.c_str());
+		UE_LOG("[ObjImporter::LoadObjModel] ERROR: Material file '%s' not found for obj '%s'. Loading model without materials.", MtlFileName.c_str(), InFileName.c_str());
 		OutObjInfo->bHasMtl = false;
 		return true;
 	}
+
+	UE_LOG("[ObjImporter::LoadObjModel] MTL file opened successfully, parsing materials...");
 
 	uint32 MatCount = 0;
 
@@ -732,6 +797,7 @@ bool FObjImporter::LoadObjModel(const FString& InFileName, FObjInfo* const OutOb
 			TempMatInfo.MaterialName = line.substr(7);
 			OutMaterialInfos.push_back(TempMatInfo);
 			++MatCount;
+			UE_LOG("[ObjImporter::LoadObjModel] Found material: %s", TempMatInfo.MaterialName.c_str());
 		}
 		else if (MatCount > 0)
 		{
