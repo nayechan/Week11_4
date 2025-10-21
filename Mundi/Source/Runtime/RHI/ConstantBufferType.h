@@ -100,15 +100,7 @@ struct FPixelConstBufferType
 	float Padding; // 16바이트 정렬을 위한 패딩
 };
 
-// b2: Gizmo rendering constant buffer
-struct GizmoBufferType
-{
-    FVector Color;          // Gizmo base color (axis color or light color)
-    uint32 bIsHighlighted;  // 1 = hovering (yellow), 0 = normal (use Color)
-};
-
-
-struct ColorBufferType
+struct ColorBufferType // b3
 {
     FLinearColor Color;
     uint32 UUID;
@@ -180,7 +172,6 @@ MACRO(FogBufferType)                \
 MACRO(FXAABufferType)               \
 MACRO(FPixelConstBufferType)        \
 MACRO(ViewProjBufferType)           \
-MACRO(GizmoBufferType)              \
 MACRO(ColorBufferType)              \
 MACRO(FireBallBufferType)           \
 MACRO(CameraBufferType)             \
@@ -200,8 +191,7 @@ CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
 CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, true) // b1 카메라 행렬 고정
 CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
-CONSTANT_BUFFER_INFO(GizmoBufferType, 2, true, false)  // b2, VS only (Gizmo.hlsl)
-CONSTANT_BUFFER_INFO(ColorBufferType, 3, false, true)
+CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color
 CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
 CONSTANT_BUFFER_INFO(DecalBufferType, 6, true, true)
 CONSTANT_BUFFER_INFO(FireBallBufferType, 7, false, true)

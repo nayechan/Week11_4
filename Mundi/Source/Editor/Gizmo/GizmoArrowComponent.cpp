@@ -10,7 +10,7 @@ UGizmoArrowComponent::UGizmoArrowComponent()
 {
 	SetStaticMesh("Data/Gizmo/TranslationHandle.obj");
 
-	// GizmoMaterial을 기즈모용 셰이더로 설정
+	// 기즈모 셰이더로 설정
 	SetMaterialByName(0, "Shaders/UI/Gizmo.hlsl");
 }
 
@@ -169,6 +169,15 @@ void UGizmoArrowComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMesh
 		BatchElement.WorldMatrix = GetWorldMatrix();
 		BatchElement.ObjectID = 0; // 기즈모는 피킹 대상이 아니므로 0
 		BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+		if (bHighlighted)
+		{
+			BatchElement.InstanceColor = FLinearColor(1.0f, 1.0f, 0.0f, 1.0f);
+		}
+		else
+		{
+			BatchElement.InstanceColor = FLinearColor(GetColor());
+		}
 
 		OutMeshBatchElements.Add(BatchElement);
 	}

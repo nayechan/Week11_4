@@ -24,17 +24,10 @@ cbuffer ViewProjBuffer : register(b1)
     row_major float4x4 InverseProjectionMatrix;
 }
 
-// b2: GizmoBuffer (VS) - Gizmo color and highlight state
-cbuffer GizmoBuffer : register(b2)
-{
-    float3 Color;           // Base color for the gizmo (from SetColor())
-    uint bIsHighlighted;    // 1 = highlighted (hovering), 0 = normal
-}
-
 // b3: ColorBuffer (PS) - UUID for object picking
 cbuffer ColorBuffer : register(b3)
 {
-    float4 LerpColor;   // Not used for gizmos
+    float4 LerpColor;
     uint UUID;          // Object ID for picking
 }
 
@@ -67,25 +60,7 @@ PS_INPUT mainVS(VS_INPUT input)
     // Transform vertex position: Model -> World -> View -> Clip space
     float4x4 MVP = mul(mul(WorldMatrix, ViewMatrix), ProjectionMatrix);
     output.position = mul(float4(input.position, 1.0f), MVP);
-
-    // Determine gizmo color based on highlight state
-    float4 gizmoColor;
-
-    if (bIsHighlighted == 1)
-    {
-        // Highlighted (hovering): Full yellow for all gizmo types
-        gizmoColor = float4(1.0, 1.0, 0.0, 1.0);
-    }
-    else
-    {
-        // Normal state: Use custom color from GizmoBuffer
-        // Color is set per-gizmo:
-        //   - Selection Gizmo: Red/Green/Blue (axis colors)
-        //   - DirectionGizmo: Light color (from SpotLight/DirectionalLight)
-        gizmoColor = float4(Color, 1.0);
-    }
-
-    output.color = gizmoColor;
+    output.color = LerpColor;
 
     return output;
 }

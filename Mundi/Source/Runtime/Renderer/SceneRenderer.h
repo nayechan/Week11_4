@@ -28,13 +28,18 @@ struct FCandidateDrawable;
 // 렌더링할 대상들의 집합을 담는 구조체
 struct FVisibleRenderProxySet
 {
+	// --- Type 1: Main Scene (PP O, Depth-Write O) ---
 	TArray<UMeshComponent*> Meshes;
-	TArray<UBillboardComponent*> Billboards;
-	TArray<UTextRenderComponent*> Texts;
-
+	TArray<UBillboardComponent*> Billboards; // 인게임 빌보드 (파티클, 잔디 등)
 	TArray<UDecalComponent*> Decals;
 	TArray<UFireBallComponent*> FireBalls;
-	TArray<UGizmoArrowComponent*> Gizmos;  // Editor overlay gizmos (from both Editor and Level actors)
+	TArray<UTextRenderComponent*> Texts;
+
+	// --- Type 2: In-Scene Editor (PP X, Depth-Test O, Depth-Write X) ---
+	TArray<UPrimitiveComponent*> EditorPrimitives; // 그리드, 빛 기즈모, *에디터 아이콘 빌보드*
+
+	// --- Type 3: Overlay (PP X, Depth-Test X) ---
+	TArray<UPrimitiveComponent*> OverlayPrimitives; // 트랜스폼 기즈모
 };
 
 struct FSceneLocals
