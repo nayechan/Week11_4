@@ -556,6 +556,13 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			JSON Components = JSON::Make(JSON::Class::Array);
 			for (auto& Component : OwnedComponents)
 			{
+				// 에디터 전용 컴포넌트는 직렬화하지 않음
+				// (CREATE_EDITOR_COMPONENT로 생성된 컴포넌트들은 OnRegister()에서 매번 새로 생성됨)
+				if (!Component->IsEditable())
+				{
+					continue;
+				}
+
 				JSON ComponentJson;
 
 				ComponentJson["Type"] = Component->GetClass()->Name;

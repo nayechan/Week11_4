@@ -63,7 +63,6 @@ public:
     void Initialize(D3D11RHI* RHIDevice);
     void Release();
 
-
     void UpdateLightBuffer(D3D11RHI* RHIDevice);
     void SetDirtyFlag();
 
@@ -76,6 +75,8 @@ public:
     void DeRegisterLight(T* LightComponent);
     template<typename T>
     void UpdateLight(T* LightComponent);
+
+    void ClearAllLightList();
 private:
 
     bool bHaveToUpdate = true;
@@ -87,7 +88,6 @@ private:
     ID3D11Buffer* SpotLightBuffer = nullptr;
     ID3D11ShaderResourceView* PointLightBufferSRV = nullptr;
     ID3D11ShaderResourceView* SpotLightBufferSRV = nullptr;
-
 
     TArray<UAmbientLightComponent*> AmbientLightList;
     TArray<UDirectionalLightComponent*> DIrectionalLightList;

@@ -62,28 +62,25 @@ void UBillboardComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
-	if (bInIsLoading)
+	if (bInIsLoading && InOutHandle.hasKey("TextureName") && !InOutHandle.hasKey("Texture"))
 	{
-		FString TextureNameTemp;
-		float WidthTemp;
-		float HeightTemp;
-
-		FJsonSerializer::ReadString(InOutHandle, "TextureName", TextureNameTemp);
-		FJsonSerializer::ReadFloat(InOutHandle, "Width", WidthTemp);
-		FJsonSerializer::ReadFloat(InOutHandle, "Height", HeightTemp);
-
-		SetTextureName(TextureNameTemp);
-		SetSize(WidthTemp, HeightTemp);
-	}
-	else
-	{
-		InOutHandle["Width"] = Width;
-		InOutHandle["Height"] = Height;
-		InOutHandle["TextureName"] = TextureName;
+		InOutHandle["Texture"] = InOutHandle["TextureName"];
 	}
 
-	// 리플렉션 기반 자동 직렬화
 	AutoSerialize(bInIsLoading, InOutHandle, UBillboardComponent::StaticClass());
+
+	if (bInIsLoading && Texture)
+	{
+		TextureName = Texture->GetTextureName();
+	}
+}
+
+void UBillboardComponent::DuplicateSubObjects()
+{
+	Super::DuplicateSubObjects();
+
+	// Quad, Material은 공유 리소스이므로 복제하지 않음
+	// Texture는 TextureName을 통해 리소스 매니저에서 가져오므로 복제하지 않음
 }
 
 // 여기서만 Cull_Back을 꺼야함. 

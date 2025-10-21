@@ -156,7 +156,6 @@ void USceneIOWidget::RenderSaveLoadSection()
 	if (ImGui::Button("New Scene", ImVec2(110, 25)))
 	{
 		CreateNewLevel();
-
 	}
 }
 
@@ -280,14 +279,8 @@ void USceneIOWidget::LoadLevel(const FString& InFilePath)
 		// 로드 직전: Transform 위젯/선택 초기화
 		UUIManager::GetInstance().ClearTransformWidgetSelection();
 		GWorld->GetSelectionManager()->ClearSelection();
-		//UUIManager::GetInstance().ResetPickedActor();
 
-		// 2) 레벨 서비스로 로드 후 월드에 적용
-
-		//FLoadedLevel Loaded = ULevelService::LoadLevel(SceneName);
-
-		std::unique_ptr<ULevel> NewLevel = ULevelService::CreateNewLevel();
-		//FString FilePath = "Scene/" + InFilePath + ".Scene";
+		std::unique_ptr<ULevel> NewLevel = ULevelService::CreateDefaultLevel();
 		JSON LevelJsonData;
 		if (FJsonSerializer::LoadJsonFromFile(LevelJsonData, InFilePath))
 		{
@@ -331,6 +324,7 @@ void USceneIOWidget::CreateNewLevel()
 		GWorld->GetSelectionManager()->ClearSelection();
 
 		// 새 레벨 생성 후 월드에 적용
+		CurrentWorld->GetLightManager()->ClearAllLightList(); // TODO: 김민찬
 		CurrentWorld->SetLevel(ULevelService::CreateNewLevel());
 
 		UE_LOG("SceneIO: New scene created");

@@ -15,9 +15,9 @@
 IMPLEMENT_CLASS(UStaticMeshComponent)
 
 BEGIN_PROPERTIES(UStaticMeshComponent)
-MARK_AS_COMPONENT("스태틱 메시 컴포넌트", "스태틱 메시를 렌더링하는 컴포넌트입니다.")
-ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Static Mesh", true, "렌더링할 스태틱 메시입니다.")
-ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "메시 섹션에 할당된 머티리얼 슬롯입니다.")
+	MARK_AS_COMPONENT("스태틱 메시 컴포넌트", "스태틱 메시를 렌더링하는 컴포넌트입니다.")
+	ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Static Mesh", true, "렌더링할 스태틱 메시입니다.")
+	ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "메시 섹션에 할당된 머티리얼 슬롯입니다.")
 END_PROPERTIES()
 
 UStaticMeshComponent::UStaticMeshComponent()
@@ -260,28 +260,26 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
-	if (bInIsLoading)
+	if (bInIsLoading && InOutHandle.hasKey("ObjStaticMeshAsset") && !InOutHandle.hasKey("StaticMesh"))
 	{
-		FString ObjPath;
-		FJsonSerializer::ReadString(InOutHandle, "ObjStaticMeshAsset", ObjPath);
-		if (!ObjPath.empty())
-		{
-			SetStaticMesh(ObjPath);
-		}
-	}
-	else
-	{
-		if (UStaticMesh* Mesh = GetStaticMesh())
-		{
-			InOutHandle["ObjStaticMeshAsset"] = Mesh->GetAssetPathFileName();
-		}
-		else
-		{
-			InOutHandle["ObjStaticMeshAsset"] = "";
-		}
+		InOutHandle["StaticMesh"] = InOutHandle["ObjStaticMeshAsset"];
 	}
 
 	AutoSerialize(bInIsLoading, InOutHandle, UStaticMeshComponent::StaticClass());
+
+	if (bInIsLoading && StaticMesh && StaticMesh->GetStaticMeshAsset())
+	{
+		StaticMesh->AddUsingComponents(this);
+
+		const TArray<FGroupInfo>& GroupInfos = StaticMesh->GetMeshGroupInfo();
+		MaterialSlots.resize(GroupInfos.size());
+		for (int i = 0; i < GroupInfos.size(); ++i)
+		{
+			SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
+		}
+
+		MarkWorldPartitionDirty();
+	}
 }
 
 void UStaticMeshComponent::SetMaterialByUser(const uint32 InMaterialSlotIndex, const FString& InMaterialName)

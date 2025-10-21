@@ -73,8 +73,10 @@ FQuat USceneComponent::GetRelativeRotation() const { return RelativeRotation; }
 
 void USceneComponent::SetRelativeRotationEuler(const FVector& EulerDegrees)
 {
-    RelativeRotationEuler = EulerDegrees;
-    RelativeRotation = FQuat::MakeFromEulerZYX(EulerDegrees); // Quat 동기화
+    // Quaternion으로 변환 후 정규화 (Serialize와 일관성 유지)
+    RelativeRotation = FQuat::MakeFromEulerZYX(EulerDegrees).GetNormalized();
+    // 정규화된 quaternion에서 Euler 재계산 (정밀도 유지)
+    RelativeRotationEuler = RelativeRotation.ToEulerZYXDeg();
     UpdateRelativeTransform();
     OnTransformUpdated();
 }
@@ -327,12 +329,10 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     if (bInIsLoading)
     {
         FJsonSerializer::ReadVector(InOutHandle, "Location", RelativeLocation, FVector::Zero());
-        FVector EulerAngle;
-        FJsonSerializer::ReadVector(InOutHandle, "Rotation", EulerAngle, FVector::Zero());
-        RelativeRotation = FQuat::MakeFromEulerZYX(EulerAngle);
-        RelativeRotationEuler = EulerAngle; // Euler 동기화 (로드 시)
-
+        FJsonSerializer::ReadVector(InOutHandle, "Rotation", RelativeRotationEuler, FVector::Zero());
         FJsonSerializer::ReadVector(InOutHandle, "Scale", RelativeScale, FVector::One());
+
+        RelativeRotation = FQuat::MakeFromEulerZYX(RelativeRotationEuler).GetNormalized();
 
         // 해당 객체의 Transform을 위에서 읽은 값을 기반으로 변경 후, 자식에게 전파
         UpdateRelativeTransform();
@@ -348,10 +348,10 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
     else
     {
         InOutHandle["Location"] = FJsonSerializer::VectorToJson(RelativeLocation);
-        FVector EulerAngle = RelativeRotation.ToEulerZYXDeg();
-        InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(EulerAngle);
+        InOutHandle["Rotation"] = FJsonSerializer::VectorToJson(RelativeRotationEuler);
         InOutHandle["Scale"] = FJsonSerializer::VectorToJson(RelativeScale);
         InOutHandle["Id"] = UUID;
+        
         if (AttachParent)
         {
             InOutHandle["ParentId"] = AttachParent->UUID;
@@ -363,28 +363,12 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
         }
     }
 
-    // 리플렉션 기반 자동 직렬화 (추가 프로퍼티용)
-    AutoSerialize(bInIsLoading, InOutHandle, USceneComponent::StaticClass());
+    // USceneComponent는 불러온 후 회전 후처리가 필요하므로 AutoSerialize 호출 금지.
 }
 
 void USceneComponent::OnTransformUpdated()
 {
-    //OnTransformUpdatedChildImpl();
-    //PropagateTransformUpdate();
 }
-
-//void USceneComponent::PropagateTransformUpdate()
-//{
-//    for (USceneComponent*& Child : AttachChildren)
-//    {
-//        Child->OnTransformUpdated();
-//    }
-//}
-
-//void USceneComponent::OnTransformUpdatedChildImpl()
-//{
-//    // Do Nothing
-//}
 
 UWorld* USceneComponent::GetWorld()
 {

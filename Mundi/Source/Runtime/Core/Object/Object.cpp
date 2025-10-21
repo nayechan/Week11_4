@@ -54,7 +54,23 @@ void UObject::AutoSerialize(const bool bInIsLoading, JSON& InOutHandle, UClass* 
 		{
 			FVector* Value = Prop.GetValuePtr<FVector>(this);
 			if (bInIsLoading)
-				FJsonSerializer::ReadVector(InOutHandle, Prop.Name, *Value);
+			{
+				// RelativeRotationEuler는 USceneComponent::Serialize()에서 "Rotation" 키로 처리하므로 AutoSerialize에서는 건너뜀
+				// (AutoSerialize가 "RelativeRotationEuler" 키를 찾지 못해 (0,0,0)으로 덮어쓰는 버그 방지)
+				if (strcmp(Prop.Name, "RelativeRotationEuler") == 0)
+				{
+					// 키가 존재할 때만 읽어들임 (키가 없으면 현재 값 유지)
+					if (InOutHandle.hasKey(Prop.Name))
+					{
+						FJsonSerializer::ReadVector(InOutHandle, Prop.Name, *Value);
+					}
+					// 키가 없으면 아무것도 하지 않음 (USceneComponent::Serialize가 이미 처리함)
+				}
+				else
+				{
+					FJsonSerializer::ReadVector(InOutHandle, Prop.Name, *Value);
+				}
+			}
 			else
 				InOutHandle[Prop.Name] = FJsonSerializer::VectorToJson(*Value);
 			break;
@@ -83,7 +99,175 @@ void UObject::AutoSerialize(const bool bInIsLoading, JSON& InOutHandle, UClass* 
 				InOutHandle[Prop.Name] = Value->c_str();
 			break;
 		}
-		// FName, ObjectPtr, Struct 등은 필요시 추가
+		case EPropertyType::FName:
+		{
+			FName* Value = Prop.GetValuePtr<FName>(this);
+			if (bInIsLoading)
+			{
+				FString NameString;
+				FJsonSerializer::ReadString(InOutHandle, Prop.Name, NameString);
+				*Value = FName(NameString);
+			}
+			else
+			{
+				InOutHandle[Prop.Name] = Value->ToString().c_str();
+			}
+			break;
+		}
+		case EPropertyType::Texture:
+		{
+			UTexture** Value = Prop.GetValuePtr<UTexture*>(this);
+			if (bInIsLoading)
+			{
+				FString TexturePath;
+				FJsonSerializer::ReadString(InOutHandle, Prop.Name, TexturePath);
+				if (!TexturePath.empty())
+				{
+					*Value = UResourceManager::GetInstance().Load<UTexture>(TexturePath);
+				}
+				else
+				{
+					*Value = nullptr;
+				}
+			}
+			else
+			{
+				if (*Value)
+				{
+					InOutHandle[Prop.Name] = (*Value)->GetTextureName().c_str();
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = "";
+				}
+			}
+			break;
+		}
+		case EPropertyType::StaticMesh:
+		{
+			UStaticMesh** Value = Prop.GetValuePtr<UStaticMesh*>(this);
+			if (bInIsLoading)
+			{
+				FString MeshPath;
+				FJsonSerializer::ReadString(InOutHandle, Prop.Name, MeshPath);
+				if (!MeshPath.empty())
+				{
+					*Value = UResourceManager::GetInstance().Load<UStaticMesh>(MeshPath);
+				}
+				else
+				{
+					*Value = nullptr;
+				}
+			}
+			else
+			{
+				if (*Value)
+				{
+					InOutHandle[Prop.Name] = (*Value)->GetAssetPathFileName().c_str();
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = "";
+				}
+			}
+			break;
+		}
+		case EPropertyType::Material:
+		{
+			UMaterial** Value = Prop.GetValuePtr<UMaterial*>(this);
+			if (bInIsLoading)
+			{
+				FString MaterialPath;
+				FJsonSerializer::ReadString(InOutHandle, Prop.Name, MaterialPath);
+				if (!MaterialPath.empty())
+				{
+					*Value = UResourceManager::GetInstance().Load<UMaterial>(MaterialPath);
+				}
+				else
+				{
+					*Value = nullptr;
+				}
+			}
+			else
+			{
+				if (*Value)
+				{
+					InOutHandle[Prop.Name] = (*Value)->GetFilePath().c_str();
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = "";
+				}
+			}
+			break;
+		}
+		case EPropertyType::Array:
+		{
+			// Array 직렬화는 InnerType에 따라 처리
+			if (Prop.InnerType == EPropertyType::Unknown)
+			{
+				UE_LOG("[AutoSerialize] Array property '%s' has Unknown InnerType, skipping.", Prop.Name);
+				break;
+			}
+
+			JSON ArrayJson;
+			if (bInIsLoading)
+			{
+				// JSON에서 배열 읽기
+				if (!FJsonSerializer::ReadArray(InOutHandle, Prop.Name, ArrayJson))
+				{
+					break; // 배열이 없거나 유효하지 않음
+				}
+			}
+			else
+			{
+				// 저장용 빈 배열 생성
+				ArrayJson = JSON::Make(JSON::Class::Array);
+			}
+
+			// InnerType에 따라 처리
+			switch (Prop.InnerType)
+			{
+			case EPropertyType::Int32:
+			{
+				TArray<int32>* ArrayPtr = Prop.GetValuePtr<TArray<int32>>(this);
+				SerializePrimitiveArray<int32>(ArrayPtr, bInIsLoading, ArrayJson);
+				break;
+			}
+			case EPropertyType::Float:
+			{
+				TArray<float>* ArrayPtr = Prop.GetValuePtr<TArray<float>>(this);
+				SerializePrimitiveArray<float>(ArrayPtr, bInIsLoading, ArrayJson);
+				break;
+			}
+			case EPropertyType::Bool:
+			{
+				TArray<bool>* ArrayPtr = Prop.GetValuePtr<TArray<bool>>(this);
+				SerializePrimitiveArray<bool>(ArrayPtr, bInIsLoading, ArrayJson);
+				break;
+			}
+			case EPropertyType::FString:
+			{
+				TArray<FString>* ArrayPtr = Prop.GetValuePtr<TArray<FString>>(this);
+				SerializePrimitiveArray<FString>(ArrayPtr, bInIsLoading, ArrayJson);
+				break;
+			}
+			default:
+			{
+				UE_LOG("[AutoSerialize] Array property '%s' has unsupported InnerType: %d",
+					   Prop.Name, static_cast<int>(Prop.InnerType));
+				break;
+			}
+			}
+
+			// 저장 시 JSON에 배열 쓰기
+			if (!bInIsLoading)
+			{
+				InOutHandle[Prop.Name] = ArrayJson;
+			}
+			break;
+		}
+		// ObjectPtr, Struct 등은 필요시 추가
 		}
 	}
 }

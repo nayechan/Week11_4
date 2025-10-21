@@ -193,26 +193,6 @@ public:
     virtual UObject* Duplicate() const; // 자기 자신 깊은 복사(+모든 멤버들 얕은 복사) -> DuplicateSubObjects 호출
     virtual void PostDuplicate() {};
 
-    // 자기 자신 깊은 복사(+모든 멤버들 얕은 복사) -> DuplicateSubObjects 호출
-    //template<class T>
-    //T* Duplicate()
-    //{
-    //    T* NewObject = ObjectFactory::DuplicateObject<T>(this); // 모든 멤버 얕은 복사
-
-    //    NewObject->DuplicateSubObjects(); // Sub UObject 멤버 있을 경우, 해당 멤버 복사
-
-    //    return NewObject;
-    //}
-
-    //virtual ThisClass_t* Duplicate()
-    //{
-    //    ThisClass_t* NewObject = ObjectFactory::DuplicateObject<ThisClass_t>(this); // 모든 멤버 얕은 복사
-
-    //    NewObject->DuplicateSubObjects(); // Sub UObject 멤버 있을 경우, 해당 멤버 복사
-
-    //    return NewObject;
-    //}
-
 private:
     // 전역 UUID 카운터(초기값 1)
     inline static uint32 GUUIDCounter = 1;
@@ -228,6 +208,49 @@ template<class T>
 const T* Cast(const UObject* Obj) noexcept
 {
     return (Obj && Obj->IsA<T>()) ? static_cast<const T*>(Obj) : nullptr;
+}
+
+// Array 직렬화 헬퍼 함수
+template<typename T>
+static void SerializePrimitiveArray(TArray<T>* ArrayPtr, bool bIsLoading, JSON& ArrayJson)
+{
+    if (bIsLoading)
+    {
+        ArrayPtr->clear();
+        for (uint32 i = 0; i < static_cast<uint32>(ArrayJson.size()); ++i)
+        {
+            if constexpr (std::is_same_v<T, int32>)
+            {
+                ArrayPtr->Add(ArrayJson[i].ToInt());
+            }
+            else if constexpr (std::is_same_v<T, float>)
+            {
+                ArrayPtr->Add(static_cast<float>(ArrayJson[i].ToFloat()));
+            }
+            else if constexpr (std::is_same_v<T, bool>)
+            {
+                ArrayPtr->Add(ArrayJson[i].ToBool());
+            }
+            else if constexpr (std::is_same_v<T, FString>)
+            {
+                ArrayPtr->Add(ArrayJson[i].ToString());
+            }
+        }
+    }
+    else // Saving
+    {
+        for (const T& Element : *ArrayPtr)
+        {
+            if constexpr (std::is_same_v<T, FString>)
+            {
+                ArrayJson.append(Element.c_str());
+            }
+            else
+            {
+                ArrayJson.append(Element);
+            }
+        }
+    }
 }
 
 // ── 파생 타입에 붙일 매크로 ─────────────────────────────────────

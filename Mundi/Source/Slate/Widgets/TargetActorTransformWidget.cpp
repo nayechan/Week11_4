@@ -146,12 +146,14 @@ namespace
 		if (!Component)
 			return;
 
-		Visited.insert(Component);
-		
+		// 에디터 전용 컴포넌트는 계층구조에 표시하지 않음
+		// (CREATE_EDITOR_COMPONENT로 생성된 DirectionGizmo, SpriteComponent 등)
 		if (!Component->IsEditable())
 		{
 			return;
 		}
+
+		Visited.insert(Component);
 		const TArray<USceneComponent*>& Children = Component->GetAttachChildren();
 		const bool bHasChildren = !Children.IsEmpty();
 

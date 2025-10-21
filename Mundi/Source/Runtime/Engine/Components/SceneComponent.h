@@ -94,12 +94,6 @@ public:
     // Serialize
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
-    /**
-     * @brief 로컬 트랜스폼 변경시 생기는 영향을 처리하기 위한 메소드
-     * @note 이 메소드는 모든 SceneComponent 공통 로직을 처리.
-     * Derived class별 특수 로직은 OnTransformUpdatedChildImpl()를 이용.
-     */
-    //OnTransformUpdatedChildImple로 굳이 나누지 말고 오버라이딩 하는 방식으로 처리해봄
     virtual void OnTransformUpdated();
 
     // SceneId

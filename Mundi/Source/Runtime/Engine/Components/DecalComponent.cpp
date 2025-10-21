@@ -27,23 +27,11 @@ void UDecalComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
-	if (bInIsLoading)
+	if (bInIsLoading && InOutHandle.hasKey("DecalTexturePath") && !InOutHandle.hasKey("DecalTexture"))
 	{
-		FString DecalTexturePath;
-		FJsonSerializer::ReadString(InOutHandle, "DecalTexturePath", DecalTexturePath);
-		DecalTexture = UResourceManager::GetInstance().Load<UTexture>(DecalTexturePath);
-
-		float DecalOpacityTemp;
-		FJsonSerializer::ReadFloat(InOutHandle, "DecalOpacity", DecalOpacityTemp);
-		SetOpacity(DecalOpacityTemp);
-	}
-	else
-	{
-		InOutHandle["DecalTexturePath"] = DecalTexture->GetTextureName();
-		InOutHandle["DecalOpacity"] = DecalOpacity;
+		InOutHandle["DecalTexture"] = InOutHandle["DecalTexturePath"];
 	}
 
-	// 리플렉션 기반 자동 직렬화
 	AutoSerialize(bInIsLoading, InOutHandle, UDecalComponent::StaticClass());
 }
 

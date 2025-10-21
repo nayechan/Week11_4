@@ -31,7 +31,6 @@ public:
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
-
 	void SetStaticMesh(const FString& PathFileName);
 
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }

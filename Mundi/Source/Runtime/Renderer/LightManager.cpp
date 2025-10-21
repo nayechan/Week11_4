@@ -119,6 +119,23 @@ void FLightManager::SetDirtyFlag()
 	bSpotLightDirty = true;
 }
 
+void FLightManager::ClearAllLightList()
+{
+	AmbientLightList.clear();
+	DIrectionalLightList.clear();
+	PointLightList.clear();
+	SpotLightList.clear();
+
+	//업데이트 시에만 clear하고 다시 수집할 실제 데이터 리스트
+	PointLightInfoList.clear();
+	SpotLightInfoList.clear();
+
+	//이미 레지스터된 라이트인지 확인하는 용도
+	LightComponentList.clear();
+	PointLightNum = 0;
+	SpotLightNum = 0;
+}
+
 template<>
 void FLightManager::RegisterLight<UAmbientLightComponent>(UAmbientLightComponent* LightComponent)
 {

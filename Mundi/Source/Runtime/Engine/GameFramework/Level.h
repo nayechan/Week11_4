@@ -32,4 +32,5 @@ class ULevelService
 public:
     // Create a new empty level
     static std::unique_ptr<ULevel> CreateNewLevel();
+    static std::unique_ptr<ULevel> CreateDefaultLevel();
 };

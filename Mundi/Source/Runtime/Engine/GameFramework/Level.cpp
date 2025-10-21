@@ -31,6 +31,12 @@ std::unique_ptr<ULevel> ULevelService::CreateNewLevel()
     return NewLevel;
 }
 
+std::unique_ptr<ULevel> ULevelService::CreateDefaultLevel()
+{
+    std::unique_ptr<ULevel> NewLevel = std::make_unique<ULevel>();
+    return NewLevel;
+}
+
 //어느 레벨이든 기본적으로 존재하는 엑터(디렉셔널 라이트) 생성
 void ULevel::SpawnDefaultActors()
 {
