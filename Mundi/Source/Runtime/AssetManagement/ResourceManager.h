@@ -186,6 +186,30 @@ inline T* UResourceManager::Load(const FString& InFilePath, Args && ...InArgs)
 	}
 }
 
+// UTexture 특수화: DDS 캐시 사용 시 실제 로드된 경로를 키로 사용
+template<>
+inline UTexture* UResourceManager::Load(const FString& InFilePath)
+{
+	uint8 typeIndex = static_cast<uint8>(ResourceType::Texture);
+
+	// 먼저 원본 경로로 검색
+	auto iter = Resources[typeIndex].find(InFilePath);
+	if (iter != Resources[typeIndex].end())
+	{
+		return static_cast<UTexture*>((*iter).second);
+	}
+
+	// 없으면 새로 로드
+	UTexture* Resource = NewObject<UTexture>();
+	FString ActualLoadPath = Resource->Load(InFilePath, Device); // 실제 로드된 경로 반환
+
+	// 실제 로드된 경로로 등록 (DDS 캐시 사용 시 DDS 경로)
+	Resource->SetFilePath(ActualLoadPath);
+	Resources[typeIndex][ActualLoadPath] = Resource;
+
+	return Resource;
+}
+
 template<>
 inline UShader* UResourceManager::Load(const FString& InFilePath, TArray<FShaderMacro>& InMacros)
 {

@@ -57,7 +57,7 @@ UTexture::~UTexture()
 	ReleaseResources();
 }
 
-void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
+FString UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 {
 	assert(InDevice);
 
@@ -167,7 +167,10 @@ void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 		       ActualLoadPath.c_str(), hr);
 	}
 
-	TextureName = InFilePath; // 원본 경로 저장
+	TextureName = ActualLoadPath; // 실제 로드된 경로 저장 (DDS 캐시 사용 시 DDS 경로)
+
+	// 실제 로드된 경로 반환 (ResourceManager가 올바른 키로 등록하도록)
+	return ActualLoadPath;
 }
 
 void UTexture::ReleaseResources()
