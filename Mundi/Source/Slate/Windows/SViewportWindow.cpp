@@ -965,13 +965,29 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 		ImGui::Text("%s", LitRadioIcon);
 		ImGui::SameLine(0, 4);
 
-		if (ImGui::BeginMenu("Lit (릿)"))
+		if (ImGui::BeginMenu("라이팅포함"))
 		{
-			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "셰이더 모델");
+			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "셰이딩 모델");
 			ImGui::Separator();
 
+			// DEFAULT
+			bool bIsDefault = (CurrentViewMode == EViewModeIndex::VMI_Lit);
+			const char* DefaultIcon = bIsDefault ? "●" : "○";
+			char DefaultLabel[32];
+			sprintf_s(DefaultLabel, "%s DEFAULT", DefaultIcon);
+			if (ImGui::MenuItem(DefaultLabel))
+			{
+				ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit);
+				CurrentLitSubMode = 0;
+				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("기본 셰이딩 모델 (PHONG)\n다른 셰이더 모델과 다르게 셰이더를 덮어쓰지 않습니다.");
+			}
+
 			// PHONG
-			bool bIsPhong = (CurrentViewMode == EViewModeIndex::VMI_Lit || CurrentViewMode == EViewModeIndex::VMI_Lit_Phong);
+			bool bIsPhong = (CurrentViewMode == EViewModeIndex::VMI_Lit_Phong);
 			const char* PhongIcon = bIsPhong ? "●" : "○";
 			char PhongLabel[32];
 			sprintf_s(PhongLabel, "%s PHONG", PhongIcon);
@@ -980,6 +996,10 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 				ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Phong);
 				CurrentLitSubMode = 3;
 				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("픽셀 단위 셰이딩 (Per-Pixel)\n스페큘러 하이라이트 포함");
 			}
 
 			// GOURAUD
@@ -993,6 +1013,10 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 				CurrentLitSubMode = 1;
 				ImGui::CloseCurrentPopup();
 			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("정점 단위 셰이딩 (Per-Vertex)\n부드러운 색상 보간");
+			}
 
 			// LAMBERT
 			bool bIsLambert = (CurrentViewMode == EViewModeIndex::VMI_Lit_Lambert);
@@ -1004,6 +1028,10 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 				ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Lit_Lambert);
 				CurrentLitSubMode = 2;
 				ImGui::CloseCurrentPopup();
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Diffuse만 계산하는 간단한 셰이딩\n스페큘러 하이라이트 없음");
 			}
 
 			ImGui::EndMenu();
@@ -1022,7 +1050,7 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 		ImGui::Text("%s", UnlitRadioIcon);
 		ImGui::SameLine(0, 4);
 
-		if (ImGui::MenuItem("Unlit (언릿)"))
+		if (ImGui::MenuItem("언릿"))
 		{
 			ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Unlit);
 			ImGui::CloseCurrentPopup();
@@ -1041,7 +1069,7 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 		ImGui::Text("%s", WireframeRadioIcon);
 		ImGui::SameLine(0, 4);
 
-		if (ImGui::MenuItem("Wireframe (와이어프레임)"))
+		if (ImGui::MenuItem("와이어프레임"))
 		{
 			ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Wireframe);
 			ImGui::CloseCurrentPopup();
@@ -1062,7 +1090,7 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 		ImGui::Text("%s", BufferVisRadioIcon);
 		ImGui::SameLine(0, 4);
 
-		if (ImGui::BeginMenu("Buffer Visualization (버퍼 시각화)"))
+		if (ImGui::BeginMenu("버퍼 시각화"))
 		{
 			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "버퍼 시각화");
 			ImGui::Separator();
@@ -1071,7 +1099,7 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 			bool bIsSceneDepth = (CurrentViewMode == EViewModeIndex::VMI_SceneDepth);
 			const char* SceneDepthIcon = bIsSceneDepth ? "●" : "○";
 			char SceneDepthLabel[32];
-			sprintf_s(SceneDepthLabel, "%s Scene Depth", SceneDepthIcon);
+			sprintf_s(SceneDepthLabel, "%s 씬 뎁스", SceneDepthIcon);
 			if (ImGui::MenuItem(SceneDepthLabel))
 			{
 				ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_SceneDepth);
@@ -1083,7 +1111,7 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 			bool bIsWorldNormal = (CurrentViewMode == EViewModeIndex::VMI_WorldNormal);
 			const char* WorldNormalIcon = bIsWorldNormal ? "●" : "○";
 			char WorldNormalLabel[32];
-			sprintf_s(WorldNormalLabel, "%s World Normal", WorldNormalIcon);
+			sprintf_s(WorldNormalLabel, "%s 월드 노멀", WorldNormalIcon);
 			if (ImGui::MenuItem(WorldNormalLabel))
 			{
 				ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_WorldNormal);
