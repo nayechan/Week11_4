@@ -36,13 +36,27 @@ void UPointLightComponent::UpdateLightData()
 {
 	Super::UpdateLightData();
 	// 점광원 특화 업데이트 로직
+	GWorld->GetLightManager()->UpdateLight(this);
+}
+
+void UPointLightComponent::OnTransformUpdated()
+{
+	Super::OnTransformUpdated();
+	GWorld->GetLightManager()->UpdateLight(this);
 }
 
 
-void UPointLightComponent::OnRegister()
+void UPointLightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/PointLight_64x.png");
+
+	InWorld->GetLightManager()->RegisterLight(this);
+}
+
+void UPointLightComponent::OnUnregister()
+{
+	GWorld->GetLightManager()->DeRegisterLight(this);
 }
 
 void UPointLightComponent::RenderDebugVolume(URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) const

@@ -99,7 +99,8 @@ public:
      * @note 이 메소드는 모든 SceneComponent 공통 로직을 처리.
      * Derived class별 특수 로직은 OnTransformUpdatedChildImpl()를 이용.
      */
-    void OnTransformUpdated();
+    //OnTransformUpdatedChildImple로 굳이 나누지 말고 오버라이딩 하는 방식으로 처리해봄
+    virtual void OnTransformUpdated();
 
     // SceneId
     uint32 GetSceneId() const { return SceneId; }
@@ -118,17 +119,19 @@ public:
     }
 protected:
     /** @brief OnTransformUpdated() 내부에서 클래스 별 특수 로직을 처리하기 위한 가상함수 */
-    virtual void OnTransformUpdatedChildImpl();
+    //virtual void OnTransformUpdatedChildImpl();
     
     /**
      * @brief Transform 갱신시 자식 컴포넌트의 OnTransformUpdated를 강제 호출.
      * @note 부모 컴포넌트의 트랜스폼 변화로 인해 월드 관점에서 생길 영향을 처리하기 위한 메소드로,
      * 자식 컴포넌트들의 로컬 트랜스폼을 직접 변경시키지 않습니다. 
      */
-    void PropagateTransformUpdate();
+   // void PropagateTransformUpdate();
 
     //Component 위치 나타내기 위함
     UBillboardComponent* SpriteComponent = nullptr;
+
+    bool bWantsOnUpdateTransform = false;
 
     FVector RelativeLocation{ 0,0,0 };
     FQuat   RelativeRotation;

@@ -136,7 +136,7 @@ void UActorSpawnWidget::RenderWidget()
 
 bool UActorSpawnWidget::TrySpawnActor(UClass* ActorClass)
 {
-	UWorld* World = UIManager ? UIManager->GetWorld() : nullptr;
+	UWorld* World = GWorld;
 	if (!World)
 	{
 		UE_LOG("ActorSpawn: World is not available.");

@@ -176,7 +176,7 @@ void UFireBallComponent::DuplicateSubObjects()
 	// TODO
 }
 
-void UFireBallComponent::OnTransformUpdatedChildImpl()
-{
-	// TODO
-}
+//void UFireBallComponent::OnTransformUpdatedChildImpl()
+//{
+//	// TODO
+//}

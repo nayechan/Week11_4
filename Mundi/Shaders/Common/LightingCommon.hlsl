@@ -305,7 +305,7 @@ float3 CalculateAllLights(
             if (lightType == 0)  // Point Light
             {
                 litColor += CalculatePointLight(
-                    PointLights[lightIdx],
+                    g_PointLightList[lightIdx],
                     worldPos,
                     normal,
                     viewDir,
@@ -317,7 +317,7 @@ float3 CalculateAllLights(
             else if (lightType == 1)  // Spot Light
             {
                 litColor += CalculateSpotLight(
-                    SpotLights[lightIdx],
+                    g_SpotLightList[lightIdx],
                     worldPos,
                     normal,
                     viewDir,
@@ -334,7 +334,7 @@ float3 CalculateAllLights(
         for (int i = 0; i < PointLightCount; i++)
         {
             litColor += CalculatePointLight(
-                PointLights[i],
+                g_PointLightList[i],
                 worldPos,
                 normal,
                 viewDir,
@@ -347,7 +347,7 @@ float3 CalculateAllLights(
         for (int j = 0; j < SpotLightCount; j++)
         {
             litColor += CalculateSpotLight(
-                SpotLights[j],
+                g_SpotLightList[j],
                 worldPos,
                 normal,
                 viewDir,

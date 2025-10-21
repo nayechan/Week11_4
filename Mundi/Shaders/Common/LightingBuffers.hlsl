@@ -17,8 +17,6 @@ cbuffer LightBuffer : register(b8)
 {
     FAmbientLightInfo AmbientLight;
     FDirectionalLightInfo DirectionalLight;
-    FPointLightInfo PointLights[NUM_POINT_LIGHT_MAX];
-    FSpotLightInfo SpotLights[NUM_SPOT_LIGHT_MAX];
     uint PointLightCount;
     uint SpotLightCount;
 };
@@ -28,6 +26,10 @@ cbuffer LightBuffer : register(b8)
 // 구조:  [TileIndex * MaxLightsPerTile] = LightCount
 //        [TileIndex * MaxLightsPerTile + 1 ~ ...] = LightIndices (상위 16비트: 타입, 하위 16비트: 인덱스)
 StructuredBuffer<uint> g_TileLightIndices : register(t2);
+
+//PointLight, SpotLight Structured Buffer
+StructuredBuffer<FPointLightInfo> g_PointLightList : register(t3);
+StructuredBuffer<FSpotLightInfo> g_SpotLightList : register(t4);
 
 // b11: 타일 컬링 설정 상수 버퍼
 cbuffer TileCullingBuffer : register(b11)

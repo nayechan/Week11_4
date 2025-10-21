@@ -1,7 +1,7 @@
 ﻿#pragma once
 // b0 in VS    
 #include "Color.h"
-#include "LightInfo.h"
+#include "LightManager.h"
 
 struct ModelBufferType
 {
@@ -156,8 +156,6 @@ struct FLightBufferType
 {
     FAmbientLightInfo AmbientLight;
     FDirectionalLightInfo DirectionalLight;
-    FPointLightInfo PointLights[NUM_POINT_LIGHT_MAX];
-    FSpotLightInfo SpotLights[NUM_SPOT_LIGHT_MAX];
 
     uint32 PointLightCount;
     uint32 SpotLightCount;
@@ -231,7 +229,7 @@ CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
 CONSTANT_BUFFER_INFO(InvViewProjBufferType, 1, false, true)
 CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
-CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, false, true)
+CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
 CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, false)
 CONSTANT_BUFFER_INFO(GizmoBufferType, 2, true, false)  // b2, VS only (Gizmo.hlsl)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, false, true)

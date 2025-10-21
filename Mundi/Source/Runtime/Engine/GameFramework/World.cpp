@@ -24,6 +24,7 @@
 #include "Frustum.h"
 #include "Level.h"
 #include "FireBallActor.h"
+#include "LightManager.h"
 
 IMPLEMENT_CLASS(UWorld)
 
@@ -31,12 +32,15 @@ UWorld::UWorld()
 	: Partition(new UWorldPartitionManager())
 {
 	SelectionMgr = std::make_unique<USelectionManager>();
+	//PIE의 경우 Initalize 없이 빈 Level 생성만 해야함
 	Level = std::make_unique<ULevel>();
+	LightManager = std::make_unique<FLightManager>();
+
 }
 
 UWorld::~UWorld()
 {
-if (Level)
+	if (Level)
 	{
 		for (AActor* Actor : Level->GetActors())
 		{
@@ -116,6 +120,7 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 	
 	FWorldContext PIEWorldContext = FWorldContext(PIEWorld, EWorldType::Game);
 	GEngine.AddWorldContext(PIEWorldContext);
+	
 
 	const TArray<AActor*>& SourceActors = InEditorWorld->GetLevel()->GetActors();
 	for (AActor* SourceActor : SourceActors)

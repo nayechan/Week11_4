@@ -51,7 +51,8 @@ USceneComponent::~USceneComponent()
 }
 
 // ──────────────────────────────
-// Relative API
+// Relative API 더티플래그 사용해서 업데이트 하도록 수정할 것임.
+// 그리고 bWantsOnUpdateTransform이 True일때만 OnTransformUpdated호출
 // ──────────────────────────────
 void USceneComponent::SetRelativeLocation(const FVector& NewLocation)
 {
@@ -368,22 +369,22 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 void USceneComponent::OnTransformUpdated()
 {
-    OnTransformUpdatedChildImpl();
-    PropagateTransformUpdate();
+    //OnTransformUpdatedChildImpl();
+    //PropagateTransformUpdate();
 }
 
-void USceneComponent::PropagateTransformUpdate()
-{
-    for (USceneComponent*& Child : AttachChildren)
-    {
-        Child->OnTransformUpdated();
-    }
-}
+//void USceneComponent::PropagateTransformUpdate()
+//{
+//    for (USceneComponent*& Child : AttachChildren)
+//    {
+//        Child->OnTransformUpdated();
+//    }
+//}
 
-void USceneComponent::OnTransformUpdatedChildImpl()
-{
-    // Do Nothing
-}
+//void USceneComponent::OnTransformUpdatedChildImpl()
+//{
+//    // Do Nothing
+//}
 
 UWorld* USceneComponent::GetWorld()
 {

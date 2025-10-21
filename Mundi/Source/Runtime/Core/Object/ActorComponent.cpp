@@ -2,6 +2,7 @@
 #include "ActorComponent.h"
 #include "Actor.h"
 #include "World.h"
+#include "SelectionManager.h"
 
 IMPLEMENT_CLASS(UActorComponent)
 
@@ -29,12 +30,13 @@ UWorld* UActorComponent::GetWorld() const
 
 // ─────────────── Registration
 
-void UActorComponent::RegisterComponent()
+void UActorComponent::RegisterComponent(UWorld* InWorld)
 {
     if (bRegistered) return;
     bRegistered = true;
-    OnRegister();
+    OnRegister(InWorld);
 
+    
     // 여기서는 게임 수명 훅을 직접 부르지 않음.
     // BeginPlay/InitializeComponent는 보통 Actor/World 타이밍에서 호출.
     // 다만 에디터 유틸 컴포넌트라면 필요에 따라 여기서 InitializeComponent를 호출해도 됨.
@@ -55,7 +57,7 @@ void UActorComponent::UnregisterComponent()
     bRegistered = false;
 }
 
-void UActorComponent::OnRegister()
+void UActorComponent::OnRegister(UWorld* InWorld)
 {
     // 리소스/핸들 생성, 메시/버퍼 생성 등(프레임 비의존)
 }
@@ -73,7 +75,8 @@ void UActorComponent::DestroyComponent()
     // 등록 중이면 우선 해제(EndPlay 포함)
     if (bRegistered) UnregisterComponent();
 
-    //DeleteObject(this);
+    DeleteObject(this);
+    GWorld->GetSelectionManager()->ClearSelection();
     // Owner 참조 끊기
     //Owner = nullptr;
 }
@@ -111,6 +114,11 @@ void UActorComponent::DuplicateSubObjects()
 
     bCanEverTick = true; // 매 프레임 Tick 가능 여부
     Owner = nullptr; // Actor에서 이거 설정해 줌
+}
+
+void UActorComponent::PostDuplicate()
+{
+    bRegistered = false;
 }
 
 void UActorComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

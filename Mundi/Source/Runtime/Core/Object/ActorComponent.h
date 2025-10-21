@@ -31,9 +31,9 @@ public:
 
     // ─────────────── Registration (월드/씬 등록 수명)
     // 액터/월드가 소유할 때 호출되는 등록/해제 포인트
-    void RegisterComponent();                          // 외부에서 호출 (AActor)
+    void RegisterComponent(UWorld* InWorld);                          // 외부에서 호출 (AActor)
     void UnregisterComponent();                        // 외부에서 호출 (AActor)
-    virtual void OnRegister();                         // 내부 훅 (오버라이드 지점)
+    virtual void OnRegister(UWorld* InWorld);                         // 내부 훅 (오버라이드 지점)
     virtual void OnUnregister();                       // 내부 훅 (오버라이드 지점)
     void DestroyComponent();                           // 소멸(EndPlay 포함)
 
@@ -72,6 +72,7 @@ public:
 
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
+    void PostDuplicate() override;
     DECLARE_DUPLICATE(UActorComponent)
 
     // ───── 직렬화 ────────────────────────────

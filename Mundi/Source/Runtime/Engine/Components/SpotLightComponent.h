@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "PointLightComponent.h"
-#include "LightInfo.h"
+#include "LightManager.h"
 
 // 스포트라이트 (원뿔 형태로 빛 방출)
 class USpotLightComponent : public UPointLightComponent
@@ -51,7 +51,9 @@ public:
 
 	// Virtual Interface
 	virtual void UpdateLightData() override;
-	void OnRegister() override;
+	void OnTransformUpdated() override;
+	void OnRegister(UWorld* InWorld) override;
+	void OnUnregister() override;
 
 	// Cone Angle Validation
 	void ValidateConeAngles();

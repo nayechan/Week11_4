@@ -18,7 +18,7 @@ public:
 	void SetEnabled(bool bInEnabled) { bIsEnabled = bInEnabled; }
 	bool IsEnabled() const { return bIsEnabled; }
 
-	void SetIntensity(float InIntensity) { Intensity = InIntensity; }
+	void SetIntensity(float InIntensity) { Intensity = InIntensity;  }
 	float GetIntensity() const { return Intensity; }
 
 	void SetLightColor(const FLinearColor& InColor) { LightColor = InColor; }

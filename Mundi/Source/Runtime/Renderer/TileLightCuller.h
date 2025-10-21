@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "LightInfo.h"
+#include "LightManager.h"
 #include "TileCullingStats.h"
 #include "D3D11RHI.h"
 #include "Frustum.h"

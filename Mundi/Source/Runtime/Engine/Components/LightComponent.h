@@ -13,12 +13,12 @@ public:
 
 public:
 	// Temperature
-	void SetTemperature(float InTemperature) { Temperature = InTemperature; }
+	void SetTemperature(float InTemperature) { Temperature = InTemperature;}
 	float GetTemperature() const { return Temperature; }
 
 	// 색상과 강도를 합쳐서 반환
 	virtual FLinearColor GetLightColorWithIntensity() const;
-	void OnRegister() override;
+	void OnRegister(UWorld* InWorld) override;
 
 	// Serialization & Duplication
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

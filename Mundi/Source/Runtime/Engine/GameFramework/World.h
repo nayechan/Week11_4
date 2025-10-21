@@ -4,6 +4,7 @@
 #include "RenderSettings.h"
 #include "Level.h"
 #include "Gizmo/GizmoActor.h"
+#include "LightManager.h"
 
 // Forward Declarations
 class UResourceManager;
@@ -66,6 +67,7 @@ public:
     // Level ownership API
     void SetLevel(std::unique_ptr<ULevel> InLevel);
     ULevel* GetLevel() const { return Level.get(); }
+    FLightManager* GetLightManager() const { return LightManager.get(); }
 
     ACameraActor* GetCameraActor() { return MainCameraActor; }
     void SetCameraActor(ACameraActor* InCamera) 
@@ -110,6 +112,8 @@ private:
     /** === 레벨 컨테이너 === */
     std::unique_ptr<ULevel> Level;
 
+    /** === 라이트 매니저 ===*/
+    std::unique_ptr<FLightManager> LightManager;
     // Object naming system
     TMap<FString, int32> ObjectTypeCounts;
 

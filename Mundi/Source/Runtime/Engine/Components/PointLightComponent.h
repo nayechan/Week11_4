@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "LocalLightComponent.h"
-#include "LightInfo.h"
+#include "LightManager.h"
 
 // 점광원 (모든 방향으로 균등하게 빛 방출)
 class UPointLightComponent : public ULocalLightComponent
@@ -22,7 +22,9 @@ public:
 
 	// Virtual Interface
 	virtual void UpdateLightData() override;
-	void OnRegister() override;
+	void OnTransformUpdated() override;
+	void OnRegister(UWorld* InWorld) override;
+	void OnUnregister()	override;
 
 	// Debug Rendering
 	virtual void RenderDebugVolume(class URenderer* Renderer, const FMatrix& View, const FMatrix& Proj) const override;

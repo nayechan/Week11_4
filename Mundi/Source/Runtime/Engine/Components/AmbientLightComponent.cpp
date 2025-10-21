@@ -29,12 +29,24 @@ void UAmbientLightComponent::UpdateLightData()
 {
 	Super::UpdateLightData();
 	// 환경광 특화 업데이트 로직
+	GWorld->GetLightManager()->UpdateLight(this);
 }
 
-void UAmbientLightComponent::OnRegister()
+void UAmbientLightComponent::OnTransformUpdated()
 {
-	Super_t::OnRegister();
+	//Ambient는 방향이나 위치가 바꾸지 않으므로 처리 X
+}
+
+void UAmbientLightComponent::OnRegister(UWorld* InWorld)
+{
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/SkyLight.dds");
+	InWorld->GetLightManager()->RegisterLight(this);
+}
+
+void UAmbientLightComponent::OnUnregister()
+{
+	GWorld->GetLightManager()->DeRegisterLight(this);
 }
 
 void UAmbientLightComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)

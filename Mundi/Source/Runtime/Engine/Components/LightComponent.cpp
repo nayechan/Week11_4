@@ -95,9 +95,9 @@ FLinearColor ULightComponent::GetLightColorWithIntensity() const
 	return FinalColor;
 }
 
-void ULightComponent::OnRegister()
+void ULightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	if (!SpriteComponent)
 	{
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);

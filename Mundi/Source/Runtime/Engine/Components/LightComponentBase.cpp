@@ -12,6 +12,7 @@ END_PROPERTIES()
 ULightComponentBase::ULightComponentBase()
 {
 	bIsEnabled = true;
+	bWantsOnUpdateTransform = true;
 	Intensity = 1.0f;
 	LightColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }

@@ -79,7 +79,9 @@ void FSceneRenderer::Render()
 		View->ViewMode == EViewModeIndex::VMI_Lit_Lambert ||
 		View->ViewMode == EViewModeIndex::VMI_Lit_Phong)
 	{
-		UpdateLightConstant();
+		//UpdateLightConstant();
+		//라이트 구조체 버퍼 업데이트, 바인딩
+		GWorld->GetLightManager()->UpdateLightBuffer(RHIDevice);
 		PerformTileLightCulling();	// 타일 기반 라이트 컬링 수행
 		RenderLitPath();
 		RenderTileCullingDebug();	// 타일 컬링 디버그 시각화 draw
@@ -358,60 +360,60 @@ void FSceneRenderer::GatherVisibleProxies()
 
 void FSceneRenderer::UpdateLightConstant()
 {
-	FLightBufferType LightBuffer{};
-
-	// AmbientLight 수집 (활성화된 것만)
-	for (UAmbientLightComponent* LightComponent : SceneGlobals.AmbientLights)
-	{
-		if (!LightComponent->IsEnabled())
-			continue;
-
-		LightBuffer.AmbientLight = FAmbientLightInfo(LightComponent->GetLightInfo());
-		break;
-	}
-
-	// DirectionalLight 수집 (활성화된 것만)
-	for (UDirectionalLightComponent* LightComponent : SceneGlobals.DirectionalLights)
-	{
-		if (!LightComponent->IsEnabled())
-			continue;
-
-		LightBuffer.DirectionalLight = FDirectionalLightInfo(LightComponent->GetLightInfo());
-		break;
-	}
-
-	// PointLight 수집 (활성화된 것만)
-	for (UPointLightComponent* LightComponent : SceneLocals.PointLights)
-	{
-		if (!LightComponent->IsEnabled())
-			continue;
-
-		if (LightBuffer.PointLightCount >= NUM_POINT_LIGHT_MAX)
-		{
-			UE_LOG("PointLight의 최대 개수는 %d개 입니다.", NUM_POINT_LIGHT_MAX);
-			break;
-		}
-		LightBuffer.PointLights[LightBuffer.PointLightCount++] = FPointLightInfo(LightComponent->GetLightInfo());
-	}
-
-	// SpotLight 수집 (활성화된 것만)
-	for (USpotLightComponent* LightComponent : SceneLocals.SpotLights)
-	{
-		if (!LightComponent->IsEnabled())
-			continue;
-
-		if (LightBuffer.SpotLightCount >= NUM_SPOT_LIGHT_MAX)
-		{
-			UE_LOG("SpotLight의 최대 개수는 %d개 입니다.", NUM_SPOT_LIGHT_MAX);
-			break;
-		}
-		LightBuffer.SpotLights[LightBuffer.SpotLightCount++] = FSpotLightInfo(LightComponent->GetLightInfo());
-	}
+//	FLightBufferType LightBuffer{};
+//
+//	// AmbientLight 수집 (활성화된 것만)
+//	for (UAmbientLightComponent* LightComponent : SceneGlobals.AmbientLights)
+//	{
+//		if (!LightComponent->IsEnabled())
+//			continue;
+//
+//		LightBuffer.AmbientLight = FAmbientLightInfo(LightComponent->GetLightInfo());
+//		break;
+//	}
+//
+//	// DirectionalLight 수집 (활성화된 것만)
+//	for (UDirectionalLightComponent* LightComponent : SceneGlobals.DirectionalLights)
+//	{
+//		if (!LightComponent->IsEnabled())
+//			continue;
+//
+//		LightBuffer.DirectionalLight = FDirectionalLightInfo(LightComponent->GetLightInfo());
+//		break;
+//	}
+//
+//	// PointLight 수집 (활성화된 것만)
+//	for (UPointLightComponent* LightComponent : SceneLocals.PointLights)
+//	{
+//		if (!LightComponent->IsEnabled())
+//			continue;
+//
+//		if (LightBuffer.PointLightCount >= NUM_POINT_LIGHT_MAX)
+//		{
+//			UE_LOG("PointLight의 최대 개수는 %d개 입니다.", NUM_POINT_LIGHT_MAX);
+//			break;
+//		}
+//		LightBuffer.PointLights[LightBuffer.PointLightCount++] = FPointLightInfo(LightComponent->GetLightInfo());
+//	}
+//
+//	// SpotLight 수집 (활성화된 것만)
+//	for (USpotLightComponent* LightComponent : SceneLocals.SpotLights)
+//	{
+//		if (!LightComponent->IsEnabled())
+//			continue;
+//
+//		if (LightBuffer.SpotLightCount >= NUM_SPOT_LIGHT_MAX)
+//		{
+//			UE_LOG("SpotLight의 최대 개수는 %d개 입니다.", NUM_SPOT_LIGHT_MAX);
+//			break;
+//		}
+//		LightBuffer.SpotLights[LightBuffer.SpotLightCount++] = FSpotLightInfo(LightComponent->GetLightInfo());
+//	}
 
 	// CRITICAL FIX: Use SetAndUpdateConstantBuffer instead of UpdateConstantBuffer
 	// UpdateConstantBuffer only updates the buffer data but doesn't bind it to slot b8
 	// SetAndUpdateConstantBuffer both updates the data AND binds it to VS/PS
-	RHIDevice->SetAndUpdateConstantBuffer(LightBuffer);
+	//RHIDevice->SetAndUpdateConstantBuffer(LightBuffer);
 }
 
 void FSceneRenderer::PerformTileLightCulling()
@@ -424,24 +426,8 @@ void FSceneRenderer::PerformTileLightCulling()
 	UINT ViewportHeight = static_cast<UINT>(View->ViewRect.Height());
 
 	// PointLight와 SpotLight 정보 수집
-	TArray<FPointLightInfo> PointLights;
-	TArray<FSpotLightInfo> SpotLights;
-
-	for (UPointLightComponent* LightComponent : SceneLocals.PointLights)
-	{
-		if (LightComponent && LightComponent->IsEnabled())
-		{
-			PointLights.Add(FPointLightInfo(LightComponent->GetLightInfo()));
-		}
-	}
-
-	for (USpotLightComponent* LightComponent : SceneLocals.SpotLights)
-	{
-		if (LightComponent && LightComponent->IsEnabled())
-		{
-			SpotLights.Add(FSpotLightInfo(LightComponent->GetLightInfo()));
-		}
-	}
+	TArray<FPointLightInfo>& PointLights = GWorld->GetLightManager()->GetPointLightInfoList();
+	TArray<FSpotLightInfo>& SpotLights = GWorld->GetLightManager()->GetSpotLightInfoList();
 
 	// 타일 컬링 수행
 	TileLightCuller->CullLights(

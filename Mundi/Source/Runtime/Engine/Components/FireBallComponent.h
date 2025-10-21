@@ -54,7 +54,7 @@ public:
 	DECLARE_DUPLICATE(UFireBallComponent)
 
 protected:
-	void OnTransformUpdatedChildImpl() override;
+	//void OnTransformUpdatedChildImpl() override;
 
 private:
 	struct FShadowResources;

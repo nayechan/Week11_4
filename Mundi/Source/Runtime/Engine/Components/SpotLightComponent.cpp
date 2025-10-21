@@ -113,13 +113,21 @@ void USpotLightComponent::UpdateLightData()
 	// Cone 각도 유효성 검사 (UI에서 변경된 경우를 대비)
 	ValidateConeAngles();
 
+	GWorld->GetLightManager()->UpdateLight(this);
+
 	// Update direction gizmo to reflect any changes
 	UpdateDirectionGizmo();
 }
 
-void USpotLightComponent::OnRegister()
+void USpotLightComponent::OnTransformUpdated()
 {
-	Super_t::OnRegister();
+	Super::OnTransformUpdated();
+	GWorld->GetLightManager()->UpdateLight(this);
+}
+
+void USpotLightComponent::OnRegister(UWorld* InWorld)
+{
+	Super_t::OnRegister(InWorld);
 	SpriteComponent->SetTextureName("Data/UI/Icons/SpotLight_64x.png");
 
 	// Create Direction Gizmo if not already created
@@ -142,6 +150,12 @@ void USpotLightComponent::OnRegister()
 		// Update gizmo properties to match light
 		UpdateDirectionGizmo();
 	}
+	InWorld->GetLightManager()->RegisterLight(this);
+}
+
+void USpotLightComponent::OnUnregister()
+{
+	GWorld->GetLightManager()->DeRegisterLight(this);
 }
 
 void USpotLightComponent::UpdateDirectionGizmo()

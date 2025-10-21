@@ -430,6 +430,9 @@
     <ClCompile Include="Source\Slate\Widgets\PropertyRenderer.cpp">
       <Filter>Source\Slate\Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Renderer\LightManager.cpp">
+      <Filter>Source\Runtime\Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <!-- ThirdParty/ImGui Files -->
   <!-- Source Files -->
@@ -457,7 +460,7 @@
     <!-- Source\Slate\Widgets -->
     <!-- Source\Slate\Windows -->
     <ClInclude Include="pch.h" />
-    <ClInclude Include="Source\Runtime\Renderer\LightInfo.h">
+    <ClInclude Include="Source\Runtime\Renderer\LightManager.h">
       <Filter>Source\Runtime\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Renderer\DecalStatManager.h">

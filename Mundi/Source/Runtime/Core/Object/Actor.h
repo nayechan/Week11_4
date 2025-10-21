@@ -31,7 +31,7 @@ public:
     const FName& GetName() { return Name; }
 
     // 월드/표시
-    void SetWorld(UWorld* InWorld) { World = InWorld; }
+    void SetWorld(UWorld* InWorld) { World = InWorld; this->RegisterAllComponents(InWorld); }
     UWorld* GetWorld() const { return World; }
 
     // 루트/컴포넌트
@@ -56,6 +56,10 @@ public:
         AddOwnedComponent(Comp); // 새 모델로 합류
         return Comp;
     }
+
+    void RegisterAllComponents(UWorld* InWorld);
+    void RegisterComponentTree(USceneComponent* SceneComp, UWorld* InWorld);
+    void UnregisterComponentTree(USceneComponent* SceneComp);
 
     // ===== 월드가 파괴 경로에서 호출할 "좁은 공개 API" =====
     void UnregisterAllComponents(bool bCallEndPlayOnBegun = true);
@@ -130,8 +134,6 @@ public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(AActor)
 
-    virtual void OnRegister();
-
     // Serialize
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
@@ -156,7 +158,5 @@ protected:
     bool bIsCulled = false;
 
 private:
-    // 내부 헬퍼
-    void RegisterComponentTree(USceneComponent* SceneComp);
-    void UnregisterComponentTree(USceneComponent* SceneComp);
+   
 };

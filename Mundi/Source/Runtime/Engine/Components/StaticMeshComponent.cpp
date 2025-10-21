@@ -383,7 +383,7 @@ void UStaticMeshComponent::DuplicateSubObjects()
 	Super::DuplicateSubObjects();
 }
 
-void UStaticMeshComponent::OnTransformUpdatedChildImpl()
+void UStaticMeshComponent::OnTransformUpdated()
 {
 	MarkWorldPartitionDirty();
 }

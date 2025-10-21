@@ -53,7 +53,7 @@ public:
 	DECLARE_DUPLICATE(UStaticMeshComponent)
 
 protected:
-	void OnTransformUpdatedChildImpl() override;
+	void OnTransformUpdated() override;
 	void MarkWorldPartitionDirty();
 
 protected:

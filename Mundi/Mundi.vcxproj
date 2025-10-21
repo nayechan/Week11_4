@@ -204,6 +204,7 @@
     <ClCompile Include="Source\Runtime\Engine\GameFramework\EmptyActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\LightManager.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\SceneView.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\TileLightCuller.cpp" />
     <ClCompile Include="Source\Slate\Widgets\PropertyRenderer.cpp" />
@@ -453,7 +454,7 @@
     <ClInclude Include="Source\Runtime\Engine\GameFramework\EmptyActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PointLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
-    <ClInclude Include="Source\Runtime\Renderer\LightInfo.h" />
+    <ClInclude Include="Source\Runtime\Renderer\LightManager.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AmbientLightComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\DirectionalLightComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\LightComponent.h" />

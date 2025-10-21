@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "LightComponent.h"
-#include "LightInfo.h"
+#include "LightManager.h"
 
 // 환경광 (전역 조명)
 class UAmbientLightComponent : public ULightComponent
@@ -18,7 +18,9 @@ public:
 
 	// Virtual Interface
 	virtual void UpdateLightData() override;
-	void OnRegister() override;
+	void OnTransformUpdated() override;
+	void OnRegister(UWorld* InWorld) override;
+	void OnUnregister() override;
 
 	// Serialization & Duplication
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

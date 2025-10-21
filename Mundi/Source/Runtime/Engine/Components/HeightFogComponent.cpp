@@ -34,9 +34,9 @@ UHeightFogComponent::~UHeightFogComponent()
 	}
 }
 
-void UHeightFogComponent::OnRegister()
+void UHeightFogComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister();
+	Super_t::OnRegister(InWorld);
 	if (!SpriteComponent)
 	{
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);

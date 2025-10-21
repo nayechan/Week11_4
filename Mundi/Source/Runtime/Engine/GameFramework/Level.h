@@ -12,7 +12,7 @@ public:
     ~ULevel() override = default;
 
     const TArray<AActor*>& GetActors() const { return Actors; }
-    void AddActor(AActor* Actor) { if (Actor) Actors.Add(Actor); Actor->OnRegister(); }
+    void AddActor(AActor* Actor) { if (Actor) Actors.Add(Actor); }
     void SpawnDefaultActors();
     bool RemoveActor(AActor* Actor)
     {
