@@ -43,6 +43,7 @@ public:
 
 	void RenderHeader(AActor* SelectedActor, USceneComponent* SelectedComponent);
 	void RenderComponentHierarchy(AActor* SelectedActor, USceneComponent* SelectedComponent);
+	void RenderSelectedActorDetails(AActor* SelectedActor);
 	void RenderSelectedComponentDetails(USceneComponent* SelectedComponent);
 
 private:

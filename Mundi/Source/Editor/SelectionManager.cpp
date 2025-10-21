@@ -9,15 +9,13 @@ void USelectionManager::SelectActor(AActor* Actor)
 {
     if (!Actor) return;
     
-    // 이미 선택되어 있는지 확인
-    if (IsActorSelected(Actor)) return;
-    
     // 단일 선택 모드 (기존 선택 해제)
     ClearSelection();
     
     // 새 액터 선택
     SelectedActors.Add(Actor);
     SelectedComponent = Actor->GetRootComponent();
+    bIsActorMode = true;
 }
 
 void USelectionManager::SelectComponent(USceneComponent* Component)
@@ -28,21 +26,30 @@ void USelectionManager::SelectComponent(USceneComponent* Component)
         return;
     }
     AActor* SelectedActor = Component->GetOwner();
-    //이미 엑터가 피킹되어 있는 상황, Editable한 어느 컴포넌트든 선택 가능
-    if (IsActorSelected(SelectedActor) && Component->IsEditable())
+    //이미 엑터가 피킹되어 있는 상황
+    if (IsActorSelected(SelectedActor) )
     {
-        SelectedComponent = Component;
+        //에딧이 안되는 컴포넌트의 경우, 부모가 있으면 부모, 없으면 루트컴포넌트 피킹
+        if (!Component->IsEditable())
+        {
+            if (!(SelectedComponent = Component->GetAttachParent()))
+            {
+                SelectedComponent = SelectedActor->GetRootComponent();
+            }
+        }
+        else
+        {
+            SelectedComponent = Component;
+        }
+        bIsActorMode = false;
     }
-    //오너 엑터가 선택 안돼있거나 Editable하지 않은 컴포넌트 피킹, 부모 컴포넌트 피킹
+    //오너 엑터가 선택 안돼있는 상태, 루트 컴포넌트 피킹
     else
     {
+        bIsActorMode = true;
         ClearSelection();
         SelectedActors.Add(SelectedActor);
-        if (!(SelectedComponent = Component->GetAttachParent()))
-        {
-            SelectedComponent = SelectedActor->GetRootComponent();
-        }
-  
+        SelectedComponent = SelectedActor->GetRootComponent();
     }
     
 }

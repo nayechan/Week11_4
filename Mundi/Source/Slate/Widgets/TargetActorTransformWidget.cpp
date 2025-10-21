@@ -167,7 +167,7 @@ namespace
 			NodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 		}
 		// 선택 하이라이트: 현재 선택된 컴포넌트와 같으면 Selected 플래그
-		if (Component == SelectedComponent)
+		if (Component == SelectedComponent && !GWorld->GetSelectionManager()->IsActorMode())
 		{
 			NodeFlags |= ImGuiTreeNodeFlags_Selected;
 		}
@@ -184,7 +184,7 @@ namespace
 		// 좌클릭 시 컴포넌트 선택으로 전환(액터 Row 선택 해제)
 		if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
 		{
-			SelectedComponent = Component;
+			GWorld->GetSelectionManager()->SelectComponent(Component);
 		}
 
 		if (ImGui::BeginPopupContextItem("ComponentContext"))
@@ -300,12 +300,19 @@ void UTargetActorTransformWidget::RenderWidget()
 
 	// 2. 컴포넌트 계층 구조 렌더링
 	RenderComponentHierarchy(SelectedActor, SelectedComponent);
-
 	// 위 함수에서 SelectedComponent를 Delete하는데 아래 함수에서 SelectedComponent를 그대로 인자로 사용하고 있었음.
 	// 댕글링 포인터 참조를 막기 위해 다시 한번 SelectionManager에서 Component를 얻어옴
 	// 기존에는 DestroyComponent에서 DeleteObject를 호출하지도 않았음. Delete를 실제로 진행하면서 발견된 버그.
-	// 3. 선택된 컴포넌트의 상세 정보 렌더링 (Transform 포함)
-	RenderSelectedComponentDetails(GWorld->GetSelectionManager()->GetSelectedComponent());
+	
+	// 3. 선택된 컴포넌트, 엑터의 상세 정보 렌더링 (Transform 포함)
+	if (GWorld->GetSelectionManager()->IsActorMode())
+	{
+		RenderSelectedActorDetails(GWorld->GetSelectionManager()->GetSelectedActor());
+	}
+	else
+	{
+		RenderSelectedComponentDetails(GWorld->GetSelectionManager()->GetSelectedComponent());
+	}
 }
 
 void UTargetActorTransformWidget::RenderHeader(AActor* SelectedActor, USceneComponent* SelectedComponent)
@@ -368,10 +375,11 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 	// 액터 행 렌더링
 	ImGui::PushID("ActorDisplay");
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.3f, 1.0f));
-	const bool bActorSelected = (SelectedComponent == nullptr);
+
+	const bool bActorSelected = GWorld->GetSelectionManager()->IsActorMode();
 	if (ImGui::Selectable(SelectedActor->GetName().ToString().c_str(), bActorSelected, ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_SpanAvailWidth))
 	{
-		SelectedComponent = nullptr;
+		GWorld->GetSelectionManager()->SelectActor(SelectedActor);
 	}
 	ImGui::PopStyleColor();
 	if (ImGui::BeginPopupContextItem("ActorContextMenu"))
@@ -397,21 +405,8 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 		// ... (루트에 붙지 않은 씬 컴포넌트 렌더링 로직은 생략 가능성 있음, 엔진 설계에 따라)
 	}
 
-	// 선택 변경 시 트랜스폼 값 업데이트
-	static USceneComponent* PreviousSelectedComponent = nullptr;
-	if (PreviousSelectedComponent != SelectedComponent)
-	{
-		UpdateTransformFromComponent(SelectedComponent);
-		GWorld->GetSelectionManager()->SelectComponent(SelectedComponent);
-		PrevEditRotationUI = EditRotation;
-		bRotationEditing = false;
-		const FVector ScaleRef = EditScale;
-		bUniformScale = (std::fabs(ScaleRef.X - ScaleRef.Y) < 0.01f && std::fabs(ScaleRef.Y - ScaleRef.Z) < 0.01f);
-	}
-	PreviousSelectedComponent = SelectedComponent;
-
 	// 삭제 입력 처리
-	const bool bDeletePressed = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && ImGui::IsKeyPressed(ImGuiKey_Delete);
+	const bool bDeletePressed = ImGui::IsKeyPressed(ImGuiKey_Delete);
 	if (bDeletePressed)
 	{
 		if (bActorSelected) ActorPendingRemoval = SelectedActor;
@@ -456,8 +451,15 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 	ImGui::Spacing();
 }
 
+void UTargetActorTransformWidget::RenderSelectedActorDetails(AActor* SelectedActor)
+{
+
+
+}
+
 void UTargetActorTransformWidget::RenderSelectedComponentDetails(USceneComponent* SelectedComponent)
 {
+
 	ImGui::Spacing();
 	ImGui::Separator();
 

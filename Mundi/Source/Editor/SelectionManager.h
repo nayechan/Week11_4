@@ -24,6 +24,7 @@ public:
     void ClearSelection();
     
     bool IsActorSelected(AActor* Actor) const;
+    bool IsActorMode() const { return bIsActorMode; }
     
     /** === 선택된 액터 접근 === */
     AActor* GetSelectedActor() const; // 단일 선택용
@@ -48,4 +49,7 @@ protected:
     /** === 선택된 액터들 === */
     TArray<AActor*> SelectedActors;
     USceneComponent* SelectedComponent = nullptr;
+
+    //엑터만 선택된(루트 컴포넌트 선택이지만 UI에는 엑터 정보만 띄우는) 모드
+    bool bIsActorMode = false;
 };
