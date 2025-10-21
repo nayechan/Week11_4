@@ -99,6 +99,7 @@ UObject* UObject::Duplicate() const
 
     NewObject->DuplicateSubObjects(); // 얕은 복사한 멤버들에 대해 메뉴얼하게 깊은 복사 수행
 
+	NewObject->PostDuplicate();
     return NewObject;
 }
 

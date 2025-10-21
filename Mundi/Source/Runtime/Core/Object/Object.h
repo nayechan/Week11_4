@@ -256,6 +256,7 @@ public:                                                                       \
     {                                                                         \
         ThisClass* NewObject = ObjectFactory::DuplicateObject<ThisClass>(this); /*모든 멤버 단순 = 대입 수행(즉, 포인터 멤버들은 얕은복사)*/ \
         NewObject->DuplicateSubObjects(); /*메뉴얼한 복사 수행 로직(ex: 포인터 멤버 깊은 복사, 독립적인 값 생성, Uobject계열 Duplicate 재호출)*/ \
+        NewObject->PostDuplicate();                                           \
         return NewObject;                                                     \
     }
 

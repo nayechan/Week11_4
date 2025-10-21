@@ -39,7 +39,6 @@ namespace ObjectFactory
     inline T* DuplicateObject(const UObject* Source)
     {
         UObject* Dest = new T(*static_cast<const T*>(Source));
-        Dest->PostDuplicate();
         return static_cast<T*>(AddToGUObjectArray(T::StaticClass(), Dest));
     }
 

@@ -65,6 +65,7 @@ public:
 
 
     void UpdateLightBuffer(D3D11RHI* RHIDevice);
+    void SetDirtyFlag();
 
     TArray<FPointLightInfo>& GetPointLightInfoList() { return PointLightInfoList; }
     TArray<FSpotLightInfo>& GetSpotLightInfoList() { return SpotLightInfoList; }

@@ -422,7 +422,7 @@ void AActor::DuplicateSubObjects()
 		// 컴포넌트를 깊은 복사합니다.
 		UActorComponent* NewComp = OriginalComp->Duplicate();
 		NewComp->SetOwner(this);
-
+		
 		// 매핑 테이블에 (원본 포인터, 새 포인터) 쌍을 기록합니다.
 		OldToNewComponentMap.insert({ OriginalComp, NewComp });
 

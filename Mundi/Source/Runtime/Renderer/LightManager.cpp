@@ -107,6 +107,13 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 	
 }
 
+void FLightManager::SetDirtyFlag()
+{
+	bHaveToUpdate = true;
+	bPointLightDirty = true;
+	bSpotLightDirty = true;
+}
+
 template<>
 void FLightManager::RegisterLight<UAmbientLightComponent>(UAmbientLightComponent* LightComponent)
 {
@@ -132,7 +139,8 @@ void FLightManager::RegisterLight<UDirectionalLightComponent>(UDirectionalLightC
 template<>
 void FLightManager::RegisterLight<UPointLightComponent>(UPointLightComponent* LightComponent)
 {
-	if (LightComponentList.Contains(LightComponent))
+	if (LightComponentList.Contains(LightComponent)||
+		Cast<USpotLightComponent>(LightComponent))
 	{
 		return;
 	}
@@ -184,7 +192,8 @@ void FLightManager::DeRegisterLight<UDirectionalLightComponent>(UDirectionalLigh
 template<>
 void FLightManager::DeRegisterLight<UPointLightComponent>(UPointLightComponent* LightComponent)
 {
-	if (!LightComponentList.Contains(LightComponent))
+	if (!LightComponentList.Contains(LightComponent) ||
+		Cast<USpotLightComponent>(LightComponent))
 	{
 		return;
 	}
@@ -227,7 +236,8 @@ template<> void FLightManager::UpdateLight<UDirectionalLightComponent>(UDirectio
 }
 template<> void FLightManager::UpdateLight<UPointLightComponent>(UPointLightComponent* LightComponent)
 {
-	if (!LightComponentList.Contains(LightComponent))
+	if (!LightComponentList.Contains(LightComponent) ||
+		Cast<USpotLightComponent>(LightComponent))
 	{
 		return;
 	}
