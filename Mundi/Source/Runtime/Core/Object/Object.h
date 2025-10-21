@@ -217,7 +217,7 @@ static void SerializePrimitiveArray(TArray<T>* ArrayPtr, bool bIsLoading, JSON& 
     if (bIsLoading)
     {
         ArrayPtr->clear();
-        for (size_t i = 0; i < ArrayJson.size(); ++i)
+        for (uint32 i = 0; i < static_cast<uint32>(ArrayJson.size()); ++i)
         {
             if constexpr (std::is_same_v<T, int32>)
             {
