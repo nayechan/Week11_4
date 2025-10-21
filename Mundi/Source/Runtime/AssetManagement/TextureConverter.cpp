@@ -210,19 +210,24 @@ FString FTextureConverter::GetDDSCachePath(const FString& SourcePath)
 {
 	namespace fs = std::filesystem;
 
-	fs::path SourceFile(UTF8ToWide(SourcePath));
+	// 원본 경로를 와이드 문자열로 변환 (한글 경로 지원)
+	std::wstring WSourcePath = UTF8ToWide(SourcePath);
+	fs::path SourceFile(WSourcePath);
 	fs::path RelativePath;
 
-	// Data/ 디렉토리를 기준으로 상대 경로 생성 시도
-	fs::path DataDir = fs::current_path() / "Data";
+	// Data 디렉토리 경로 (상대 경로 방식)
+	fs::path DataDir("Data");
 
 	if (SourceFile.is_absolute())
 	{
-		// Data 디렉토리 기준 상대 경로 추출 시도
-		std::error_code ec;
-		RelativePath = fs::relative(SourceFile, DataDir, ec);
+		// 절대 경로인 경우: Data 디렉토리 기준 상대 경로로 변환 시도
+		fs::path CurrentDir = fs::current_path();
+		fs::path AbsDataDir = CurrentDir / DataDir;
 
-		if (ec || RelativePath.empty() || RelativePath.string().find("..") == 0)
+		std::error_code ec;
+		RelativePath = fs::relative(SourceFile, AbsDataDir, ec);
+
+		if (ec || RelativePath.empty() || RelativePath.wstring().find(L"..") == 0)
 		{
 			// Data 디렉토리 외부 파일이면 파일명만 사용
 			RelativePath = SourceFile.filename();
@@ -230,14 +235,22 @@ FString FTextureConverter::GetDDSCachePath(const FString& SourcePath)
 	}
 	else
 	{
-		// 이미 상대 경로
+		// 이미 상대 경로인 경우
 		RelativePath = SourceFile;
+
+		// "Data/"로 시작하면 제거
+		std::wstring RelStr = RelativePath.wstring();
+		if (RelStr.find(L"Data/") == 0 || RelStr.find(L"Data\\") == 0)
+		{
+			RelativePath = fs::path(RelStr.substr(5)); // "Data/" 제거 (5글자)
+		}
 	}
 
-	// 캐시 경로 생성: Data/TextureCache/<relative_path>/<filename>.dds
+	// 캐시 경로 생성: Data/TextureCache/<relative_path>/<filename>.dds (상대 경로)
 	fs::path CachePath = DataDir / "TextureCache" / RelativePath;
 	CachePath.replace_extension(".dds");
 
+	// 와이드 문자열을 UTF-8로 변환하여 반환 (한글 경로 지원)
 	return WideToUTF8(CachePath.wstring());
 }
 
