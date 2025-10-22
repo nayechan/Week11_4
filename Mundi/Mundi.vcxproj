@@ -202,6 +202,8 @@
     <ClCompile Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\EmptyActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\HeightFogActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Info.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PointLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SpotLightActor.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\LightManager.cpp" />
@@ -442,6 +444,8 @@
     <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\EmptyActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\HeightFogActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Info.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PointLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Renderer\LightManager.h" />

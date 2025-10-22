@@ -164,23 +164,16 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 
 void AActor::RegisterAllComponents(UWorld* InWorld)
 {
-	if (OwnedComponents.Num() > 0)
+
+	for (UActorComponent* Component : OwnedComponents)
 	{
-		for (UActorComponent* Component : OwnedComponents)
-		{
-			Component->RegisterComponent(InWorld);
-		}
+		Component->RegisterComponent(InWorld);
 	}
-	else
+	if (!RootComponent)
 	{
-		if (!InWorld->bPie)
-		{
-			RootComponent = CreateDefaultSubobject<USceneComponent>(FName("SceneComponent"));
-			UBillboardComponent* SpriteComponent = CreateDefaultSubobject<UBillboardComponent>("SpriteComponent");
-			SpriteComponent->SetEditability(false);
-			SpriteComponent->SetupAttachment(RootComponent);
-			SpriteComponent->SetTextureName("Data/UI/Icons/EmptyActor.dds");
-		}
+		RootComponent = CreateDefaultSubobject<USceneComponent>("DefaultSceneComponent");
+		RootComponent->RegisterComponent(InWorld);
+
 	}
 }
 
@@ -511,85 +504,82 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
-	if (RootComponent)
+	if (bInIsLoading)
 	{
-		if (bInIsLoading)
+		uint32 RootUUID;
+		FJsonSerializer::ReadUint32(InOutHandle, "RootComponentId", RootUUID);
+	
+		FString NameStrTemp;
+		FJsonSerializer::ReadString(InOutHandle, "Name", NameStrTemp);
+		SetName(NameStrTemp);
+	
+		JSON ComponentsJson;
+		if (FJsonSerializer::ReadArray(InOutHandle, "OwnedComponents", ComponentsJson))
 		{
-			uint32 RootUUID;
-			FJsonSerializer::ReadUint32(InOutHandle, "RootComponentId", RootUUID);
-
-			FString NameStrTemp;
-			FJsonSerializer::ReadString(InOutHandle, "Name", NameStrTemp);
-			SetName(NameStrTemp);
-
-			JSON ComponentsJson;
-			if (FJsonSerializer::ReadArray(InOutHandle, "OwnedComponents", ComponentsJson))
+			// 1) OwnedComponents와 SceneComponents에 Component들 추가
+			for (uint32 i = 0; i < static_cast<uint32>(ComponentsJson.size()); ++i)
 			{
-				// 1) OwnedComponents와 SceneComponents에 Component들 추가
-				for (uint32 i = 0; i < static_cast<uint32>(ComponentsJson.size()); ++i)
+				JSON ComponentJson = ComponentsJson.at(i);
+				
+				FString TypeString;
+				FJsonSerializer::ReadString(ComponentJson, "Type", TypeString);
+	
+				UClass* NewClass = UClass::FindClass(TypeString);
+	
+				USceneComponent* NewComponent = Cast<USceneComponent>(ObjectFactory::NewObject(NewClass));
+	
+				NewComponent->Serialize(bInIsLoading, ComponentJson);
+	
+				// RootComponent 설정
+				if (RootUUID == NewComponent->GetSceneId())
 				{
-					JSON ComponentJson = ComponentsJson.at(i);
-					
-					FString TypeString;
-					FJsonSerializer::ReadString(ComponentJson, "Type", TypeString);
-
-					UClass* NewClass = UClass::FindClass(TypeString);
-
-					USceneComponent* NewComponent = Cast<USceneComponent>(ObjectFactory::NewObject(NewClass));
-
-					NewComponent->Serialize(bInIsLoading, ComponentJson);
-
-					// RootComponent 설정
-					if (RootUUID == NewComponent->GetSceneId())
-					{
-						USceneComponent* RootComponentTemp = Cast<USceneComponent>(NewComponent);
-						assert(RootComponentTemp);
-						SetRootComponent(RootComponentTemp);
-					}
-
-					// OwnedComponents와 SceneComponents에 Component 추가
-					AddOwnedComponent(NewComponent);
+					USceneComponent* RootComponentTemp = Cast<USceneComponent>(NewComponent);
+					assert(RootComponentTemp);
+					SetRootComponent(RootComponentTemp);
 				}
-
-				// 2) 컴포넌트 간 부모 자식 관계 설정
-				for (auto& Component : OwnedComponents)
-				{
-					USceneComponent* SceneComp = Cast<USceneComponent>(Component);
-					uint32 ParentId = SceneComp->GetParentId();
-					if (ParentId != 0) // RootComponent가 아니면 부모 설정
-					{
-						USceneComponent** ParentP = SceneComp->GetSceneIdMap().Find(ParentId);
-						USceneComponent* Parent = *ParentP;
-
-						SceneComp->SetupAttachment(Parent, EAttachmentRule::KeepRelative);
-					}
-				}
+	
+				// OwnedComponents와 SceneComponents에 Component 추가
+				AddOwnedComponent(NewComponent);
 			}
-		}
-		else
-		{
-			InOutHandle["RootComponentId"] = RootComponent->UUID;
-
-			JSON Components = JSON::Make(JSON::Class::Array);
+	
+			// 2) 컴포넌트 간 부모 자식 관계 설정
 			for (auto& Component : OwnedComponents)
 			{
-				// 에디터 전용 컴포넌트는 직렬화하지 않음
-				// (CREATE_EDITOR_COMPONENT로 생성된 컴포넌트들은 OnRegister()에서 매번 새로 생성됨)
-				if (!Component->IsEditable())
+				USceneComponent* SceneComp = Cast<USceneComponent>(Component);
+				uint32 ParentId = SceneComp->GetParentId();
+				if (ParentId != 0) // RootComponent가 아니면 부모 설정
 				{
-					continue;
+					USceneComponent** ParentP = SceneComp->GetSceneIdMap().Find(ParentId);
+					USceneComponent* Parent = *ParentP;
+	
+					SceneComp->SetupAttachment(Parent, EAttachmentRule::KeepRelative);
 				}
-
-				JSON ComponentJson;
-
-				ComponentJson["Type"] = Component->GetClass()->Name;
-
-				Component->Serialize(bInIsLoading, ComponentJson);
-				Components.append(ComponentJson);
 			}
-			InOutHandle["OwnedComponents"] = Components;
-			InOutHandle["Name"] = GetName().ToString();
 		}
+	}
+	else if (RootComponent)
+	{
+		InOutHandle["RootComponentId"] = RootComponent->UUID;
+	
+		JSON Components = JSON::Make(JSON::Class::Array);
+		for (auto& Component : OwnedComponents)
+		{
+			// 에디터 전용 컴포넌트는 직렬화하지 않음
+			// (CREATE_EDITOR_COMPONENT로 생성된 컴포넌트들은 OnRegister()에서 매번 새로 생성됨)
+			if (!Component->IsEditable())
+			{
+				continue;
+			}
+	
+			JSON ComponentJson;
+	
+			ComponentJson["Type"] = Component->GetClass()->Name;
+	
+			Component->Serialize(bInIsLoading, ComponentJson);
+			Components.append(ComponentJson);
+		}
+		InOutHandle["OwnedComponents"] = Components;
+		InOutHandle["Name"] = GetName().ToString();
 	}
 }
 
