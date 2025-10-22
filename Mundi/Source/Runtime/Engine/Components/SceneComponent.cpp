@@ -4,6 +4,7 @@
 #include "ObjectFactory.h"
 #include "PrimitiveComponent.h"
 #include "WorldPartitionManager.h"
+#include "BillboardComponent.h"
 
 IMPLEMENT_CLASS(USceneComponent)
 
@@ -360,6 +361,16 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			InOutHandle["ParentId"] = 0;
 		}
 	}
+}
+
+void USceneComponent::OnRegister(UWorld* InWorld)
+{
+    if (!std::strcmp(this->GetClass()->Name , USceneComponent::StaticClass()->Name) && !SpriteComponent)
+    {
+        CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
+        SpriteComponent->SetTextureName("Data/UI/Icons/EmptyActor.dds");
+
+    }
 }
 
 void USceneComponent::OnSerialized()
