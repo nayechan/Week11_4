@@ -1,10 +1,10 @@
 //================================================================================================
 // Filename:      LightingCommon.hlsl
-// Description:   Common lighting calculation functions
-//                Supports GOURAUD, LAMBERT, PHONG lighting models via macros
+// Description:   조명 계산 공통 함수
+//                매크로를 통해 GOURAUD, LAMBERT, PHONG 조명 모델 지원
 //================================================================================================
 
-// This file must be included AFTER:
+// 주의: 이 파일은 다음 파일들 이후에 include 되어야 함:
 // - LightStructures.hlsl
 // - LightingBuffers.hlsl
 
@@ -33,109 +33,89 @@ uint GetTileDataOffset(uint tileIndex)
 // 기본 조명 계산 함수
 //================================================================================================
 
-// Ambient Light Calculation
-// Uses the provided materialColor (which includes texture if available)
-// Note: light.Color already includes Intensity and Temperature
-float3 CalculateAmbientLight(FAmbientLightInfo light, float4 materialColor)
+// Ambient Light 계산 (OBJ/MTL 표준)
+// 공식: Ambient = La × Ka
+// 주의: light.Color (La)는 이미 Intensity와 Temperature가 포함됨
+// ambientColor: 재질의 Ambient Color (Ka) - Diffuse Color가 아님!
+float3 CalculateAmbientLight(FAmbientLightInfo light, float3 ambientColor)
 {
-    // Use materialColor directly (already contains texture if available)
-    return light.Color.rgb * materialColor.rgb;
+    // OBJ/MTL 표준: La × Ka
+    return light.Color.rgb * ambientColor;
 }
 
-// Diffuse Light Calculation (Lambert)
-// Uses the provided materialColor (which includes texture if available)
-// Note: lightColor already includes Intensity (calculated in C++)
+// Diffuse Light 계산 (Lambert)
+// 제공된 materialColor 사용 (텍스처가 있으면 포함됨)
+// 주의: lightColor는 이미 Intensity가 포함됨 (C++에서 계산)
 float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float4 materialColor)
 {
     float NdotL = max(dot(normal, lightDir), 0.0f);
-    // Use materialColor directly (already contains texture if available)
+    // materialColor를 직접 사용 (이미 텍스처가 포함되어 있으면 포함됨)
     return lightColor.rgb * materialColor.rgb * NdotL;
 }
 
-// Specular Light Calculation (Blinn-Phong)
-// Note: lightColor already includes Intensity (calculated in C++)
-// Note: This function uses white (1,1,1) for specular color
-//       UberLit.hlsl can override this to use Material.SpecularColor
+// Specular Light 계산 (Blinn-Phong)
+// 주의: lightColor는 이미 Intensity가 포함됨 (C++에서 계산)
+// 주의: 이 함수는 흰색 (1,1,1)을 스페큘러 색상으로 사용
+//       UberLit.hlsl에서 Material.SpecularColor를 사용하도록 오버라이드 가능
 float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
 {
     float3 halfVec = normalize(lightDir + viewDir);
     float NdotH = max(dot(normal, halfVec), 0.0f);
     float specular = pow(NdotH, specularPower);
 
-    // Default: white specular (1, 1, 1)
-    // Individual shaders can override this for material-specific specular
+    // 기본값: 흰색 스페큘러 (1, 1, 1)
+    // 개별 셰이더에서 재질별 스페큘러를 위해 오버라이드 가능
     return lightColor.rgb * specular;
 }
 
 //================================================================================================
-// Attenuation Functions
+// 감쇠(Attenuation) 함수
 //================================================================================================
 
-// Unreal Engine: Inverse Square Falloff (Physically Accurate)
+// Unreal Engine: Inverse Square Falloff (물리 기반)
 // https://docs.unrealengine.com/en-US/BuildingWorlds/LightingAndShadows/PhysicalLightUnits/
 float CalculateInverseSquareFalloff(float distance, float attenuationRadius)
 {
-    // Unreal Engine's inverse square falloff with smooth window function
+    // Unreal Engine의 역제곱 감쇠 with 부드러운 윈도우 함수
     float distanceSq = distance * distance;
     float radiusSq = attenuationRadius * attenuationRadius;
 
-    // Basic inverse square law: I = 1 / (distance^2)
-    float basicFalloff = 1.0f / max(distanceSq, 0.01f * 0.01f); // Prevent division by zero
+    // 기본 역제곱 법칙: I = 1 / (distance^2)
+    float basicFalloff = 1.0f / max(distanceSq, 0.01f * 0.01f); // 0으로 나누기 방지
 
-    // Apply smooth window function that reaches 0 at attenuationRadius
-    // This prevents hard cutoff at radius boundary
+    // attenuationRadius에서 0에 도달하는 부드러운 윈도우 함수 적용
+    // 반경 경계에서 급격한 차단을 방지
     float distanceRatio = saturate(distance / attenuationRadius);
     float windowAttenuation = pow(1.0f - pow(distanceRatio, 4.0f), 2.0f);
 
     return basicFalloff * windowAttenuation;
 }
 
-// Unreal Engine: Light Falloff Exponent (Artistic Control)
-// Non-physically accurate but provides artistic control
+// Unreal Engine: Light Falloff Exponent (예술적 제어)
+// 물리적으로 정확하지 않지만 예술적 제어 제공
 float CalculateExponentFalloff(float distance, float attenuationRadius, float falloffExponent)
 {
-    // Normalized distance (0 at light center, 1 at radius boundary)
+    // 정규화된 거리 (라이트 중심에서 0, 반경 경계에서 1)
     float distanceRatio = saturate(distance / attenuationRadius);
 
-    // Simple exponent-based falloff: attenuation = (1 - ratio)^exponent
-    // falloffExponent controls the curve:
-    // - exponent = 1: linear falloff
-    // - exponent > 1: faster falloff (sharper)
-    // - exponent < 1: slower falloff (gentler)
+    // 단순 지수 기반 감쇠: attenuation = (1 - ratio)^exponent
+    // falloffExponent가 곡선을 제어:
+    // - exponent = 1: 선형 감쇠
+    // - exponent > 1: 더 빠른 감쇠 (더 날카로움)
+    // - exponent < 1: 더 느린 감쇠 (더 부드러움)
     float attenuation = pow(1.0f - pow(distanceRatio, 2.0f), max(falloffExponent, 0.1f));
 
     return attenuation;
 }
 
 //================================================================================================
-// Gamma Correction Functions
-//================================================================================================
-
-// Linear to sRGB conversion (Gamma Correction)
-// Converts linear RGB values to sRGB color space for display
-float3 LinearToSRGB(float3 linearColor)
-{
-    // sRGB standard: exact formula with piecewise function
-    float3 sRGBLo = linearColor * 12.92f;
-    float3 sRGBHi = pow(max(linearColor, 0.0f), 1.0f / 2.4f) * 1.055f - 0.055f;
-    float3 sRGB = (linearColor <= 0.0031308f) ? sRGBLo : sRGBHi;
-    return sRGB;
-}
-
-// Simple gamma correction (approximation, faster but less accurate)
-float3 LinearToGamma(float3 linearColor)
-{
-    return pow(max(linearColor, 0.0f), 1.0f / 2.2f);
-}
-
-//================================================================================================
 // 통합 조명 계산 함수
 //================================================================================================
 
-// Directional Light Calculation (Diffuse + Specular)
+// Directional Light 계산 (Diffuse + Specular)
 float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
 {
-    // if Light.Direction is zero vector, avoid normalization issues
+    // Light.Direction이 영벡터인 경우, 정규화 문제 방지
     if (all(light.Direction == float3(0.0f, 0.0f, 0.0f)))
     {
         return float3(0.0f, 0.0f, 0.0f);
@@ -143,10 +123,10 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, flo
 
     float3 lightDir = normalize(-light.Direction);
 
-    // Diffuse (light.Color already includes Intensity)
+    // Diffuse (light.Color는 이미 Intensity 포함)
     float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor);
 
-    // Specular (optional)
+    // Specular (선택사항)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
@@ -156,33 +136,33 @@ float3 CalculateDirectionalLight(FDirectionalLightInfo light, float3 normal, flo
     return diffuse + specular;
 }
 
-// Point Light Calculation (Diffuse + Specular with Attenuation and Falloff)
+// Point Light 계산 (Diffuse + Specular with Attenuation and Falloff)
 float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
 {
     float3 lightVec = light.Position - worldPos;
     float distance = length(lightVec);
 
-    // Protect against division by zero with epsilon
+    // epsilon으로 0으로 나누기 방지
     distance = max(distance, 0.0001f);
     float3 lightDir = lightVec / distance;
 
-    // Calculate attenuation based on falloff mode
+    // Falloff 모드에 따라 감쇠 계산
     float attenuation;
     if (light.bUseInverseSquareFalloff)
     {
-        // Physically accurate inverse square falloff (Unreal Engine style)
+        // 물리 기반 역제곱 감쇠 (Unreal Engine 스타일)
         attenuation = CalculateInverseSquareFalloff(distance, light.AttenuationRadius);
     }
     else
     {
-        // Artistic exponent-based falloff for greater control
+        // 더 큰 제어를 위한 예술적 지수 기반 감쇠
         attenuation = CalculateExponentFalloff(distance, light.AttenuationRadius, light.FalloffExponent);
     }
 
-    // Diffuse (light.Color already includes Intensity)
+    // Diffuse (light.Color는 이미 Intensity 포함)
     float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
 
-    // Specular (optional)
+    // Specular (선택사항)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
@@ -192,45 +172,45 @@ float3 CalculatePointLight(FPointLightInfo light, float3 worldPos, float3 normal
     return diffuse + specular;
 }
 
-// Spot Light Calculation (Diffuse + Specular with Attenuation and Cone)
+// Spot Light 계산 (Diffuse + Specular with Attenuation and Cone)
 float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
 {
     float3 lightVec = light.Position - worldPos;
     float distance = length(lightVec);
 
-    // Protect against division by zero with epsilon
+    // epsilon으로 0으로 나누기 방지
     distance = max(distance, 0.0001f);
     float3 lightDir = lightVec / distance;
     float3 spotDir = normalize(light.Direction);
 
-    // Spot cone attenuation
+    // Spot 원뿔 감쇠
     float cosAngle = dot(-lightDir, spotDir);
     float innerCos = cos(radians(light.InnerConeAngle));
     float outerCos = cos(radians(light.OuterConeAngle));
 
-    // Smooth falloff between inner and outer cone (returns 0 if outside cone)
+    // 내부와 외부 원뿔 사이의 부드러운 감쇠 (원뿔 밖이면 0 반환)
     float spotAttenuation = smoothstep(outerCos, innerCos, cosAngle);
 
-    // Calculate distance attenuation based on falloff mode
+    // Falloff 모드에 따라 거리 감쇠 계산
     float distanceAttenuation;
     if (light.bUseInverseSquareFalloff)
     {
-        // Physically accurate inverse square falloff (Unreal Engine style)
+        // 물리 기반 역제곱 감쇠 (Unreal Engine 스타일)
         distanceAttenuation = CalculateInverseSquareFalloff(distance, light.AttenuationRadius);
     }
     else
     {
-        // Artistic exponent-based falloff for greater control
+        // 더 큰 제어를 위한 예술적 지수 기반 감쇠
         distanceAttenuation = CalculateExponentFalloff(distance, light.AttenuationRadius, light.FalloffExponent);
     }
 
-    // Combine both attenuations
+    // 두 감쇠를 결합
     float attenuation = distanceAttenuation * spotAttenuation;
 
-    // Diffuse (light.Color already includes Intensity)
+    // Diffuse (light.Color는 이미 Intensity 포함)
     float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
 
-    // Specular (optional)
+    // Specular (선택사항)
     float3 specular = float3(0.0f, 0.0f, 0.0f);
     if (includeSpecular)
     {
@@ -255,7 +235,7 @@ float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, 
     #define LIGHTING_INCLUDE_SPECULAR true
     #define LIGHTING_NEED_VIEWDIR true
 #else
-    // No lighting model defined - still provide defaults
+    // 조명 모델 미정의 - 기본값 제공
     #define LIGHTING_INCLUDE_SPECULAR false
     #define LIGHTING_NEED_VIEWDIR false
 #endif
@@ -266,18 +246,20 @@ float3 CalculateSpotLight(FSpotLightInfo light, float3 worldPos, float3 normal, 
 
 // 모든 라이트(Point + Spot) 계산 - 타일 컬링 지원
 // 매크로에 따라 자동으로 specular on/off
+// 주의: 이 헬퍼 함수는 ambient에 baseColor 사용 (Ka = Kd 가정)
+//       OBJ/MTL 재질의 경우, Material.AmbientColor로 CalculateAmbientLight를 별도로 호출할 것
 float3 CalculateAllLights(
     float3 worldPos,
     float3 normal,
     float3 viewDir,        // LAMBERT에서는 사용 안 함
     float4 baseColor,
     float specularPower,
-    float4 screenPos)      // For tile culling
+    float4 screenPos)      // 타일 컬링용
 {
     float3 litColor = float3(0, 0, 0);
 
-    // Ambient
-    litColor += CalculateAmbientLight(AmbientLight, baseColor);
+    // Ambient (비재질 오브젝트는 Ka = Kd 가정)
+    litColor += CalculateAmbientLight(AmbientLight, baseColor.rgb);
 
     // Directional
     litColor += CalculateDirectionalLight(
@@ -289,7 +271,7 @@ float3 CalculateAllLights(
         specularPower
     );
 
-    // Point + Spot with tile culling
+    // Point + Spot with 타일 컬링
     if (bUseTileCulling)
     {
         uint tileIndex = CalculateTileIndex(screenPos);

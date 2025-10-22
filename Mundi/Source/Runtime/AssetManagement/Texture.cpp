@@ -19,7 +19,7 @@ UTexture::~UTexture()
 	ReleaseResources();
 }
 
-FString UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
+FString UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice, bool bSRGB)
 {
 	assert(InDevice);
 
@@ -44,8 +44,9 @@ FString UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 			{
 				UE_LOG("[UTexture] Converting texture to DDS: %s", InFilePath.c_str());
 
-				// DDS 변환 시도
-				if (FTextureConverter::ConvertToDDS(InFilePath, DDSCachePath))
+					// DDS 변환 시도 (bSRGB 파라미터 전달)
+				DXGI_FORMAT TargetFormat = FTextureConverter::GetRecommendedFormat(true, bSRGB); // 알파는 일단 true로 가정
+				if (FTextureConverter::ConvertToDDS(InFilePath, DDSCachePath, TargetFormat))
 				{
 					ActualLoadPath = DDSCachePath; // DDS 캐시 사용
 				}
@@ -95,18 +96,32 @@ FString UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice)
 	HRESULT hr = E_FAIL;
 	if (ext == L".dds")
 	{
-		hr = DirectX::CreateDDSTextureFromFile(
+		// DDS 로딩: Ex 버전 사용하여 sRGB 지정
+		hr = DirectX::CreateDDSTextureFromFileEx(
 			InDevice,
 			WFilePath.c_str(),
+			0, // maxsize (0 = no limit)
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, // cpuAccessFlags
+			0, // miscFlags
+			bSRGB ? DirectX::DDS_LOADER_FORCE_SRGB : DirectX::DDS_LOADER_DEFAULT,
 			reinterpret_cast<ID3D11Resource**>(&Texture2D),
 			&ShaderResourceView
 		);
 	}
 	else
 	{
-		hr = DirectX::CreateWICTextureFromFile(
+		// WIC 로딩: Ex 버전 사용하여 sRGB 지정
+		hr = DirectX::CreateWICTextureFromFileEx(
 			InDevice,
 			WFilePath.c_str(),
+			0, // maxsize (0 = no limit)
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, // cpuAccessFlags
+			0, // miscFlags
+			bSRGB ? DirectX::WIC_LOADER_FORCE_SRGB : DirectX::WIC_LOADER_DEFAULT,
 			reinterpret_cast<ID3D11Resource**>(&Texture2D),
 			&ShaderResourceView
 		);

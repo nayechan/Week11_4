@@ -1,18 +1,18 @@
 //================================================================================================
 // Filename:      LightingBuffers.hlsl
-// Description:   Common lighting constant buffers and resources
-//                Shared across all shaders that use lighting
+// Description:   조명 상수 버퍼 및 리소스
+//                모든 조명 기반 셰이더에서 공유
 //================================================================================================
 
-// This file must be included AFTER LightStructures.hlsl
+// 주의: 이 파일은 LightStructures.hlsl 이후에 include 되어야 함
 
-// b7: CameraBuffer (VS+PS) - Camera properties
+// b7: CameraBuffer (VS+PS) - 카메라 속성
 cbuffer CameraBuffer : register(b7)
 {
     float3 CameraPosition;
 };
 
-// b8: LightBuffer (VS+PS) - Matches FLightBufferType from ConstantBufferType.h
+// b8: LightBuffer (VS+PS) - ConstantBufferType.h의 FLightBufferType과 일치
 cbuffer LightBuffer : register(b8)
 {
     FAmbientLightInfo AmbientLight;
@@ -27,7 +27,7 @@ cbuffer LightBuffer : register(b8)
 //        [TileIndex * MaxLightsPerTile + 1 ~ ...] = LightIndices (상위 16비트: 타입, 하위 16비트: 인덱스)
 StructuredBuffer<uint> g_TileLightIndices : register(t2);
 
-//PointLight, SpotLight Structured Buffer
+// PointLight, SpotLight Structured Buffer
 StructuredBuffer<FPointLightInfo> g_PointLightList : register(t3);
 StructuredBuffer<FSpotLightInfo> g_SpotLightList : register(t4);
 

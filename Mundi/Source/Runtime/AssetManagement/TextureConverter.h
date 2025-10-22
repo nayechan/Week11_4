@@ -63,17 +63,18 @@ public:
 	 */
 	static void SetGenerateMipmaps(bool bGenerateMips);
 
+	/**
+	 * @brief 이미지 특성에 따라 권장 압축 포맷 반환
+	 * @param bHasAlpha 이미지에 알파 채널이 있는지 여부
+	 * @param bSRGB sRGB 포맷 사용 여부 (Diffuse=true, Normal=false)
+	 * @return 최적의 DXGI 포맷
+	 */
+	static DXGI_FORMAT GetRecommendedFormat(bool bHasAlpha, bool bSRGB = true);
+
 private:
 	// 인스턴스화 비활성화
 	FTextureConverter() = delete;
 	~FTextureConverter() = delete;
-
-	/**
-	 * @brief 이미지 특성에 따라 권장 압축 포맷 반환
-	 * @param bHasAlpha 이미지에 알파 채널이 있는지 여부
-	 * @return 최적의 DXGI 포맷
-	 */
-	static DXGI_FORMAT GetRecommendedFormat(bool bHasAlpha);
 
 	/**
 	 * @brief 캐시 디렉토리가 존재하는지 확인하고 생성

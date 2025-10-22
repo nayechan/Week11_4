@@ -11,7 +11,8 @@ public:
 	virtual ~UTexture();
 
 	// 실제 로드된 파일 경로를 반환 (DDS 캐시 사용 시 DDS 경로 반환)
-	FString Load(const FString& InFilePath, ID3D11Device* InDevice);
+	// bSRGB: true = sRGB 포맷 사용 (Diffuse/Albedo 텍스처), false = Linear 포맷 (Normal/Data 텍스처)
+	FString Load(const FString& InFilePath, ID3D11Device* InDevice, bool bSRGB = true);
 
 	ID3D11ShaderResourceView* GetShaderResourceView() const { return ShaderResourceView; }
 	ID3D11Texture2D* GetTexture2D() const { return Texture2D; }
