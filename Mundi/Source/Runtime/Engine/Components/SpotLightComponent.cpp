@@ -193,7 +193,7 @@ void USpotLightComponent::RenderDebugVolume(URenderer* Renderer) const
 	const float AttenuationRadius = GetAttenuationRadius();
 
 	// 세그먼트 수
-	const int NumRays = 16;      // 방사형 라인 개수
+	const int NumRays = 24;      // 방사형 라인 개수
 	const int NumArcSegments = 32; // 아크 세그먼트 개수
 
 	// LightDirection에 수직인 두 벡터 구하기
