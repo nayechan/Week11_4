@@ -119,6 +119,7 @@ inline FArchive& operator<<(FArchive& Ar, FVector& V) { Ar.Serialize(&V.X, sizeo
 inline FArchive& operator<<(FArchive& Ar, FVector2D& V) { Ar.Serialize(&V.X, sizeof(float) * 2); return Ar; }
 inline FArchive& operator<<(FArchive& Ar, FVector4& V) { Ar.Serialize(&V.X, sizeof(float) * 4); return Ar; }
 
+// 직렬화 포맷 (FVertexDynamic와 역할이 달라서 분리됨)
 struct FNormalVertex
 {
     FVector pos;
@@ -126,7 +127,6 @@ struct FNormalVertex
     FVector2D tex;
     FVector4 Tangent;
     FVector4 color;
-    
 
     friend FArchive& operator<<(FArchive& Ar, FNormalVertex& Vtx)
     {

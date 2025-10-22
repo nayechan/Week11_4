@@ -19,6 +19,7 @@ struct FVertexSimple
     }
 };
 
+// 런타임 포맷 (FNormalVertex와 역할이 달라서 분리됨)
 struct FVertexDynamic
 {
     FVector Position;
