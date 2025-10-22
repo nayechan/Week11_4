@@ -20,7 +20,7 @@ AFakeSpotLightActor::AFakeSpotLightActor()
 	DecalComponent->SetRelativeScale((FVector(10, 5, 5)));
 	DecalComponent->SetRelativeLocation((FVector(0, 0, -5)));
 	DecalComponent->SetRelativeRotation(FQuat::MakeFromEulerZYX(FVector(0, 90, 0)));
-	DecalComponent->SetDecalTexture("Data/Textures/GreenLight.png");
+	DecalComponent->SetDecalTexture(GDataDir + "/Textures/GreenLight.png");
 	DecalComponent->SetFovY(60);
 	
 	RootComponent = DecalComponent;

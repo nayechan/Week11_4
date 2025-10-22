@@ -466,6 +466,10 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 
 void UTargetActorTransformWidget::RenderSelectedActorDetails(AActor* SelectedActor)
 {
+	if (!SelectedActor)
+	{
+		return;
+	}
 	USceneComponent* RootComponent = SelectedActor->GetRootComponent();
 	const TArray<FProperty>& Properties = USceneComponent::StaticClass()->GetProperties();
 	

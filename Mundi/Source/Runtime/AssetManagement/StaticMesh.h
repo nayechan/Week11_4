@@ -36,21 +36,15 @@ public:
     
     FAABB GetLocalBound() const {return LocalBound; }
     
-    // BVH GETTER 
-    // const FMeshBVH* GetBVH() const { return MeshBVH; }
-
     bool EraseUsingComponets(UStaticMeshComponent* InStaticMeshComponent);
     bool AddUsingComponents(UStaticMeshComponent* InStaticMeshComponent);
-
-    /*const TArray<UStaticMeshComponent*>& GetUsingComponents() const
-    {
-        return UsingComponents;
-    }*/
 
     TArray<UStaticMeshComponent*>& GetUsingComponents()
     {
         return UsingComponents;
     }
+
+    const FString& GetCacheFilePath() const { return CacheFilePath; }
 
 private:
     void CreateVertexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice, EVertexLayoutType InVertexType);
@@ -60,6 +54,8 @@ private:
     void CreateLocalBound(const FMeshData* InMeshData);
     void CreateLocalBound(const FStaticMesh* InStaticMesh);
     void ReleaseResources();
+
+    FString CacheFilePath;  // 캐시된 소스 경로 (예: DerivedDataCache/cube.obj.bin)
 
     // GPU 리소스
     ID3D11Buffer* VertexBuffer = nullptr;

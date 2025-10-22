@@ -2,7 +2,14 @@
 #include <string>
 #include <algorithm>
 #include <windows.h>
+#include <filesystem>
+
 #include "UEContainer.h"
+
+namespace fs = std::filesystem;
+
+extern const FString GDataDir;
+extern const FString GCacheDir;
 
 // ============================================================================
 // 경로 정규화 유틸리티 함수
@@ -93,4 +100,78 @@ inline FString WideToUTF8(const FWideString& InWideStr)
 	);
 
 	return result;
+}
+
+inline FString ConvertDataPathToCachePath(const FString& InAssetPath)
+{
+	FString DataDirPrefix = GDataDir + "/";
+
+	// GDataDir("Data")로 시작하는지 (대소문자 무관) 확인
+	// _strnicmp는 C-스타일 문자열을 받으며, n 글자수만큼 대소문자 무관 비교
+	if (InAssetPath.length() >= DataDirPrefix.length() &&
+		_strnicmp(InAssetPath.c_str(), DataDirPrefix.c_str(), DataDirPrefix.length()) == 0)
+	{
+		// "GCacheDir/" 접두사를 제거하고 GCacheDir/"... " 접두사를 붙임
+		return GCacheDir + "/" + InAssetPath.substr(DataDirPrefix.length());
+	}
+
+	// Data/로 시작하지 않는 경로 (예: 절대 경로, Data 외부의 상대 경로)
+	// GetDDSCachePath의 기존 정책을 따라 파일명만 사용
+	FWideString WPath = UTF8ToWide(InAssetPath);
+	fs::path FileName = fs::path(WPath).filename();
+
+	return GCacheDir + "/" + WideToUTF8(FileName.wstring());
+}
+
+/**
+ * 에셋(예: mtl) 내부에서 참조된 경로를 해석하여
+ * 엔진이 사용하는 (현재 작업 디렉토리 기준) 상대 경로로 변환합니다.
+ */
+inline FString ResolveAssetRelativePath(const FString& InAssetPath, const FString& InAssetBaseDir)
+{
+	if (InAssetPath.empty())
+	{
+		return "";
+	}
+
+	try
+	{
+		FString NormalizedAssetPath = NormalizePath(InAssetPath);
+
+		FString DataDirPrefix = GDataDir + "/";
+		if (NormalizedAssetPath.length() >= DataDirPrefix.length() &&
+			_strnicmp(NormalizedAssetPath.c_str(), DataDirPrefix.c_str(), DataDirPrefix.length()) == 0)
+		{
+			return NormalizedAssetPath;
+		}
+
+		FWideString WTexPath = UTF8ToWide(NormalizedAssetPath);
+		FWideString WBaseDir = UTF8ToWide(InAssetBaseDir);
+		fs::path TexPath(WTexPath);
+		fs::path BaseDir(WBaseDir);
+		fs::path FinalPath;
+
+		if (TexPath.is_absolute())
+		{
+			FinalPath = TexPath.lexically_normal();
+		}
+		else
+		{
+			FinalPath = (BaseDir / TexPath).lexically_normal();
+		}
+
+		// 현재 작업 디렉토리 기준 상대 경로로 변환 시도
+		fs::path CurrentDir = fs::current_path();
+		std::error_code ec;
+		fs::path RelativePath = fs::relative(FinalPath, CurrentDir, ec);
+
+		fs::path PathToUse = (ec || RelativePath.empty()) ? FinalPath : RelativePath;
+
+		return NormalizePath(WideToUTF8(PathToUse.wstring()));
+	}
+	catch (const std::exception&)
+	{
+		// 예외 발생 시 원본 경로 유지
+		return NormalizePath(InAssetPath);
+	}
 }

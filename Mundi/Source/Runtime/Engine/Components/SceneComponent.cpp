@@ -347,6 +347,12 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
         // 부모 찾기
         FJsonSerializer::ReadUint32(InOutHandle, "ParentId", ParentId);
+
+        RelativeRotation = FQuat::MakeFromEulerZYX(RelativeRotationEuler).GetNormalized();
+
+        // 해당 객체의 Transform을 위에서 읽은 값을 기반으로 변경 후, 자식에게 전파
+        UpdateRelativeTransform();
+        OnTransformUpdated();
 	}
 	else
 	{
@@ -368,7 +374,7 @@ void USceneComponent::OnRegister(UWorld* InWorld)
     if (!std::strcmp(this->GetClass()->Name , USceneComponent::StaticClass()->Name) && !SpriteComponent)
     {
         CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
-        SpriteComponent->SetTextureName("Data/UI/Icons/EmptyActor.dds");
+        SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/EmptyActor.dds");
 
     }
 }
@@ -376,12 +382,6 @@ void USceneComponent::OnRegister(UWorld* InWorld)
 void USceneComponent::OnSerialized()
 {
 	Super::OnSerialized();
-
-	RelativeRotation = FQuat::MakeFromEulerZYX(RelativeRotationEuler).GetNormalized();
-
-	// 해당 객체의 Transform을 위에서 읽은 값을 기반으로 변경 후, 자식에게 전파
-	UpdateRelativeTransform();
-	OnTransformUpdated();
 }
 
 void USceneComponent::OnTransformUpdated()

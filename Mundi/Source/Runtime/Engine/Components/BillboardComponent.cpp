@@ -16,7 +16,7 @@ IMPLEMENT_CLASS(UBillboardComponent)
 
 BEGIN_PROPERTIES(UBillboardComponent)
 	MARK_AS_COMPONENT("빌보드 컴포넌트", "항상 카메라를 향하는 2D 아이콘을 표시합니다.")
-	ADD_PROPERTY_TEXTURE(UTexture*, Texture, "Billboard", true, "빌보드 텍스처입니다.")
+	ADD_PROPERTY_TEXTURE(UTexture*, Texture, "Billboard", true)
 END_PROPERTIES()
 
 UBillboardComponent::UBillboardComponent()
@@ -33,7 +33,7 @@ UBillboardComponent::UBillboardComponent()
 	SetMaterialByName(0, "Shaders/UI/Billboard.hlsl");
 
 	// 일단 디폴트 텍스쳐로 설정하기 .
-	SetTextureName("Data/UI/Icons/Pawn_64x.png");
+	SetTextureName(GDataDir + "/UI/Icons/Pawn_64x.png");
 	//빌보드는 기본적으로 게임에서 숨김
 	bHiddenInGame = true;
 }

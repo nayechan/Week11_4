@@ -162,6 +162,7 @@ namespace Serialization {
 struct FStaticMesh
 {
     FString PathFileName;
+    FString CacheFilePath;  // 캐시된 소스 경로 (예: DerivedDataCache/cube.obj.bin)
 
     TArray<FNormalVertex> Vertices;
     TArray<uint32> Indices;

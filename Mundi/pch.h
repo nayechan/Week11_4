@@ -3,6 +3,7 @@
 // Feature Flags
 // Uncomment to enable DDS texture caching (faster loading, uses Data/TextureCache/)
 #define USE_DDS_CACHE
+#define USE_OBJ_CACHE
 
 // Linker
 #pragma comment(lib, "user32")
@@ -89,6 +90,8 @@
 //#define SELECTION (GEngine.GetDefaultWorld()->GetSelectionManager())
 
 extern TMap<FString, FString> EditorINI;
+extern const FString GDataDir;
+extern const FString GCacheDir;
 
 //Editor
 #include "EditorEngine.h"

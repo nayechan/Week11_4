@@ -42,11 +42,13 @@ private:
 	// Transform 프로퍼티 렌더링 헬퍼 함수
 	static bool RenderTransformProperty(const FProperty& Prop, void* Instance);
 
-	static void CacheMaterialResources();	// 필요할 때 리소스 목록을 멤버 변수에 캐시합니다.
-	static void ClearMaterialResourcesCache();	// 렌더링 패스가 끝날 때 캐시를 비웁니다.
+	static void CacheResources();	// 필요할 때 리소스 목록을 멤버 변수에 캐시합니다.
+	static void ClearResourcesCache();	// 렌더링 패스가 끝날 때 캐시를 비웁니다.
 
 private:
 	// 렌더링 중 캐시되는 리소스 목록
+	static TArray<FString> CachedStaticMeshPaths;
+	static TArray<const char*> CachedStaticMeshItems;
 	static TArray<FString> CachedMaterialPaths;
 	static TArray<const char*> CachedMaterialItems;
 	static TArray<FString> CachedShaderPaths;

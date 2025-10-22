@@ -16,14 +16,14 @@
 IMPLEMENT_CLASS(UStaticMeshComponent)
 
 BEGIN_PROPERTIES(UStaticMeshComponent)
-MARK_AS_COMPONENT("스태틱 메시 컴포넌트", "스태틱 메시를 렌더링하는 컴포넌트입니다.")
-ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Static Mesh", true, "렌더링할 스태틱 메시입니다.")
-ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "메시 섹션에 할당된 머티리얼 슬롯입니다.")
+	MARK_AS_COMPONENT("스태틱 메시 컴포넌트", "스태틱 메시를 렌더링하는 컴포넌트입니다.")
+	ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Static Mesh", true)
+	ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true)
 END_PROPERTIES()
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
-	SetStaticMesh("Data/cube-tex.obj");     // 임시 기본 static mesh 설정
+	SetStaticMesh(GDataDir + "/cube-tex.obj");     // 임시 기본 static mesh 설정
 }
 
 UStaticMeshComponent::~UStaticMeshComponent()

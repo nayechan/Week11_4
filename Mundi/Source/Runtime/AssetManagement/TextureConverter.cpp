@@ -178,79 +178,24 @@ bool FTextureConverter::ShouldRegenerateDDS(
 
 FString FTextureConverter::GetDDSCachePath(const FString& SourcePath)
 {
-	namespace fs = std::filesystem;
+	// 1. 원본 경로 정규화 (백슬래시 -> 슬래시)
+	FString NormalizedPath = NormalizePath(SourcePath);
 
-	// 원본 경로를 와이드 문자열로 변환 (한글 경로 지원)
-	FWideString WSourcePath = UTF8ToWide(SourcePath);
-	fs::path SourceFile(WSourcePath);
-	fs::path RelativePath;
-
-	// 이미 DDS 캐시 경로인지 확인 (TextureCache 포함 여부)
-	FString GenericSourcePath = SourceFile.generic_string();
-	if (GenericSourcePath.find("DerivedDataCache") != FString::npos &&
-	    GenericSourcePath.find(".dds") != FString::npos)
+	// 2. 이미 DDS 캐시 경로인지 확인
+	if (NormalizedPath.find(GCacheDir) != FString::npos &&
+		NormalizedPath.find(".dds") != FString::npos)
 	{
-		// 이미 DDS 캐시 경로면 그대로 반환
-		return SourcePath;
+		return NormalizedPath;
 	}
 
-	// Data 디렉토리 경로 (상대 경로 방식)
-	fs::path DataDir("Data");
+	// 3. 경로 변환
+	// (PathUtils::ConvertDataPathToCachePath가 절대/상대 경로 및 Data/ 접두사 처리를 모두 담당)
+	FString CachePath = ConvertDataPathToCachePath(NormalizedPath);
 
-	if (SourceFile.is_absolute())
-	{
-		// 절대 경로인 경우: Data 디렉토리 기준 상대 경로로 변환 시도
-		fs::path CurrentDir = fs::current_path();
-		fs::path AbsDataDir = CurrentDir / DataDir;
+	// 4. .dds 확장자 추가
+	CachePath += ".dds";
 
-		std::error_code ec;
-		RelativePath = fs::relative(SourceFile, AbsDataDir, ec);
-
-		if (ec || RelativePath.empty() || RelativePath.wstring().find(L"..") == 0)
-		{
-			// Data 디렉토리 외부 파일이면 파일명만 사용
-			RelativePath = SourceFile.filename();
-		}
-	}
-	else
-	{
-		// 이미 상대 경로인 경우
-		RelativePath = SourceFile;
-
-		// "Data/" 또는 "Data\\" 로 시작하면 제거
-		// fs::path는 내부적으로 경로 구분자를 정규화하므로 generic_string() 사용
-		FString GenericPath = RelativePath.generic_string();
-
-		if (GenericPath.find("Data/") == 0)
-		{
-			// "Data/" 제거 (5글자) - UTF-8 인코딩 보존
-			FString SubPath = GenericPath.substr(5);
-			RelativePath = fs::path(UTF8ToWide(SubPath));
-		}
-		else if (GenericPath.size() >= 5 &&
-		         (GenericPath[0] == 'D' || GenericPath[0] == 'd') &&
-		         (GenericPath[1] == 'a' || GenericPath[1] == 'A') &&
-		         (GenericPath[2] == 't' || GenericPath[2] == 'T') &&
-		         (GenericPath[3] == 'a' || GenericPath[3] == 'A') &&
-		         (GenericPath[4] == '/' || GenericPath[4] == '\\'))
-		{
-			// 대소문자 구분 없이 "Data/" 제거 - UTF-8 인코딩 보존
-			FString SubPath = GenericPath.substr(5);
-			RelativePath = fs::path(UTF8ToWide(SubPath));
-		}
-	}
-
-	// 캐시 경로 생성: Data/TextureCache/<relative_path>/<filename>.dds (상대 경로)
-	fs::path CachePath = "DerivedDataCache" / RelativePath;
-	CachePath = fs::path(CachePath.wstring() + L".dds");
-
-	// 와이드 문자열을 UTF-8로 변환 (한글 경로 지원)
-	FString Result = WideToUTF8(CachePath.wstring());
-
-	// 경로 정규화: 모든 백슬래시를 슬래시로 변환하여 일관성 유지
-	std::replace(Result.begin(), Result.end(), '\\', '/');
-
-	return Result;
+	return NormalizePath(CachePath);
 }
 
 bool FTextureConverter::IsSupportedFormat(const FString& Extension)

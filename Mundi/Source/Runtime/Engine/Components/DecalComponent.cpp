@@ -11,7 +11,7 @@ IMPLEMENT_CLASS(UDecalComponent)
 
 BEGIN_PROPERTIES(UDecalComponent)
 	MARK_AS_COMPONENT("데칼 컴포넌트", "표면에 투영되는 데칼 효과를 생성합니다.")
-	ADD_PROPERTY_TEXTURE(UTexture*, DecalTexture, "Decal", true, "데칼 텍스처입니다.")
+	ADD_PROPERTY_TEXTURE(UTexture*, DecalTexture, "Decal", true)
 	ADD_PROPERTY_RANGE(float, DecalOpacity, "Decal", 0.0f, 1.0f, true, "데칼 불투명도입니다.")
 	ADD_PROPERTY_RANGE(float, FadeSpeed, "Decal", 0.0f, 10.0f, true, "페이드 속도입니다 (초당 변화량).")
 END_PROPERTIES()
@@ -19,7 +19,7 @@ END_PROPERTIES()
 UDecalComponent::UDecalComponent()
 {
 	UResourceManager::GetInstance().Load<UMaterial>("Shaders/Effects/Decal.hlsl");
-	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/Textures/grass.jpg");
+	DecalTexture = UResourceManager::GetInstance().Load<UTexture>(GDataDir + "/Textures/grass.jpg");
 	SetTickEnabled(true);
 	SetCanEverTick(true);
 }
@@ -58,11 +58,11 @@ void UDecalComponent::OnRegister(UWorld* InWorld)
 	if (!SpriteComponent)
 	{
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
-		SpriteComponent->SetTextureName("Data/UI/Icons/S_DecalActorIcon.dds");
+		SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/S_DecalActorIcon.dds");
 
 		CREATE_EDITOR_COMPONENT(DirectionGizmo, UGizmoArrowComponent);
 		// Set gizmo mesh (using the same mesh as GizmoActor's arrow)
-		DirectionGizmo->SetStaticMesh("Data/Gizmo/TranslationHandle.obj");
+		DirectionGizmo->SetStaticMesh(GDataDir + "/Gizmo/TranslationHandle.obj");
 		DirectionGizmo->SetMaterialByName(0, "Shaders/UI/Gizmo.hlsl");
 
 		// Use world-space scale (not screen-constant scale like typical gizmos)

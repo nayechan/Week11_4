@@ -671,7 +671,7 @@ for (auto& ch : ext) ch = static_cast<wchar_t>(::towlower(ch));
     {
         // Fallback: Data 디렉토리 아래에서 파일명 일치 검색
         std::filesystem::path fname = std::filesystem::path(FilePath).filename();
-        std::filesystem::path dataRoot = std::filesystem::absolute("Data");
+        std::filesystem::path dataRoot = std::filesystem::absolute(GDataDir);
         bool retried = false;
         try {
             for (auto& entry : std::filesystem::recursive_directory_iterator(dataRoot))

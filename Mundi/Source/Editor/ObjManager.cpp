@@ -75,7 +75,7 @@ namespace
 				{
 					try
 					{
-						// std::stof는 std::string을 인자로 받음
+						// std::stof는 FString을 인자로 받음
 						return std::stof(InOptions[i + 1]);
 					}
 					catch (...)
@@ -139,7 +139,7 @@ bool GetMtlDependencies(const FString& ObjPath, TArray<FString>& OutMtlFilePaths
 	}
 
 	fs::path BaseDir = fs::path(ObjPath).parent_path();
-	std::string Line;
+	FString Line;
 
 	while (std::getline(InFile, Line))
 	{
@@ -150,7 +150,7 @@ bool GetMtlDependencies(const FString& ObjPath, TArray<FString>& OutMtlFilePaths
 		if (Line.rfind("mtllib ", 0) == 0) // "mtllib "으로 시작하는지 확인
 		{
 			// "mtllib " 다음의 모든 문자열을 경로로 추출합니다.
-			std::string MtlFileName = Line.substr(7);
+			FString MtlFileName = Line.substr(7);
 			if (!MtlFileName.empty())
 			{
 				fs::path FullPath = fs::weakly_canonical(BaseDir / MtlFileName);
@@ -218,7 +218,7 @@ bool ShouldRegenerateCache(const FString& ObjPath, const FString& BinPath, const
 
 void FObjManager::Preload()
 {
-	const fs::path DataDir("Data");
+	const fs::path DataDir(GDataDir);
 
 	if (!fs::exists(DataDir) || !fs::is_directory(DataDir))
 	{
@@ -235,7 +235,7 @@ void FObjManager::Preload()
 			continue;
 
 		const fs::path& Path = Entry.path();
-		std::string Extension = Path.extension().string();
+		FString Extension = Path.extension().string();
 		std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 		if (Extension == ".obj")
@@ -286,7 +286,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 	std::filesystem::path Path(NormalizedPathStr);
 
 	// 2. 파일 경로 설정
-	std::string Extension = Path.extension().string();
+	FString Extension = Path.extension().string();
 	std::transform(Extension.begin(), Extension.end(), Extension.begin(),
 		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
@@ -296,8 +296,19 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 		return nullptr;
 	}
 
-	const FString BinPathFileName = NormalizedPathStr + ".bin";
-	const FString MatBinPathFileName = NormalizedPathStr + ".mat.bin";
+#ifdef USE_OBJ_CACHE
+	// 2-1. 캐시 파일 경로 설정
+	FString CachePathStr = ConvertDataPathToCachePath(NormalizedPathStr);
+
+	const FString BinPathFileName = CachePathStr + ".bin";
+	const FString MatBinPathFileName = CachePathStr + ".mat.bin";
+
+	// 캐시를 저장할 디렉토리가 없으면 생성
+	fs::path CacheFileDirPath(BinPathFileName);
+	if (CacheFileDirPath.has_parent_path())
+	{
+		fs::create_directories(CacheFileDirPath.parent_path());
+	}
 
 	// 3. 캐시 데이터 로드 시도 및 실패 시 재생성 로직
 	FStaticMesh* NewFStaticMesh = new FStaticMesh();
@@ -331,6 +342,8 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 			Serialization::ReadArray<FMaterialInfo>(MatReader, MaterialInfos);
 			MatReader.Close();
 
+			NewFStaticMesh->CacheFilePath = BinPathFileName;
+
 			// 모든 로드가 성공적으로 완료됨
 			bLoadedSuccessfully = true;
 			UE_LOG("Successfully loaded '%s' from cache.", NormalizedPathStr.c_str());
@@ -351,6 +364,11 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 			bLoadedSuccessfully = false;
 		}
 	}
+#else
+	FStaticMesh* NewFStaticMesh = new FStaticMesh();
+	TArray<FMaterialInfo> MaterialInfos;
+	bool bLoadedSuccessfully = false;
+#endif // USE_OBJ_CACHE
 
 	// 기본 머티리얼 주입 로직을 헬퍼 람다로 분리합니다.
 	auto EnsureDefaultMaterial = [&](FStaticMesh* Mesh, TArray<FMaterialInfo>& Materials)
@@ -395,6 +413,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 		// 캐시 저장 *직전에* 기본 머티리얼 로직을 호출합니다.
 		EnsureDefaultMaterial(NewFStaticMesh, MaterialInfos);
 
+#ifdef USE_OBJ_CACHE
 		// 새로운 캐시 파일(.bin) 저장 (이제 올바른 데이터가 저장됨)
 		FWindowsBinWriter Writer(BinPathFileName);
 		Writer << *NewFStaticMesh;
@@ -405,6 +424,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 		MatWriter.Close();
 
 		UE_LOG("Cache regeneration complete for '%s'.", NormalizedPathStr.c_str());
+#endif // USE_OBJ_CACHE
 	}
 	else
 	{
@@ -412,6 +432,7 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 		// 구버전 캐시(기본 머티리얼이 없는)일 수 있으므로, 동일한 검사를 수행합니다.
 		if (EnsureDefaultMaterial(NewFStaticMesh, MaterialInfos))
 		{
+#ifdef USE_OBJ_CACHE
 			// 변경된 경우, 캐시를 갱신합니다.
 			UE_LOG("Updating outdated cache for '%s' with default material.", NormalizedPathStr.c_str());
 			try
@@ -427,73 +448,41 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 			{
 				UE_LOG("Failed to update cache for default material: %s", e.what());
 			}
+#endif // USE_OBJ_CACHE
 		}
 	}
 
 	// 4. 머티리얼 및 텍스처 경로 처리 (공통 로직)
 	// 한글 경로 지원: UTF-8 → UTF-16 변환 후 경로 처리
+
+	// .obj 파일의 기본 디렉토리를 FString으로 미리 계산 (한글 경로 지원)
 	FWideString WNormalizedPath = UTF8ToWide(NormalizedPathStr);
-	fs::path BaseDir = fs::path(WNormalizedPath).parent_path();
+	fs::path BaseDirFs = fs::path(WNormalizedPath).parent_path();
+	FString ObjBaseDir = NormalizePath(WideToUTF8(BaseDirFs.wstring()));
 
 	for (auto& MaterialInfo : MaterialInfos)
 	{
-		auto FixPath = [&](FString& TexturePath)
-			{
-				if (TexturePath.empty()) return;
+		// 람다 함수 대신 PathUtils 유틸리티 함수를 직접 호출
+		MaterialInfo.DiffuseTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.DiffuseTextureFileName, ObjBaseDir);
 
-				try
-				{
-					// UTF-8 → UTF-16 변환
-					FWideString WTexPath = UTF8ToWide(TexturePath);
-					fs::path TexPath(WTexPath);
+		MaterialInfo.NormalTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.NormalTextureFileName, ObjBaseDir);
 
-					// "Data/"로 시작하는 경로는 이미 프로젝트 루트 기준 상대 경로이므로 변환하지 않음
-					std::string GenericTexPath = TexPath.generic_string();
-					if (GenericTexPath.find("Data/") == 0 ||
-					    (GenericTexPath.size() >= 5 &&
-					     (GenericTexPath[0] == 'D' || GenericTexPath[0] == 'd') &&
-					     (GenericTexPath[1] == 'a' || GenericTexPath[1] == 'A') &&
-					     (GenericTexPath[2] == 't' || GenericTexPath[2] == 'T') &&
-					     (GenericTexPath[3] == 'a' || GenericTexPath[3] == 'A') &&
-					     (GenericTexPath[4] == '/' || GenericTexPath[4] == '\\')))
-					{
-						// 이미 올바른 프로젝트 루트 기준 경로이므로 슬래시만 정규화
-						TexturePath = NormalizePath(TexturePath);
-						return;
-					}
+		MaterialInfo.TransparencyTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.TransparencyTextureFileName, ObjBaseDir);
 
-					if (!TexPath.is_absolute())
-					{
-						// 절대 경로로 변환
-						fs::path AbsolutePath = (BaseDir / TexPath).lexically_normal();
+		MaterialInfo.AmbientTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.AmbientTextureFileName, ObjBaseDir);
 
-						// 현재 작업 디렉토리 기준 상대 경로로 변환
-						fs::path CurrentDir = fs::current_path();
-						std::error_code ec;
-						fs::path RelativePath = fs::relative(AbsolutePath, CurrentDir, ec);
+		MaterialInfo.SpecularTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.SpecularTextureFileName, ObjBaseDir);
 
-						// 상대 경로 변환 성공 시 사용, 실패 시 절대 경로 유지
-						fs::path FinalPath = (ec || RelativePath.empty()) ? AbsolutePath : RelativePath;
+		MaterialInfo.SpecularExponentTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.SpecularExponentTextureFileName, ObjBaseDir);
 
-						// UTF-16 → UTF-8 변환하여 다시 저장
-						TexturePath = WideToUTF8(FinalPath.wstring());
-						TexturePath = NormalizePath(TexturePath);
-					}
-				}
-				catch (const std::exception& e)
-				{
-					UE_LOG("[FixPath] Error processing texture path '%s': %s", TexturePath.c_str(), e.what());
-					// 예외 발생 시 원본 경로 유지
-				}
-			};
-
-		FixPath(MaterialInfo.DiffuseTextureFileName);
-		FixPath(MaterialInfo.NormalTextureFileName);
-		FixPath(MaterialInfo.TransparencyTextureFileName);
-		FixPath(MaterialInfo.AmbientTextureFileName);
-		FixPath(MaterialInfo.SpecularTextureFileName);
-		FixPath(MaterialInfo.SpecularExponentTextureFileName);
-		FixPath(MaterialInfo.EmissiveTextureFileName);
+		MaterialInfo.EmissiveTextureFileName =
+			ResolveAssetRelativePath(MaterialInfo.EmissiveTextureFileName, ObjBaseDir);
 	}
 
 	// 루프가 시작되기 전에 기본 UberLit 셰이더 포인터를 한 번만 가져옵니다.

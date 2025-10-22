@@ -14,6 +14,8 @@
 #include "LightComponentBase.h"
 
 // 정적 멤버 변수 초기화
+TArray<FString> UPropertyRenderer::CachedStaticMeshPaths;
+TArray<const char*> UPropertyRenderer::CachedStaticMeshItems;
 TArray<FString> UPropertyRenderer::CachedMaterialPaths;
 TArray<const char*> UPropertyRenderer::CachedMaterialItems;
 TArray<FString> UPropertyRenderer::CachedShaderPaths;
@@ -23,6 +25,9 @@ TArray<const char*> UPropertyRenderer::CachedTextureItems;
 
 bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectInstance)
 {
+	// 렌더링에 필요한 리소스가 캐시되었는지 확인하고, 없으면 로드합니다.
+	CacheResources();
+
 	bool bChanged = false;
 
 	switch (Property.Type)
@@ -196,14 +201,26 @@ void UPropertyRenderer::RenderAllPropertiesWithInheritance(UObject* Object)
 
 // ===== 리소스 캐싱 =====
 
-void UPropertyRenderer::CacheMaterialResources()
+void UPropertyRenderer::CacheResources()
 {
 	// 매번 캐싱을 새로 하도록 변경, NOTE: 추후에 변경된 것만 추가하도록 변경 필요
-	ClearMaterialResourcesCache();
+	ClearResourcesCache();
 
 	UResourceManager& ResMgr = UResourceManager::GetInstance();
 
-	// 1. 머티리얼
+	// 1. 스태틱 메시
+	if (CachedStaticMeshPaths.IsEmpty() && CachedStaticMeshItems.IsEmpty())
+	{
+		CachedStaticMeshPaths = ResMgr.GetAllFilePaths<UStaticMesh>();
+		for (const FString& path : CachedStaticMeshPaths)
+		{
+			CachedStaticMeshItems.push_back(path.c_str());
+		}
+		CachedStaticMeshPaths.Insert("", 0);
+		CachedStaticMeshItems.Insert("None", 0);
+	}
+
+	// 2. 머티리얼
 	if (CachedMaterialPaths.IsEmpty() && CachedTexturePaths.IsEmpty())
 	{
 		CachedMaterialPaths = ResMgr.GetAllFilePaths<UMaterial>();
@@ -214,7 +231,7 @@ void UPropertyRenderer::CacheMaterialResources()
 		}
 	}
 
-	// 2. 셰이더
+	// 3. 셰이더
 	if (CachedShaderPaths.IsEmpty() && CachedShaderItems.IsEmpty())
 	{
 		CachedShaderPaths = ResMgr.GetAllFilePaths<UShader>();
@@ -225,7 +242,7 @@ void UPropertyRenderer::CacheMaterialResources()
 		}
 	}
 
-	// 3. 텍스처
+	// 4. 텍스처
 	if (CachedTexturePaths.IsEmpty() && CachedTextureItems.IsEmpty())
 	{
 		CachedTexturePaths = ResMgr.GetAllFilePaths<UTexture>();
@@ -237,8 +254,10 @@ void UPropertyRenderer::CacheMaterialResources()
 	}
 }
 
-void UPropertyRenderer::ClearMaterialResourcesCache()
+void UPropertyRenderer::ClearResourcesCache()
 {
+	CachedStaticMeshPaths.Empty();
+	CachedStaticMeshItems.Empty();
 	CachedMaterialPaths.Empty();
 	CachedMaterialItems.Empty();
 	CachedShaderPaths.Empty();
@@ -359,9 +378,6 @@ bool UPropertyRenderer::RenderStructProperty(const FProperty& Prop, void* Instan
 
 bool UPropertyRenderer::RenderTextureProperty(const FProperty& Prop, void* Instance)
 {
-	// 텍스처 리소스 캐시
-	CacheMaterialResources();
-
 	UTexture** TexturePtr = Prop.GetValuePtr<UTexture*>(Instance);
 	UTexture* CurrentTexture = *TexturePtr;
 	UTexture* NewTexture = nullptr;
@@ -404,25 +420,16 @@ bool UPropertyRenderer::RenderStaticMeshProperty(const FProperty& Prop, void* In
 		CurrentPath = (*MeshPtr)->GetFilePath();
 	}
 
-	// 참고: StaticMesh는 대용량일 수 있으므로 Material/Texture와 달리 매번 리스트를 가져옵니다.
-	// 만약 StaticMesh도 캐시가 필요하다면 CacheMaterialResources에 추가해야 합니다.
-	const TArray<FString> MeshPaths = UResourceManager::GetInstance().GetAllFilePaths<UStaticMesh>();
-
-	if (MeshPaths.empty())
+	if (CachedStaticMeshPaths.empty())
 	{
 		ImGui::Text("%s: <No Meshes>", Prop.Name);
 		return false;
 	}
 
-	TArray<const char*> Items;
-	Items.reserve(MeshPaths.size());
-	for (const FString& path : MeshPaths)
-		Items.push_back(path.c_str());
-
 	int SelectedIdx = -1;
-	for (int i = 0; i < static_cast<int>(MeshPaths.size()); ++i)
+	for (int i = 0; i < static_cast<int>(CachedStaticMeshPaths.size()); ++i)
 	{
-		if (MeshPaths[i] == CurrentPath)
+		if (CachedStaticMeshPaths[i] == CurrentPath)
 		{
 			SelectedIdx = i;
 			break;
@@ -430,22 +437,44 @@ bool UPropertyRenderer::RenderStaticMeshProperty(const FProperty& Prop, void* In
 	}
 
 	ImGui::SetNextItemWidth(240);
-	if (ImGui::Combo(Prop.Name, &SelectedIdx, Items.data(), static_cast<int>(Items.size())))
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, CachedStaticMeshItems.data(), static_cast<int>(CachedStaticMeshItems.size())))
 	{
-		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(MeshPaths.size()))
+		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(CachedStaticMeshPaths.size()))
 		{
 			// 컴포넌트별 Setter 호출
 			UObject* Object = static_cast<UObject*>(Instance);
 			if (UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(Object))
 			{
-				StaticMeshComponent->SetStaticMesh(MeshPaths[SelectedIdx]);
+				StaticMeshComponent->SetStaticMesh(CachedStaticMeshPaths[SelectedIdx]);
 			}
 			else
 			{
-				*MeshPtr = UResourceManager::GetInstance().Load<UStaticMesh>(MeshPaths[SelectedIdx]);
+				*MeshPtr = UResourceManager::GetInstance().Load<UStaticMesh>(CachedStaticMeshPaths[SelectedIdx]);
 			}
 			return true;
 		}
+	}
+
+	// 닫힌 콤보박스 '텍스트' 부분에 마우스를 올렸을 때 전체 경로 툴팁
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+
+		// 1. 원본 경로 표시 (CurrentTexturePath는 null일 때 "None"을 가짐)
+		ImGui::TextUnformatted(CurrentPath.c_str());
+
+		// 2. CurrentTexture가 유효하고 캐시 파일 경로가 있다면 추가로 표시
+		if ((*MeshPtr))
+		{
+			const FString& CachedPath = (*MeshPtr)->GetCacheFilePath();
+			if (!CachedPath.empty())
+			{
+				ImGui::Separator(); // 원본 경로와 구분하기 위해 선 추가
+				ImGui::Text("Cache: %s", CachedPath.c_str());
+			}
+		}
+
+		ImGui::EndTooltip();
 	}
 
 	return false;
@@ -453,9 +482,6 @@ bool UPropertyRenderer::RenderStaticMeshProperty(const FProperty& Prop, void* In
 
 bool UPropertyRenderer::RenderMaterialProperty(const FProperty& Prop, void* Instance)
 {
-	// 렌더링에 필요한 리소스가 캐시되었는지 확인하고, 없으면 로드합니다.
-	CacheMaterialResources();
-
 	UMaterialInterface** MaterialPtr = Prop.GetValuePtr<UMaterialInterface*>(Instance);
 	if (!MaterialPtr)
 	{
@@ -471,9 +497,6 @@ bool UPropertyRenderer::RenderMaterialProperty(const FProperty& Prop, void* Inst
 
 bool UPropertyRenderer::RenderMaterialArrayProperty(const FProperty& Prop, void* Instance)
 {
-	// 렌더링에 필요한 리소스가 캐시되었는지 확인하고, 없으면 로드합니다.
-	CacheMaterialResources();
-
 	TArray<UMaterialInterface*>* MaterialSlots = Prop.GetValuePtr<TArray<UMaterialInterface*>>(Instance);
 	if (!MaterialSlots)
 	{
