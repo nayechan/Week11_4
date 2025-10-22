@@ -9,11 +9,6 @@
 // #define LIGHTING_MODEL_LAMBERT 1
 // #define LIGHTING_MODEL_PHONG 1
 
-// --- 감마 보정 옵션 ---
-// StaticMeshShader 호환을 위해 기본적으로 꺼져있음
-// 조명 사용 시 활성화 권장
-// #define USE_GAMMA_CORRECTION 1
-
 // --- 공통 조명 시스템 include ---
 #include "../Common/LightStructures.hlsl"
 #include "../Common/LightingBuffers.hlsl"
@@ -22,29 +17,29 @@
 // --- Material 구조체 (OBJ 머티리얼 정보) ---
 struct FMaterial
 {
-    float3 DiffuseColor;        // Kd - Diffuse color
-    float OpticalDensity;       // Ni - Optical density (index of refraction)
-    float3 AmbientColor;        // Ka - Ambient color
-    float Transparency;         // Tr or d - Transparency (0=opaque, 1=transparent)
-    float3 SpecularColor;       // Ks - Specular color
-    float SpecularExponent;     // Ns - Specular exponent (shininess)
-    float3 EmissiveColor;       // Ke - Emissive color (self-illumination)
-    uint IlluminationModel;     // illum - Illumination model
-    float3 TransmissionFilter;  // Tf - Transmission filter color
-    float Padding;              // Padding for alignment
+    float3 DiffuseColor;        // Kd - Diffuse 색상
+    float OpticalDensity;       // Ni - 광학 밀도 (굴절률)
+    float3 AmbientColor;        // Ka - Ambient 색상
+    float Transparency;         // Tr or d - 투명도 (0=불투명, 1=투명)
+    float3 SpecularColor;       // Ks - Specular 색상
+    float SpecularExponent;     // Ns - Specular 지수 (광택도)
+    float3 EmissiveColor;       // Ke - 자체발광 색상
+    uint IlluminationModel;     // illum - 조명 모델
+    float3 TransmissionFilter;  // Tf - 투과 필터 색상
+    float Padding;              // 정렬을 위한 패딩
 };
 
 // --- 상수 버퍼 (Constant Buffers) ---
-// Extended to support both lighting and StaticMeshShader features
+// 조명과 StaticMeshShader 기능을 모두 지원하도록 확장
 
-// b0: ModelBuffer (VS) - Matches ModelBufferType exactly (128 bytes)
+// b0: ModelBuffer (VS) - ModelBufferType과 정확히 일치 (128 bytes)
 cbuffer ModelBuffer : register(b0)
 {
     row_major float4x4 WorldMatrix;              // 64 bytes
-    row_major float4x4 WorldInverseTranspose;    // 64 bytes - For correct normal transformation
+    row_major float4x4 WorldInverseTranspose;    // 64 bytes - 올바른 노멀 변환을 위함
 };
 
-// b1: ViewProjBuffer (VS) - Matches ViewProjBufferType
+// b1: ViewProjBuffer (VS) - ViewProjBufferType과 일치
 cbuffer ViewProjBuffer : register(b1)
 {
     row_major float4x4 ViewMatrix;
@@ -53,16 +48,16 @@ cbuffer ViewProjBuffer : register(b1)
     row_major float4x4 InverseProjectionMatrix;
 };
 
-// b3: ColorBuffer (PS) - For color blending/lerping
+// b3: ColorBuffer (PS) - 색상 블렌딩/lerp용
 cbuffer ColorBuffer : register(b3)
 {
-    float4 LerpColor;   // Color to blend with (alpha controls blend amount)
+    float4 LerpColor;   // 블렌드할 색상 (알파가 블렌드 양 제어)
     uint UUID;
 };
 
-// b4: PixelConstBuffer (VS+PS) - Material information from OBJ files
-// Must match FPixelConstBufferType exactly!
-// Note: Used in Vertex Shader for GOURAUD lighting model
+// b4: PixelConstBuffer (VS+PS) - OBJ 파일의 머티리얼 정보
+// FPixelConstBufferType과 정확히 일치해야 함!
+// 주의: GOURAUD 조명 모델에서는 Vertex Shader에서 사용됨
 cbuffer PixelConstBuffer : register(b4)
 {
     FMaterial Material;         // 64 bytes
@@ -107,8 +102,8 @@ struct PS_OUTPUT
 // LightingCommon.hlsl의 CalculateSpecular는 white specular를 사용
 // UberLit은 Material.SpecularColor를 지원하므로 오버라이드 필요
 
-// Material-aware Specular (Blinn-Phong) - Override for UberLit
-// This overrides the default CalculateSpecular from LightingCommon.hlsl
+// Material-aware Specular (Blinn-Phong) - UberLit용 오버라이드
+// LightingCommon.hlsl의 기본 CalculateSpecular를 오버라이드
 #define CalculateSpecular CalculateSpecularWithMaterial
 
 float3 CalculateSpecularWithMaterial(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
@@ -117,7 +112,7 @@ float3 CalculateSpecularWithMaterial(float3 lightDir, float3 normal, float3 view
     float NdotH = max(dot(normal, halfVec), 0.0f);
     float specular = pow(NdotH, specularPower);
 
-    // Apply material's specular color (Ks) - metallic materials have colored specular!
+    // 머티리얼의 스페큘러 색상 (Ks) 적용 - 금속 머티리얼은 컬러 스페큘러를 가짐!
     float3 specularMaterial = bHasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f);
     return lightColor.rgb * specularMaterial * specular;
 }
@@ -129,19 +124,19 @@ PS_INPUT mainVS(VS_INPUT Input)
 {
     PS_INPUT Out;
 
-    // Transform position to world space first
+    // 위치를 월드 공간으로 먼저 변환
     float4 worldPos = mul(float4(Input.Position, 1.0f), WorldMatrix);
     Out.WorldPos = worldPos.xyz;
 
-    // Then to view space
+    // 뷰 공간으로 변환
     float4 viewPos = mul(worldPos, ViewMatrix);
 
-    // Finally to clip space
+    // 최종적으로 클립 공간으로 변환
     Out.Position = mul(viewPos, ProjectionMatrix);
 
-    // Transform normal to world space
-    // Using WorldInverseTranspose for correct normal transformation with non-uniform scale
-    // Normal vectors transform by transpose(inverse(WorldMatrix))
+    // 노멀을 월드 공간으로 변환
+    // 비균등 스케일에서 올바른 노멀 변환을 위해 WorldInverseTranspose 사용
+    // 노멀 벡터는 transpose(inverse(WorldMatrix))로 변환됨
     float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldInverseTranspose));
     Out.Normal = worldNormal;
     float3 Tangent = mul(Input.Tangent.xyz, (float3x3) WorldMatrix);
@@ -150,33 +145,34 @@ PS_INPUT mainVS(VS_INPUT Input)
     TBN._m00_m01_m02 = Tangent;
     TBN._m10_m11_m12 = BiTangent;
     TBN._m20_m21_m22 = worldNormal;
-    
+
     Out.TBN = TBN;
 
     Out.TexCoord = Input.TexCoord;
 
-    // Use SpecularExponent from material, or default value if no material
+    // 머티리얼의 SpecularExponent 사용, 머티리얼이 없으면 기본값 사용
     float specPower = bHasMaterial ? Material.SpecularExponent : 32.0f;
 
 #if LIGHTING_MODEL_GOURAUD
-    // Gouraud Shading: Calculate lighting per-vertex (diffuse + specular)
+    // Gouraud Shading: 정점별 조명 계산 (diffuse + specular)
     float3 finalColor = float3(0.0f, 0.0f, 0.0f);
 
-    // Calculate view direction for specular
+    // Specular를 위한 뷰 방향 계산
     float3 viewDir = normalize(CameraPosition - Out.WorldPos);
 
-    // Determine base color (same logic as Lambert/Phong for consistency)
+    // 베이스 색상 결정 (일관성을 위해 Lambert/Phong과 동일한 로직)
     float4 baseColor = Input.Color;
     if (bHasMaterial)
     {
-        // Use material diffuse color
-        // Note: Textures will be multiplied in pixel shader
+        // 머티리얼 diffuse 색상 사용
+        // 주의: 텍스처는 픽셀 셰이더에서 곱해짐
         baseColor.rgb = Material.DiffuseColor;
-        baseColor.a = 1.0f;  // Ensure alpha is set properly
+        baseColor.a = 1.0f;  // 알파가 올바르게 설정되도록 보장
     }
 
-    // Ambient light
-    finalColor += CalculateAmbientLight(AmbientLight, baseColor);
+    // Ambient light (OBJ/MTL 표준: La × Ka)
+    float3 Ka = bHasMaterial ? Material.AmbientColor : baseColor.rgb;
+    finalColor += CalculateAmbientLight(AmbientLight, Ka);
 
     // Directional light (diffuse + specular)
     finalColor += CalculateDirectionalLight(DirectionalLight, worldNormal, viewDir, baseColor, true, specPower);
@@ -196,15 +192,15 @@ PS_INPUT mainVS(VS_INPUT Input)
     Out.Color = float4(finalColor, baseColor.a);
 
 #elif LIGHTING_MODEL_LAMBERT
-    // Lambert Shading: Pass data to pixel shader for per-pixel calculation
+    // Lambert Shading: 픽셀별 계산을 위해 픽셀 셰이더로 데이터 전달
     Out.Color = Input.Color;
 
 #elif LIGHTING_MODEL_PHONG
-    // Phong Shading: Pass data to pixel shader for per-pixel calculation
+    // Phong Shading: 픽셀별 계산을 위해 픽셀 셰이더로 데이터 전달
     Out.Color = Input.Color;
 
 #else
-    // No lighting model defined - pass vertex color as-is
+    // 조명 모델 미정의 - 정점 색상을 그대로 전달
     Out.Color = Input.Color;
 
 #endif
@@ -228,78 +224,81 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     return Output;
 #endif
 
-    // Apply UV scrolling if enabled
+    // UV 스크롤링 적용 (활성화된 경우)
     float2 uv = Input.TexCoord;
     //if (bHasMaterial && bHasTexture)
     //{
     //    uv += UVScrollSpeed * UVScrollTime;
     //}
 
-    // Sample texture
+    // 텍스처 샘플링
     float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv);
 
-    // Use SpecularExponent from material, or default value if no material
+    // 머티리얼의 SpecularExponent 사용, 머티리얼이 없으면 기본값 사용
     float specPower = bHasMaterial ? Material.SpecularExponent : 32.0f;
 
 #if LIGHTING_MODEL_GOURAUD
-    // Gouraud Shading: Lighting already calculated in vertex shader
+    // Gouraud Shading: 조명이 이미 버텍스 셰이더에서 계산됨
     float4 finalPixel = Input.Color;
 
-    // Apply texture or material color
+    // 텍스처 또는 머티리얼 색상 적용
     if (bHasTexture)
     {
-        // Texture modulation: multiply lighting result by texture
+        // 텍스처 모듈레이션: 조명 결과에 텍스처 곱하기
         finalPixel.rgb *= texColor.rgb;
     }
-    // Note: Material.DiffuseColor is already applied in Vertex Shader
-    // No additional color application needed here
+    // 주의: Material.DiffuseColor는 이미 Vertex Shader에서 적용됨
+    // 여기서 추가 색상 적용 불필요
 
-    // Add emissive (self-illumination) - not affected by lighting
+    // 자체발광 추가 (조명의 영향을 받지 않음)
     if (bHasMaterial)
     {
         finalPixel.rgb += Material.EmissiveColor;
     }
 
-    // Apply material/color blending for non-material objects
+    // 비머티리얼 오브젝트의 머티리얼/색상 블렌딩 적용
     if (!bHasMaterial)
     {
         finalPixel.rgb = lerp(finalPixel.rgb, LerpColor.rgb, LerpColor.a);
     }
-    
-#ifdef USE_GAMMA_CORRECTION
-    // Apply gamma correction (Linear to sRGB)
-    finalPixel.rgb = LinearToSRGB(finalPixel.rgb);
-#endif
+
+    // 머티리얼 투명도 적용 (0=불투명, 1=투명)
+    if (bHasMaterial)
+    {
+        finalPixel.a *= (1.0f - Material.Transparency);
+    }
+
     Output.Color = finalPixel;
     return Output;
 
 #elif LIGHTING_MODEL_LAMBERT
-    // Lambert Shading: Calculate diffuse lighting per-pixel (no specular)
+    // Lambert Shading: 픽셀별 디퓨즈 조명 계산 (스페큘러 없음)
     float3 normal = normalize(Input.Normal);
     float4 baseColor = Input.Color;
 
-    // Start with texture if available
+    // 텍스처가 있으면 텍스처로 시작
     if (bHasTexture)
     {
         baseColor.rgb = texColor.rgb;
     }
     else if (bHasMaterial)
     {
-        // No texture, use material diffuse color
+        // 텍스처 없음, 머티리얼 diffuse 색상 사용
         baseColor.rgb = Material.DiffuseColor;
     }
     else
     {
-        // No texture and no material, blend with LerpColor
+        // 텍스처와 머티리얼 모두 없음, LerpColor와 블렌드
         baseColor.rgb = lerp(baseColor.rgb, LerpColor.rgb, LerpColor.a);
     }
 
     float3 litColor = float3(0.0f, 0.0f, 0.0f);
 
-    // Ambient light
-    litColor += CalculateAmbientLight(AmbientLight, baseColor);
+    // Ambient light (OBJ/MTL 표준: La × Ka)
+    float3 Ka = bHasMaterial ? Material.AmbientColor : baseColor.rgb;
+    litColor += CalculateAmbientLight(AmbientLight, Ka);
 
-    // Directional light (diffuse only)
+    // Directional light (diffuse만)
     litColor += CalculateDirectionalLight(DirectionalLight, normal, float3(0, 0, 0), baseColor, false, 0.0f);
 
     // 타일 기반 라이트 컬링 적용 (활성화된 경우)
@@ -343,22 +342,26 @@ PS_OUTPUT mainPS(PS_INPUT Input)
         }
     }
 
-    // Add emissive (self-illumination) after lighting calculation
+    // 조명 계산 후 자체발광 추가
     if (bHasMaterial)
     {
         litColor += Material.EmissiveColor;
     }
 
-#ifdef USE_GAMMA_CORRECTION
-    // Apply gamma correction (Linear to sRGB)
-    litColor = LinearToSRGB(litColor);
-#endif
-    Output.Color = float4(litColor, baseColor.a);
-    // Preserve original alpha (lighting doesn't affect transparency)
+    // 원본 알파 보존 (조명은 투명도에 영향 없음)
+    float finalAlpha = baseColor.a;
+
+    // 머티리얼 투명도 적용 (0=불투명, 1=투명)
+    if (bHasMaterial)
+    {
+        finalAlpha *= (1.0f - Material.Transparency);
+    }
+
+    Output.Color = float4(litColor, finalAlpha);
     return Output;
 
 #elif LIGHTING_MODEL_PHONG
-    // Phong Shading: Calculate diffuse and specular lighting per-pixel (Blinn-Phong)
+    // Phong Shading: 픽셀별 디퓨즈와 스페큘러 조명 계산 (Blinn-Phong)
     float3 normal = normalize(Input.Normal);
     if(bHasNormalTexture)
     {
@@ -369,26 +372,27 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     float3 viewDir = normalize(CameraPosition - Input.WorldPos);
     float4 baseColor = Input.Color;
 
-    // Start with texture if available
+    // 텍스처가 있으면 텍스처로 시작
     if (bHasTexture)
     {
         baseColor.rgb = texColor.rgb;
     }
     else if (bHasMaterial)
     {
-        // No texture, use material diffuse color
+        // 텍스처 없음, 머티리얼 diffuse 색상 사용
         baseColor.rgb = Material.DiffuseColor;
     }
     else
     {
-        // No texture and no material, blend with LerpColor
+        // 텍스처와 머티리얼 모두 없음, LerpColor와 블렌드
         baseColor.rgb = lerp(baseColor.rgb, LerpColor.rgb, LerpColor.a);
     }
 
     float3 litColor = float3(0.0f, 0.0f, 0.0f);
 
-    // Ambient light
-    litColor += CalculateAmbientLight(AmbientLight, baseColor);
+    // Ambient light (OBJ/MTL 표준: La × Ka)
+    float3 Ka = bHasMaterial ? Material.AmbientColor : baseColor.rgb;
+    litColor += CalculateAmbientLight(AmbientLight, Ka);
 
     // Directional light (diffuse + specular)
     litColor += CalculateDirectionalLight(DirectionalLight, normal, viewDir, baseColor, true, specPower);
@@ -434,26 +438,29 @@ PS_OUTPUT mainPS(PS_INPUT Input)
         }
     }
 
-    // Add emissive (self-illumination) after lighting calculation
+    // 조명 계산 후 자체발광 추가
     if (bHasMaterial)
     {
         litColor += Material.EmissiveColor;
     }
 
-#ifdef USE_GAMMA_CORRECTION
-    // Apply gamma correction (Linear to sRGB)
-    litColor = LinearToSRGB(litColor);
-#endif
+    // 원본 알파 보존 (조명은 투명도에 영향 없음)
+    float finalAlpha = baseColor.a;
 
-    // Preserve original alpha (lighting doesn't affect transparency)
-    Output.Color = float4(litColor, baseColor.a);
+    // 머티리얼 투명도 적용 (0=불투명, 1=투명)
+    if (bHasMaterial)
+    {
+        finalAlpha *= (1.0f - Material.Transparency);
+    }
+
+    Output.Color = float4(litColor, finalAlpha);
     return Output;
 
 #else
-    // No lighting model defined - use StaticMeshShader behavior
+    // 조명 모델 미정의 - StaticMeshShader 동작 사용
     float4 finalPixel = Input.Color;
 
-    // Apply material/texture blending
+    // 머티리얼/텍스처 블렌딩 적용
     if (bHasMaterial)
     {
         finalPixel.rgb = Material.DiffuseColor;
@@ -461,21 +468,22 @@ PS_OUTPUT mainPS(PS_INPUT Input)
         {
             finalPixel.rgb = texColor.rgb;
         }
-        // Add emissive
+        // 자체발광 추가
         finalPixel.rgb += Material.EmissiveColor;
     }
     else
     {
-        // Blend with LerpColor
+        // LerpColor와 블렌드
         finalPixel.rgb = lerp(finalPixel.rgb, LerpColor.rgb, LerpColor.a);
         finalPixel.rgb *= texColor.rgb;
     }
-    
-#ifdef USE_GAMMA_CORRECTION
-    // Apply gamma correction (Linear to sRGB)
-    finalPixel.rgb = LinearToSRGB(finalPixel.rgb);
-#endif
-    
+
+    // 머티리얼 투명도 적용 (0=불투명, 1=투명)
+    if (bHasMaterial)
+    {
+        finalPixel.a *= (1.0f - Material.Transparency);
+    }
+
     Output.Color = finalPixel;
     return Output;
 #endif
