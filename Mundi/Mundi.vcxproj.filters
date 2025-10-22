@@ -304,12 +304,6 @@
     <ClCompile Include="Source\Slate\USlateManager.cpp">
       <Filter>Source\Slate</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Slate\Widgets\ActorSpawnWidget.cpp">
-      <Filter>Source\Slate\Widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Slate\Widgets\ActorTerminationWidget.cpp">
-      <Filter>Source\Slate\Widgets</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Slate\Widgets\ConsoleWidget.cpp">
       <Filter>Source\Slate\Widgets</Filter>
     </ClCompile>
@@ -317,9 +311,6 @@
       <Filter>Source\Slate\Widgets</Filter>
     </ClCompile>
     <ClCompile Include="Source\Slate\Widgets\MainToolbarWidget.cpp">
-      <Filter>Source\Slate\Widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Slate\Widgets\SceneIOWidget.cpp">
       <Filter>Source\Slate\Widgets</Filter>
     </ClCompile>
     <ClCompile Include="Source\Slate\Widgets\SceneManagerWidget.cpp">
@@ -415,9 +406,15 @@
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Info.cpp">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\Components\MovementComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Components\ProjectileMovementComponent.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Components\RotatingMovementComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Components\MovementComponent.cpp">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Components\ProjectileMovementComponent.cpp">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Components\RotatingMovementComponent.cpp">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClCompile>
   </ItemGroup>
   <!-- ThirdParty/ImGui Files -->
   <!-- Source Files -->
@@ -757,12 +754,6 @@
     <ClInclude Include="Source\Slate\USlateManager.h">
       <Filter>Source\Slate</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Slate\Widgets\ActorSpawnWidget.h">
-      <Filter>Source\Slate\Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Slate\Widgets\ActorTerminationWidget.h">
-      <Filter>Source\Slate\Widgets</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Slate\Widgets\ConsoleWidget.h">
       <Filter>Source\Slate\Widgets</Filter>
     </ClInclude>
@@ -770,9 +761,6 @@
       <Filter>Source\Slate\Widgets</Filter>
     </ClInclude>
     <ClInclude Include="Source\Slate\Widgets\MainToolbarWidget.h">
-      <Filter>Source\Slate\Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Slate\Widgets\SceneIOWidget.h">
       <Filter>Source\Slate\Widgets</Filter>
     </ClInclude>
     <ClInclude Include="Source\Slate\Widgets\SceneManagerWidget.h">
@@ -871,9 +859,15 @@
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Info.h">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Runtime\Engine\Components\MovementComponent.h" />
-    <ClInclude Include="Source\Runtime\Engine\Components\ProjectileMovementComponent.h" />
-    <ClInclude Include="Source\Runtime\Engine\Components\RotatingMovementComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\MovementComponent.h">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Components\ProjectileMovementComponent.h">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Components\RotatingMovementComponent.h">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source">

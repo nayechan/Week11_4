@@ -107,7 +107,9 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 				}
 			}
 
-			RHIDevice->UpdateStructuredBuffer(SpotLightBuffer, SpotLightInfoList.data(), SpotLightNum * sizeof(FSpotLightInfo));
+			RHIDevice->UpdateStructuredBuffer(SpotLightBuffer, SpotLightInfoList.data(), 
+				SpotLightNum * sizeof(FSpotLightInfo));
+
 			bSpotLightDirty = false;
 		}
 

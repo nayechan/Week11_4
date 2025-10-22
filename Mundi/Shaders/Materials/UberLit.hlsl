@@ -208,15 +208,7 @@ PS_OUTPUT mainPS(PS_INPUT Input)
 {
     PS_OUTPUT Output;
     Output.UUID = UUID;
-
-#ifdef VIEWMODE_WORLD_NORMAL
-    // World Normal 시각화: Normal 벡터를 색상으로 변환
-    // Normal 범위: -1~1 → 색상 범위: 0~1
-    float3 normalColor = Input.Normal * 0.5 + 0.5;
-    Output.Color = float4(normalColor, 1.0);
-    return Output;
-#endif
-
+    
     // UV 스크롤링 적용 (활성화된 경우)
     float2 uv = Input.TexCoord;
     //if (bHasMaterial && bHasTexture)
@@ -224,6 +216,23 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     //    uv += UVScrollSpeed * UVScrollTime;
     //}
 
+    
+#ifdef VIEWMODE_WORLD_NORMAL
+    // World Normal 시각화: Normal 벡터를 색상으로 변환
+    // Normal 범위: -1~1 → 색상 범위: 0~1
+    float3 normalColor = Input.Normal * 0.5 + 0.5;
+    
+    if(bHasNormalTexture)
+    {
+        normalColor = g_NormalTexColor.Sample(g_Sample2, uv);
+        normalColor = normalColor * 2.0f - 1.0f;
+        normalColor = normalize(mul(normalColor, Input.TBN));
+    }
+    
+    Output.Color = float4(normalColor, 1.0);
+    return Output;
+#endif
+    
     // 텍스처 샘플링
     float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv);
 
@@ -366,7 +375,7 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     {
         normal = g_NormalTexColor.Sample(g_Sample2, uv);
         normal = normal * 2.0f - 1.0f;
-        normal = mul(normal, Input.TBN);
+        normal = normalize(mul(normal, Input.TBN));
     }
     float3 viewDir = normalize(CameraPosition - Input.WorldPos);
     float4 baseColor = Input.Color;
