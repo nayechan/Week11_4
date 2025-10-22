@@ -22,12 +22,6 @@ AStaticMeshActor::AStaticMeshActor()
 void AStaticMeshActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
-    AddActorWorldLocation(FVector(0.1f, 0.0f, 0.0f) * DeltaTime);
-    if (bIsPicked)
-    {
-        //CollisionComponent->SetFromVertices(StaticMeshComponent->GetStaticMesh()->GetStaticMeshAsset()->Vertices);
-    }
 }
 
 AStaticMeshActor::~AStaticMeshActor()
