@@ -8,6 +8,7 @@
 class SSceneIOWindow; // 새로 추가할 UI
 class SDetailsWindow;
 class UMenuBarWidget;
+class UConsoleWindow; // Overlay console window
 
 // 중앙 레이아웃/입력 라우팅/뷰포트 관리 매니저 (위젯 아님)
 class USlateManager : public UObject
@@ -60,13 +61,15 @@ public:
 
     void SetPIEWorld(UWorld* InWorld);
 
+    // Console management
+    void ToggleConsole();
+    bool IsConsoleVisible() const { return bIsConsoleVisible; }
+
 private:
     FRect Rect; // 이전엔 SWindow로부터 상속받던 영역 정보
 
     UWorld* World = nullptr;
     ID3D11Device* Device = nullptr;
-
-    SSplitterH* RootSplitter = nullptr;
 
     // 두 가지 레이아웃을 미리 생성해둠
     SSplitter* FourSplitLayout = nullptr;
@@ -76,24 +79,29 @@ private:
     SViewportWindow* Viewports[4];
     SViewportWindow* MainViewport;
 
-    SSplitterH* LeftTop;
-    SSplitterH* LeftBottom;
+    SSplitterV* LeftTop;
+    SSplitterV* LeftBottom;
 
-    // 오른쪽 고정 UI
-    SWindow* SceneIOPanel = nullptr;
-
-    // 아래쪽 UI
+    // UI 패널들
     SWindow* ControlPanel = nullptr;
     SWindow* DetailPanel = nullptr;
 
-    SSplitterV* TopPanel = nullptr;
-    SSplitterV* LeftPanel = nullptr;
-
-    SSplitterV* BottomPanel;
+    // 레이아웃 구조: TopPanel(좌우) -> Left: LeftPanel(뷰포트), Right: RightPanel(상하)
+    SSplitterH* TopPanel = nullptr;       // 전체 화면 좌우 분할
+    SSplitterH* LeftPanel = nullptr;      // 왼쪽 뷰포트 영역 (좌우 4분할)
+    SSplitterV* RightPanel = nullptr;     // 오른쪽 UI 영역 (상하: Control + Details)
 
     // 현재 모드
     EViewportLayoutMode CurrentMode = EViewportLayoutMode::FourSplit;
 
     // 메뉴바 관련
     UMenuBarWidget* MenuBar;
+
+    // Console overlay
+    UConsoleWindow* ConsoleWindow = nullptr;
+    bool bIsConsoleVisible = false;
+    bool bIsConsoleAnimating = false;
+    float ConsoleAnimationProgress = 0.0f; // 0.0 = hidden, 1.0 = fully visible
+    const float ConsoleAnimationDuration = 0.25f; // seconds
+    const float ConsoleHeightRatio = 0.3f; // 30% of screen height
 };

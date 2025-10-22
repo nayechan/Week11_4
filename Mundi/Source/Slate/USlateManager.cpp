@@ -6,9 +6,11 @@
 #include "Windows/SDetailsWindow.h"
 #include "Windows/SControlPanel.h"
 #include "Windows/SViewportWindow.h"
+#include "Windows/ConsoleWindow.h"
 #include "Widgets/MenuBarWidget.h"
 #include "FViewportClient.h"
 #include "UIManager.h"
+#include "GlobalConsole.h"
 
 IMPLEMENT_CLASS(USlateManager)
 
@@ -30,22 +32,19 @@ SViewportWindow* USlateManager::ActiveViewport;
 
 void USlateManager::SaveSplitterConfig()
 {
-    if (!RootSplitter) return;
+    if (!TopPanel) return;
 
-    EditorINI["RootSplitter"] = std::to_string(RootSplitter->SplitRatio);
     EditorINI["TopPanel"] = std::to_string(TopPanel->SplitRatio);
     EditorINI["LeftTop"] = std::to_string(LeftTop->SplitRatio);
     EditorINI["LeftBottom"] = std::to_string(LeftBottom->SplitRatio);
     EditorINI["LeftPanel"] = std::to_string(LeftPanel->SplitRatio);
-    EditorINI["BottomPanel"] = std::to_string(BottomPanel->SplitRatio);
+    EditorINI["RightPanel"] = std::to_string(RightPanel->SplitRatio);
 }
 
 void USlateManager::LoadSplitterConfig()
 {
-    if (!RootSplitter) return;
+    if (!TopPanel) return;
 
-    if (EditorINI.Contains("RootSplitter"))
-        RootSplitter->SplitRatio = std::stof(EditorINI["RootSplitter"]);
     if (EditorINI.Contains("TopPanel"))
         TopPanel->SplitRatio = std::stof(EditorINI["TopPanel"]);
     if (EditorINI.Contains("LeftTop"))
@@ -54,8 +53,8 @@ void USlateManager::LoadSplitterConfig()
         LeftBottom->SplitRatio = std::stof(EditorINI["LeftBottom"]);
     if (EditorINI.Contains("LeftPanel"))
         LeftPanel->SplitRatio = std::stof(EditorINI["LeftPanel"]);
-    if (EditorINI.Contains("BottomPanel"))
-        BottomPanel->SplitRatio = std::stof(EditorINI["BottomPanel"]);
+    if (EditorINI.Contains("RightPanel"))
+        RightPanel->SplitRatio = std::stof(EditorINI["RightPanel"]);
 }
 
 USlateManager::USlateManager()
@@ -79,39 +78,31 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     World = InWorld;
     Rect = InRect;
 
-    // 최상위: 수평 스플리터 (위: 뷰포트+오른쪽UI, 아래: Console/Property)
-    RootSplitter = new SSplitterH();
-    RootSplitter->SetRect(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
+    // === 전체 화면: 좌(4뷰포트) + 우(Control + Details) ===
+    TopPanel = new SSplitterH();  // 수평 분할 (좌우)
+    TopPanel->SetSplitRatio(0.7f);  // 70% 뷰포트, 30% UI
+    TopPanel->SetRect(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
 
-    // === 위쪽: 좌(4뷰포트) + 우(SceneIO) ===
-    TopPanel = new SSplitterV();
-    TopPanel->SetSplitRatio(0.7f);
-
-    // 왼쪽: 4분할 뷰포트
-    LeftPanel = new SSplitterV();
-    LeftTop = new SSplitterH();
-    LeftBottom = new SSplitterH();
+    // 왼쪽: 4분할 뷰포트 영역
+    LeftPanel = new SSplitterH();  // 수평 분할 (좌우)
+    LeftTop = new SSplitterV();    // 수직 분할 (상하)
+    LeftBottom = new SSplitterV(); // 수직 분할 (상하)
     LeftPanel->SideLT = LeftTop;
     LeftPanel->SideRB = LeftBottom;
 
-    // 오른쪽: SceneIO UI
-    SceneIOPanel = new SSceneIOWindow();
-    SceneIOPanel->SetRect(Rect.Max.X - 300, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
+    // 오른쪽: Control + Details (상하 분할)
+    RightPanel = new SSplitterV();  // 수직 분할 (상하)
+    RightPanel->SetSplitRatio(0.5f);  // 50-50 분할
+
+    ControlPanel = new SControlPanel();
+    DetailPanel = new SDetailsWindow();
+
+    RightPanel->SideLT = ControlPanel;   // 위쪽: ControlPanel
+    RightPanel->SideRB = DetailPanel;    // 아래쪽: DetailsWindow
 
     // TopPanel 좌우 배치
     TopPanel->SideLT = LeftPanel;
-    TopPanel->SideRB = SceneIOPanel;
-
-    // === 아래쪽: Console + Property ===
-    BottomPanel = new SSplitterV();
-    ControlPanel = new SControlPanel();   // 직접 만든 ConsoleWindow 클래스
-    DetailPanel = new SDetailsWindow();  // 직접 만든 PropertyWindow 클래스
-    BottomPanel->SideLT = ControlPanel;
-    BottomPanel->SideRB = DetailPanel;
-
-    // 최상위 스플리터에 연결
-    RootSplitter->SideLT = TopPanel;
-    RootSplitter->SideRB = BottomPanel;
+    TopPanel->SideRB = RightPanel;
 
     // === 뷰포트 생성 ===
     Viewports[0] = new SViewportWindow();
@@ -147,6 +138,19 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     SwitchLayout(EViewportLayoutMode::SingleMain);
 
     LoadSplitterConfig();
+
+    // === Console Overlay 생성 ===
+    ConsoleWindow = new UConsoleWindow();
+    if (ConsoleWindow)
+    {
+        UE_LOG("USlateManager: ConsoleWindow created successfully");
+        UGlobalConsole::SetConsoleWidget(ConsoleWindow->GetConsoleWidget());
+        UE_LOG("USlateManager: GlobalConsole connected to ConsoleWidget");
+    }
+    else
+    {
+        UE_LOG("ERROR: Failed to create ConsoleWindow");
+    }
 }
 
 void USlateManager::SwitchLayout(EViewportLayoutMode NewMode)
@@ -181,21 +185,104 @@ void USlateManager::Render()
 {
     // 메뉴바 렌더링 (항상 최상단에)
     MenuBar->RenderWidget();
-    if (RootSplitter)
+    if (TopPanel)
     {
-        RootSplitter->OnRender();
+        TopPanel->OnRender();
+    }
+
+    // Console overlay rendering (on top of everything)
+    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
+    {
+        extern float CLIENTWIDTH;
+        extern float CLIENTHEIGHT;
+
+        // Apply ease-out curve for smooth deceleration
+        float EasedProgress = 1.0f - (1.0f - ConsoleAnimationProgress) * (1.0f - ConsoleAnimationProgress);
+
+        // Calculate console dimensions
+        float ConsoleHeight = CLIENTHEIGHT * ConsoleHeightRatio;
+        float ConsoleWidth = CLIENTWIDTH;
+
+        // Calculate Y position (slide up from bottom)
+        float YPosWhenHidden = CLIENTHEIGHT; // Off-screen at bottom
+        float YPosWhenVisible = CLIENTHEIGHT - ConsoleHeight; // Visible at bottom
+        float CurrentYPos = YPosWhenHidden + (YPosWhenVisible - YPosWhenHidden) * EasedProgress;
+
+        // Set window position and size
+        ImGui::SetNextWindowPos(ImVec2(0, CurrentYPos));
+        ImGui::SetNextWindowSize(ImVec2(ConsoleWidth, ConsoleHeight));
+
+        // Window flags - Remove NoBringToFrontOnFocus to ensure it appears on top
+        ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoResize
+            | ImGuiWindowFlags_NoCollapse
+            | ImGuiWindowFlags_NoTitleBar
+            | ImGuiWindowFlags_NoScrollbar
+            | ImGuiWindowFlags_NoScrollWithMouse;
+
+        // Push window to front
+        ImGui::SetNextWindowFocus();
+
+        // Render console
+        if (ImGui::Begin("ConsoleOverlay", nullptr, flags))
+        {
+            // Add semi-transparent background
+            ImDrawList* DrawList = ImGui::GetWindowDrawList();
+            ImVec2 WindowPos = ImGui::GetWindowPos();
+            ImVec2 WindowSize = ImGui::GetWindowSize();
+            DrawList->AddRectFilled(
+                WindowPos,
+                ImVec2(WindowPos.x + WindowSize.x, WindowPos.y + WindowSize.y),
+                IM_COL32(20, 20, 20, 240) // Dark background with high opacity
+            );
+
+            // Render console widget
+            ConsoleWindow->RenderWidget();
+        }
+        ImGui::End();
     }
 }
 
 void USlateManager::Update(float DeltaSeconds)
 {
     ProcessInput();
-    if (RootSplitter)
+    if (TopPanel)
     {
         // 메뉴바 높이만큼 아래로 이동
         float menuBarHeight = ImGui::GetFrameHeight();
-        RootSplitter->Rect = FRect(0, menuBarHeight, CLIENTWIDTH, CLIENTHEIGHT);
-        RootSplitter->OnUpdate(DeltaSeconds);
+        TopPanel->Rect = FRect(0, menuBarHeight, CLIENTWIDTH, CLIENTHEIGHT);
+        TopPanel->OnUpdate(DeltaSeconds);
+    }
+
+    // Console animation update
+    if (bIsConsoleAnimating)
+    {
+        if (bIsConsoleVisible)
+        {
+            // Animating in (showing)
+            ConsoleAnimationProgress += DeltaSeconds / ConsoleAnimationDuration;
+            if (ConsoleAnimationProgress >= 1.0f)
+            {
+                ConsoleAnimationProgress = 1.0f;
+                bIsConsoleAnimating = false;
+            }
+        }
+        else
+        {
+            // Animating out (hiding)
+            ConsoleAnimationProgress -= DeltaSeconds / ConsoleAnimationDuration;
+            if (ConsoleAnimationProgress <= 0.0f)
+            {
+                ConsoleAnimationProgress = 0.0f;
+                bIsConsoleAnimating = false;
+            }
+        }
+    }
+
+    // Update ConsoleWindow
+    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
+    {
+        ConsoleWindow->Update();
     }
 }
 
@@ -233,6 +320,12 @@ void USlateManager::ProcessInput()
     }
     OnMouseMove(MousePosition);
 
+    // Console toggle with Alt + ` (Grave Accent)
+    if (ImGui::IsKeyPressed(ImGuiKey_GraveAccent) && ImGui::GetIO().KeyAlt)
+    {
+        ToggleConsole();
+    }
+
     // 단축키로 기즈모 모드 변경
     if (World->GetGizmoActor())
         World->GetGizmoActor()->ProcessGizmoModeSwitch();
@@ -244,17 +337,17 @@ void USlateManager::OnMouseMove(FVector2D MousePos)
     {
         ActiveViewport->OnMouseMove(MousePos);
     }
-    else if (RootSplitter)
+    else if (TopPanel)
     {
-        RootSplitter->OnMouseMove(MousePos);
+        TopPanel->OnMouseMove(MousePos);
     }
 }
 
 void USlateManager::OnMouseDown(FVector2D MousePos, uint32 Button)
 {
-    if (RootSplitter)
+    if (TopPanel)
     {
-        RootSplitter->OnMouseDown(MousePos, Button);
+        TopPanel->OnMouseDown(MousePos, Button);
 
         // 어떤 뷰포트 안에서 눌렸는지 확인
         for (auto* VP : Viewports)
@@ -289,9 +382,9 @@ void USlateManager::OnMouseUp(FVector2D MousePos, uint32 Button)
         ActiveViewport->OnMouseUp(MousePos, Button);
         ActiveViewport = nullptr; // 드래그 끝나면 해제
     }
-    else if (RootSplitter)
+    else if (TopPanel)
     {
-        RootSplitter->OnMouseUp(MousePos, Button);
+        TopPanel->OnMouseUp(MousePos, Button);
     }
 }
 
@@ -305,15 +398,21 @@ void USlateManager::Shutdown()
     // Save layout/config
     SaveSplitterConfig();
 
+    // Delete console window
+    if (ConsoleWindow)
+    {
+        delete ConsoleWindow;
+        ConsoleWindow = nullptr;
+        UE_LOG("USlateManager: ConsoleWindow destroyed");
+    }
+
     // Delete UI panels and viewports explicitly to release any held D3D contexts
-    if (RootSplitter) { delete RootSplitter; RootSplitter = nullptr; }
     if (TopPanel) { delete TopPanel; TopPanel = nullptr; }
     if (LeftTop) { delete LeftTop; LeftTop = nullptr; }
     if (LeftBottom) { delete LeftBottom; LeftBottom = nullptr; }
     if (LeftPanel) { delete LeftPanel; LeftPanel = nullptr; }
-    if (BottomPanel) { delete BottomPanel; BottomPanel = nullptr; }
+    if (RightPanel) { delete RightPanel; RightPanel = nullptr; }
 
-    if (SceneIOPanel) { delete SceneIOPanel; SceneIOPanel = nullptr; }
     if (ControlPanel) { delete ControlPanel; ControlPanel = nullptr; }
     if (DetailPanel) { delete DetailPanel; DetailPanel = nullptr; }
 
@@ -328,4 +427,12 @@ void USlateManager::Shutdown()
 void USlateManager::SetPIEWorld(UWorld* InWorld)
 {
     MainViewport->SetVClientWorld(InWorld);
+}
+
+void USlateManager::ToggleConsole()
+{
+    bIsConsoleVisible = !bIsConsoleVisible;
+    bIsConsoleAnimating = true;
+
+    UE_LOG("USlateManager: Console toggled - %s", bIsConsoleVisible ? "SHOWING" : "HIDING");
 }
