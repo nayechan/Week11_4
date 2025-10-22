@@ -1,18 +1,13 @@
 ﻿#include "pch.h"
 #include "MainToolbarWidget.h"
 #include "ImGui/imgui.h"
-#include "Texture.h"
-#include "ResourceManager.h"
-#include "Object.h"
-#include "UIManager.h"
-#include "World.h"
 #include "Level.h"
 #include "JsonSerializer.h"
 #include "SelectionManager.h"
-#include <EditorEngine.h>
-#include <filesystem>
-#include <windows.h>
+#include "CameraActor.h"
+#include "EditorEngine.h"
 #include <commdlg.h>
+#include <random>
 
 IMPLEMENT_CLASS(UMainToolbarWidget)
 
@@ -289,12 +284,6 @@ void UMainToolbarWidget::RenderActorSpawnButton()
     ImVec2 groupMin = ImGui::GetItemRectMin();
     ImVec2 groupMax = ImGui::GetItemRectMax();
 
-   // const float Padding = 1.0f;
-   // groupMin.x -= Padding;
-   // groupMin.y -= Padding;
-   // groupMax.x += Padding;
-   // groupMax.y += Padding + 7.0f;  // 아래쪽으로 5픽셀 추가
-
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
     drawList->AddRect(
@@ -317,7 +306,77 @@ void UMainToolbarWidget::RenderActorSpawnButton()
     // Actor Spawn 팝업 렌더링
     if (ImGui::BeginPopup("ActorSpawnPopup"))
     {
-        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "액터 추가");
+        // 버튼 색상 스타일 설정 (테마에 맞게)
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 0.8f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.18f, 0.18f, 0.18f, 0.8f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.25f, 0.25f, 0.25f, 0.8f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.3f, 0.3f, 0.3f, 0.8f));
+
+        // 랜덤 스폰 설정 섹션
+        ImGui::Checkbox("랜덤 스폰 모드", &RandomSpawnSettings.bEnabled);
+
+        if (RandomSpawnSettings.bEnabled)
+        {
+            // 스폰 개수
+            ImGui::Text("스폰 개수");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(150.0f);
+            ImGui::InputInt("##SpawnCount", &RandomSpawnSettings.SpawnCount);
+            if (RandomSpawnSettings.SpawnCount < 1) RandomSpawnSettings.SpawnCount = 1;
+            if (RandomSpawnSettings.SpawnCount > 1000) RandomSpawnSettings.SpawnCount = 1000;
+
+            // 스폰 범위 타입
+            const char* rangeTypes[] = { "중심점 + 반경", "박스 영역", "선택 액터 주변", "뷰포트 중심" };
+            int currentRangeType = static_cast<int>(RandomSpawnSettings.RangeType);
+            ImGui::Text("스폰 범위");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(150.0f);
+            if (ImGui::Combo("##SpawnRange", &currentRangeType, rangeTypes, IM_ARRAYSIZE(rangeTypes)))
+            {
+                RandomSpawnSettings.RangeType = static_cast<ESpawnRangeType>(currentRangeType);
+            }
+
+            // 범위별 파라미터
+            switch (RandomSpawnSettings.RangeType)
+            {
+            case ESpawnRangeType::CenterRadius:
+                ImGui::DragFloat3("중심점", &RandomSpawnSettings.Center.X, 10.0f);
+                ImGui::DragFloat("반경", &RandomSpawnSettings.Radius, 10.0f, 0.0f, 10000.0f);
+                break;
+
+            case ESpawnRangeType::BoundingBox:
+                ImGui::DragFloat3("최소 좌표", &RandomSpawnSettings.BoxMin.X, 10.0f);
+                ImGui::DragFloat3("최대 좌표", &RandomSpawnSettings.BoxMax.X, 10.0f);
+                break;
+
+            case ESpawnRangeType::AroundSelection:
+                ImGui::DragFloat("반경", &RandomSpawnSettings.Radius, 10.0f, 0.0f, 10000.0f);
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "선택된 액터 주변에 스폰");
+                break;
+
+            case ESpawnRangeType::ViewportCenter:
+                ImGui::DragFloat("반경", &RandomSpawnSettings.Radius, 10.0f, 0.0f, 10000.0f);
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "뷰포트 중심에 스폰");
+                break;
+            }
+
+            // 회전 축 설정
+            ImGui::Text("랜덤 회전 축:");
+            ImGui::Checkbox("Pitch (X축)", &RandomSpawnSettings.bRandomPitch);
+            ImGui::SameLine();
+            ImGui::Checkbox("Yaw (Z축)", &RandomSpawnSettings.bRandomYaw);
+            ImGui::SameLine();
+            ImGui::Checkbox("Roll (Y축)", &RandomSpawnSettings.bRandomRoll);
+
+            ImGui::Separator();
+        }
+
+        ImGui::PopStyleColor(6);
+
+        // 액터 리스트
+        ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "액터 선택");
         ImGui::Separator();
 
         TArray<UClass*> SpawnableActors = UClass::GetAllSpawnableActors();
@@ -554,7 +613,7 @@ std::filesystem::path UMainToolbarWidget::OpenSaveFileDialog()
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = szInitialDir;
     ofn.lpstrTitle = L"Save Scene File";
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_EXPLORER | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_EXPLORER | OFN_HIDEREADONLY | OFN_NOCHANGEDIR | OFN_ENABLESIZING;
     ofn.lpstrDefExt = L"scene";
 
     UE_LOG("MainToolbar: Opening Save Dialog (Modal)...");
@@ -593,7 +652,7 @@ std::filesystem::path UMainToolbarWidget::OpenLoadFileDialog()
     ofn.nMaxFileTitle = 0;
     ofn.lpstrInitialDir = szInitialDir;
     ofn.lpstrTitle = L"Load Scene File";
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER | OFN_HIDEREADONLY | OFN_NOCHANGEDIR | OFN_ENABLESIZING;
 
     UE_LOG("MainToolbar: Opening Load Dialog (Modal)...");
 
@@ -605,6 +664,129 @@ std::filesystem::path UMainToolbarWidget::OpenLoadFileDialog()
 
     UE_LOG("MainToolbar: Load Dialog Cancelled");
     return L"";
+}
+
+FVector UMainToolbarWidget::GetRandomPositionInRange() const
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    FVector position(0, 0, 0);
+
+    switch (RandomSpawnSettings.RangeType)
+    {
+    case ESpawnRangeType::CenterRadius:
+    {
+        // 구형 분포 랜덤 위치
+        std::uniform_real_distribution<float> distAngle(0.0f, 360.0f);
+        std::uniform_real_distribution<float> distRadius(0.0f, RandomSpawnSettings.Radius);
+
+        float yaw = distAngle(gen);
+        float pitch = distAngle(gen);
+        float radius = distRadius(gen);
+
+        // 구형 좌표를 직교 좌표로 변환 (Z-Up)
+        float radYaw = yaw * (3.14159265f / 180.0f);
+        float radPitch = pitch * (3.14159265f / 180.0f);
+
+        position.X = RandomSpawnSettings.Center.X + radius * cos(radPitch) * cos(radYaw);
+        position.Y = RandomSpawnSettings.Center.Y + radius * cos(radPitch) * sin(radYaw);
+        position.Z = RandomSpawnSettings.Center.Z + radius * sin(radPitch);
+        break;
+    }
+
+    case ESpawnRangeType::BoundingBox:
+    {
+        // 박스 영역 내 균등 분포
+        std::uniform_real_distribution<float> distX(RandomSpawnSettings.BoxMin.X, RandomSpawnSettings.BoxMax.X);
+        std::uniform_real_distribution<float> distY(RandomSpawnSettings.BoxMin.Y, RandomSpawnSettings.BoxMax.Y);
+        std::uniform_real_distribution<float> distZ(RandomSpawnSettings.BoxMin.Z, RandomSpawnSettings.BoxMax.Z);
+
+        position.X = distX(gen);
+        position.Y = distY(gen);
+        position.Z = distZ(gen);
+        break;
+    }
+
+    case ESpawnRangeType::AroundSelection:
+    {
+        // 선택된 액터 주변
+        if (GWorld && GWorld->GetSelectionManager())
+        {
+            auto selectedActors = GWorld->GetSelectionManager()->GetSelectedActors();
+            if (!selectedActors.empty())
+            {
+                AActor* selectedActor = selectedActors[0];
+                FVector center = selectedActor->GetActorLocation();
+
+                std::uniform_real_distribution<float> distAngle(0.0f, 360.0f);
+                std::uniform_real_distribution<float> distRadius(0.0f, RandomSpawnSettings.Radius);
+
+                float yaw = distAngle(gen);
+                float radius = distRadius(gen);
+                float radYaw = yaw * (3.14159265f / 180.0f);
+
+                position.X = center.X + radius * cos(radYaw);
+                position.Y = center.Y + radius * sin(radYaw);
+                position.Z = center.Z;
+            }
+            else
+            {
+                // 선택 없으면 원점 기준
+                position = FVector(0, 0, 0);
+            }
+        }
+        break;
+    }
+
+    case ESpawnRangeType::ViewportCenter:
+    {
+        FVector center(0, 0, 0);
+
+        if (GWorld && GWorld->GetCameraActor())
+        {
+            ACameraActor* camera = GWorld->GetCameraActor();
+            FVector cameraPos = camera->GetActorLocation();
+            FVector cameraForward = camera->GetForward();
+
+            center = cameraPos + cameraForward * 10.0f;
+        }
+
+        std::uniform_real_distribution<float> distAngle(0.0f, 360.0f);
+        std::uniform_real_distribution<float> distRadius(0.0f, RandomSpawnSettings.Radius);
+
+        float yaw = distAngle(gen);
+        float radius = distRadius(gen);
+        float radYaw = yaw * (3.14159265f / 180.0f);
+
+        position.X = center.X + radius * cos(radYaw);
+        position.Y = center.Y + radius * sin(radYaw);
+        position.Z = center.Z;
+        break;
+    }
+    }
+
+    return position;
+}
+
+FVector UMainToolbarWidget::GetRandomRotation() const
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(0.0f, 360.0f);
+
+    FVector rotation(0, 0, 0);
+
+    if (RandomSpawnSettings.bRandomPitch)
+        rotation.X = dist(gen);
+
+    if (RandomSpawnSettings.bRandomYaw)
+        rotation.Y = dist(gen);
+
+    if (RandomSpawnSettings.bRandomRoll)
+        rotation.Z = dist(gen);
+
+    return rotation;
 }
 
 void UMainToolbarWidget::ProcessPendingCommands()
@@ -629,10 +811,60 @@ void UMainToolbarWidget::ProcessPendingCommands()
     case EToolbarCommand::SpawnActor:
         if (PendingActorClass && GWorld)
         {
-            AActor* NewActor = GWorld->SpawnActor(PendingActorClass);
-            if (NewActor)
+            if (RandomSpawnSettings.bEnabled)
             {
-                UE_LOG("MainToolbar: Spawned actor %s", PendingActorClass->DisplayName);
+                // 랜덤 스폰 모드
+                int spawnCount = RandomSpawnSettings.SpawnCount;
+                UE_LOG("MainToolbar: Random spawning %d actors of type %s", spawnCount, PendingActorClass->DisplayName);
+
+                for (int i = 0; i < spawnCount; ++i)
+                {
+                    AActor* NewActor = GWorld->SpawnActor(PendingActorClass);
+                    if (NewActor)
+                    {
+                        // 고유 이름 생성
+                        FString ActorName = GWorld->GenerateUniqueActorName(PendingActorClass->DisplayName);
+                        NewActor->SetName(ActorName);
+
+                        // 랜덤 위치 설정
+                        FVector randomPos = GetRandomPositionInRange();
+                        NewActor->SetActorLocation(randomPos);
+
+                        // 랜덤 회전 설정
+                        FVector randomRot = GetRandomRotation();
+                        NewActor->SetActorRotation(randomRot);
+                    }
+                }
+
+                UE_LOG("MainToolbar: Spawned %d random actors", spawnCount);
+            }
+            else
+            {
+                // 일반 스폰 모드 - 뷰포트 중심 앞쪽에 스폰
+                AActor* NewActor = GWorld->SpawnActor(PendingActorClass);
+                if (NewActor)
+                {
+                    // 고유 이름 생성
+                    FString ActorName = GWorld->GenerateUniqueActorName(PendingActorClass->DisplayName);
+                    NewActor->SetName(ActorName);
+
+                    // 카메라 앞쪽에 배치
+                    ACameraActor* Camera = GWorld->GetCameraActor();
+                    if (Camera)
+                    {
+                        FVector cameraPos = Camera->GetActorLocation();
+                        FVector cameraForward = Camera->GetForward();
+
+                        // 카메라 앞쪽 10 유닛 위치에 스폰
+                        FVector spawnPos = cameraPos + cameraForward * 10.0f;
+                        NewActor->SetActorLocation(spawnPos);
+                    }
+
+                    // 생성된 액터를 선택 상태로 만들기
+                    HandleActorSelection(NewActor);
+
+                    UE_LOG("MainToolbar: Spawned actor %s", ActorName.c_str());
+                }
             }
         }
         PendingActorClass = nullptr;
@@ -701,4 +933,14 @@ void UMainToolbarWidget::HandleKeyboardShortcuts()
         PendingCommand = EToolbarCommand::EndPIE;
     }
 #endif
+}
+
+void UMainToolbarWidget::HandleActorSelection(AActor* Actor)
+{
+    if (!Actor || !GWorld)
+        return;
+
+    // Clear previous selection and select this actor
+    GWorld->GetSelectionManager()->ClearSelection();
+    GWorld->GetSelectionManager()->SelectActor(Actor);
 }

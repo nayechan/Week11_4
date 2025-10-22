@@ -8,7 +8,6 @@
 #include "ResourceManager.h"
 #include "SelectionManager.h"
 #include "WorldPartitionManager.h"
-#include "ActorSpawnWidget.h"
 #include "PropertyRenderer.h"
 
 #include "Actor.h"

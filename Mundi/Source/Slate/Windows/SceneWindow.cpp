@@ -1,7 +1,6 @@
 ﻿#include "pch.h"
 #include "SceneWindow.h"
 #include "Widgets/SceneManagerWidget.h"
-#include "Widgets/ActorSpawnWidget.h"
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -22,9 +21,6 @@ USceneWindow::USceneWindow()
 
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
-
-	UActorSpawnWidget* ActorSpawnWidget = NewObject<UActorSpawnWidget>();
-	AddWidget(ActorSpawnWidget);
 
 	// Add Scene Manager Widget (main scene hierarchy)
 	USceneManagerWidget* SceneManagerWidget = NewObject<USceneManagerWidget>();

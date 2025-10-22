@@ -38,6 +38,9 @@ private:
     // 키보드 입력 처리
     void HandleKeyboardShortcuts();
 
+    // 스폰 액터 선택
+    void HandleActorSelection(AActor* Actor);
+
     // 파일 다이얼로그 헬퍼
     std::filesystem::path OpenSaveFileDialog();
     std::filesystem::path OpenLoadFileDialog();
@@ -54,6 +57,40 @@ private:
         StartPIE,
         EndPIE
     };
+
+    // 스폰 범위 타입
+    enum class ESpawnRangeType
+    {
+        CenterRadius,      // 중심점 + 반경
+        BoundingBox,       // 박스 영역 (Min/Max)
+        AroundSelection,   // 선택된 액터 주변
+        ViewportCenter     // 뷰포트 중심
+    };
+
+    // 랜덤 스폰 설정
+    struct FRandomSpawnSettings
+    {
+        bool bEnabled = false;
+        int SpawnCount = 10;
+        ESpawnRangeType RangeType = ESpawnRangeType::CenterRadius;
+
+        // 중심점 + 반경
+        FVector Center = FVector(0, 0, 0);
+        float Radius = 10.0f;
+
+        // 박스 영역
+        FVector BoxMin = FVector(-500, -500, 0);
+        FVector BoxMax = FVector(500, 500, 100);
+
+        // 회전 축 설정
+        bool bRandomPitch = false;
+        bool bRandomYaw = true;
+        bool bRandomRoll = false;
+    };
+
+    // 랜덤 스폰 유틸리티
+    FVector GetRandomPositionInRange() const;
+    FVector GetRandomRotation() const;
 
     // 명령 큐 처리
     void ProcessPendingCommands();
@@ -74,4 +111,7 @@ private:
     // 명령 큐
     EToolbarCommand PendingCommand = EToolbarCommand::None;
     UClass* PendingActorClass = nullptr;
+
+    // 랜덤 스폰 설정
+    FRandomSpawnSettings RandomSpawnSettings;
 };
