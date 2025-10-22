@@ -8,7 +8,7 @@ IMPLEMENT_CLASS(UGizmoArrowComponent)
 
 UGizmoArrowComponent::UGizmoArrowComponent()
 {
-	SetStaticMesh("Data/Gizmo/TranslationHandle.obj");
+	SetStaticMesh(GDataDir + "/Gizmo/TranslationHandle.obj");
 
 	// 기즈모 셰이더로 설정
 	SetMaterialByName(0, "Shaders/UI/Gizmo.hlsl");

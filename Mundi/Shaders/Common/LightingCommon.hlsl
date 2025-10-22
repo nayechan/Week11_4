@@ -9,6 +9,13 @@
 // - LightingBuffers.hlsl
 
 //================================================================================================
+// Specular 계산 방식 선택
+//================================================================================================
+// USE_BLINN_PHONG 정의됨: Half-vector 기반 Blinn-Phong (더 빠르고 부드러운 하이라이트)
+// USE_BLINN_PHONG 주석 처리: Reflection vector 기반 전통적인 Phong (더 날카로운 하이라이트)
+#define USE_BLINN_PHONG 1
+
+//================================================================================================
 // 유틸리티 함수
 //================================================================================================
 
@@ -53,19 +60,34 @@ float3 CalculateDiffuse(float3 lightDir, float3 normal, float4 lightColor, float
     return lightColor.rgb * materialColor.rgb * NdotL;
 }
 
-// Specular Light 계산 (Blinn-Phong)
+// Specular 색상 결정 매크로
+// 각 셰이더에서 include 전에 이 매크로를 정의하여 커스터마이즈 가능
+// 기본값: 흰색 스페큘러 (1,1,1)
+#ifndef SPECULAR_COLOR
+    #define SPECULAR_COLOR float3(1.0f, 1.0f, 1.0f)
+#endif
+
+// Specular Light 계산 함수
+// USE_BLINN_PHONG 매크로에 따라 Blinn-Phong 또는 전통적인 Phong 방식 사용
 // 주의: lightColor는 이미 Intensity가 포함됨 (C++에서 계산)
-// 주의: 이 함수는 흰색 (1,1,1)을 스페큘러 색상으로 사용
-//       UberLit.hlsl에서 Material.SpecularColor를 사용하도록 오버라이드 가능
+// 주의: SPECULAR_COLOR 매크로로 specular 색상 제어 (기본: 흰색)
 float3 CalculateSpecular(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
 {
+    float3 specularColor = SPECULAR_COLOR;
+
+#ifdef USE_BLINN_PHONG
+    // Blinn-Phong 방식: Half-vector 기반 (더 빠르고 부드러운 하이라이트)
     float3 halfVec = normalize(lightDir + viewDir);
     float NdotH = max(dot(normal, halfVec), 0.0f);
     float specular = pow(NdotH, specularPower);
-
-    // 기본값: 흰색 스페큘러 (1, 1, 1)
-    // 개별 셰이더에서 재질별 스페큘러를 위해 오버라이드 가능
-    return lightColor.rgb * specular;
+    return lightColor.rgb * specularColor * specular;
+#else
+    // 전통적인 Phong 방식: Reflection vector 기반 (더 날카로운 하이라이트)
+    float3 reflectDir = reflect(-lightDir, normal);
+    float RdotV = max(dot(reflectDir, viewDir), 0.0f);
+    float specular = pow(RdotV, specularPower);
+    return lightColor.rgb * specularColor * specular;
+#endif
 }
 
 //================================================================================================

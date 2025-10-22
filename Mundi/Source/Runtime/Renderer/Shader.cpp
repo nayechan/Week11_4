@@ -139,6 +139,9 @@ void UShader::Load(const FString& InShaderPath, ID3D11Device* InDevice, const TA
 			assert(SUCCEEDED(Hr));
 		}
 	}
+
+	// Include 파일 파싱 및 timestamp 추적
+	ParseIncludeFiles(ActualFilePath);
 }
 
 void UShader::CreateInputLayout(ID3D11Device* Device, const FString& InShaderPath)
@@ -204,8 +207,34 @@ bool UShader::IsOutdated() const
 			return false; // File doesn't exist, not outdated
 		}
 
+		// 메인 shader 파일 timestamp 체크
 		auto CurrentFileTime = std::filesystem::last_write_time(ActualFilePath);
-		return CurrentFileTime > GetLastModifiedTime();
+		if (CurrentFileTime > GetLastModifiedTime())
+		{
+			return true;
+		}
+
+		// Include 파일들의 timestamp 체크
+		for (const auto& Pair : IncludedFileTimestamps)
+		{
+			const FString& IncludedFile = Pair.first;
+			const auto& StoredTime = Pair.second;
+
+			// Include 파일이 존재하는지 확인
+			if (!std::filesystem::exists(IncludedFile))
+			{
+				continue; // 파일이 없으면 건너뛰기
+			}
+
+			// Include 파일의 현재 timestamp 확인
+			auto CurrentIncludeTime = std::filesystem::last_write_time(IncludedFile);
+			if (CurrentIncludeTime > StoredTime)
+			{
+				return true; // Include 파일이 변경됨
+			}
+		}
+
+		return false; // 모든 파일이 최신 상태
 	}
 	catch (...)
 	{
@@ -305,4 +334,130 @@ bool UShader::Reload(ID3D11Device* InDevice)
 	}
 
 	return bReloadSuccessful;
+}
+
+// Include 파일 파싱 (재귀적으로 처리)
+void UShader::ParseIncludeFiles(const FString& ShaderPath)
+{
+	// 이미 파싱된 파일 목록 초기화
+	IncludedFiles.clear();
+
+	// 파싱할 파일 큐
+	TArray<FString> FilesToParse;
+	FilesToParse.push_back(ShaderPath);
+
+	// 이미 파싱한 파일 추적 (중복 방지 및 순환 참조 방지)
+	TSet<FString> ParsedFiles;
+
+	while (!FilesToParse.empty())
+	{
+		FString CurrentFile = FilesToParse.back();
+		FilesToParse.pop_back();
+
+		// 이미 파싱한 파일은 건너뛰기
+		if (ParsedFiles.find(CurrentFile) != ParsedFiles.end())
+		{
+			continue;
+		}
+		ParsedFiles.insert(CurrentFile);
+
+		// 파일 존재 여부 확인
+		if (!std::filesystem::exists(CurrentFile))
+		{
+			continue;
+		}
+
+		// 파일 열기
+		std::ifstream File(CurrentFile);
+		if (!File.is_open())
+		{
+			continue;
+		}
+
+		// 현재 파일의 디렉토리 경로
+		std::filesystem::path CurrentDir = std::filesystem::path(CurrentFile).parent_path();
+
+		// 한 줄씩 읽으며 #include 찾기
+		FString Line;
+		while (std::getline(File, Line))
+		{
+			// 공백 제거
+			size_t FirstNonSpace = Line.find_first_not_of(" \t\r\n");
+			if (FirstNonSpace == FString::npos)
+			{
+				continue;
+			}
+			Line = Line.substr(FirstNonSpace);
+
+			// #include 지시문 찾기
+			if (Line.compare(0, 8, "#include") == 0)
+			{
+				// #include "filename" 패턴 파싱
+				size_t QuoteStart = Line.find('"');
+				size_t QuoteEnd = Line.find('"', QuoteStart + 1);
+
+				if (QuoteStart != FString::npos && QuoteEnd != FString::npos)
+				{
+					FString IncludedFile = Line.substr(QuoteStart + 1, QuoteEnd - QuoteStart - 1);
+
+					// 상대 경로 해석
+					std::filesystem::path IncludePath;
+					if (std::filesystem::path(IncludedFile).is_absolute())
+					{
+						IncludePath = IncludedFile;
+					}
+					else
+					{
+						IncludePath = CurrentDir / IncludedFile;
+					}
+
+					// 경로 정규화
+					try
+					{
+						IncludePath = std::filesystem::canonical(IncludePath);
+						FString NormalizedPath = IncludePath.string();
+
+						// 포함된 파일 목록에 추가
+						if (std::find(IncludedFiles.begin(), IncludedFiles.end(), NormalizedPath) == IncludedFiles.end())
+						{
+							IncludedFiles.push_back(NormalizedPath);
+							// 재귀적으로 파싱하기 위해 큐에 추가
+							FilesToParse.push_back(NormalizedPath);
+						}
+					}
+					catch (...)
+					{
+						// 파일이 존재하지 않거나 경로 오류 - 무시
+					}
+				}
+			}
+		}
+
+		File.close();
+	}
+
+	// Include 파일들의 timestamp 업데이트
+	UpdateIncludeTimestamps();
+}
+
+// Include 파일들의 timestamp 업데이트
+void UShader::UpdateIncludeTimestamps()
+{
+	IncludedFileTimestamps.clear();
+
+	for (const FString& IncludedFile : IncludedFiles)
+	{
+		try
+		{
+			if (std::filesystem::exists(IncludedFile))
+			{
+				auto FileTime = std::filesystem::last_write_time(IncludedFile);
+				IncludedFileTimestamps[IncludedFile] = FileTime;
+			}
+		}
+		catch (...)
+		{
+			// 파일 타임스탬프 읽기 실패 - 무시
+		}
+	}
 }

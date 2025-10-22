@@ -374,7 +374,7 @@ void USceneComponent::OnRegister(UWorld* InWorld)
     if (!std::strcmp(this->GetClass()->Name , USceneComponent::StaticClass()->Name) && !SpriteComponent)
     {
         CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
-        SpriteComponent->SetTextureName("Data/UI/Icons/EmptyActor.dds");
+        SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/EmptyActor.dds");
 
     }
 }

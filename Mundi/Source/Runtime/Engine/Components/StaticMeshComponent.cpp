@@ -23,7 +23,7 @@ END_PROPERTIES()
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
-	SetStaticMesh("Data/cube-tex.obj");     // 임시 기본 static mesh 설정
+	SetStaticMesh(GDataDir + "/cube-tex.obj");     // 임시 기본 static mesh 설정
 }
 
 UStaticMeshComponent::~UStaticMeshComponent()

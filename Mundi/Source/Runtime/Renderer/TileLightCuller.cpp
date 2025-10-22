@@ -286,16 +286,11 @@ bool FTileLightCuller::TestSpotLightAgainstFrustum(
 	const FFrustum& Frustum,
 	const FMatrix& ViewMatrix)
 {
-	// SpotLight의 원뿔과 프러스텀 교차 테스트
-	FVector Apex = Light.Position;
-	FVector Direction = Light.Direction.GetSafeNormal();
-	float Height = Light.AttenuationRadius;
+	FVector LightPos = Light.Position;
+	float Radius = Light.AttenuationRadius;
 
-	// OuterConeAngle은 전체 원뿔 각도이므로 반으로 나눔
-	float HalfAngleRadians = DegreesToRadians(Light.OuterConeAngle * 0.5f);
-	float CosHalfAngle = cos(HalfAngleRadians);
-
-	return ConeIntersectsFrustum(Apex, Direction, Height, CosHalfAngle, Frustum);
+	// Spot Light도 구체로 근사
+	return SphereIntersectsFrustum(LightPos, Radius, Frustum);
 }
 
 bool FTileLightCuller::SphereIntersectsFrustum(

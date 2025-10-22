@@ -40,13 +40,22 @@ private:
 
 	// Store macros for hot reload
 	TArray<FShaderMacro> Macros;
-	
+
 	// Store actual file path (e.g., "Shaders/Materials/UberLit.hlsl")
 	// FilePath (from base class) stores the unique key with macros
 	FString ActualFilePath;
 
+	// Store included files (e.g., "Shaders/Common/LightingCommon.hlsl")
+	// Used for hot reload - if any included file changes, reload this shader
+	TArray<FString> IncludedFiles;
+	TMap<FString, std::filesystem::file_time_type> IncludedFileTimestamps;
+
 	void CreateInputLayout(ID3D11Device* Device, const FString& InShaderPath);
 	void ReleaseResources();
+
+	// Include 파일 파싱 및 추적
+	void ParseIncludeFiles(const FString& ShaderPath);
+	void UpdateIncludeTimestamps();
 };
 
 struct FVertexPositionColor

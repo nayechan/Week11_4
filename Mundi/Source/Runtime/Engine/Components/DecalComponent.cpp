@@ -19,7 +19,7 @@ END_PROPERTIES()
 UDecalComponent::UDecalComponent()
 {
 	UResourceManager::GetInstance().Load<UMaterial>("Shaders/Effects/Decal.hlsl");
-	DecalTexture = UResourceManager::GetInstance().Load<UTexture>("Data/Textures/grass.jpg");
+	DecalTexture = UResourceManager::GetInstance().Load<UTexture>(GDataDir + "/Textures/grass.jpg");
 	SetTickEnabled(true);
 	SetCanEverTick(true);
 }
@@ -58,11 +58,11 @@ void UDecalComponent::OnRegister(UWorld* InWorld)
 	if (!SpriteComponent)
 	{
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
-		SpriteComponent->SetTextureName("Data/UI/Icons/S_DecalActorIcon.dds");
+		SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/S_DecalActorIcon.dds");
 
 		CREATE_EDITOR_COMPONENT(DirectionGizmo, UGizmoArrowComponent);
 		// Set gizmo mesh (using the same mesh as GizmoActor's arrow)
-		DirectionGizmo->SetStaticMesh("Data/Gizmo/TranslationHandle.obj");
+		DirectionGizmo->SetStaticMesh(GDataDir + "/Gizmo/TranslationHandle.obj");
 		DirectionGizmo->SetMaterialByName(0, "Shaders/UI/Gizmo.hlsl");
 
 		// Use world-space scale (not screen-constant scale like typical gizmos)

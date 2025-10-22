@@ -104,14 +104,14 @@ inline FString WideToUTF8(const FWideString& InWideStr)
 
 inline FString ConvertDataPathToCachePath(const FString& InAssetPath)
 {
-	FString DataDirPrefix = GDataDir + "/"; // "Data/"
+	FString DataDirPrefix = GDataDir + "/";
 
 	// GDataDir("Data")로 시작하는지 (대소문자 무관) 확인
 	// _strnicmp는 C-스타일 문자열을 받으며, n 글자수만큼 대소문자 무관 비교
 	if (InAssetPath.length() >= DataDirPrefix.length() &&
 		_strnicmp(InAssetPath.c_str(), DataDirPrefix.c_str(), DataDirPrefix.length()) == 0)
 	{
-		// "Data/" 접두사를 제거하고 GCacheDir/"... " 접두사를 붙임
+		// "GCacheDir/" 접두사를 제거하고 GCacheDir/"... " 접두사를 붙임
 		return GCacheDir + "/" + InAssetPath.substr(DataDirPrefix.length());
 	}
 

@@ -9,12 +9,8 @@
 // #define LIGHTING_MODEL_LAMBERT 1
 // #define LIGHTING_MODEL_PHONG 1
 
-// --- 공통 조명 시스템 include ---
-#include "../Common/LightStructures.hlsl"
-#include "../Common/LightingBuffers.hlsl"
-#include "../Common/LightingCommon.hlsl"
-
 // --- Material 구조체 (OBJ 머티리얼 정보) ---
+// 주의: SPECULAR_COLOR 매크로에서 사용하므로 include 전에 정의 필요
 struct FMaterial
 {
     float3 DiffuseColor;        // Kd - Diffuse 색상
@@ -66,6 +62,16 @@ cbuffer PixelConstBuffer : register(b4)
     uint bHasNormalTexture;
 };
 
+// --- Material.SpecularColor 지원 매크로 ---
+// LightingCommon.hlsl의 CalculateSpecular에서 Material.SpecularColor를 사용하도록 설정
+// 금속 재질의 컬러 Specular 지원
+#define SPECULAR_COLOR (bHasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f))
+
+// --- 공통 조명 시스템 include ---
+#include "../Common/LightStructures.hlsl"
+#include "../Common/LightingBuffers.hlsl"
+#include "../Common/LightingCommon.hlsl"
+
 // --- 텍스처 및 샘플러 리소스 ---
 Texture2D g_DiffuseTexColor : register(t0);
 Texture2D g_NormalTexColor : register(t1);
@@ -97,25 +103,6 @@ struct PS_OUTPUT
     float4 Color : SV_Target0;
     uint UUID : SV_Target1;
 };
-
-// --- UberLit 전용: Material-aware Specular 계산 ---
-// LightingCommon.hlsl의 CalculateSpecular는 white specular를 사용
-// UberLit은 Material.SpecularColor를 지원하므로 오버라이드 필요
-
-// Material-aware Specular (Blinn-Phong) - UberLit용 오버라이드
-// LightingCommon.hlsl의 기본 CalculateSpecular를 오버라이드
-#define CalculateSpecular CalculateSpecularWithMaterial
-
-float3 CalculateSpecularWithMaterial(float3 lightDir, float3 normal, float3 viewDir, float4 lightColor, float specularPower)
-{
-    float3 halfVec = normalize(lightDir + viewDir);
-    float NdotH = max(dot(normal, halfVec), 0.0f);
-    float specular = pow(NdotH, specularPower);
-
-    // 머티리얼의 스페큘러 색상 (Ks) 적용 - 금속 머티리얼은 컬러 스페큘러를 가짐!
-    float3 specularMaterial = bHasMaterial ? Material.SpecularColor : float3(1.0f, 1.0f, 1.0f);
-    return lightColor.rgb * specularMaterial * specular;
-}
 
 //================================================================================================
 // 버텍스 셰이더 (Vertex Shader)
