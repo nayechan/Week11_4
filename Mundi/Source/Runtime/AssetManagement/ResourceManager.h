@@ -41,10 +41,13 @@ public:
 	// --- 리소스 로드 및 접근 ---
 	template<typename T, typename... Args>
 	T* Load(const FString& InFilePath, Args&&... InArgs);
-	
+
 	// 매크로가 있는 UShader를 위한 특수화 Load 함수
-	template<>	
+	template<>
 	UShader* Load<UShader>(const FString& InFilePath, TArray<FShaderMacro>& InMacros);
+
+	// UTexture용 sRGB 파라미터 지원 로드 함수
+	UTexture* LoadTexture(const FString& InFilePath, bool bSRGB);
 
 	template<typename T>
 	bool Add(const FString& InFilePath, UObject* InObject);
@@ -226,11 +229,51 @@ inline UTexture* UResourceManager::Load(const FString& InFilePath)
 	}
 #endif
 
-	// 없으면 새로 로드
+	// 없으면 새로 로드 (기본값: bSRGB = true)
 	UTexture* Resource = NewObject<UTexture>();
-	FString ActualLoadPath = Resource->Load(NormalizedPath, Device); // 실제 로드된 경로 반환 (이미 정규화됨)
+	FString ActualLoadPath = Resource->Load(NormalizedPath, Device, true); // 기본값: sRGB = true
 
 	// 실제 로드된 경로로 등록 (DDS 캐시 사용 시 DDS 경로, 이미 정규화되어 있음)
+	Resource->SetFilePath(ActualLoadPath);
+	Resources[typeIndex][ActualLoadPath] = Resource;
+
+	return Resource;
+}
+
+// UTexture 로드 함수: bSRGB 파라미터 지원 (Diffuse=true, Normal=false)
+inline UTexture* UResourceManager::LoadTexture(const FString& InFilePath, bool bSRGB)
+{
+	// 경로 정규화: 모든 백슬래시를 슬래시로 변환하여 일관성 유지
+	FString NormalizedPath = NormalizePath(InFilePath);
+
+	uint8 typeIndex = static_cast<uint8>(ResourceType::Texture);
+
+	// 먼저 원본 경로로 검색
+	auto iter = Resources[typeIndex].find(NormalizedPath);
+	if (iter != Resources[typeIndex].end())
+	{
+		return static_cast<UTexture*>((*iter).second);
+	}
+
+#ifdef USE_DDS_CACHE
+	// DDS 캐시 사용 시: DDS 캐시 경로로도 검색 시도
+	FString PotentialDDSPath = FTextureConverter::GetDDSCachePath(NormalizedPath);
+	if (PotentialDDSPath != NormalizedPath) // 경로가 변환되었으면
+	{
+		auto ddsIter = Resources[typeIndex].find(PotentialDDSPath);
+		if (ddsIter != Resources[typeIndex].end())
+		{
+			// 이미 DDS 캐시로 로드된 텍스처가 있으면 반환
+			return static_cast<UTexture*>((*ddsIter).second);
+		}
+	}
+#endif
+
+	// 없으면 새로 로드 (bSRGB 파라미터 전달)
+	UTexture* Resource = NewObject<UTexture>();
+	FString ActualLoadPath = Resource->Load(NormalizedPath, Device, bSRGB);
+
+	// 실제 로드된 경로로 등록
 	Resource->SetFilePath(ActualLoadPath);
 	Resources[typeIndex][ActualLoadPath] = Resource;
 

@@ -270,13 +270,23 @@ void FTextureConverter::SetGenerateMipmaps(bool bGenerateMips)
 	bShouldGenerateMipmaps = bGenerateMips;
 }
 
-DXGI_FORMAT FTextureConverter::GetRecommendedFormat(bool bHasAlpha)
+DXGI_FORMAT FTextureConverter::GetRecommendedFormat(bool bHasAlpha, bool bSRGB)
 {
 	// BC3 (DXT5): 알파 포함 텍스처용 - 빠른 압축, 좋은 품질
 	// BC1 (DXT1): 불투명 텍스처용 - 가장 빠른 압축, 작은 크기
 	// BC7: 사용 가능하지만 매우 느림 (BC3보다 10~20배)
 
-	return bHasAlpha ? DXGI_FORMAT_BC3_UNORM : DXGI_FORMAT_BC1_UNORM;
+	// sRGB 포맷: Diffuse/Albedo 텍스처용 (감마 보정)
+	// Linear 포맷: Normal/Data 텍스처용 (데이터 그대로)
+
+	if (bSRGB)
+	{
+		return bHasAlpha ? DXGI_FORMAT_BC3_UNORM_SRGB : DXGI_FORMAT_BC1_UNORM_SRGB;
+	}
+	else
+	{
+		return bHasAlpha ? DXGI_FORMAT_BC3_UNORM : DXGI_FORMAT_BC1_UNORM;
+	}
 }
 
 void FTextureConverter::EnsureCacheDirectoryExists(const FString& CachePath)

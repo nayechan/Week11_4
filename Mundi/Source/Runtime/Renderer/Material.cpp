@@ -73,10 +73,12 @@ void UMaterial::SetTexture(EMaterialTextureSlot Slot, const FString& TexturePath
 	}
 
 	// 3. [핵심] ResourceManager를 통해 텍스처 로드
+	// Diffuse: sRGB = true (감마 보정), Normal: sRGB = false (Linear 데이터)
 	UTexture* LoadedTexture = nullptr;
 	if (!TexturePath.empty()) // 경로가 비어있지 않으면 로드 시도
 	{
-		LoadedTexture = UResourceManager::GetInstance().Load<UTexture>(TexturePath);
+		bool bUseSRGB = (Slot == EMaterialTextureSlot::Diffuse); // Diffuse만 sRGB
+		LoadedTexture = UResourceManager::GetInstance().LoadTexture(TexturePath, bUseSRGB);
 		if (!LoadedTexture)
 		{
 			UE_LOG("SetTexture: Failed to load texture from path: %s", TexturePath.c_str());
