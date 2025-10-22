@@ -234,7 +234,7 @@ PS_OUTPUT mainPS(PS_INPUT Input)
 #endif
     
     // 텍스처 샘플링
-    float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv);
+    float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv) * float4(Material.DiffuseColor, 1.0f);
 
     // 머티리얼의 SpecularExponent 사용, 머티리얼이 없으면 기본값 사용
     float specPower = bHasMaterial ? Material.SpecularExponent : 32.0f;
