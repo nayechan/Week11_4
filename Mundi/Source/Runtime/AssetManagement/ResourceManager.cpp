@@ -435,7 +435,7 @@ void UResourceManager::CreateDefaultMaterial()
     TArray<FShaderMacro> DefaultMacros;
     DefaultMacros.push_back(FShaderMacro{ "LIGHTING_MODEL_PHONG", "1" });
     UShader* DefaultShader = UResourceManager::GetInstance().Load<UShader>(ShaderPath, DefaultMacros);
-    FString NewName = ShaderPath + UShader::GenerateShaderKey(DefaultMacros);
+    FString NewName = ShaderPath + "_" + UShader::GenerateShaderKey(DefaultMacros);
     DefaultMaterialInstance->SetMaterialName(NewName);
     DefaultMaterialInstance->SetShader(DefaultShader);
     DefaultMaterialInstance->SetShaderMacros(DefaultMacros);

@@ -61,9 +61,16 @@ FString UShader::GenerateShaderKey(const TArray<FShaderMacro>& InMacros)
 		});
 
 	FString Key;
-	for (const FShaderMacro& Macro : SortedMacros)
+	for (int32 Index = 0; Index < SortedMacros.Num(); ++Index)
 	{
-		Key += "_" + Macro.Name + "=" + Macro.Definition;
+		// 첫 번째 요소가 아닌 경우에만 구분자를 추가합니다.
+		if (Index > 0)
+		{
+			Key += ", ";
+		}
+
+		const FShaderMacro& Macro = SortedMacros[Index];
+		Key += Macro.Name + "=" + Macro.Definition;
 	}
 	return Key;
 }

@@ -608,9 +608,19 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 		char ShaderPathBuffer[512];
 		strncpy_s(ShaderPathBuffer, sizeof(ShaderPathBuffer), CurrentShaderPath.c_str(), _TRUNCATE);
 		FString ShaderLabel = "Shader##" + FString(Label);
-		ImGui::SetNextItemWidth(400);
+		ImGui::SetNextItemWidth(300);
 		ImGui::BeginDisabled(true);
 		ImGui::InputText(ShaderLabel.c_str(), ShaderPathBuffer, sizeof(ShaderPathBuffer), ImGuiInputTextFlags_ReadOnly);
+		ImGui::EndDisabled();
+
+		// --- 셰이더 매크로 (읽기 전용) ---
+		FString MacroKey = UShader::GenerateShaderKey(CurrentMaterial->GetShaderMacros());
+		char ShaderMacroBuffer[512];
+		strncpy_s(ShaderMacroBuffer, sizeof(ShaderMacroBuffer), MacroKey.c_str(), _TRUNCATE);
+		FString ShaderMacroKeyLabel = "MacroKey##" + FString(Label);
+		ImGui::SetNextItemWidth(300);
+		ImGui::BeginDisabled(true);
+		ImGui::InputText(ShaderMacroKeyLabel.c_str(), ShaderMacroBuffer, sizeof(ShaderMacroBuffer), ImGuiInputTextFlags_ReadOnly);
 		ImGui::EndDisabled();
 
 		// --- 2-2. 텍스처 슬롯 ---
