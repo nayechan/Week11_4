@@ -392,6 +392,11 @@ void AActor::SetActorHiddenInEditor(bool bNewHidden)
 	GWorld->GetLightManager()->SetDirtyFlag();
 }
 
+bool AActor::IsActorVisible() const
+{
+	return GWorld->bPie ? !bHiddenInGame : !bHiddenInEditor;
+}
+
 void AActor::DuplicateSubObjects()
 {
 	Super::DuplicateSubObjects();
@@ -424,10 +429,6 @@ void AActor::DuplicateSubObjects()
 		if (!OriginalComp->IsEditable())
 		{
 			continue; // 에디터 전용 컴포넌트는 PIE World로 복사하지 않음
-		}
-		if (OriginalComp->GetHiddenInGame())
-		{
-			continue;
 		}
 		// 컴포넌트를 깊은 복사합니다.
 		UActorComponent* NewComp = OriginalComp->Duplicate();

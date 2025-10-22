@@ -129,18 +129,17 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 			UE_LOG("Duplicate failed: SourceActor is nullptr");
 			continue;
 		}
-		if (!SourceActor->GetActorHiddenInGame())
-		{
-			AActor* NewActor = SourceActor->Duplicate();
 
-			if (!NewActor)
-			{
-				UE_LOG("Duplicate failed: NewActor is nullptr");
-				continue;
-			}
-			PIEWorld->AddActorToLevel(NewActor);
-			NewActor->SetWorld(PIEWorld);
+		AActor* NewActor = SourceActor->Duplicate();
+
+		if (!NewActor)
+		{
+			UE_LOG("Duplicate failed: NewActor is nullptr");
+			continue;
 		}
+		PIEWorld->AddActorToLevel(NewActor);
+		NewActor->SetWorld(PIEWorld);
+		
 	}
 
 	return PIEWorld;

@@ -128,7 +128,7 @@ public:
     // Visible false인 경우 게임, 에디터 모두 안 보임
     void SetActorHiddenInGame(bool bNewHidden) { bHiddenInGame = bNewHidden; }
     bool GetActorHiddenInGame() { return bHiddenInGame; }
-    bool IsActorVisible() const { return !bHiddenInEditor; }
+    bool IsActorVisible() const;
 
     bool CanTickInEditor() const
     {

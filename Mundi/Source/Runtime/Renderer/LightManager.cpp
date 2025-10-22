@@ -61,11 +61,9 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 
 		FLightBufferType LightBuffer{};
 
-		//ActorHiddenInEditor는 Ingame에서 무조건 False
 		if (AmbientLightList.Num() > 0)
 		{
-			if (AmbientLightList[0]->IsVisible()&&
-				!AmbientLightList[0]->GetOwner()->GetActorHiddenInEditor())
+			if (AmbientLightList[0]->IsVisible())
 			{
 				LightBuffer.AmbientLight = AmbientLightList[0]->GetLightInfo();
 			}
@@ -73,8 +71,7 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 
 		if (DIrectionalLightList.Num() > 0)
 		{
-			if (DIrectionalLightList[0]->IsVisible()&&
-				!DIrectionalLightList[0]->GetOwner()->GetActorHiddenInEditor())
+			if (DIrectionalLightList[0]->IsVisible())
 			{
 				LightBuffer.DirectionalLight = DIrectionalLightList[0]->GetLightInfo();
 			}
@@ -86,8 +83,7 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 			PointLightInfoList.clear();
 			for (int Index = 0; Index < PointLightList.Num(); Index++)
 			{
-				if (PointLightList[Index]->IsVisible()&&
-					!PointLightList[Index]->GetOwner()->GetActorHiddenInEditor())
+				if (PointLightList[Index]->IsVisible())
 				{
 					PointLightInfoList.Add(PointLightList[Index]->GetLightInfo());
 				}
@@ -101,8 +97,7 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 			SpotLightInfoList.clear();
 			for (int Index = 0; Index < SpotLightList.Num(); Index++)
 			{
-				if (SpotLightList[Index]->IsVisible()&&
-					!SpotLightList[Index]->GetOwner()->GetActorHiddenInEditor())
+				if (SpotLightList[Index]->IsVisible())
 				{
 					SpotLightInfoList.Add(SpotLightList[Index]->GetLightInfo());
 				}
