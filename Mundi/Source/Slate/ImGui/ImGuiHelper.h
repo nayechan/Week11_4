@@ -28,5 +28,7 @@ public:
 	static LRESULT WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
 
 private:
+	void SetupCustomTheme();
+
 	bool bIsInitialized = false;
 };

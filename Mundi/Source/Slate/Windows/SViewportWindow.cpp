@@ -654,9 +654,9 @@ void SViewportWindow::RenderCameraOptionDropdownMenu()
 
 	// 드롭다운 버튼 스타일 적용
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.6f));
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.16f, 0.16f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.22f, 0.21f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.22f, 0.28f, 0.26f, 1.00f));
 
 	// 드롭다운 버튼 생성 (카메라 아이콘 + 현재 모드명 + 화살표)
 	ImVec2 ButtonSize(CameraDropdownWidth, ImGui::GetFrameHeight());
@@ -990,9 +990,9 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 
 	// 스타일 적용
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.6f));
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.16f, 0.16f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.22f, 0.21f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.22f, 0.28f, 0.26f, 1.00f));
 
 	// 드롭다운 버튼 생성 (아이콘 + 텍스트)
 	ImVec2 ButtonSize(DropdownWidth, ImGui::GetFrameHeight());
@@ -1050,15 +1050,26 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 
 		const char* LitRadioIcon = bIsLitMode ? "●" : "○";
 
-		// Lit 아이콘 + 텍스트 + 화살표
+		// Selectable로 감싸서 전체 호버링 영역 확보
+		ImVec2 LitCursorPos = ImGui::GetCursorScreenPos();
+		ImVec2 LitSelectableSize(180, IconSize.y);
+
+		// 호버 감지용 투명 Selectable
+		ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0));
+		bool bLitHovered = ImGui::Selectable("##LitHoverArea", false, ImGuiSelectableFlags_AllowItemOverlap, LitSelectableSize);
+		ImGui::PopStyleColor();
+
+		// Selectable 위에 내용 렌더링 (순서: ● + [텍스처] + 텍스트)
+		ImGui::SetCursorScreenPos(LitCursorPos);
+
+		ImGui::Text("%s", LitRadioIcon);
+		ImGui::SameLine(0, 4);
+
 		if (IconViewMode_Lit && IconViewMode_Lit->GetShaderResourceView())
 		{
 			ImGui::Image((void*)IconViewMode_Lit->GetShaderResourceView(), IconSize);
 			ImGui::SameLine(0, 4);
 		}
-
-		ImGui::Text("%s", LitRadioIcon);
-		ImGui::SameLine(0, 4);
 
 		if (ImGui::BeginMenu("라이팅포함"))
 		{
@@ -1136,28 +1147,59 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 		bool bIsUnlit = (CurrentViewMode == EViewModeIndex::VMI_Unlit);
 		const char* UnlitRadioIcon = bIsUnlit ? "●" : "○";
 
+		// Selectable로 감싸서 전체 호버링 영역 확보
+		ImVec2 UnlitCursorPos = ImGui::GetCursorScreenPos();
+		ImVec2 UnlitSelectableSize(180, IconSize.y);
+
+		if (ImGui::Selectable("##UnlitSelectableArea", false, 0, UnlitSelectableSize))
+		{
+			ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Unlit);
+			ImGui::CloseCurrentPopup();
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("조명 계산 없이 텍스처와 색상만 표시");
+		}
+
+		// Selectable 위에 내용 렌더링 (순서: ● + [텍스처] + 텍스트)
+		ImGui::SetCursorScreenPos(UnlitCursorPos);
+
+		ImGui::Text("%s", UnlitRadioIcon);
+		ImGui::SameLine(0, 4);
+
 		if (IconViewMode_Unlit && IconViewMode_Unlit->GetShaderResourceView())
 		{
 			ImGui::Image((void*)IconViewMode_Unlit->GetShaderResourceView(), IconSize);
 			ImGui::SameLine(0, 4);
 		}
 
-		ImGui::Text("%s", UnlitRadioIcon);
-		ImGui::SameLine(0, 4);
-
-		if (ImGui::MenuItem("언릿"))
-		{
-			ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Unlit);
-			ImGui::CloseCurrentPopup();
-		}
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("조명 계산 없이 텍스처와 색상만 표시");
-		}
+		ImGui::Text("언릿");
 
 		// ===== Wireframe 메뉴 =====
 		bool bIsWireframe = (CurrentViewMode == EViewModeIndex::VMI_Wireframe);
 		const char* WireframeRadioIcon = bIsWireframe ? "●" : "○";
+
+		// Selectable로 감싸서 전체 호버링 영역 확보
+		ImVec2 WireframeCursorPos = ImGui::GetCursorScreenPos();
+		ImVec2 WireframeSelectableSize(180, IconSize.y);
+
+		if (ImGui::Selectable("##WireframeSelectableArea", false, 0, WireframeSelectableSize))
+		{
+			ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Wireframe);
+			ImGui::CloseCurrentPopup();
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip("메시의 외곽선(에지)만 표시");
+		}
+
+		// Selectable 위에 내용 렌더링 (순서: ● + [텍스처] + 텍스트)
+		ImGui::SetCursorScreenPos(WireframeCursorPos);
+
+		ImGui::Text("%s", WireframeRadioIcon);
+		ImGui::SameLine(0, 4);
 
 		if (IconViewMode_Wireframe && IconViewMode_Wireframe->GetShaderResourceView())
 		{
@@ -1165,18 +1207,7 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 			ImGui::SameLine(0, 4);
 		}
 
-		ImGui::Text("%s", WireframeRadioIcon);
-		ImGui::SameLine(0, 4);
-
-		if (ImGui::MenuItem("와이어프레임"))
-		{
-			ViewportClient->SetViewModeIndex(EViewModeIndex::VMI_Wireframe);
-			ImGui::CloseCurrentPopup();
-		}
-		if (ImGui::IsItemHovered())
-		{
-			ImGui::SetTooltip("메시의 외곽선(에지)만 표시");
-		}
+		ImGui::Text("와이어프레임");
 
 		// ===== Buffer Visualization 메뉴 (서브메뉴 포함) =====
 		bool bIsBufferVis = (CurrentViewMode == EViewModeIndex::VMI_WorldNormal ||
@@ -1184,14 +1215,26 @@ void SViewportWindow::RenderViewModeDropdownMenu()
 
 		const char* BufferVisRadioIcon = bIsBufferVis ? "●" : "○";
 
+		// Selectable로 감싸서 전체 호버링 영역 확보
+		ImVec2 BufferVisCursorPos = ImGui::GetCursorScreenPos();
+		ImVec2 BufferVisSelectableSize(180, IconSize.y);
+
+		// 호버 감지용 투명 Selectable
+		ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0));
+		bool bBufferVisHovered = ImGui::Selectable("##BufferVisHoverArea", false, ImGuiSelectableFlags_AllowItemOverlap, BufferVisSelectableSize);
+		ImGui::PopStyleColor();
+
+		// Selectable 위에 내용 렌더링 (순서: ● + [텍스처] + 텍스트)
+		ImGui::SetCursorScreenPos(BufferVisCursorPos);
+
+		ImGui::Text("%s", BufferVisRadioIcon);
+		ImGui::SameLine(0, 4);
+
 		if (IconViewMode_BufferVis && IconViewMode_BufferVis->GetShaderResourceView())
 		{
 			ImGui::Image((void*)IconViewMode_BufferVis->GetShaderResourceView(), IconSize);
 			ImGui::SameLine(0, 4);
 		}
-
-		ImGui::Text("%s", BufferVisRadioIcon);
-		ImGui::SameLine(0, 4);
 
 		if (ImGui::BeginMenu("버퍼 시각화"))
 		{
@@ -1259,9 +1302,9 @@ void SViewportWindow::RenderShowFlagDropdownMenu()
 
 	// 스타일 적용
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.6f));
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.16f, 0.16f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.22f, 0.21f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.22f, 0.28f, 0.26f, 1.00f));
 
 	// 드롭다운 버튼 생성 (아이콘 + 텍스트)
 	ImVec2 ButtonSize(DropdownWidth, ImGui::GetFrameHeight());
@@ -1783,9 +1826,9 @@ void SViewportWindow::RenderViewportLayoutSwitchButton()
 
 	// 스타일 적용
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 4.0f);
-	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
-	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.4f, 0.4f, 0.6f));
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.14f, 0.16f, 0.16f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.18f, 0.22f, 0.21f, 1.00f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.22f, 0.28f, 0.26f, 1.00f));
 
 	// 버튼
 	ImVec2 ButtonSize(ButtonWidth, ImGui::GetFrameHeight());
