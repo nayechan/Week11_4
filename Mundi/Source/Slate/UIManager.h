@@ -42,7 +42,6 @@ public:
 	void EndFrame();
 	bool RegisterUIWindow(UUIWindow* InWindow);
 	bool UnregisterUIWindow(UUIWindow* InWindow);
-	void PrintDebugInfo() const;
 
 	UUIWindow* FindUIWindow(const FString& InWindowName) const;
 	UWidget* FindWidget(const FString& InWidgetName) const;
@@ -69,12 +68,7 @@ public:
 	// Actor management methods
 	void SetCamera(ACameraActor* InCameraActor) { CameraActorRef = InCameraActor; }
 	ACameraActor* GetCamera() const { return CameraActorRef; }
-	//void SetPickedActor(AActor* InPickedActor);
 	AActor* GetPickedActor() const { return PickedActorRef; }
-	//void ResetPickedActor();
-	
-	// Selection management helper
-	//AActor* GetSelectedActor() const;
 	
 	// Camera rotation management methods
 	FVector GetTempCameraRotation() const { return TempCameraRotation; }
@@ -84,10 +78,6 @@ public:
 	// Transform Widget registration and management
 	void RegisterTargetTransformWidget(UTargetActorTransformWidget* InWidget);
 	void ClearTransformWidgetSelection(); // Transform 위젯의 선택을 즉시 해제
-
-	// CameraControl 위젯 등록/동기화
-	void RegisterCameraControlWidget(UCameraControlWidget* InWidget);
-	void SyncCameraControlFromCamera();
 
 public:
 	UUIManager();
@@ -118,15 +108,9 @@ private:
 	FVector TempCameraRotation = {0.0f, 0.0f, 0.0f};
 	float StoredRoll = 0.0f;
 
-	// Viewport switching state
-
-
 	void SortUIWindowsByPriority();
 	void UpdateFocusState();
 
 	// Transform Widget reference
 	UTargetActorTransformWidget* TargetTransformWidgetRef = nullptr;
-
-	// Camera Control Widget reference
-	UCameraControlWidget* CameraControlWidgetRef = nullptr;
 };

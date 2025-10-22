@@ -5,7 +5,7 @@ extern float CLIENTHEIGHT;
 SSplitter::SSplitter()
 {
     SplitRatio = 0.5f;
-    SplitterThickness = 10;
+    SplitterThickness = 4;  // 10에서 4로 변경 (더 얇게)
     bIsDragging = false;
 }
 

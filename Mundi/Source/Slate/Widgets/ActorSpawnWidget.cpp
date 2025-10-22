@@ -50,20 +50,6 @@ namespace
 					}
 				}
 
-				// 리플렉션에 등록되지 않은 레거시 액터들 (하위 호환성)
-				// 리플렉션 시스템이 완전히 적용되면 이 부분은 제거 가능
-				if (Result.IsEmpty())
-				{
-					Result.push_back({ "Empty Actor", AActor::StaticClass(), "컴포넌트가 없는 기본 액터입니다." });
-					Result.push_back({ "Static Mesh Actor", AStaticMeshActor::StaticClass(), "스태틱 메시를 표시하는 액터입니다. (기본 Cube 메시로 생성)" });
-					Result.push_back({ "Decal Actor", ADecalActor::StaticClass(), "데칼 액터입니다." });
-					Result.push_back({ "Fake Spot Light Actor", AFakeSpotLightActor::StaticClass(), "가짜 Spot Light 액터입니다." });
-					Result.push_back({ "Ambient Light Actor", AAmbientLightActor::StaticClass(), "전역 환경광 액터입니다. 씬 전체에 균일하게 적용됩니다." });
-					Result.push_back({ "Directional Light Actor", ADirectionalLightActor::StaticClass(), "방향성 조명 액터입니다. 태양광처럼 평행한 빛을 생성합니다." });
-					Result.push_back({ "Point Light Actor", APointLightActor::StaticClass(), "점광원 액터입니다. 모든 방향으로 균등하게 빛을 방출합니다." });
-					Result.push_back({ "Spot Light Actor", ASpotLightActor::StaticClass(), "스포트라이트 액터입니다. 원뿔 형태로 빛을 방출합니다." });
-				}
-
 				return Result;
 			}();
 		return Options;

@@ -363,7 +363,7 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 
 	// 컴포넌트 트리 박스 크기 관련
 	static float PaneHeight = 120.0f;
-	const float SplitterThickness = 6.0f;
+	const float SplitterThickness = 4.0f;
 	const float MinTop = 1.0f;
 	const float MinBottom = 0.0f;
 	const float WindowAvailY = ImGui::GetContentRegionAvail().y;

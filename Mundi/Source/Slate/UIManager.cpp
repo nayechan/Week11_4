@@ -8,7 +8,6 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
 #include "Widgets/TargetActorTransformWidget.h"
-#include "Widgets/CameraControlWidget.h"
 
 IMPLEMENT_CLASS(UUIManager)
 
@@ -175,12 +174,6 @@ void UUIManager::EndFrame()
 	ImGuiHelper->EndFrame();
 }
 
-
-/**
- * @brief UI 윈도우 등록
- * @param InWindow 등록할 UI 윈도우
- * @return 등록 성공 여부
- */
 bool UUIManager::RegisterUIWindow(UUIWindow* InWindow)
 {
 	if (!InWindow)
@@ -216,11 +209,6 @@ bool UUIManager::RegisterUIWindow(UUIWindow* InWindow)
 	return true;
 }
 
-/**
- * @brief UI 윈도우 등록 해제
- * @param InWindow 해제할 UI 윈도우
- * @return 해제 성공 여부
- */
 bool UUIManager::UnregisterUIWindow(UUIWindow* InWindow)
 {
 	if (!InWindow)
@@ -252,11 +240,6 @@ bool UUIManager::UnregisterUIWindow(UUIWindow* InWindow)
 	return true;
 }
 
-/**
- * @brief 이름으로 UI 윈도우 검색
- * @param InWindowName 검색할 윈도우 제목
- * @return 찾은 윈도우 (없으면 nullptr)
- */
 UUIWindow* UUIManager::FindUIWindow(const FString& InWindowName) const
 {
 	for (auto* Window : UIWindows)
@@ -284,9 +267,6 @@ UWidget* UUIManager::FindWidget(const FString& InWidgetName) const
 	return nullptr;
 }
 
-/**
- * @brief 모든 UI 윈도우 숨기기
- */
 void UUIManager::HideAllWindows() const
 {
 	for (auto* Window : UIWindows)
@@ -299,9 +279,6 @@ void UUIManager::HideAllWindows() const
 	UE_LOG("UIManager: All Windows Hidden.");
 }
 
-/**
- * @brief 모든 UI 윈도우 보이기
- */
 void UUIManager::ShowAllWindows() const
 {
 	for (auto* Window : UIWindows)
@@ -314,9 +291,6 @@ void UUIManager::ShowAllWindows() const
 	UE_LOG("UIManager: All Windows Shown.");
 }
 
-/**
- * @brief 특정 윈도우에 포커스 설정
- */
 void UUIManager::SetFocusedWindow(UUIWindow* InWindow)
 {
 	if (FocusedWindow != InWindow)
@@ -335,42 +309,8 @@ void UUIManager::SetFocusedWindow(UUIWindow* InWindow)
 	}
 }
 
-/**
- * @brief 디버그 정보 출력
- * 필요한 지점에서 호출해서 로그로 체크하는 용도
- */
-void UUIManager::PrintDebugInfo() const
-{
-	UE_LOG("");
-	UE_LOG("=== UI Manager Debug Info ===");
-	UE_LOG("Initialized: %s", (bIsInitialized ? "Yes" : "No"));
-	UE_LOG("Total Time: %.2fs", TotalTime);
-	UE_LOG("Registered Windows: %zu", UIWindows.size());
-	//UE_LOG("Focused Window: %s", (FocusedWindow ? to_string(FocusedWindow->GetWindowID()).c_str() : "None"));
-
-	UE_LOG("");
-	UE_LOG("--- Window List ---");
-	for (size_t i = 0; i < UIWindows.size(); ++i)
-	{
-		auto* Window = UIWindows[i];
-		if (Window)
-		{
-			UE_LOG("[%zu] %d (%s)", i, Window->GetWindowID(), Window->GetWindowTitle().c_str());
-			UE_LOG("    State: %s", (Window->IsVisible() ? "Visible" : "Hidden"));
-			UE_LOG("    Priority: %d", Window->GetPriority());
-			UE_LOG("    Focused: %s", (Window->IsFocused() ? "Yes" : "No"));
-		}
-	}
-	UE_LOG("===========================");
-	UE_LOG("");
-}
-
-/**
- * @brief UI 윈도우들을 우선순위에 따라 정렬
- */
 void UUIManager::SortUIWindowsByPriority()
 {
-	// 우선순위가 낮을수록 먼저 렌더링되고 가려짐
 	std::sort(UIWindows.begin(), UIWindows.end(), [](const UUIWindow* A, const UUIWindow* B)
 	{
 		if (!A) return false;
@@ -379,12 +319,8 @@ void UUIManager::SortUIWindowsByPriority()
 	});
 }
 
-/**
- * @brief 포커스 상태 업데이트
- */
 void UUIManager::UpdateFocusState()
 {
-	// ImGui에서 현재 포커스된 윈도우 찾기
 	UUIWindow* NewFocusedWindow = nullptr;
 
 	for (auto* Window : UIWindows)
@@ -396,16 +332,12 @@ void UUIManager::UpdateFocusState()
 		}
 	}
 
-	// 포커스 변경시 처리
 	if (FocusedWindow != NewFocusedWindow)
 	{
 		SetFocusedWindow(NewFocusedWindow);
 	}
 }
 
-/**
- * @brief 윈도우 프로시저 핸들러
- */
 LRESULT UUIManager::WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam)
 {
 	return UImGuiHelper::WndProcHandler(hwnd, msg, wParam, lParam);
@@ -413,95 +345,17 @@ LRESULT UUIManager::WndProcHandler(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM 
 
 void UUIManager::RepositionImGuiWindows()
 {
-	// 1. 현재 화면(Viewport)의 작업 영역을 가져옵니다.
 	for (auto& window : UIWindows)
 	{
 		window->SetIsResized(true);
 	}
 }
 
-/**
- * @brief 마우스 회전 값 업데이트
- * 카메라 제어를 위한 회전 상태 관리
- */
 void UUIManager::UpdateMouseRotation(float InPitch, float InYaw)
 {
 	TempCameraRotation.X = InPitch;
 	TempCameraRotation.Y = InYaw;
-	// Z(Roll)은 별도 관리
 }
-
-/**
- * @brief 월드의 선택된 액터 반환
- * Widget에서 선택된 액터에 접근할 수 있도록 도움
- */
-//AActor* UUIManager::GetSelectedActor() const
-//{
-//	// PickedActorRef의 유효성 확인
-//	if (PickedActorRef)
-//	{
-//		try
-//		{
-//			// 액터가 여전히 유효한지 신벃할 수 있는 간단한 테스트
-//			// 액터의 기본 메서드를 호출해보자
-//			if (PickedActorRef->GetClass() != nullptr)
-//			{
-//				return PickedActorRef;
-//			}
-//		}
-//		catch (...)
-//		{
-//			// 삭제된 액터에 접근한 경우 참조 정리
-//			const_cast<UUIManager*>(this)->PickedActorRef = nullptr;
-//		}
-//	}
-//	return nullptr;
-//}
-
-/**
- * @brief 액터 선택 설정 (안전하게)
- */
-//void UUIManager::SetPickedActor(AActor* InPickedActor)
-//{
-//	if (InPickedActor)
-//	{
-//		try
-//		{
-//			// 기존 선택 해제
-//			ResetPickedActor();
-//			
-//			// 새 액터 선택
-//			PickedActorRef = InPickedActor;
-//			PickedActorRef->SetIsPicked(true);
-//		}
-//		catch (...)
-//		{
-//			// 유효하지 않은 액터인 경우
-//			PickedActorRef = nullptr;
-//		}
-//	}
-//}
-
-/**
- * @brief 액터 선택 해제 (안전하게)
- */
-//void UUIManager::ResetPickedActor()
-//{
-//	if (PickedActorRef)
-//	{
-//		try
-//		{
-//			PickedActorRef->SetIsPicked(false);
-//		}
-//		catch (...)
-//		{
-//			// 삭제된 액터인 경우 예외 무시
-//		}
-//		PickedActorRef = nullptr;
-//	}
-//}
-
-
 
 void UUIManager::RegisterTargetTransformWidget(UTargetActorTransformWidget* InWidget)
 {
@@ -515,17 +369,3 @@ void UUIManager::ClearTransformWidgetSelection()
 		TargetTransformWidgetRef->OnSelectedActorCleared();
 	}
 }
-
-void UUIManager::RegisterCameraControlWidget(UCameraControlWidget* InWidget)
-{
-	CameraControlWidgetRef = InWidget;
-}
-
-void UUIManager::SyncCameraControlFromCamera()
-{
-	if (CameraControlWidgetRef)
-	{
-		CameraControlWidgetRef->SyncFromCamera();
-	}
-}
-

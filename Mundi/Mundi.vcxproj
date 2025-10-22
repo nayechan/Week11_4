@@ -319,23 +319,20 @@
     <ClCompile Include="Source\Runtime\RHI\PipelineStateObject.cpp" />
     <ClCompile Include="Source\Runtime\RHI\RHIDevice.cpp" />
     <ClCompile Include="Source\Slate\Factory\UIWindowFactory.cpp" />
-    <ClCompile Include="Source\Slate\GlobalConsole.cpp" />
+    <ClCompile Include="Source\Slate\GlobalConsole.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\Slate\ImGui\ImGuiHelper.cpp" />
     <ClCompile Include="Source\Slate\StatsOverlayD2D.cpp" />
     <ClCompile Include="Source\Slate\UIManager.cpp" />
     <ClCompile Include="Source\Slate\USlateManager.cpp" />
     <ClCompile Include="Source\Slate\Widgets\ActorSpawnWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\ActorTerminationWidget.cpp" />
-    <ClCompile Include="Source\Slate\Widgets\CameraControlWIdget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\ConsoleWidget.cpp" />
-    <ClCompile Include="Source\Slate\Widgets\FPSWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\InputInformationWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\MenuBarWidget.cpp" />
-    <ClCompile Include="Source\Slate\Widgets\PrimitiveSpawnWidget.cpp" />
-    <ClCompile Include="Source\Slate\Widgets\RenderViewportSwitcherWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\SceneIOWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\SceneManagerWidget.cpp" />
-    <ClCompile Include="Source\Slate\Widgets\ShowFlagWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\TargetActorTransformWidget.cpp" />
     <ClCompile Include="Source\Slate\Widgets\Widget.cpp" />
     <ClCompile Include="Source\Slate\Windows\ConsoleWindow.cpp" />
@@ -554,23 +551,20 @@
     <ClInclude Include="Source\Runtime\RHI\PipelineStateObject.h" />
     <ClInclude Include="Source\Runtime\RHI\RHIDevice.h" />
     <ClInclude Include="Source\Slate\Factory\UIWindowFactory.h" />
-    <ClInclude Include="Source\Slate\GlobalConsole.h" />
+    <ClInclude Include="Source\Slate\GlobalConsole.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="Source\Slate\ImGui\ImGuiHelper.h" />
     <ClInclude Include="Source\Slate\StatsOverlayD2D.h" />
     <ClInclude Include="Source\Slate\UIManager.h" />
     <ClInclude Include="Source\Slate\USlateManager.h" />
     <ClInclude Include="Source\Slate\Widgets\ActorSpawnWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\ActorTerminationWidget.h" />
-    <ClInclude Include="Source\Slate\Widgets\CameraControlWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\ConsoleWidget.h" />
-    <ClInclude Include="Source\Slate\Widgets\FPSWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\InputInformationWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\MenuBarWidget.h" />
-    <ClInclude Include="Source\Slate\Widgets\PrimitiveSpawnWidget.h" />
-    <ClInclude Include="Source\Slate\Widgets\RenderViewportSwitcherWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\SceneIOWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\SceneManagerWidget.h" />
-    <ClInclude Include="Source\Slate\Widgets\ShowFlagWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\TargetActorTransformWidget.h" />
     <ClInclude Include="Source\Slate\Widgets\Widget.h" />
     <ClInclude Include="Source\Slate\Windows\ConsoleWindow.h" />

@@ -1,11 +1,7 @@
 ﻿#include "pch.h"
 #include "ControlPanelWindow.h"
-#include "Widgets/CameraControlWidget.h"
-#include "Widgets/FPSWidget.h"
 #include "Widgets/ActorTerminationWidget.h"
-#include "Widgets/PrimitiveSpawnWidget.h"
 #include "Widgets/SceneIOWidget.h"
-#include "Widgets/RenderViewportSwitcherWidget.h"
 
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
@@ -32,29 +28,13 @@ UControlPanelWindow::UControlPanelWindow()
 	Config.UpdateWindowFlags();
 	SetConfig(Config);
 
-	UFPSWidget* FPSWidget = NewObject<UFPSWidget>();
-	FPSWidget->Initialize();
-	AddWidget(FPSWidget);
-
 	UActorTerminationWidget* ActorTerminationWidget = NewObject<UActorTerminationWidget>();
 	ActorTerminationWidget->Initialize();
 	AddWidget(ActorTerminationWidget);
 
-	UPrimitiveSpawnWidget* PrimitiveSpawnWidget = NewObject<UPrimitiveSpawnWidget>();
-	PrimitiveSpawnWidget->Initialize();
-	AddWidget(PrimitiveSpawnWidget);
-
 	USceneIOWidget* SceneIOWidget = NewObject<USceneIOWidget>();
 	SceneIOWidget->Initialize();
 	AddWidget(SceneIOWidget);
-
-	UCameraControlWidget* CameraControlWidget = NewObject<UCameraControlWidget>();
-	CameraControlWidget->Initialize();
-	AddWidget(CameraControlWidget);
-
-	URenderViewportSwitcherWidget* RenderViewPortSWitcherWidget = NewObject<URenderViewportSwitcherWidget>();
-	RenderViewPortSWitcherWidget->Initialize();
-	AddWidget(RenderViewPortSWitcherWidget);
 }
 
 /**
