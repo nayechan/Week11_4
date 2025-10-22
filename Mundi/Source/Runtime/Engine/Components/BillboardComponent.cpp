@@ -17,8 +17,6 @@ IMPLEMENT_CLASS(UBillboardComponent)
 BEGIN_PROPERTIES(UBillboardComponent)
 	MARK_AS_COMPONENT("빌보드 컴포넌트", "항상 카메라를 향하는 2D 아이콘을 표시합니다.")
 	ADD_PROPERTY_TEXTURE(UTexture*, Texture, "Billboard", true, "빌보드 텍스처입니다.")
-	ADD_PROPERTY_RANGE(float, Width, "Billboard", 1.0f, 1000.0f, true, "빌보드 너비입니다.")
-	ADD_PROPERTY_RANGE(float, Height, "Billboard", 1.0f, 1000.0f, true, "빌보드 높이입니다.")
 END_PROPERTIES()
 
 UBillboardComponent::UBillboardComponent()
@@ -133,9 +131,9 @@ void UBillboardComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshB
 	BatchElement.BaseVertexIndex = 0;
 
 	// --- 인스턴스 데이터 ---
-	// 빌보드는 셰이더에서 카메라를 바라보게 처리하므로,
-	// 여기서는 월드 위치(Translation) 정보만 행렬로 넘깁니다.
-	BatchElement.WorldMatrix = FMatrix::MakeTranslation(GetWorldLocation());
+	// 빌보드는 3개의 스케일 펙터중에서 가장 큰 값으로 유니폼스케일, 회전 미적용, Tarnslation 적용
+	float Scale = GetRelativeScale().GetMaxValue();
+	BatchElement.WorldMatrix = FMatrix::MakeScale(Scale) * FMatrix::MakeTranslation(GetWorldLocation());
 
 	BatchElement.ObjectID = InternalIndex;
 	BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

@@ -45,7 +45,8 @@ PS_INPUT mainVS(VS_INPUT input)
     PS_INPUT o;
     
     // 1. 뷰별 데이터(b1)에서 InverseViewMatrix 읽기
-    float3 posAligned = mul(float4(input.localPos, 0.0f), InverseViewMatrix).xyz;
+    // LocalPos는 어차피 float3라서 Translation 안되고 스케일만 됨, 스케일 적용
+    float3 posAligned = mul(mul(float4(input.localPos, 0.0f), WorldMatrix), InverseViewMatrix).xyz;
     
     // 2. 객체별 데이터(b0)의 WorldMatrix에서 월드 위치 추출
     // (row_major 행렬의 4번째 행이 위치(translation) 정보)

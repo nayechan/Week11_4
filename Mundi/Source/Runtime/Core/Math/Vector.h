@@ -208,9 +208,13 @@ struct FVector
 			(Z > B.Z) ? Z : B.Z
 		);
 	}
+
 	// 크기
 	float Size()         const { return std::sqrt(X * X + Y * Y + Z * Z); }
 	float SizeSquared()  const { return X * X + Y * Y + Z * Z; }
+
+	// XYZ중 가장 큰 값 리턴
+	float GetMaxValue() const{ return (X > Y) ? ((X > Z) ? X : Z) : Y; }
 
 	// 정규화
 	FVector GetNormalized() const

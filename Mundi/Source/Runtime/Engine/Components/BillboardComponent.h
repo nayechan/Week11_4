@@ -20,10 +20,7 @@ public:
 
     // Setup
     void SetTextureName( FString TexturePath);
-    void SetSize(float InWidth, float InHeight) { Width = InWidth; Height = InHeight; }
 
-    float GetWidth() const { return Width; }
-    float GetHeight() const { return Height; }
     UQuad* GetStaticMesh() const { return Quad; }
     FString& GetTextureName() { return TextureName; }
 
@@ -42,7 +39,5 @@ private:
     UTexture* Texture = nullptr;  // 리플렉션 시스템용 Texture 포인터
     UMaterialInterface* Material = nullptr;
     UQuad* Quad = nullptr;
-    float Width = 100.f;
-    float Height = 100.f;
 };
 
