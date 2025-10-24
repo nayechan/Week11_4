@@ -244,12 +244,6 @@ void USceneComponent::SetLocalLocationAndRotation(const FVector& L, const FQuat&
 
 FMatrix USceneComponent::GetWorldMatrix() const
 {
-    /*FMatrix YUpToZUpInverse(
-        0, 0, 1, 0,
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 0, 1
-    );*/
     return GetWorldTransform().ToMatrix();
 }
 

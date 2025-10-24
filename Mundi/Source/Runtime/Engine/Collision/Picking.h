@@ -79,11 +79,6 @@ public:
                                           const FVector2D& ViewportOffset,
                                           float ViewportAspectRatio, FViewport* Viewport);
 
-    // 현재 기즈모의 어떤 축에 호버링 중인지 반환 (X=1, Y=2, Z=3)
-    static uint32 IsHoveringGizmo(AGizmoActor* GizmoActor, const ACameraActor* Camera);
-
-
-
     // 뷰포트 정보를 명시적으로 받는 기즈모 호버링 검사
     static uint32 IsHoveringGizmoForViewport(AGizmoActor* GizmoActor, const ACameraActor* Camera,
                                              const FVector2D& ViewportMousePos,

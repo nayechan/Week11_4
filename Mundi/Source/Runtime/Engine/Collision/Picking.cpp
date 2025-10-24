@@ -395,167 +395,6 @@ AActor* CPickingSystem::PerformViewportPicking(const TArray<AActor*>& Actors,
 	}
 }
 
-uint32 CPickingSystem::IsHoveringGizmo(AGizmoActor* GizmoTransActor, const ACameraActor* Camera)
-{
-	if (!GizmoTransActor || !Camera)
-		return 0;
-
-	// 임시 충돌 지점 변수 (사용하지 않지만 매개변수로 필요해서 선언)
-	FVector TempImpactPoint;
-
-	// 현재 활성 뷰포트 정보 가져오기 (UI 시스템에서)
-	FVector2D ViewportMousePos = UInputManager::GetInstance().GetMousePosition();
-	FVector2D ViewportSize = UInputManager::GetInstance().GetScreenSize();
-	FVector2D ViewportOffset = FVector2D(0, 0);
-
-	// 멀티 뷰포트인 경우 현재 뷰포트의 정보를 사용
-	// 4분할 화면 등에서는 각 뷰포트의 offset과 size를 올바르게 계산해야 함
-
-	// 뷰포트별 레이 생성
-	const FMatrix View = Camera->GetViewMatrix();
-	const FMatrix Proj = Camera->GetProjectionMatrix();
-	const FVector CameraWorldPos = Camera->GetActorLocation();
-	const FVector CameraRight = Camera->GetRight();
-	const FVector CameraUp = Camera->GetUp();
-	const FVector CameraForward = Camera->GetForward();
-	FRay Ray = MakeRayFromViewport(View, Proj, CameraWorldPos, CameraRight, CameraUp, CameraForward,
-		ViewportMousePos, ViewportSize, ViewportOffset);
-
-	uint32 ClosestAxis = 0;
-	float ClosestDistance = 1e9f;
-	float HitDistance;
-
-	// X축 화살표 검사
-	//Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowX());
-
-	switch (GizmoTransActor->GetMode())
-	{
-	case EGizmoMode::Translate:
-		if (UStaticMeshComponent* ArrowX = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowX()))
-		{
-			if (CheckGizmoComponentPicking(ArrowX, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 1;
-				}
-			}
-		}
-
-		// Y축 화살표 검사
-		if (UStaticMeshComponent* ArrowY = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowY()))
-		{
-			if (CheckGizmoComponentPicking(ArrowY, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 2;
-				}
-			}
-		}
-
-		// Z축 화살표 검사
-		if (UStaticMeshComponent* ArrowZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetArrowZ()))
-		{
-			if (CheckGizmoComponentPicking(ArrowZ, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 3;
-				}
-			}
-		}
-		break;
-	case EGizmoMode::Scale:
-		if (UStaticMeshComponent* ScaleX = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleX()))
-		{
-			if (CheckGizmoComponentPicking(ScaleX, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 1;
-				}
-			}
-		}
-
-		// Y축 화살표 검사
-		if (UStaticMeshComponent* ScaleY = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleY()))
-		{
-			if (CheckGizmoComponentPicking(ScaleY, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 2;
-				}
-			}
-		}
-
-		// Z축 화살표 검사
-		if (UStaticMeshComponent* ScaleZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetScaleZ()))
-		{
-			if (CheckGizmoComponentPicking(ScaleZ, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 3;
-				}
-			}
-		}
-		break;
-	case EGizmoMode::Rotate:
-		if (UStaticMeshComponent* RotateX = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateX()))
-		{
-			if (CheckGizmoComponentPicking(RotateX, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 1;
-				}
-			}
-		}
-
-		// Y축 화살표 검사
-		if (UStaticMeshComponent* RotateY = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateY()))
-		{
-			if (CheckGizmoComponentPicking(RotateY, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 2;
-				}
-			}
-		}
-
-		// Z축 화살표 검사
-		if (UStaticMeshComponent* RotateZ = Cast<UStaticMeshComponent>(GizmoTransActor->GetRotateZ()))
-		{
-			if (CheckGizmoComponentPicking(RotateZ, Ray, HitDistance, TempImpactPoint))
-			{
-				if (HitDistance < ClosestDistance)
-				{
-					ClosestDistance = HitDistance;
-					ClosestAxis = 3;
-				}
-			}
-		}
-		break;
-	default:
-		break;
-	}
-
-
-
-	return ClosestAxis;
-}
-
 uint32 CPickingSystem::IsHoveringGizmoForViewport(AGizmoActor* GizmoTransActor, const ACameraActor* Camera,
 	const FVector2D& ViewportMousePos,
 	const FVector2D& ViewportSize,
@@ -718,41 +557,17 @@ uint32 CPickingSystem::IsHoveringGizmoForViewport(AGizmoActor* GizmoTransActor, 
 	return ClosestAxis;
 }
 
-
-
-//void CPickingSystem::DragActorWithGizmo(AActor* Actor, AGizmoActor* GizmoActor, uint32 GizmoAxis, const FVector2D& MouseDelta, const ACameraActor* Camera, EGizmoMode InGizmoMode)
-//{
-//
-//	if (!Actor || !Camera || GizmoAxis == 0)
-//		return;
-//	GizmoActor->OnDrag(Actor, GizmoAxis, MouseDelta.X, MouseDelta.Y, Camera, nullptr);
-//}
-
-
 bool CPickingSystem::CheckGizmoComponentPicking(const UStaticMeshComponent* Component, const FRay& Ray, float& OutDistance, FVector& OutImpactPoint)
 {
 	if (!Component) return false;
 
 	// Gizmo 메시는 FStaticMesh(쿠킹된 데이터)를 사용
-	FStaticMesh* StaticMesh = FObjManager::LoadObjStaticMeshAsset(
-		Component->GetStaticMesh()->GetFilePath()
-	);
+	FStaticMesh* StaticMesh = Component->GetStaticMesh()->GetStaticMeshAsset();
+
 	if (!StaticMesh) return false;
 
 	// 피킹 계산에는 컴포넌트의 월드 변환 행렬 사용
 	FMatrix WorldMatrix = Component->GetWorldMatrix();
-
-	auto TransformPoint = [&](float X, float Y, float Z) -> FVector
-		{
-			// row-vector (v^T) * M 방식으로 월드 변환 (translation 반영)
-			FVector4 V4(X, Y, Z, 1.0f);
-			FVector4 OutV4;
-			OutV4.X = V4.X * WorldMatrix.M[0][0] + V4.Y * WorldMatrix.M[1][0] + V4.Z * WorldMatrix.M[2][0] + V4.W * WorldMatrix.M[3][0];
-			OutV4.Y = V4.X * WorldMatrix.M[0][1] + V4.Y * WorldMatrix.M[1][1] + V4.Z * WorldMatrix.M[2][1] + V4.W * WorldMatrix.M[3][1];
-			OutV4.Z = V4.X * WorldMatrix.M[0][2] + V4.Y * WorldMatrix.M[1][2] + V4.Z * WorldMatrix.M[2][2] + V4.W * WorldMatrix.M[3][2];
-			OutV4.W = V4.X * WorldMatrix.M[0][3] + V4.Y * WorldMatrix.M[1][3] + V4.Z * WorldMatrix.M[2][3] + V4.W * WorldMatrix.M[3][3];
-			return FVector(OutV4.X, OutV4.Y, OutV4.Z);
-		};
 
 	float ClosestT = 1e9f;
 	FVector ClosestImpactPoint = FVector::Zero(); // 가장 가까운 충돌 지점 저장
@@ -768,9 +583,9 @@ bool CPickingSystem::CheckGizmoComponentPicking(const UStaticMeshComponent* Comp
 			const FNormalVertex& V1N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 1]];
 			const FNormalVertex& V2N = StaticMesh->Vertices[StaticMesh->Indices[Idx + 2]];
 
-			FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
-			FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
-			FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+			FVector A = V0N.pos * WorldMatrix;
+			FVector B = V1N.pos * WorldMatrix;
+			FVector C = V2N.pos * WorldMatrix;
 
 			float THit;
 			if (IntersectRayTriangleMT(Ray, A, B, C, THit))
@@ -794,9 +609,9 @@ bool CPickingSystem::CheckGizmoComponentPicking(const UStaticMeshComponent* Comp
 			const FNormalVertex& V1N = StaticMesh->Vertices[Idx + 1];
 			const FNormalVertex& V2N = StaticMesh->Vertices[Idx + 2];
 
-			FVector A = TransformPoint(V0N.pos.X, V0N.pos.Y, V0N.pos.Z);
-			FVector B = TransformPoint(V1N.pos.X, V1N.pos.Y, V1N.pos.Z);
-			FVector C = TransformPoint(V2N.pos.X, V2N.pos.Y, V2N.pos.Z);
+			FVector A = V0N.pos * WorldMatrix;
+			FVector B = V1N.pos * WorldMatrix;
+			FVector C = V2N.pos * WorldMatrix;
 
 			float THit;
 			if (IntersectRayTriangleMT(Ray, A, B, C, THit))
