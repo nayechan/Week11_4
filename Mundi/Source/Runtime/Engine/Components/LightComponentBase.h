@@ -32,6 +32,8 @@ public:
 	virtual void DuplicateSubObjects() override;
 	DECLARE_DUPLICATE(ULightComponentBase)
 
+	bool IsCastShadows() { return bCastShadows; }
+
 protected:
 	//bool bIsEnabled = true;
 	float Intensity = 1.0f;

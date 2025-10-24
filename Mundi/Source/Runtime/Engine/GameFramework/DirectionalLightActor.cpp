@@ -22,7 +22,7 @@ ADirectionalLightActor::~ADirectionalLightActor()
 
 void ADirectionalLightActor::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 
 	for (UActorComponent* Component : OwnedComponents)
 	{

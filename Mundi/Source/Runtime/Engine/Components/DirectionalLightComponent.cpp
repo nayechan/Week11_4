@@ -37,7 +37,7 @@ FDirectionalLightInfo UDirectionalLightComponent::GetLightInfo() const
 
 void UDirectionalLightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister(InWorld);
+	Super::OnRegister(InWorld);
 
 	UE_LOG("DirectionalLightComponent::OnRegister called");
 

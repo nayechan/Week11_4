@@ -22,7 +22,7 @@ ASpotLightActor::~ASpotLightActor()
 
 void ASpotLightActor::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 
 	for (UActorComponent* Component : OwnedComponents)
 	{

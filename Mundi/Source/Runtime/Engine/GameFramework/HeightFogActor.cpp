@@ -17,5 +17,5 @@ AHeightFogActor::AHeightFogActor()
 
 void AHeightFogActor::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 }

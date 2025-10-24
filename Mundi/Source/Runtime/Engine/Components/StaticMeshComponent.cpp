@@ -328,7 +328,7 @@ FAABB UStaticMeshComponent::GetWorldAABB() const
 }
 void UStaticMeshComponent::OnTransformUpdated()
 {
-	Super_t::OnTransformUpdated();
+	Super::OnTransformUpdated();
 	MarkWorldPartitionDirty();
 }
 

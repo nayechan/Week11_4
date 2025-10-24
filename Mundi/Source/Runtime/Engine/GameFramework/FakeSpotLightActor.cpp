@@ -33,7 +33,7 @@ AFakeSpotLightActor::~AFakeSpotLightActor()
 
 void AFakeSpotLightActor::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 
 	// 두 컴포넌트를 모두 찾을 때까지 순회
 	for (UActorComponent* Component : OwnedComponents)

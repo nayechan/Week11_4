@@ -46,7 +46,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaSeconds)
     if (!GWorld->bPie)
         return;
 
-    Super_t::TickComponent(DeltaSeconds);
+    Super::TickComponent(DeltaSeconds);
 
     if (!bIsActive || !bCanEverTick || !UpdatedComponent)
         return;

@@ -22,7 +22,7 @@ UMovementComponent::~UMovementComponent()
 
 void UMovementComponent::InitializeComponent()
 {
-    Super_t::InitializeComponent();
+    Super::InitializeComponent();
     
     // 자신을 소유한 액터의 루트 컴포넌트를 UpdatedComponent로 설정
     if (!UpdatedComponent && Owner)
@@ -37,7 +37,7 @@ void UMovementComponent::InitializeComponent()
 
 void UMovementComponent::TickComponent(float DeltaSeconds)
 {
-    Super_t::TickComponent(DeltaSeconds);
+    Super::TickComponent(DeltaSeconds);
 
     if (!bIsActive || !bCanEverTick)
         return;
@@ -68,6 +68,6 @@ void UMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponen
 
 void UMovementComponent::DuplicateSubObjects()
 {
-    Super_t::DuplicateSubObjects();
+    Super::DuplicateSubObjects();
     // MovementComponent has no sub-objects to duplicate
 }

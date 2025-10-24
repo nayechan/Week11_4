@@ -3,5 +3,5 @@
 
 void AInfo::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 }

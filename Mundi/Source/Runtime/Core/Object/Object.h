@@ -256,7 +256,6 @@ static void SerializePrimitiveArray(TArray<T>* ArrayPtr, bool bIsLoading, JSON& 
 // ── 파생 타입에 붙일 매크로 ─────────────────────────────────────
 #define DECLARE_CLASS(ThisClass, SuperClass)                                  \
 public:                                                                       \
-    using Super_t = SuperClass;                                               \
     using Super   = SuperClass; /* Unreal 스타일 Super 매크로 대응 */        \
     using ThisClass_t = ThisClass;                                            \
     static UClass* StaticClass()                                              \

@@ -100,7 +100,7 @@ FLinearColor ULightComponent::GetLightColorWithIntensity() const
 
 void ULightComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister(InWorld);
+	Super::OnRegister(InWorld);
 	UE_LOG("LightComponent::OnRegister called");
 	if (!SpriteComponent)
 	{

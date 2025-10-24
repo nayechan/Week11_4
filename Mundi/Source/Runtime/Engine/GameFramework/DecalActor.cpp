@@ -22,7 +22,7 @@ ADecalActor::~ADecalActor()
 
 void ADecalActor::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 
 	// 자식을 순회하면서 UDecalComponent를 찾음
 	for (UActorComponent* Component : OwnedComponents)

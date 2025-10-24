@@ -32,7 +32,7 @@ UHeightFogComponent::~UHeightFogComponent()
 
 void UHeightFogComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister(InWorld);
+	Super::OnRegister(InWorld);
 	if (!SpriteComponent)
 	{
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);

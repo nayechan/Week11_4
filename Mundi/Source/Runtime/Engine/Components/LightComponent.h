@@ -25,6 +25,11 @@ public:
 	virtual void DuplicateSubObjects() override;
 	DECLARE_DUPLICATE(ULightComponent)
 
+	float GetShadowResolutionScale() { return ShadowResolutionScale; }
+	float GetShadowBias() { return ShadowBias; }
+	float GetShadowSlopeBias() { return ShadowSlopeBias; }
+	float GetShadowSharpen() { return ShadowSharpen; }
+
 protected:
 	float Temperature = 6500.0f; // 색온도 (K)
 
