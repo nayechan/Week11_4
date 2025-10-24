@@ -132,7 +132,6 @@ public:
 	UINT GetViewportWidth() const { return (UINT)ViewportInfo.Width; }
 	UINT GetViewportHeight() const { return (UINT)ViewportInfo.Height; }
 
-	void PrepareShader(FShader& InShader);
 	void PrepareShader(UShader* InShader);
 	void PrepareShader(UShader* InVertexShader, UShader* InPixelShader);
 

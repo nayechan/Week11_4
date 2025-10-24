@@ -239,14 +239,6 @@ struct FResourceData
     D3D11_PRIMITIVE_TOPOLOGY Topol = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 };
 
-
-struct FShader
-{
-    ID3D11InputLayout* SimpleInputLayout = nullptr;
-    ID3D11VertexShader* SimpleVertexShader = nullptr;
-    ID3D11PixelShader* SimplePixelShader = nullptr;
-};
-
 struct FTextureData
 {
     ID3D11Resource* Texture = nullptr;

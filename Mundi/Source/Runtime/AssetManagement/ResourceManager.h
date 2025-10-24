@@ -114,8 +114,6 @@ protected:
 	// Deprecated
 	TMap<FString, FResourceData*> ResourceMap;
 	TMap<FWideString, FTextureData*> TextureMap;
-	FShader PrimitiveShader;
-	TMap<FWideString, FShader*> ShaderList;
 
 private:
 	// --- 비공개 멤버 변수 ---

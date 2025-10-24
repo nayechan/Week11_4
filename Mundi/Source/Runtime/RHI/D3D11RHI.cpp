@@ -1034,12 +1034,6 @@ ID3D11SamplerState* D3D11RHI::GetSamplerState(RHI_Sampler_Index SamplerIndex) co
     return TempSamplerState;
 }
 
-void D3D11RHI::PrepareShader(FShader& InShader)
-{
-    GetDeviceContext()->VSSetShader(InShader.SimpleVertexShader, nullptr, 0);
-    GetDeviceContext()->PSSetShader(InShader.SimplePixelShader, nullptr, 0);
-    GetDeviceContext()->IASetInputLayout(InShader.SimpleInputLayout);
-}
 
 void D3D11RHI::PrepareShader(UShader* InShader)
 {
