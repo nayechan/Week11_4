@@ -21,8 +21,9 @@ struct FRect
 
     bool Contains(FVector2D P) const
     {
-        return (P.X >= Left && P.X <= Right &&
-            P.Y >= Top && P.Y <= Bottom);
+        // swindow 내부 영역은 보수적으로 검사해서 스플리터와 겹치지 않게 처리
+        return (P.X > Left && P.X < Right &&
+            P.Y > Top && P.Y < Bottom);
     }
 
     void UpdateMinMax()

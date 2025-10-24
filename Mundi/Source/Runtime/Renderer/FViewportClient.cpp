@@ -130,7 +130,6 @@ void FViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y)
 	{
 		if (ViewportType != EViewportType::Perspective)
 		{
-
 			int32 deltaX = X - MouseLastX;
 			int32 deltaY = Y - MouseLastY;
 
@@ -220,7 +219,7 @@ void FViewportClient::MouseButtonUp(FViewport* Viewport, int32 X, int32 Y, int32
 	if (Button == 0) // Left mouse button
 	{
 		bIsMouseButtonDown = false;
-		
+
 		// 드래그 종료 처리를 위해 한번 더 호출
 		if (World->GetGizmoActor())
 		{

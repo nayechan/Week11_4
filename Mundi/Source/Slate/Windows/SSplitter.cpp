@@ -26,6 +26,12 @@ SSplitter::~SSplitter()
 
 bool SSplitter::IsMouseOnSplitter(FVector2D MousePos) const
 {
+    // ImGui가 마우를 사용 중이라면 Mouse의 Up, Down 이벤트가 들어오지 않기 때문에 강제로 false 반환
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
+        return false;
+    }
+
     FRect SplitterRect = GetSplitterRect();
     return MousePos.X >= SplitterRect.Min.X && MousePos.X <= SplitterRect.Max.X &&
         MousePos.Y >= SplitterRect.Min.Y && MousePos.Y <= SplitterRect.Max.Y;
@@ -88,7 +94,6 @@ void SSplitter::OnRender()
 
 void SSplitter::OnUpdate(float DeltaSeconds)
 {
-
     UpdateChildRects();
 
     if (SideLT) SideLT->OnUpdate(DeltaSeconds);
@@ -106,6 +111,7 @@ void SSplitter::OnMouseMove(FVector2D MousePos)
     if (IsMouseOnSplitter(MousePos))
     {
         ImGui::SetMouseCursor(GetMouseCursor());
+        return; // NOTE: IsMouseOnSplitter 상태일 때 기즈모가 동작하지 안도록 처리, 하지만 기즈모와 스플리터와 겹치면 계속 하이라이트 되는 버그가 생김
     }
 
     // 자식 윈도우에 이벤트 전달
@@ -122,14 +128,16 @@ void SSplitter::OnMouseDown(FVector2D MousePos , uint32 Button)
     if (SideRB && SideRB->IsHover(MousePos)) SideRB->OnMouseDown(MousePos, Button);
 }
 
-
 void SSplitter::OnMouseUp(FVector2D MousePos, uint32 Button)
 {
     EndDrag();
 
     // 자식 윈도우에 이벤트 전달
-    if (SideLT && SideLT->IsHover(MousePos)) SideLT->OnMouseUp(MousePos, Button);
-    if (SideRB && SideRB->IsHover(MousePos)) SideRB->OnMouseUp(MousePos, Button);
+    // NOTE: IsHover하지 않더라도 Up 이벤트는 항상 보내주어 드래그 관련 버그를 제거
+    //if (SideLT && SideLT->IsHover(MousePos))
+    SideLT->OnMouseUp(MousePos, Button);
+    //if (SideRB && SideRB->IsHover(MousePos)) 
+    SideRB->OnMouseUp(MousePos, Button);
 }
 
 void SSplitter::SaveToConfig(const FString& SectionName) const

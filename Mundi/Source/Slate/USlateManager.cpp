@@ -373,7 +373,10 @@ void USlateManager::OnMouseMove(FVector2D MousePos)
 
 void USlateManager::OnMouseDown(FVector2D MousePos, uint32 Button)
 {
-    if (TopPanel)
+    if (ActiveViewport)
+    {
+    }
+    else if (TopPanel)
     {
         TopPanel->OnMouseDown(MousePos, Button);
 
@@ -410,7 +413,8 @@ void USlateManager::OnMouseUp(FVector2D MousePos, uint32 Button)
         ActiveViewport->OnMouseUp(MousePos, Button);
         ActiveViewport = nullptr; // 드래그 끝나면 해제
     }
-    else if (TopPanel)
+    // NOTE: ActiveViewport가 있더라도 Up 이벤트는 항상 보내주어 드래그 관련 버그를 제거
+    if (TopPanel)
     {
         TopPanel->OnMouseUp(MousePos, Button);
     }
