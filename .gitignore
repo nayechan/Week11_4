@@ -464,11 +464,7 @@ WARP.md
 /Mundi/Data/**/*.bin
 
 # JetBrains IDEs' User-specific stuff
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/usage.statistics.xml
-.idea/**/dictionaries
-.idea/**/shelf
+.idea/
 
 # AI Configuration Files
 AGENTS.md
