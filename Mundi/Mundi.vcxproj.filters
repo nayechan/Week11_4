@@ -47,6 +47,9 @@
     <FxCompile Include="Shaders\Common\LightStructures.hlsl">
       <Filter>Shaders\Common</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Shadows\DepthOnly_VS.hlsl">
+      <Filter>Shaders\Shadows</Filter>
+    </FxCompile>
   </ItemGroup>
   <!-- Root Files -->
   <ItemGroup>
@@ -980,6 +983,9 @@
     </Filter>
     <Filter Include="Source\Editor\Clipboard">
       <UniqueIdentifier>{e3a76874-0fb9-4a70-9fd5-ce9cdf3abd9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Shadows">
+      <UniqueIdentifier>{c9f0ed58-5133-40c4-8055-0ec3a4bf7504}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

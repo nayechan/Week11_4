@@ -1,6 +1,10 @@
 ﻿#pragma once
 #include "LightComponentBase.h"
 
+class FSceneView;
+
+struct FShadowRenderRequest;
+
 // 실제 조명 효과를 가진 라이트들의 공통 베이스
 class ULightComponent : public ULightComponentBase
 {
@@ -19,6 +23,8 @@ public:
 	// 색상과 강도를 합쳐서 반환
 	virtual FLinearColor GetLightColorWithIntensity() const;
 	void OnRegister(UWorld* InWorld) override;
+
+	virtual void GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests) {};
 
 	// Serialization & Duplication
 	virtual void OnSerialized() override;

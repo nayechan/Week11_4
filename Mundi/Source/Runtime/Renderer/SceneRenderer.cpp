@@ -74,12 +74,15 @@ void FSceneRenderer::Render()
 	// 렌더링할 대상 수집 (Cull + Gather)
 	GatherVisibleProxies();
 
+	RenderShadowMaps();
+
 	// ViewMode에 따라 렌더링 경로 결정
 	if (View->ViewMode == EViewModeIndex::VMI_Lit ||
 		View->ViewMode == EViewModeIndex::VMI_Lit_Gouraud ||
 		View->ViewMode == EViewModeIndex::VMI_Lit_Lambert ||
 		View->ViewMode == EViewModeIndex::VMI_Lit_Phong)
 	{
+
 		GWorld->GetLightManager()->UpdateLightBuffer(RHIDevice);	//라이트 구조체 버퍼 업데이트, 바인딩
 		PerformTileLightCulling();	// 타일 기반 라이트 컬링 수행
 		RenderLitPath();
@@ -190,6 +193,255 @@ void FSceneRenderer::RenderSceneDepthPath()
 	RenderSceneDepthPostProcess();
 
 }
+
+//====================================================================================
+// 그림자맵 구현
+//====================================================================================
+
+void FSceneRenderer::RenderShadowMaps()
+{
+	// 1. ShowFlag 및 리소스 확인
+	if (!World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Shadows))
+	{
+		return;
+	}
+
+	FLightManager* LightManager = GWorld->GetLightManager();
+	if (!LightManager) return;
+
+	// 2. 그림자 캐스터(Caster) 메시 수집
+	TArray<FMeshBatchElement> ShadowMeshBatches;
+	for (UMeshComponent* MeshComponent : Proxies.Meshes)
+	{
+		if (MeshComponent && MeshComponent->IsCastShadows() && MeshComponent->IsVisible())
+		{
+			MeshComponent->CollectMeshBatches(ShadowMeshBatches, View);
+		}
+	}
+	if (ShadowMeshBatches.IsEmpty()) return;
+	
+	D3D11_VIEWPORT OriginVP;
+	UINT NumViewports = 1;
+	RHIDevice->GetDeviceContext()->RSGetViewports(&NumViewports, &OriginVP);
+
+	// 4. 상수 정의
+	const FMatrix BiasMatrix( // 클립 공간 -> UV 공간 변환
+		0.5f, 0.0f, 0.0f, 0.0f,
+		0.0f, -0.5f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.5f, 0.5f, 0.0f, 1.0f
+	);
+
+	// --- 1단계: 2D 아틀라스 렌더링 (Spot + Directional) ---
+	{
+		ID3D11DepthStencilView* AtlasDSV2D = LightManager->GetShadowAtlasDSV2D();
+		float AtlasTotalSize2D = (float)LightManager->GetShadowAtlasSize2D();
+		if (AtlasDSV2D && AtlasTotalSize2D > 0)
+		{
+			// 1.1. RHI 상태 설정 (2D 아틀라스)
+			RHIDevice->OMSetCustomRenderTargets(0, nullptr, AtlasDSV2D);
+			RHIDevice->ClearDepthBuffer(1.0f, 0);
+			RHIDevice->RSSetState(ERasterizerMode::Shadows);
+
+			// 1.2. 2D 섀도우 요청 수집
+			TArray<FShadowRenderRequest> Requests2D;
+			for (UDirectionalLightComponent* Light : LightManager->GetDirectionalLightList())
+			{
+				Light->GetShadowRenderRequests(View, Requests2D);
+			}
+			for (USpotLightComponent* Light : LightManager->GetSpotLightList())
+			{
+				Light->GetShadowRenderRequests(View, Requests2D);
+			}
+
+			// 1.3. 요청 정렬 (가장 큰 것부터)
+			Requests2D.Sort(std::greater<FShadowRenderRequest>());
+
+			// 1.4. 동적 패킹(Shelf Algorithm) 및 렌더링
+			uint32 CurrentAtlasX = 0;
+			uint32 CurrentAtlasY = 0;
+			uint32 CurrentShelfMaxHeight = 0;
+
+			for (FShadowRenderRequest& Request : Requests2D)
+			{
+				if (CurrentAtlasX + Request.Size > AtlasTotalSize2D)
+				{
+					CurrentAtlasY += CurrentShelfMaxHeight;
+					CurrentAtlasX = 0;
+					CurrentShelfMaxHeight = 0;
+				}
+				if (CurrentAtlasY + Request.Size > AtlasTotalSize2D)
+				{
+					Request.Size = 0; // 꽉 참 (렌더링 실패)
+					continue;
+				}
+
+				// 뷰포트 설정
+				D3D11_VIEWPORT ShadowVP = { (float)CurrentAtlasX, (float)CurrentAtlasY, (float)Request.Size, (float)Request.Size, 0.0f, 1.0f };
+				RHIDevice->GetDeviceContext()->RSSetViewports(1, &ShadowVP);
+
+				// 뎁스 패스 렌더링
+				RenderShadowDepthPass(Request.ViewMatrix, Request.ProjectionMatrix, ShadowMeshBatches);
+
+				// Pass 2 데이터 (UV) 저장
+				Request.AtlasScaleOffset = FVector4(
+					Request.Size / AtlasTotalSize2D,    // ScaleX
+					Request.Size / AtlasTotalSize2D,    // ScaleY
+					CurrentAtlasX / AtlasTotalSize2D,   // OffsetX
+					CurrentAtlasY / AtlasTotalSize2D    // OffsetY
+				);
+
+				CurrentAtlasX += Request.Size;
+				CurrentShelfMaxHeight = FMath::Max(CurrentShelfMaxHeight, Request.Size);
+			}
+
+			// 1.5. FLightManager에 2D 아틀라스 데이터 전달
+			for (const FShadowRenderRequest& Request : Requests2D)
+			{
+				FShadowMapData Data;
+				if (Request.Size > 0) // 렌더링 성공
+				{
+					Data.ShadowViewProjMatrix = Request.ViewMatrix * Request.ProjectionMatrix * BiasMatrix;
+					Data.AtlasScaleOffset = Request.AtlasScaleOffset;
+				}
+				// 렌더링 실패 시(Size==0) 빈 데이터(기본값) 전달
+				LightManager->SetShadowMapData(Request.LightOwner, Request.SubViewIndex, Data);
+			}
+		}
+	}
+
+	// --- 2단계: 큐브맵 아틀라스 렌더링 (Point) ---
+	{
+		uint32 AtlasSizeCube = LightManager->GetShadowCubeArraySize();
+		uint32 MaxCubeSlices = LightManager->GetShadowCubeArrayCount();
+		if (AtlasSizeCube > 0 && MaxCubeSlices > 0)
+		{
+			// 2.1. RHI 상태 설정 (큐브맵)
+			RHIDevice->RSSetState(ERasterizerMode::Shadows);
+
+			// 큐브맵은 항상 1:1 종횡비의 전체 뷰포트 사용
+			D3D11_VIEWPORT ShadowVP = { 0.0f, 0.0f, (float)AtlasSizeCube, (float)AtlasSizeCube, 0.0f, 1.0f };
+			RHIDevice->GetDeviceContext()->RSSetViewports(1, &ShadowVP);
+
+			TArray<FShadowRenderRequest> TempRequestsCube;
+			uint32 CurrentCubeSliceIndex = 0;
+
+			// 2.2. 포인트 라이트 순회
+			for (UPointLightComponent* Light : LightManager->GetPointLightList())
+			{
+				TempRequestsCube.Empty();
+				Light->GetShadowRenderRequests(View, TempRequestsCube);
+
+				if (TempRequestsCube.IsEmpty())
+				{
+					// 이 라이트는 섀도우 끔
+					LightManager->SetShadowCubeMapData(Light, -1); // -1: 섀도우 없음
+					continue;
+				}
+
+				if (CurrentCubeSliceIndex >= MaxCubeSlices)
+				{
+					// 큐브 아틀라스가 꽉 참
+					LightManager->SetShadowCubeMapData(Light, -1);
+					break;
+				}
+
+				// 2.3. 6개 면 렌더링
+				for (const FShadowRenderRequest& Request : TempRequestsCube) // 6번 루프
+				{
+					int32 FaceIndex = Request.SubViewIndex;
+
+					// [핵심] FLightManager로부터 (Slice, Face)에 맞는 DSV를 가져와 설정
+					ID3D11DepthStencilView* FaceDSV = LightManager->GetShadowCubeFaceDSV(CurrentCubeSliceIndex, FaceIndex);
+					if (FaceDSV)
+					{
+						RHIDevice->OMSetCustomRenderTargets(0, nullptr, FaceDSV);
+						RHIDevice->ClearDepthBuffer(1.0f, 0); // 각 면을 클리어
+
+						// 뎁스 패스 렌더링
+						RenderShadowDepthPass(Request.ViewMatrix, Request.ProjectionMatrix, ShadowMeshBatches);
+					}
+				}
+
+				// 2.4. FLightManager에 큐브맵 데이터 전달
+				LightManager->SetShadowCubeMapData(Light, CurrentCubeSliceIndex);
+
+				CurrentCubeSliceIndex++;
+			}
+		}
+	}
+
+	// --- 3. RHI 상태 복구 ---
+	RHIDevice->RSSetState(ERasterizerMode::Solid);
+	//RHIDevice->RSSetViewport(); // 메인 뷰포트로 복구
+	// 4. 저장해둔 'OriginVP'로 뷰포트를 복구합니다. (이때는 주소(&)가 필요 없음)
+	RHIDevice->GetDeviceContext()->RSSetViewports(1, &OriginVP);
+
+	FMatrix InvView = View->ViewMatrix.InverseAffine();
+	FMatrix InvProjection;
+	if (View->ProjectionMode == ECameraProjectionMode::Perspective) { InvProjection = View->ProjectionMatrix.InversePerspectiveProjection(); }
+	else { InvProjection = View->ProjectionMatrix.InverseOrthographicProjection(); }
+	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
+	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewProjBuffer));
+}
+
+void FSceneRenderer::RenderShadowDepthPass(const FMatrix& InLightView, const FMatrix& InLightProj, const TArray<FMeshBatchElement>& InShadowBatches)
+{
+	// 1. 뎁스 전용 셰이더 로드
+	UShader* DepthVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Shadows/DepthOnly_VS.hlsl");
+	if (!DepthVS || !DepthVS->GetVertexShader()) return;
+
+	FShaderVariant* ShaderVariant = DepthVS->GetOrCompileShaderVariant(RHIDevice->GetDevice());
+	if (!ShaderVariant) return;
+
+	// 2. 파이프라인 설정
+	RHIDevice->GetDeviceContext()->IASetInputLayout(ShaderVariant->InputLayout);
+	RHIDevice->GetDeviceContext()->VSSetShader(ShaderVariant->VertexShader, nullptr, 0);
+	RHIDevice->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0); // 픽셀 셰이더 없음
+
+	// 3. 라이트의 View-Projection 행렬을 메인 ViewProj 버퍼에 설정
+	FMatrix InvView = InLightView.InverseAffine();
+	FMatrix InvProj = InLightProj.InversePerspectiveProjection();
+
+	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(InLightView, InLightProj, InvView, InvProj);
+	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewProjBuffer));
+
+	// 4. (DrawMeshBatches와 유사하게) 배치 순회하며 그리기
+	ID3D11Buffer* CurrentVertexBuffer = nullptr;
+	ID3D11Buffer* CurrentIndexBuffer = nullptr;
+	UINT CurrentVertexStride = 0;
+	D3D11_PRIMITIVE_TOPOLOGY CurrentTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+	for (const FMeshBatchElement& Batch : InShadowBatches)
+	{
+		// 셰이더/픽셀 상태 변경 불필요
+
+		// IA 상태 변경
+		if (Batch.VertexBuffer != CurrentVertexBuffer ||
+			Batch.IndexBuffer != CurrentIndexBuffer ||
+			Batch.VertexStride != CurrentVertexStride ||
+			Batch.PrimitiveTopology != CurrentTopology)
+		{
+			UINT Stride = Batch.VertexStride;
+			UINT Offset = 0;
+			RHIDevice->GetDeviceContext()->IASetVertexBuffers(0, 1, &Batch.VertexBuffer, &Stride, &Offset);
+			RHIDevice->GetDeviceContext()->IASetIndexBuffer(Batch.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+			RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(Batch.PrimitiveTopology);
+
+			CurrentVertexBuffer = Batch.VertexBuffer;
+			CurrentIndexBuffer = Batch.IndexBuffer;
+			CurrentVertexStride = Batch.VertexStride;
+			CurrentTopology = Batch.PrimitiveTopology;
+		}
+
+		// 오브젝트별 World 행렬 설정 (VS에서 필요)
+		RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(Batch.WorldMatrix, Batch.WorldMatrix.InverseAffine().Transpose()));
+
+		// 드로우 콜
+		RHIDevice->GetDeviceContext()->DrawIndexed(Batch.IndexCount, Batch.StartIndex, Batch.BaseVertexIndex);
+	}
+}
+
 
 //====================================================================================
 // Private 헬퍼 함수 구현

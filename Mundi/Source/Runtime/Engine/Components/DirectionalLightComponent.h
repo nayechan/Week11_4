@@ -34,6 +34,7 @@ public:
 	void UpdateDirectionGizmo();
 
 	void DrawShadowMap();
+
 private:
 	void ReleaseShadowResource();
 	void CreateShadowResource();

@@ -13,6 +13,8 @@ public:
 	virtual ~USpotLightComponent() override;
 
 public:
+	void GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests) override;
+
 	// Cone Angles
 	void SetInnerConeAngle(float InAngle)
 	{

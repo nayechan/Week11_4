@@ -39,9 +39,9 @@ void D3D11RHI::Release()
         DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
 
         // 모든 SRV 언바인드
-        ID3D11ShaderResourceView* nullSRVs[16] = { nullptr };
-        DeviceContext->PSSetShaderResources(0, 16, nullSRVs);
-        DeviceContext->VSSetShaderResources(0, 16, nullSRVs);
+        ID3D11ShaderResourceView* nullSRVs[32] = { nullptr };
+        DeviceContext->PSSetShaderResources(0, 32, nullSRVs);
+        DeviceContext->VSSetShaderResources(0, 32, nullSRVs);
 
         // 모든 샘플러 언바인드
         ID3D11SamplerState* nullSamplers[16] = { nullptr };
@@ -70,6 +70,7 @@ void D3D11RHI::Release()
     if (DefaultRasterizerState) { DefaultRasterizerState->Release();   DefaultRasterizerState = nullptr; }
     if (WireFrameRasterizerState) { WireFrameRasterizerState->Release();   WireFrameRasterizerState = nullptr; }
     if (DecalRasterizerState) { DecalRasterizerState->Release();   DecalRasterizerState = nullptr; }
+    if (ShadowRasterizerState) { ShadowRasterizerState->Release();   ShadowRasterizerState = nullptr; }
     if (NoCullRasterizerState) { NoCullRasterizerState->Release();   NoCullRasterizerState = nullptr; }
 
     ReleaseBlendState();
@@ -324,6 +325,10 @@ void D3D11RHI::RSSetState(ERasterizerMode ViewModeIndex)
 		DeviceContext->RSSetState(DecalRasterizerState);
         break;
 
+	case ERasterizerMode::Shadows:
+		DeviceContext->RSSetState(ShadowRasterizerState);
+        break;
+
 	default:
 		DeviceContext->RSSetState(DefaultRasterizerState);
         break;
@@ -333,7 +338,6 @@ void D3D11RHI::RSSetState(ERasterizerMode ViewModeIndex)
 void D3D11RHI::RSSetViewport()
 {
     DeviceContext->RSSetViewports(1, &ViewportInfo);
-       
 }
 
 void D3D11RHI::SwapRenderTargets() // 이전의 SwapPostProcessTextures
@@ -373,6 +377,11 @@ ID3D11ShaderResourceView* D3D11RHI::GetSRV(RHI_SRV_Index SRVIndex) const
     }
 
     return TempSRV;
+}
+
+void D3D11RHI::OMSetCustomRenderTargets(UINT NumRTVs, ID3D11RenderTargetView** RTVs, ID3D11DepthStencilView* DSV)
+{
+    DeviceContext->OMSetRenderTargets(NumRTVs, RTVs, DSV);
 }
 
 void D3D11RHI::OMSetRenderTargets(ERTVMode RTVMode)
@@ -631,6 +640,19 @@ void D3D11RHI::CreateRasterizerState()
     DecalRasterizerDesc.DepthBiasClamp = 0.0f; // 바이어스 최댓값 (0.0f는 제한 없음)
 
     Device->CreateRasterizerState(&DecalRasterizerDesc, &DecalRasterizerState);
+
+    // 섀도우 맵 전용 래스터라이저
+    D3D11_RASTERIZER_DESC ShadowRasterizerDesc = {};
+    ShadowRasterizerDesc.FillMode = D3D11_FILL_SOLID;
+    ShadowRasterizerDesc.CullMode = D3D11_CULL_BACK; // 또는 CULL_FRONT (섀도우 기법에 따라 다름)
+    ShadowRasterizerDesc.DepthClipEnable = TRUE;
+
+    // 섀도우 아티팩트(Acne) 방지를 위한 Bias 설정
+    ShadowRasterizerDesc.DepthBias = 1000;              // (값은 튜닝 필요)
+    ShadowRasterizerDesc.SlopeScaledDepthBias = 1.5f;   // (값은 튜닝 필요)
+    ShadowRasterizerDesc.DepthBiasClamp = 0.0f;
+
+    Device->CreateRasterizerState(&ShadowRasterizerDesc, &ShadowRasterizerState);
 }
 
 void D3D11RHI::CreateConstantBuffer(ID3D11Buffer** ConstantBuffer, uint32 Size)
@@ -707,6 +729,11 @@ void D3D11RHI::ReleaseRasterizerState()
     {
         DecalRasterizerState->Release();
         DecalRasterizerState = nullptr;
+    }
+    if (ShadowRasterizerState)
+    {
+        ShadowRasterizerState->Release();
+        ShadowRasterizerState = nullptr;
     }
     if (NoCullRasterizerState)
     {

@@ -333,7 +333,8 @@ enum class ERasterizerMode : uint32
     Solid,          // 면으로 채움 (기본값)
     Wireframe,      // 선으로 그림
     Solid_NoCull,   // 면으로 채우고, 뒷면 컬링 안 함(양면 그리기)
-    Decal           // 데칼 전용 상태 (Z-Fighting 방지용 DepthBias를 추가로 줌)
+    Decal,          // 데칼 전용 상태 (Z-Fighting 방지용 DepthBias를 추가로 줌)
+    Shadows,        // 그림자 전용 상태
 };
 
 // RHI가 사용할 RTV
@@ -405,8 +406,10 @@ enum class EEngineShowFlags : uint64
 
     SF_Billboard = 1ull << 15,
 
+    SF_Shadows = 1ull << 16,
+
     // Default enabled flags
-    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid | SF_Lighting | SF_Decals | SF_Fog | SF_FXAA | SF_TileCulling | SF_Billboard,
+    SF_DefaultEnabled = SF_Primitives | SF_StaticMeshes | SF_Grid | SF_Lighting | SF_Decals | SF_Fog | SF_FXAA | SF_TileCulling | SF_Billboard | SF_Shadows,
 
     // All flags (for initialization/reset)
     SF_All = 0xFFFFFFFFFFFFFFFFull

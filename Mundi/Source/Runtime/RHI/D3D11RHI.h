@@ -153,8 +153,9 @@ public:
 	ID3D11Texture2D* GetIdBuffer() const { return IdBuffer; }
 	ID3D11Texture2D* GetIdStagingBuffer() const { return IdStagingBuffer; }
 
-	// [Enum 으로 SRV, RTV 를 다루는 함수]
+	void OMSetCustomRenderTargets(UINT NumRTVs, ID3D11RenderTargetView** RTVs, ID3D11DepthStencilView* DSV);
 
+	// [Enum 으로 SRV, RTV 를 다루는 함수]
 	ID3D11SamplerState* GetSamplerState(RHI_Sampler_Index SamplerIndex) const;
 	void OMSetRenderTargets(ERTVMode RTVMode);
 
@@ -210,6 +211,7 @@ private:
 	ID3D11RasterizerState* DefaultRasterizerState{};//
 	ID3D11RasterizerState* WireFrameRasterizerState{};//
 	ID3D11RasterizerState* DecalRasterizerState{};//
+	ID3D11RasterizerState* ShadowRasterizerState{};//
 	ID3D11RasterizerState* NoCullRasterizerState{};//
 
 	ID3D11DepthStencilState* DepthStencilState{};

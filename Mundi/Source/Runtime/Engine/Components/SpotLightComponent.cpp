@@ -2,6 +2,7 @@
 #include "SpotLightComponent.h"
 #include "BillboardComponent.h"
 #include "Gizmo/GizmoArrowComponent.h"
+#include "LightManager.h"
 
 IMPLEMENT_CLASS(USpotLightComponent)
 
@@ -53,6 +54,20 @@ USpotLightComponent::~USpotLightComponent()
 {
 }
 
+void USpotLightComponent::GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests)
+{
+	// Todo: 이곳에서 실제로 구현
+
+	FShadowRenderRequest ShadowRenderRequest;
+	ShadowRenderRequest.LightOwner = this;
+	ShadowRenderRequest.ViewMatrix = GetWorldMatrix().InverseAffine();
+	ShadowRenderRequest.ProjectionMatrix = FMatrix::Identity();
+	ShadowRenderRequest.Size = 256;
+	ShadowRenderRequest.SubViewIndex = 0;
+	ShadowRenderRequest.AtlasScaleOffset = 0;
+	OutRequests.Add(ShadowRenderRequest);
+}
+
 FVector USpotLightComponent::GetDirection() const
 {
 	// Z-Up Left-handed 좌표계에서 Forward는 X축
@@ -100,7 +115,6 @@ FSpotLightInfo USpotLightComponent::GetLightInfo() const
 	Info.AttenuationRadius = GetAttenuationRadius();
 	Info.FalloffExponent = GetFalloffExponent(); // Always pass FalloffExponent (used when bUseInverseSquareFalloff = false)
 	Info.bUseInverseSquareFalloff = IsUsingInverseSquareFalloff() ? 1u : 0u;
-	Info.Padding = 0.0f; // 패딩 초기화
 
 	return Info;
 }

@@ -21,28 +21,35 @@ struct FDirectionalLightInfo
 {
     float4 Color;       // 16 bytes - FLinearColor (Intensity + Temperature 포함)
     float3 Direction;   // 12 bytes - FVector
-    float Padding;      // 4 bytes - 정렬을 위한 패딩
+    float bCastShadows;
+    
+    uint CascadeCount; // 4 bytes
+    float3 Padding;
 };
 
 struct FPointLightInfo
 {
-    float4 Color;           // 16 bytes - FLinearColor (Intensity + Temperature 포함)
-    float3 Position;        // 12 bytes - FVector
-    float AttenuationRadius; // 4 bytes (슬롯 채우기 위해 위로 이동)
-    float FalloffExponent;  // 4 bytes - 예술적 제어를 위한 감쇠 지수
-    uint bUseInverseSquareFalloff; // 4 bytes - uint32 (true = 물리 기반, false = 지수 기반)
-    float2 Padding;         // 8 bytes - 정렬을 위한 패딩 (Attenuation 제거됨)
+    float4 Color; // 16 bytes
+    float3 Position; // 12 bytes
+    uint bCastShadows; // 4 bytes (0 or 1)
+
+    float AttenuationRadius; // 4 bytes
+    float FalloffExponent; // 4 bytes
+    uint bUseInverseSquareFalloff; // 4 bytes
+    int ShadowArrayIndex; // 4 bytes (t8 TextureCubeArray의 슬라이스 인덱스, -1=섀도우 없음)
 };
 
 struct FSpotLightInfo
 {
-    float4 Color;           // 16 bytes - FLinearColor (Intensity + Temperature 포함)
-    float3 Position;        // 12 bytes - FVector
-    float InnerConeAngle;   // 4 bytes - 내부 원뿔 각도
-    float3 Direction;       // 12 bytes - FVector
-    float OuterConeAngle;   // 4 bytes - 외부 원뿔 각도
-    float AttenuationRadius; // 4 bytes - 감쇠 반경
-    float FalloffExponent;  // 4 bytes - 예술적 제어를 위한 감쇠 지수
-    uint bUseInverseSquareFalloff; // 4 bytes - uint32 (true = 물리 기반, false = 지수 기반)
-    float Padding;         // 4 bytes - 정렬을 위한 패딩 (Attenuation 제거됨)
+    float4 Color; // 16 bytes
+    float3 Position; // 12 bytes
+    uint bCastShadows; // 4 bytes (0 or 1)
+
+    float3 Direction; // 12 bytes
+    float InnerConeAngle; // 4 bytes
+    float OuterConeAngle; // 4 bytes
+    float AttenuationRadius; // 4 bytes
+
+    float FalloffExponent; // 4 bytes
+    uint bUseInverseSquareFalloff; // 4 bytes
 };

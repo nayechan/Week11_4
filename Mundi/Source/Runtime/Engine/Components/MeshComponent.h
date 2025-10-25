@@ -16,4 +16,9 @@ protected:
 public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(UMeshComponent)
+
+    bool IsCastShadows() { return bCastShadows; }
+
+private:
+    bool bCastShadows = true;   // TODO: 프로퍼티로 추가 필요
 };

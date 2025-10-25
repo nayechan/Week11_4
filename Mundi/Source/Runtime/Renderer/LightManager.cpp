@@ -14,6 +14,7 @@ FLightManager::~FLightManager()
 }
 void FLightManager::Initialize(D3D11RHI* RHIDevice)
 {
+	// --- 1. Structured Buffers (t17, t18) ---
 	if (!PointLightBuffer)
 	{
 		RHIDevice->CreateStructuredBuffer(sizeof(FPointLightInfo), NUM_POINT_LIGHT_MAX, nullptr, &PointLightBuffer);
@@ -24,7 +25,108 @@ void FLightManager::Initialize(D3D11RHI* RHIDevice)
 		RHIDevice->CreateStructuredBuffer(sizeof(FSpotLightInfo), NUM_SPOT_LIGHT_MAX, nullptr, &SpotLightBuffer);
 		RHIDevice->CreateStructuredBufferSRV(SpotLightBuffer, &SpotLightBufferSRV);
 	}
+
+	// --- 2. 2D Atlas (t9) ---
+	if (!ShadowAtlasTexture2D)
+	{
+		// 헬퍼 함수를 사용하는 대신, 여기서 직접 생성합니다.
+		ID3D11Device* Device = RHIDevice->GetDevice(); // RHI에서 Device 가져오기
+
+		// 2.1. 텍스처 생성 (TYPELESS 포맷)
+		D3D11_TEXTURE2D_DESC TexDesc = {};
+		TexDesc.Width = ShadowAtlasSize2D;
+		TexDesc.Height = ShadowAtlasSize2D;
+		TexDesc.MipLevels = 1;
+		TexDesc.ArraySize = 1;
+		TexDesc.Format = DXGI_FORMAT_R24G8_TYPELESS; // DSV/SRV 바인딩을 위해 Typeless
+		TexDesc.SampleDesc.Count = 1;
+		TexDesc.Usage = D3D11_USAGE_DEFAULT;
+		TexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+
+		HRESULT hr = Device->CreateTexture2D(&TexDesc, nullptr, &ShadowAtlasTexture2D);
+		if (FAILED(hr))
+		{
+			UE_LOG("FLightManager::Initialize: CreateTexture2D for ShadowAtlas2D failed!");
+			// 실패 시 리소스들을 nullptr로 안전하게 처리
+			ShadowAtlasTexture2D = nullptr;
+			ShadowAtlasDSV2D = nullptr;
+			ShadowAtlasSRV2D = nullptr;
+			return; // 혹은 적절한 오류 처리
+		}
+
+		// 2.2. DSV (DepthStencilView) 생성
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT; // 뎁스 쓰기용 포맷
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		dsvDesc.Texture2D.MipSlice = 0;
+
+		hr = Device->CreateDepthStencilView(ShadowAtlasTexture2D, &dsvDesc, &ShadowAtlasDSV2D);
+		if (FAILED(hr))
+		{
+			UE_LOG("FLightManager::Initialize: CreateDepthStencilView for ShadowAtlas2D failed!");
+		}
+
+		// 2.3. SRV (ShaderResourceView) 생성
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS; // 뎁스 읽기용 포맷
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+		srvDesc.Texture2D.MostDetailedMip = 0;
+		srvDesc.Texture2D.MipLevels = 1;
+
+		hr = Device->CreateShaderResourceView(ShadowAtlasTexture2D, &srvDesc, &ShadowAtlasSRV2D);
+		if (FAILED(hr))
+		{
+			UE_LOG("FLightManager::Initialize: CreateShaderResourceView for ShadowAtlas2D failed!");
+		}
+	}
+
+	// --- 3. Cube Map Atlas (t8) ---
+	if (!ShadowAtlasTextureCube)
+	{
+		// 3.1. 큐브맵 배열 리소스 생성 (TextureCubeArray)
+		D3D11_TEXTURE2D_DESC CubeDesc = {};
+		CubeDesc.Width = AtlasSizeCube;
+		CubeDesc.Height = AtlasSizeCube;
+		CubeDesc.MipLevels = 1;
+		CubeDesc.ArraySize = CubeArrayCount * 6; // D3D11에서 큐브맵 배열은 ArraySize = N * 6
+		CubeDesc.Format = DXGI_FORMAT_R24G8_TYPELESS; // 뎁스 포맷
+		CubeDesc.SampleDesc.Count = 1;
+		CubeDesc.Usage = D3D11_USAGE_DEFAULT;
+		CubeDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+		CubeDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE; // 큐브맵 플래그
+
+		RHIDevice->GetDevice()->CreateTexture2D(&CubeDesc, nullptr, &ShadowAtlasTextureCube);
+
+		// 3.2. SRV 생성 (t8 바인딩용)
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
+		srvDesc.TextureCubeArray.MostDetailedMip = 0;
+		srvDesc.TextureCubeArray.MipLevels = 1;
+		srvDesc.TextureCubeArray.First2DArrayFace = 0;
+		srvDesc.TextureCubeArray.NumCubes = CubeArrayCount;
+
+		RHIDevice->GetDevice()->CreateShaderResourceView(ShadowAtlasTextureCube, &srvDesc, &ShadowAtlasSRVCube);
+
+		// 3.3. 각 면(Face)에 대한 DSV 생성 (Pass 1 렌더링용)
+		ShadowCubeFaceDSVs.SetNum(CubeArrayCount * 6);
+		for (uint32 SliceIndex = 0; SliceIndex < CubeArrayCount; ++SliceIndex)
+		{
+			for (uint32 FaceIndex = 0; FaceIndex < 6; ++FaceIndex)
+			{
+				D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+				dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+				dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+				dsvDesc.Texture2DArray.MipSlice = 0;
+				dsvDesc.Texture2DArray.FirstArraySlice = (SliceIndex * 6) + FaceIndex;
+				dsvDesc.Texture2DArray.ArraySize = 1; // 각 DSV는 1개의 면만 참조
+
+				RHIDevice->GetDevice()->CreateDepthStencilView(ShadowAtlasTextureCube, &dsvDesc, &ShadowCubeFaceDSVs[(SliceIndex * 6) + FaceIndex]);
+			}
+		}
+	}
 }
+
 void FLightManager::Release()
 {
 	if (PointLightBuffer)
@@ -48,86 +150,138 @@ void FLightManager::Release()
 		SpotLightBufferSRV->Release();
 		SpotLightBufferSRV = nullptr;
 	}
+	
+	// 2D Atlas Release
+	if (ShadowAtlasSRV2D) { ShadowAtlasSRV2D->Release(); ShadowAtlasSRV2D = nullptr; }
+	if (ShadowAtlasDSV2D) { ShadowAtlasDSV2D->Release(); ShadowAtlasDSV2D = nullptr; }
+	if (ShadowAtlasTexture2D) { ShadowAtlasTexture2D->Release(); ShadowAtlasTexture2D = nullptr; }
+
+	// Cube Atlas Release
+	if (ShadowAtlasSRVCube) { ShadowAtlasSRVCube->Release(); ShadowAtlasSRVCube = nullptr; }
+	for (auto* dsv : ShadowCubeFaceDSVs)
+	{
+		if (dsv) dsv->Release();
+	}
+	ShadowCubeFaceDSVs.clear();
+	if (ShadowAtlasTextureCube) { ShadowAtlasTextureCube->Release(); ShadowAtlasTextureCube = nullptr; }
 }
 
 void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 {
-	if (bHaveToUpdate)
+	// 1. 아무것도 변경되지 않았으면 모든 작업을 건너뜀
+	if (!bHaveToUpdate && !bPointLightDirty && !bSpotLightDirty && !bShadowDataDirty)
 	{
-		if (!PointLightBuffer)
-		{
-			Initialize(RHIDevice);
-		}
-
-		FLightBufferType LightBuffer{};
-
-		if (AmbientLightList.Num() > 0)
-		{
-			if (AmbientLightList[0]->IsVisible()&&
-				AmbientLightList[0]->GetOwner()->IsActorVisible())
-			{
-				LightBuffer.AmbientLight = AmbientLightList[0]->GetLightInfo();
-			}
-		}
-
-		if (DIrectionalLightList.Num() > 0)
-		{
-			if (DIrectionalLightList[0]->IsVisible() &&
-				DIrectionalLightList[0]->GetOwner()->IsActorVisible())
-			{
-				LightBuffer.DirectionalLight = DIrectionalLightList[0]->GetLightInfo();
-			}
-		}
-
-
-		if (bPointLightDirty)
-		{
-			PointLightInfoList.clear();
-			for (int Index = 0; Index < PointLightList.Num(); Index++)
-			{
-				if (PointLightList[Index]->IsVisible()&&
-					PointLightList[Index]->GetOwner()->IsActorVisible())
-				{
-					PointLightInfoList.Add(PointLightList[Index]->GetLightInfo());
-				}
-			}
-			RHIDevice->UpdateStructuredBuffer(PointLightBuffer, PointLightInfoList.data(), PointLightNum * sizeof(FPointLightInfo));
-			bPointLightDirty = false;
-		}
-
-		if (bSpotLightDirty)
-		{
-			SpotLightInfoList.clear();
-			for (int Index = 0; Index < SpotLightList.Num(); Index++)
-			{
-				if (SpotLightList[Index]->IsVisible()&&
-					SpotLightList[Index]->GetOwner()->IsActorVisible())
-				{
-					SpotLightInfoList.Add(SpotLightList[Index]->GetLightInfo());
-				}
-			}
-
-			RHIDevice->UpdateStructuredBuffer(SpotLightBuffer, SpotLightInfoList.data(), 
-				SpotLightNum * sizeof(FSpotLightInfo));
-
-			bSpotLightDirty = false;
-		}
-
-		LightBuffer.PointLightCount = PointLightNum;
-		LightBuffer.SpotLightCount = SpotLightNum;
-
-		//슬롯 재활용 하고싶을 시 if문 밖으로 빼서 매 프레임 세팅 해줘야함.
-		RHIDevice->SetAndUpdateConstantBuffer(LightBuffer);
-	
-		ID3D11ShaderResourceView* SRVList[2]{ PointLightBufferSRV, SpotLightBufferSRV };
-
-		//Gouraud shader 사용 여부로 아래 세팅 분기도 가능, 일단 둘다 바인딩함
-		RHIDevice->GetDeviceContext()->PSSetShaderResources(3, 2, SRVList);
-		RHIDevice->GetDeviceContext()->VSSetShaderResources(3, 2, SRVList);
-
-		bHaveToUpdate = false;
+		return;
 	}
-	
+
+	// 2. 초기화 확인
+	if (!PointLightBuffer)
+	{
+		Initialize(RHIDevice);
+	}
+
+	// 3. CBuffer 업데이트 (Ambient, Directional)
+	FLightBufferType LightBuffer{}; // 셰이더의 CBuffer 'b1'과 일치해야 함
+
+	if (AmbientLightList.Num() > 0 && AmbientLightList[0]->IsVisible() && AmbientLightList[0]->GetOwner()->IsActorVisible())
+	{
+		LightBuffer.AmbientLight = AmbientLightList[0]->GetLightInfo();
+	}
+
+	if (DIrectionalLightList.Num() > 0 && DIrectionalLightList[0]->IsVisible() && DIrectionalLightList[0]->GetOwner()->IsActorVisible())
+	{
+		UDirectionalLightComponent* Light = DIrectionalLightList[0];
+		LightBuffer.DirectionalLight = Light->GetLightInfo(); // 기본 정보 (색상, 방향)
+
+		// 섀도우 데이터 (CSM) 병합
+		if (Light->IsCastShadows() && ShadowDataCache2D.Contains(Light))
+		{
+			const TArray<FShadowMapData>& Cascades = ShadowDataCache2D[Light];
+			int32 CascadeCount = FMath::Min(Cascades.Num(), 4); // 최대 4개까지만 복사
+
+			LightBuffer.DirectionalLight.bCastShadows = (CascadeCount > 0);
+			LightBuffer.DirectionalLight.CascadeCount = CascadeCount;
+			for (int32 i = 0; i < CascadeCount; ++i)
+			{
+				LightBuffer.DirectionalLight.Cascades[i] = Cascades[i];
+			}
+		}
+	}
+
+	// 4. Point Light Structured Buffer 업데이트 (t3)
+	if (bPointLightDirty || bShadowDataDirty)
+	{
+		PointLightInfoList.clear();
+		for (UPointLightComponent* Light : PointLightList)
+		{
+			if (Light->IsVisible() && Light->GetOwner()->IsActorVisible())
+			{
+				FPointLightInfo Info = Light->GetLightInfo(); // 기본 정보
+
+				// 섀도우 데이터 (큐브맵 인덱스) 병합
+				if (Light->IsCastShadows() && ShadowDataCacheCube.Contains(Light))
+				{
+					Info.ShadowArrayIndex = ShadowDataCacheCube[Light];
+					Info.bCastShadows = (Info.ShadowArrayIndex != -1);
+				}
+				PointLightInfoList.Add(Info);
+			}
+		}
+		PointLightNum = PointLightInfoList.Num();
+		RHIDevice->UpdateStructuredBuffer(PointLightBuffer, PointLightInfoList.data(), PointLightNum * sizeof(FPointLightInfo));
+		bPointLightDirty = false;
+	}
+
+	// 5. Spot Light Structured Buffer 업데이트 (t4)
+	if (bSpotLightDirty || bShadowDataDirty)
+	{
+		SpotLightInfoList.clear();
+		for (USpotLightComponent* Light : SpotLightList)
+		{
+			if (Light->IsVisible() && Light->GetOwner()->IsActorVisible())
+			{
+				FSpotLightInfo Info = Light->GetLightInfo(); // 기본 정보
+
+				// 섀도우 데이터 (2D 아틀라스) 병합
+				if (Light->IsCastShadows() && ShadowDataCache2D.Contains(Light) && ShadowDataCache2D[Light].Num() > 0)
+				{
+					Info.ShadowData = ShadowDataCache2D[Light][0]; // 스포트라이트는 0번 인덱스 사용
+					Info.bCastShadows = 1;
+				}
+				SpotLightInfoList.Add(Info);
+			}
+		}
+		SpotLightNum = SpotLightInfoList.Num();
+		RHIDevice->UpdateStructuredBuffer(SpotLightBuffer, SpotLightInfoList.data(), SpotLightNum * sizeof(FSpotLightInfo));
+		bSpotLightDirty = false;
+	}
+
+	// 6. CBuffer에 라이트 개수 업데이트 및 바인딩
+	LightBuffer.PointLightCount = PointLightNum;
+	LightBuffer.SpotLightCount = SpotLightNum;
+	RHIDevice->SetAndUpdateConstantBuffer(LightBuffer);
+
+	// --- 7. 모든 SRV 바인딩 (매 프레임) ---
+
+	// 7.1. 섀도우 아틀라스 (t8, t9)
+	if (ShadowAtlasSRVCube)
+	{
+		RHIDevice->GetDeviceContext()->PSSetShaderResources(8, 1, &ShadowAtlasSRVCube);
+	}
+	if (ShadowAtlasSRV2D)
+	{
+		RHIDevice->GetDeviceContext()->PSSetShaderResources(9, 1, &ShadowAtlasSRV2D);
+	}
+
+	// 7.2. 라이트 버퍼 (t3, t4)
+	ID3D11ShaderResourceView* LightSRVs[2] = { PointLightBufferSRV, SpotLightBufferSRV };
+	RHIDevice->GetDeviceContext()->PSSetShaderResources(3, 2, LightSRVs);
+	RHIDevice->GetDeviceContext()->VSSetShaderResources(3, 2, LightSRVs); // Gouraud용
+
+	// 8. 모든 Dirty Flag 클리어
+	bHaveToUpdate = false;
+	bShadowDataDirty = false;
+	// (bPointLightDirty, bSpotLightDirty는 이미 위에서 개별 클리어됨)
 }
 
 void FLightManager::SetDirtyFlag()
@@ -135,6 +289,49 @@ void FLightManager::SetDirtyFlag()
 	bHaveToUpdate = true;
 	bPointLightDirty = true;
 	bSpotLightDirty = true;
+	bShadowDataDirty = true;
+}
+
+void FLightManager::SetShadowMapData(ULightComponent* Light, int32 SubViewIndex, const FShadowMapData& Data)
+{
+	if (!Light) return;
+
+	// 라이트에 해당하는 TArray를 찾거나 생성
+	TArray<FShadowMapData>& Cascades = ShadowDataCache2D[Light];
+
+	// TArray 크기를 SubViewIndex + 1로 확장 (필요한 경우)
+	if (Cascades.Num() <= SubViewIndex)
+	{
+		Cascades.SetNum(SubViewIndex + 1);
+	}
+
+	// 데이터 저장
+	Cascades[SubViewIndex] = Data;
+
+	bShadowDataDirty = true;
+	bHaveToUpdate = true;
+}
+
+void FLightManager::SetShadowCubeMapData(ULightComponent* Light, int32 SliceIndex)
+{
+	if (!Light) return;
+	if (SliceIndex < 0 || ShadowDataCacheCube.Num() <= SliceIndex) return;
+
+	// TMap에 슬라이스 인덱스 저장
+	ShadowDataCacheCube[Light] = SliceIndex;
+
+	bShadowDataDirty = true;
+	bHaveToUpdate = true;
+}
+
+ID3D11DepthStencilView* FLightManager::GetShadowCubeFaceDSV(UINT SliceIndex, UINT FaceIndex) const
+{
+	UINT Index = (SliceIndex * 6) + FaceIndex;
+	if (Index < ShadowCubeFaceDSVs.Num())
+	{
+		return ShadowCubeFaceDSVs[Index];
+	}
+	return nullptr;
 }
 
 void FLightManager::ClearAllLightList()
@@ -152,7 +349,16 @@ void FLightManager::ClearAllLightList()
 	LightComponentList.clear();
 	PointLightNum = 0;
 	SpotLightNum = 0;
+
+	ShadowDataCache2D.clear();
+	ShadowDataCacheCube.clear();
 }
+
+template<typename T>
+void FLightManager::RegisterLight(T* LightComponent)
+{
+}
+
 
 template<>
 void FLightManager::RegisterLight<UAmbientLightComponent>(UAmbientLightComponent* LightComponent)
@@ -191,6 +397,7 @@ void FLightManager::RegisterLight<UPointLightComponent>(UPointLightComponent* Li
 	bPointLightDirty = true;
 	bHaveToUpdate = true;
 }
+
 template<>
 void FLightManager::RegisterLight<USpotLightComponent>(USpotLightComponent* LightComponent)
 {
@@ -205,7 +412,6 @@ void FLightManager::RegisterLight<USpotLightComponent>(USpotLightComponent* Ligh
 	bSpotLightDirty = true;
 	bHaveToUpdate = true;
 }
-
 
 template<>
 void FLightManager::DeRegisterLight<UAmbientLightComponent>(UAmbientLightComponent* LightComponent)

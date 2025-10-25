@@ -79,7 +79,6 @@ FDirectionalLightInfo UDirectionalLightComponent::GetLightInfo() const
 	// Use GetLightColorWithIntensity() to include Temperature + Intensity
 	Info.Color = GetLightColorWithIntensity();
 	Info.Direction = GetLightDirection();
-	Info.Padding = 0.0f; // 패딩 초기화
 
 	return Info;
 }

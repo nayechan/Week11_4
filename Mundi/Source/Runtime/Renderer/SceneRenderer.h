@@ -76,6 +76,9 @@ private:
 	void RenderWireframePath();
 	void RenderSceneDepthPath();
 
+	void RenderShadowMaps();
+	void RenderShadowDepthPass(const FMatrix& InLightView, const FMatrix& InLightProj, const TArray<FMeshBatchElement>& InShadowBatches);
+
 	/** @brief 렌더링에 필요한 포인터들이 유효한지 확인합니다. */
 	bool IsValid() const;
 
@@ -85,12 +88,8 @@ private:
 	/** @brief 월드의 모든 액터를 대상으로 절두체 컬링을 수행합니다. */
 	void PerformFrustumCulling();
 
-
 	/** @brief 씬을 순회하며 컬링을 통과한 모든 렌더링 대상을 수집합니다. */
 	void GatherVisibleProxies();
-
-	/** @brief 수집한 라이트 정보들로부터 상수 버퍼를 업데이트합니다.*/
-	void UpdateLightConstant();
 
 	/** @brief 타일 기반 라이트 컬링을 수행하고 Structured Buffer를 업데이트합니다. */
 	void PerformTileLightCulling();
@@ -119,8 +118,6 @@ private:
 
 	void CompositeToBackBuffer();
 
-	/** @brief 프레임 렌더링의 마무리 작업을 수행합니다. (예: 로그 출력) */
-	void FinalizeFrame();
 private:
 	// --- 렌더링 컨텍스트 (외부에서 주입받음) ---
 	UWorld* World;
