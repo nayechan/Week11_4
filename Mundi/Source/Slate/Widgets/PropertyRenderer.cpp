@@ -461,6 +461,14 @@ bool UPropertyRenderer::RenderSRVProperty(const FProperty& Prop, void* Instance)
 		uv1                          // 표시할 영역의 끝 UV
 	);
 
+	// NOTE: 디버깅 용으로 전체 아틀라스 맵도 같이 출력
+	ImGui::Image(
+		(ImTextureID)AtlasSRV,       // 전체 아틀라스 SRV
+		ImVec2(256, 256),            // 표시 크기
+		ImVec2(0, 0),                         // 표시할 영역의 시작 UV
+		ImVec2(1, 1)                          // 표시할 영역의 끝 UV
+	);
+
 	return false; // 속성 값은 변경되지 않았음
 }
 
