@@ -89,6 +89,7 @@ protected:
 	ID3D11DepthStencilView* ShadowMapDSV = nullptr;
 	D3D11_VIEWPORT ShadowMapViewport{};
 	FVector2D ShadowMapResolution = {1024.0f, 1024.0f};
+	int32 SampleCount = 4;
 
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;

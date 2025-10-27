@@ -24,6 +24,8 @@ struct FShadowMapData
 {
     FMatrix ShadowViewProjMatrix;
     FVector4 AtlasScaleOffset;
+    int32 SampleCount;
+    float Padding[3];
 };
 
 struct FShadowRenderRequest
@@ -34,6 +36,7 @@ struct FShadowRenderRequest
     uint32 Size;
     int32 SubViewIndex; // Point(0~5), CSM(0~N), Spot(0)
     FVector4 AtlasScaleOffset; // 패킹 알고리즘이 채워줄 UV
+    int32 SampleCount;
 
     bool operator>(const FShadowRenderRequest& Other) const
     {

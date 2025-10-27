@@ -306,6 +306,7 @@ void FSceneRenderer::RenderShadowMaps()
 				if (Request.Size > 0) // 렌더링 성공
 				{
 					Data.ShadowViewProjMatrix = Request.ViewMatrix * Request.ProjectionMatrix * BiasMatrix;
+					Data.SampleCount = Request.SampleCount;
 					Data.AtlasScaleOffset = Request.AtlasScaleOffset;
 				}
 				// 렌더링 실패 시(Size==0) 빈 데이터(기본값) 전달

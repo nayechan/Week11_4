@@ -16,6 +16,8 @@ struct FShadowMapData
 {
     row_major float4x4 ShadowViewProjMatrix;
     float4 AtlasScaleOffset;
+    int SampleCount;
+    float3 Padding;
 };
 
 struct FAmbientLightInfo

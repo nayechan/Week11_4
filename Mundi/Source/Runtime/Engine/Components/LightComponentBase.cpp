@@ -13,7 +13,7 @@ ULightComponentBase::ULightComponentBase()
 {
 	bWantsOnUpdateTransform = true;
 	Intensity = 1.0f;
-	bCastShadows = false;
+	bCastShadows = true;
 	LightColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
