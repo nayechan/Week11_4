@@ -253,7 +253,7 @@ void D3D11RHI::CreateSamplerState()
 	HR = Device->CreateSamplerState(&PointClampDesc, &PointClampSamplerState);
 
     D3D11_SAMPLER_DESC ShadowSamplerDesc = {};
-    ShadowSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    ShadowSamplerDesc.Filter = D3D11_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
     ShadowSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
     ShadowSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
     ShadowSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
@@ -261,7 +261,7 @@ void D3D11RHI::CreateSamplerState()
     ShadowSamplerDesc.BorderColor[1] = 1.0f;
     ShadowSamplerDesc.BorderColor[2] = 1.0f;
     ShadowSamplerDesc.BorderColor[3] = 1.0f;
-    ShadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    ShadowSamplerDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 
     HR = Device->CreateSamplerState(&ShadowSamplerDesc, &ShadowSamplerState);
 }

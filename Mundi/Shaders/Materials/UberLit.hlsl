@@ -79,7 +79,7 @@ TextureCubeArray g_ShadowAtlasCube : register(t8);
 Texture2D g_ShadowAtlas2D : register(t9);
 SamplerState g_Sample : register(s0);
 SamplerState g_Sample2 : register(s1);
-SamplerState g_ShadowSample : register(s2);
+SamplerComparisonState g_ShadowSample : register(s2);
 
 // --- 셰이더 입출력 구조체 ---
 struct VS_INPUT
