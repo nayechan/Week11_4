@@ -38,5 +38,5 @@ protected:
 	//bool bIsEnabled = true;
 	float Intensity = 1.0f;
 	FLinearColor LightColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	bool bCastShadows = false;
+	bool bCastShadows = true;
 };

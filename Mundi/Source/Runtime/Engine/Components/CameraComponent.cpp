@@ -102,6 +102,58 @@ FMatrix UCameraComponent::GetProjectionMatrix(float ViewportAspectRatio, FViewpo
             NearClip, FarClip);*/
     }
 }
+
+TArray<FVector> UCameraComponent::GetViewAreaVerticesWS(FViewport* Viewport)
+{
+    const FMatrix World = GetWorldTransform().ToMatrix();
+    const FMatrix ViewToWorld = FMatrix::YUpToZUp * World;
+    TArray<FVector> Vertices;
+    Vertices.reserve(8);
+    float HalfNearHeight, HalfNearWidth, HalfFarHeight, HalfFarWidth;
+    if (ProjectionMode == ECameraProjectionMode::Perspective)
+    {
+        //near 4점, far 4점
+        float HalfHeight = tan(DegreesToRadians(FieldOfView) * 0.5f);
+        float HalfWidth = HalfHeight * Viewport->GetAspectRatio();
+
+        HalfNearHeight = HalfHeight * NearClip;
+        HalfNearWidth = HalfWidth * NearClip;
+        HalfFarHeight = HalfHeight * FarClip;
+        HalfFarWidth = HalfWidth * FarClip;
+    }
+    else
+    {
+        const float pixelsPerWorldUnit = 10.0f;
+
+        HalfNearWidth = (Viewport->GetSizeX() / pixelsPerWorldUnit) * ZooMFactor;
+        HalfNearHeight = (Viewport->GetSizeY() / pixelsPerWorldUnit) * ZooMFactor;
+        HalfFarWidth = HalfNearWidth;
+        HalfFarHeight = HalfNearHeight;
+    }
+
+    Vertices.emplace_back(FVector(-HalfNearWidth, -HalfNearHeight, NearClip));
+    Vertices.emplace_back(FVector(HalfNearWidth, -HalfNearHeight, NearClip));
+    Vertices.emplace_back(FVector(HalfNearWidth, HalfNearHeight, NearClip));
+    Vertices.emplace_back(FVector(-HalfNearWidth, HalfNearHeight, NearClip));
+    Vertices.emplace_back(FVector(-HalfFarWidth, -HalfFarHeight, FarClip));
+    Vertices.emplace_back(FVector(HalfFarWidth, -HalfFarHeight, FarClip));
+    Vertices.emplace_back(FVector(HalfFarWidth, HalfFarHeight, FarClip));
+    Vertices.emplace_back(FVector(-HalfFarWidth, HalfFarHeight, FarClip));
+
+    for (int i = 0; i < 8; i++)
+    {
+        Vertices[i] = Vertices[i] * ViewToWorld;
+    }
+
+    if (bSetViewGizmo)
+    {
+        bSetViewGizmo = false;
+        ViewGizmo = Vertices;
+    }
+    return Vertices;
+}
+
+
 FVector UCameraComponent::GetForward() const
 {
     return GetWorldTransform().Rotation.RotateVector(FVector(1, 0, 0)).GetNormalized();

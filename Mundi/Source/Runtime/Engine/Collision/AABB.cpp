@@ -4,7 +4,44 @@
 FAABB::FAABB() : Min(FVector()), Max(FVector()) {}
 
 FAABB::FAABB(const FVector& InMin, const FVector& InMax) : Min(InMin), Max(InMax) {}
+FAABB::FAABB(const FVector* Vertices, uint32 Size) 
+{
+	if (Size == 0)
+	{
+		return;
+	}
+	Min = Vertices[0];
+	Max = Vertices[0];
+	for (int i = 1; i < Size; i++)
+	{
+		Min.X = Vertices[i].X < Min.X ? Vertices[i].X : Min.X;
+		Min.Y = Vertices[i].Y < Min.Y ? Vertices[i].Y : Min.Y;
+		Min.Z = Vertices[i].Z < Min.Z ? Vertices[i].Z : Min.Z;
+		Max.X = Vertices[i].X > Max.X ? Vertices[i].X : Max.X;
+		Max.Y = Vertices[i].Y > Max.Y ? Vertices[i].Y : Max.Y;
+		Max.Z = Vertices[i].Z > Max.Z ? Vertices[i].Z : Max.Z;
+	}
+}
 
+FAABB::FAABB(const TArray<FVector>& Vertices)
+{
+	uint32 Size = Vertices.size();
+	if (Size == 0)
+	{
+		return;
+	}
+	Min = Vertices[0];
+	Max = Vertices[0];
+	for (int i = 1; i < Size; i++)
+	{
+		Min.X = Vertices[i].X < Min.X ? Vertices[i].X : Min.X;
+		Min.Y = Vertices[i].Y < Min.Y ? Vertices[i].Y : Min.Y;
+		Min.Z = Vertices[i].Z < Min.Z ? Vertices[i].Z : Min.Z;
+		Max.X = Vertices[i].X > Max.X ? Vertices[i].X : Max.X;
+		Max.Y = Vertices[i].Y > Max.Y ? Vertices[i].Y : Max.Y;
+		Max.Z = Vertices[i].Z > Max.Z ? Vertices[i].Z : Max.Z;
+	}
+}
 // 중심점
 FVector FAABB::GetCenter() const
 {

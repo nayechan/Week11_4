@@ -160,6 +160,35 @@ void URenderer::AddLine(const FVector& Start, const FVector& End, const FVector4
 	LineBatchData->Indices.push_back(startIndex);
 	LineBatchData->Indices.push_back(startIndex + 1);
 }
+void URenderer::AddLines(const TArray<FVector>& Lines, const FVector4& Color)
+{
+	if (!bLineBatchActive || !LineBatchData) return;
+	size_t VerticesCount = Lines.size();
+	if (VerticesCount % 2 != 0)
+	{
+		return;
+	}
+
+	uint32 startIndex = static_cast<uint32>(LineBatchData->Vertices.size());
+	// Reserve space for efficiency
+
+	LineBatchData->Vertices.reserve(LineBatchData->Vertices.size() + VerticesCount);
+	LineBatchData->Color.reserve(LineBatchData->Color.size() + VerticesCount);
+	LineBatchData->Indices.reserve(LineBatchData->Indices.size() + VerticesCount);
+
+	// Add all lines at once
+	for (size_t i = 0; i < VerticesCount; ++i)
+	{
+		// Add vertices
+		LineBatchData->Vertices.push_back(Lines[i]);
+
+		// Add colors
+		LineBatchData->Color.push_back(Color);
+
+		// Add indices for line (2 vertices per line)
+		LineBatchData->Indices.push_back(startIndex + i);
+	}
+}
 
 void URenderer::AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints, const TArray<FVector4>& Colors)
 {

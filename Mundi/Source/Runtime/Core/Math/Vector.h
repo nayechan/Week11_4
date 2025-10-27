@@ -71,6 +71,7 @@ struct FVector4;
 struct FQuat;
 struct FMatrix;
 struct FTransform;
+struct FAABB;
 
 // ─────────────────────────────
 // FVector (2D Vector)
@@ -299,6 +300,8 @@ struct FVector
 	{
 		return FVector4(X, Y, Z, 1.0f);
 	}*/
+
+	void Log();
 };
 
 // ─────────────────────────────
@@ -659,6 +662,9 @@ struct alignas(16) FMatrix
 			0, 0, 0, 1
 		);
 	}
+
+	const static FMatrix ZUpToYUp;
+	const static FMatrix YUpToZUp;
 	// 비균일 스케일
 	static FMatrix MakeScale(const FVector& S)
 	{
@@ -934,7 +940,8 @@ struct alignas(16) FMatrix
 	static FMatrix PerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf);
 	static FMatrix OrthoLH(float Width, float Height, float Zn, float Zf);
 	static FMatrix OrthoLH_XForward(float Width, float Height, float Xn, float Xf);
-
+	static FMatrix OrthoMatrix(const FAABB& AABB);
+	static FMatrix OrthoMatrix(float R, float L, float T, float B, float F, float N);
 	// Perspective Projection 역행렬 계산 (Left-Handed)
 	// PerspectiveFovLH로 생성된 투영 행렬의 역행렬을 계산합니다
 	static FMatrix InversePerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf)

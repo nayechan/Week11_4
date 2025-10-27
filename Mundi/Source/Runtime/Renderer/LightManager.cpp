@@ -389,7 +389,6 @@ void FLightManager::RegisterLight(T* LightComponent)
 {
 }
 
-
 template<>
 void FLightManager::RegisterLight<UAmbientLightComponent>(UAmbientLightComponent* LightComponent)
 {
@@ -401,6 +400,7 @@ void FLightManager::RegisterLight<UAmbientLightComponent>(UAmbientLightComponent
 	AmbientLightList.Add(LightComponent);
 	bHaveToUpdate = true;
 }
+
 template<>
 void FLightManager::RegisterLight<UDirectionalLightComponent>(UDirectionalLightComponent* LightComponent)
 {

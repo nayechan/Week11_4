@@ -2,6 +2,8 @@
 #include "DirectionalLightComponent.h"
 #include "BillboardComponent.h"
 #include "Gizmo/GizmoArrowComponent.h"
+#include "SceneView.h"
+#include "FViewport.h"
 
 #include "RenderManager.h"
 #include "D3D11RHI.h"
@@ -14,6 +16,54 @@ UDirectionalLightComponent::UDirectionalLightComponent()
 UDirectionalLightComponent::~UDirectionalLightComponent()
 {
 	ReleaseShadowResource();
+}
+
+void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests)
+{
+	/*Camera->GetOwner()->SetActorRotation(FQuat::Identity());
+	Camera->GetOwner()->SetActorLocation(FVector(0, 0, 0));*/
+	//ndc로 보낸 후 ndc를 찍어보자
+	FMatrix CameraViewMat = View->Camera->GetViewMatrix(); //zup to yup 포함
+	FMatrix CameraProjection = View->Camera->GetProjectionMatrix(View->Viewport->GetAspectRatio(), View->Viewport);
+	FMatrix CameraVP = CameraViewMat * CameraProjection;
+	//FMatrix ShadowMapView = FMatrix::YUpToZUp * Camera->GetWorldRotation().ToMatrix() * GetWorldRotation().Inverse().ToMatrix() * FMatrix::ZUpToYUp;
+	//FMatrix ShadowMapView = Camera->GetViewMatrix().InverseAffine();
+	FMatrix ShadowMapViewUV = CameraViewMat.InverseAffine() * GetWorldRotation().Inverse().ToMatrix() * FMatrix::ZUpToYUp;
+	FMatrix ShadowMapView = GetWorldRotation().Inverse().ToMatrix() * FMatrix::ZUpToYUp;
+	FMatrix ShadowMapOrtho;
+
+	TArray<FVector> CameraFrustum = View->Camera->GetViewAreaVerticesWS(View->Viewport);
+	FVector4 Frustum[8];
+	for (int i = 0; i < 8; i++)
+	{
+		Frustum[i] = FVector4(CameraFrustum[i].X, CameraFrustum[i].Y, CameraFrustum[i].Z, 1.0f);
+		Frustum[i] = Frustum[i] * CameraVP;
+		Frustum[i].X /= Frustum[i].W;
+		Frustum[i].Y /= Frustum[i].W;
+		Frustum[i].Z /= Frustum[i].W;
+		Frustum[i].W = 1;
+		Frustum[i] = Frustum[i] * ShadowMapViewUV;
+		//CameraFrustum[i].X = Frustum[i].X;
+		//CameraFrustum[i].Y = Frustum[i].Y;
+		//CameraFrustum[i].Z = Frustum[i].Z;
+
+		CameraFrustum[i] = CameraFrustum[i] * ShadowMapView;
+	}
+
+	//LightView Space + 축 변경 AABB
+	FAABB CameraFrustumAABB = FAABB(CameraFrustum);
+	FVector AABBCamPos = CameraFrustumAABB.GetCenter();
+	AABBCamPos.Z = CameraFrustumAABB.Min.Z;
+	ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
+
+	FShadowRenderRequest ShadowRenderRequest;
+	ShadowRenderRequest.LightOwner = this;
+	ShadowRenderRequest.ViewMatrix = ShadowMapView;
+	ShadowRenderRequest.ProjectionMatrix = ShadowMapOrtho;
+	ShadowRenderRequest.Size = 1024;
+	ShadowRenderRequest.SubViewIndex = 0;
+	ShadowRenderRequest.AtlasScaleOffset = 0;
+	OutRequests.Add(ShadowRenderRequest);
 }
 
 IMPLEMENT_CLASS(UDirectionalLightComponent)
