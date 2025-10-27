@@ -36,4 +36,7 @@ FSceneView::FSceneView(ACameraActor* InCamera, FViewport* InViewport, EViewModeI
     // ViewMode는 World나 RenderSettings에서 가져와야 함 (임시)
     ViewMode = InViewMode;
     ProjectionMode = InCamera->GetCameraComponent()->GetProjectionMode();
+
+    Camera = InCamera->GetCameraComponent();
+    Viewport = InViewport;
 }

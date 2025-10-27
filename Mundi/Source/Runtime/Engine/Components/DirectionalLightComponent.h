@@ -13,6 +13,8 @@ public:
 	virtual ~UDirectionalLightComponent() override;
 
 public:
+	void GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests) override;
+
 	// 월드 회전을 반영한 라이트 방향 반환 (Transform의 Forward 벡터)
 	FVector GetLightDirection() const;
 

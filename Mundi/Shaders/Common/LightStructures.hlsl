@@ -33,6 +33,8 @@ struct FDirectionalLightInfo
     
     uint CascadeCount; // 4 bytes
     float3 Padding;
+    
+    FShadowMapData Cascades[4];
 };
 
 struct FPointLightInfo

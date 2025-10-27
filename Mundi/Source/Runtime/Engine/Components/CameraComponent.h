@@ -35,12 +35,22 @@ public:
     float GetZoomFactor()const { return ZooMFactor; };
     ECameraProjectionMode GetProjectionMode() const { return ProjectionMode; }
 
+
     // Matrices
     FMatrix GetViewMatrix() const;
     FMatrix GetProjectionMatrix() const;
-    FMatrix GetProjectionMatrix(float ViewportAspectRatio) const;
-    FMatrix GetProjectionMatrix(float ViewportAspectRatio, FViewport* Viewport) const;
+    FMatrix GetProjectionMatrix(float ViewportAspectRatio) const; //사용 x
+    FMatrix GetProjectionMatrix(float ViewportAspectRatio, FViewport* Viewport) const; //ViewportAspectRatio는 Viewport에서 얻어올 수 있음
 
+    TArray<FVector> GetViewAreaVerticesWS(FViewport* Viewport);
+    void SetViewGizmo()
+    {
+        bSetViewGizmo = true;
+    }
+    const TArray<FVector>& GetViewGizmo() const
+    {
+        return ViewGizmo;
+    }
     // Directions in world space
     FVector GetForward() const;
     FVector GetRight() const;
@@ -54,10 +64,9 @@ public:
     virtual void OnSerialized() override;
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
-
 private:
     float FieldOfView;   // degrees
-    float AspectRatio;
+    float AspectRatio;  //사용x
     float NearClip;
     float FarClip;
 
@@ -65,5 +74,8 @@ private:
 
 
     ECameraProjectionMode ProjectionMode;
+
+    bool bSetViewGizmo;
+    TArray<FVector> ViewGizmo;
 };
 

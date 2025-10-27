@@ -336,7 +336,7 @@ float3 CalculateAllLights(
     else
     {
         // 모든 라이트 순회 (타일 컬링 비활성화)
-        for (int i = 0; i < PointLightCount; i++)
+        for (uint i = 0; i < PointLightCount; i++)
         {
             litColor += CalculatePointLight(
                 g_PointLightList[i],

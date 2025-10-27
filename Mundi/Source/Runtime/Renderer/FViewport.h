@@ -37,6 +37,7 @@ public:
 
     uint32 GetStartX() const { return StartX; }
     uint32 GetStartY() const { return StartY; }
+    float GetAspectRatio() const { return (float)SizeX / SizeY; }
     
     FVector2D GetViewportMousePosition() { return ViewportMousePosition; }
 

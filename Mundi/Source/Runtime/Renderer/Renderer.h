@@ -34,6 +34,7 @@ public:
 	// Batch Line Rendering System
 	void BeginLineBatch();
 	void AddLine(const FVector& Start, const FVector& End, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
+	void AddLines(const TArray<FVector>& Lines, const FVector4& Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 	void AddLines(const TArray<FVector>& StartPoints, const TArray<FVector>& EndPoints, const TArray<FVector4>& Colors);
 	void EndLineBatch(const FMatrix& ModelMatrix);
 	void ClearLineBatch();

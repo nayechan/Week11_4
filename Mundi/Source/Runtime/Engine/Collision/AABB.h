@@ -20,6 +20,8 @@ struct FAABB
 
 	FAABB();
 	FAABB(const FVector& InMin, const FVector& InMax);
+	FAABB(const FVector* Vertices, uint32 Size);
+	FAABB(const TArray<FVector>& Vertices);
 
 	// 중심점
 	FVector GetCenter() const;
@@ -40,3 +42,45 @@ struct FAABB
 
 	static FAABB Union(const FAABB& A, const FAABB& B);
 };
+
+inline TArray<FVector> CubeVerticesToLine(const TArray<FVector>& CubeVertices)
+{
+	TArray<FVector> Lines;
+	if (CubeVertices.size() % 8 != 0)
+	{
+		return Lines;
+	}
+	int CubeCount = CubeVertices.size() / 8;
+	Lines.reserve(24 * CubeCount);
+
+	for (int i = 0; i < CubeCount; i++)
+	{
+		Lines.emplace_back(CubeVertices[i * 8 + 0]);
+		Lines.emplace_back(CubeVertices[i * 8 + 1]);
+		Lines.emplace_back(CubeVertices[i * 8 + 1]);
+		Lines.emplace_back(CubeVertices[i * 8 + 2]);
+		Lines.emplace_back(CubeVertices[i * 8 + 2]);
+		Lines.emplace_back(CubeVertices[i * 8 + 3]);
+		Lines.emplace_back(CubeVertices[i * 8 + 3]);
+		Lines.emplace_back(CubeVertices[i * 8 + 0]);
+
+		Lines.emplace_back(CubeVertices[i * 8 + 0]);
+		Lines.emplace_back(CubeVertices[i * 8 + 4]);
+		Lines.emplace_back(CubeVertices[i * 8 + 1]);
+		Lines.emplace_back(CubeVertices[i * 8 + 5]);
+		Lines.emplace_back(CubeVertices[i * 8 + 2]);
+		Lines.emplace_back(CubeVertices[i * 8 + 6]);
+		Lines.emplace_back(CubeVertices[i * 8 + 3]);
+		Lines.emplace_back(CubeVertices[i * 8 + 7]);
+
+		Lines.emplace_back(CubeVertices[i * 8 + 4]);
+		Lines.emplace_back(CubeVertices[i * 8 + 5]);
+		Lines.emplace_back(CubeVertices[i * 8 + 5]);
+		Lines.emplace_back(CubeVertices[i * 8 + 6]);
+		Lines.emplace_back(CubeVertices[i * 8 + 6]);
+		Lines.emplace_back(CubeVertices[i * 8 + 7]);
+		Lines.emplace_back(CubeVertices[i * 8 + 7]);
+		Lines.emplace_back(CubeVertices[i * 8 + 4]);
+	}
+	return Lines;
+}

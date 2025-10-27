@@ -193,6 +193,7 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Editor\Clipboard\ClipboardManager.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Math\Vector.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\AmbientLightComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\DirectionalLightComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\LightComponent.cpp" />

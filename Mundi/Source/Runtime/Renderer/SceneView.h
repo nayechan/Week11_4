@@ -41,6 +41,9 @@ public:
     FVector ViewLocation{};
     FViewportRect ViewRect{}; // 이 뷰가 그려질 뷰포트상의 영역
 
+    UCameraComponent* Camera;
+    FViewport* Viewport;
+
     // 렌더링 설정
 	EViewModeIndex ViewMode = EViewModeIndex::VMI_Lit_Phong;
     ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;

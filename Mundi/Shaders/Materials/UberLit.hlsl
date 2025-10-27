@@ -62,6 +62,16 @@ cbuffer PixelConstBuffer : register(b4)
     uint bHasNormalTexture;
 };
 
+cbuffer FLightShadowmBufferType : register(b5)
+{
+    row_major float4x4 LightShadowView;
+    row_major float4x4 LightShadowViewUV;
+    row_major float4x4 LightShadowProj;
+    float ShadowBias;
+    float SlopeScaledBias;
+    float2 ShadowPadding;
+};
+
 // --- Material.SpecularColor 지원 매크로 ---
 // LightingCommon.hlsl의 CalculateSpecular에서 Material.SpecularColor를 사용하도록 설정
 // 금속 재질의 컬러 Specular 지원
@@ -75,6 +85,7 @@ cbuffer PixelConstBuffer : register(b4)
 // --- 텍스처 및 샘플러 리소스 ---
 Texture2D g_DiffuseTexColor : register(t0);
 Texture2D g_NormalTexColor : register(t1);
+Texture2D g_DirectionalShadowMap : register(t5);
 TextureCubeArray g_ShadowAtlasCube : register(t8);
 Texture2D g_ShadowAtlas2D : register(t9);
 SamplerState g_Sample : register(s0);
@@ -106,7 +117,40 @@ struct PS_OUTPUT
     float4 Color : SV_Target0;
     uint UUID : SV_Target1;
 };
+//================================================================================================
+// 그림자
+//================================================================================================
+float GetDirectionalShadowAtt(float3 WorldPos, float3 L, float3 N)
+{
+    uint Width, Height;
+    g_DirectionalShadowMap.GetDimensions(Width, Height); // width, height 읽기
+    float2 TexSizeRCP = float2(1.0f / Width, 1.0f / Height);
+    
+    float4 CameraViewPos = mul(float4(WorldPos, 1), ViewMatrix);
+    float4 CameraProjPos = mul(CameraViewPos, ProjectionMatrix);
+    CameraProjPos.xyz /= CameraProjPos.w;
+    float4 LightViewPosUV = mul(float4(CameraProjPos.xyz, 1), LightShadowViewUV);
+    float4 LightProjPosForUV = mul(LightViewPosUV, LightShadowProj);
 
+    float4 LightViewPos = mul(float4(WorldPos, 1), LightShadowView);
+    float4 LightProjPos = mul(LightViewPos, LightShadowProj);
+    
+    float2 LightShadowUV = LightProjPos.xy * 0.5f + 0.5f;
+    LightShadowUV.y = 1 - LightShadowUV.y;
+    float Bias = ShadowBias + (saturate(1 - dot(L, N)) * SlopeScaledBias);
+    float ShadowValue = 0;
+    for (int y = -1; y < 2;y++)
+    {
+        for (int x = -1; x < 2;x++)
+        {
+            float ShadowMapDepth = g_DirectionalShadowMap.Sample(g_Sample2, LightShadowUV + TexSizeRCP * float2(x, y)).r;
+            ShadowValue += LightProjPos.z - Bias > ShadowMapDepth ? 0 : 1;
+        }
+    }
+    
+    return ShadowValue / 9;
+}
+    
 //================================================================================================
 // 버텍스 셰이더 (Vertex Shader)
 //================================================================================================
@@ -418,7 +462,13 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     litColor += CalculateAmbientLight(AmbientLight, Ka);
 
     // Directional light (diffuse + specular)
-    litColor += CalculateDirectionalLight(DirectionalLight, normal, viewDir, baseColor, true, specPower);
+    float3 DirectionalLightColor =  CalculateDirectionalLight(DirectionalLight, normal, viewDir, baseColor, true, specPower);
+    
+    float DirectionalShadowAtt = CalculateSpotLightShadowFactor(Input.WorldPos, DirectionalLight.Cascades[0], g_ShadowAtlas2D, g_ShadowSample);
+        
+    //float DirectionalShadowAtt = GetDirectionalShadowAtt(Input.WorldPos, -DirectionalLight.Direction, Input.Normal);
+    
+    litColor += DirectionalLightColor * DirectionalShadowAtt;
 
     // 타일 기반 라이트 컬링 적용 (활성화된 경우)
     if (bUseTileCulling)
