@@ -35,6 +35,8 @@ public:
 	// Update Gizmo to match light properties
 	void UpdateDirectionGizmo();
 
+	bool IsOverrideCameraLightPerspective() { return bOverrideCameraLightPerspective; }
+
 protected:
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;
@@ -45,4 +47,5 @@ private:
 	float Angle = 45;
 	float Near = 0.1f;
 	float Far = 100.0f;
+	bool bOverrideCameraLightPerspective;
 };

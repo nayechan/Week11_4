@@ -12,6 +12,7 @@ BEGIN_PROPERTIES(USpotLightComponent)
 	ADD_PROPERTY_RANGE(float, OuterConeAngle, "Light", 0.0f, 90.0f, true, "원뿔 외부 각도입니다. 이 각도 밖에서는 빛이 보이지 않습니다.")
 	ADD_PROPERTY_RANGE(int, SampleCount, "Light", 0, 16, "PCF 샘플 횟수")
 	ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "쉐도우 맵 Far Plane")
+	ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
 END_PROPERTIES()
 
 USpotLightComponent::USpotLightComponent()

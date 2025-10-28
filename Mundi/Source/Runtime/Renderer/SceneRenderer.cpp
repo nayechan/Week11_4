@@ -218,8 +218,17 @@ void FSceneRenderer::RenderShadowMaps()
 			MeshComponent->CollectMeshBatches(ShadowMeshBatches, View);
 		}
 	}
-	if (ShadowMeshBatches.IsEmpty()) return;
+
+	// NOTE: 카메라 오버라이드 기능을 항상 활성화 하기 위해서 그림자를 그릴 곳이 없어도 함수 실행
+	//if (ShadowMeshBatches.IsEmpty()) return;
 	
+
+	FMatrix InvView = View->ViewMatrix.InverseAffine();
+	FMatrix InvProjection;
+	if (View->ProjectionMode == ECameraProjectionMode::Perspective) { InvProjection = View->ProjectionMatrix.InversePerspectiveProjection(); }
+	else { InvProjection = View->ProjectionMatrix.InverseOrthographicProjection(); }
+	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
+
 	D3D11_VIEWPORT OriginVP;
 	UINT NumViewports = 1;
 	RHIDevice->GetDeviceContext()->RSGetViewports(&NumViewports, &OriginVP);
@@ -231,6 +240,33 @@ void FSceneRenderer::RenderShadowMaps()
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.5f, 0.5f, 0.0f, 1.0f
 	);
+
+	// 1.2. 2D 섀도우 요청 수집
+	TArray<FShadowRenderRequest> Requests2D;
+	TArray<FShadowRenderRequest> TempRequestsCube;
+	for (UDirectionalLightComponent* Light : LightManager->GetDirectionalLightList())
+	{
+		Light->GetShadowRenderRequests(View, Requests2D);
+		if (Light->IsOverrideCameraLightPerspective())
+		{
+			ViewProjBuffer.View = Requests2D[Requests2D.Num() - 1].ViewMatrix;
+			ViewProjBuffer.Proj = Requests2D[Requests2D.Num() - 1].ProjectionMatrix;
+			ViewProjBuffer.InvView = ViewProjBuffer.View.Inverse();
+			ViewProjBuffer.InvProj = ViewProjBuffer.Proj.Inverse();
+		}
+	}
+	for (USpotLightComponent* Light : LightManager->GetSpotLightList())
+	{
+		Light->GetShadowRenderRequests(View, Requests2D);
+		if (Light->IsOverrideCameraLightPerspective())
+		{
+			ViewProjBuffer.View = Requests2D[Requests2D.Num() - 1].ViewMatrix;
+			ViewProjBuffer.Proj = Requests2D[Requests2D.Num() - 1].ProjectionMatrix;
+			ViewProjBuffer.InvView = ViewProjBuffer.View.Inverse();
+			ViewProjBuffer.InvProj = ViewProjBuffer.Proj.Inverse();
+		}
+	}
+
 
 	// --- 1단계: 2D 아틀라스 렌더링 (Spot + Directional) ---
 	{
@@ -246,17 +282,6 @@ void FSceneRenderer::RenderShadowMaps()
 			RHIDevice->ClearDepthBuffer(1.0f, 0);
 			RHIDevice->RSSetState(ERasterizerMode::Shadows);
 			RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual);
-
-			// 1.2. 2D 섀도우 요청 수집
-			TArray<FShadowRenderRequest> Requests2D;
-			for (UDirectionalLightComponent* Light : LightManager->GetDirectionalLightList())
-			{
-				Light->GetShadowRenderRequests(View, Requests2D);
-			}
-			for (USpotLightComponent* Light : LightManager->GetSpotLightList())
-			{
-				Light->GetShadowRenderRequests(View, Requests2D);
-			}
 
 			// 1.3. 요청 정렬 (가장 큰 것부터)
 			Requests2D.Sort(std::greater<FShadowRenderRequest>());
@@ -328,7 +353,6 @@ void FSceneRenderer::RenderShadowMaps()
 			D3D11_VIEWPORT ShadowVP = { 0.0f, 0.0f, (float)AtlasSizeCube, (float)AtlasSizeCube, 0.0f, 1.0f };
 			RHIDevice->GetDeviceContext()->RSSetViewports(1, &ShadowVP);
 
-			TArray<FShadowRenderRequest> TempRequestsCube;
 			uint32 CurrentCubeSliceIndex = 0;
 
 			// 2.2. 포인트 라이트 순회
@@ -384,11 +408,6 @@ void FSceneRenderer::RenderShadowMaps()
 	// 4. 저장해둔 'OriginVP'로 뷰포트를 복구합니다. (이때는 주소(&)가 필요 없음)
 	RHIDevice->GetDeviceContext()->RSSetViewports(1, &OriginVP);
 
-	FMatrix InvView = View->ViewMatrix.InverseAffine();
-	FMatrix InvProjection;
-	if (View->ProjectionMode == ECameraProjectionMode::Perspective) { InvProjection = View->ProjectionMatrix.InversePerspectiveProjection(); }
-	else { InvProjection = View->ProjectionMatrix.InverseOrthographicProjection(); }
-	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
 	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewProjBuffer));
 }
 

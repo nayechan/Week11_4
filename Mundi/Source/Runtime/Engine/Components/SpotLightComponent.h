@@ -75,7 +75,8 @@ public:
 	FMatrix GetProjectionMatrix() const;
 	void RenderDebugFrustum(TArray<FVector>& StartPoints, TArray<FVector>& EndPoints, TArray<FVector4>& Colors) const;
 	void CreateShadowMap(D3D11RHI* RHIDevice);
-	
+
+	bool IsOverrideCameraLightPerspective() { return bOverrideCameraLightPerspective; }
 
 protected:
 	float InnerConeAngle = 30.0f; // 내부 원뿔 각도
@@ -93,4 +94,6 @@ protected:
 
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;
+
+	bool bOverrideCameraLightPerspective;
 };
