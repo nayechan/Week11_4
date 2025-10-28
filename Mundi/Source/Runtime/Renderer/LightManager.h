@@ -35,6 +35,8 @@ struct FShadowRenderRequest
     FMatrix ProjectionMatrix;
     uint32 Size;
     int32 SubViewIndex; // Point(0~5), CSM(0~N), Spot(0)
+    int32 AssignedSliceIndex = -1; // Cube Atlas Slice Index
+
     FVector4 AtlasScaleOffset; // 패킹 알고리즘이 채워줄 UV
     FVector2D AtlasViewportOffset; // 패킹 알고리즘이 채워줄 Viewport
     int32 SampleCount;
@@ -131,7 +133,8 @@ public:
     ID3D11DepthStencilView* GetShadowCubeFaceDSV(UINT SliceIndex, UINT FaceIndex) const; // (구현 필요)
     bool GetCachedShadowData(ULightComponent* Light, int32 SubViewIndex, FShadowMapData& OutData) const;
 
-    void BuildShadowAtlas2D(TArray<FShadowRenderRequest>& InOutRequests2D);
+    void AllocateAtlasRegions2D(TArray<FShadowRenderRequest>& InOutRequests2D);
+    void AllocateAtlasCubeSlices(TArray<FShadowRenderRequest>& InOutRequestsCube);
 
     TArray<UAmbientLightComponent*> GetAmbientLightList() { return AmbientLightList; }
     TArray<UDirectionalLightComponent*> GetDirectionalLightList() { return DIrectionalLightList; }

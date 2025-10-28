@@ -222,12 +222,12 @@ void FSceneRenderer::RenderShadowMaps()
 	// NOTE: 카메라 오버라이드 기능을 항상 활성화 하기 위해서 그림자를 그릴 곳이 없어도 함수 실행
 	//if (ShadowMeshBatches.IsEmpty()) return;
 	
-
+	// 뷰 설정 복구용 데이터
 	FMatrix InvView = View->ViewMatrix.InverseAffine();
 	FMatrix InvProjection;
 	if (View->ProjectionMode == ECameraProjectionMode::Perspective) { InvProjection = View->ProjectionMatrix.InversePerspectiveProjection(); }
 	else { InvProjection = View->ProjectionMatrix.InverseOrthographicProjection(); }
-	ViewProjBufferType ViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
+	ViewProjBufferType OriginViewProjBuffer = ViewProjBufferType(View->ViewMatrix, View->ProjectionMatrix, InvView, InvProjection);
 
 	D3D11_VIEWPORT OriginVP;
 	UINT NumViewports = 1;
@@ -243,17 +243,17 @@ void FSceneRenderer::RenderShadowMaps()
 
 	// 1.2. 2D 섀도우 요청 수집
 	TArray<FShadowRenderRequest> Requests2D;
-	TArray<FShadowRenderRequest> TempRequestsCube;
+	TArray<FShadowRenderRequest> RequestsCube;
 	for (UDirectionalLightComponent* Light : LightManager->GetDirectionalLightList())
 	{
 		Light->GetShadowRenderRequests(View, Requests2D);
 		// IsOverrideCameraLightPerspective 임시 구현
 		if (Light->IsOverrideCameraLightPerspective())
 		{
-			ViewProjBuffer.View = Requests2D[Requests2D.Num() - 1].ViewMatrix;
-			ViewProjBuffer.Proj = Requests2D[Requests2D.Num() - 1].ProjectionMatrix;
-			ViewProjBuffer.InvView = ViewProjBuffer.View.Inverse();
-			ViewProjBuffer.InvProj = ViewProjBuffer.Proj.Inverse();
+			OriginViewProjBuffer.View = Requests2D[Requests2D.Num() - 1].ViewMatrix;
+			OriginViewProjBuffer.Proj = Requests2D[Requests2D.Num() - 1].ProjectionMatrix;
+			OriginViewProjBuffer.InvView = OriginViewProjBuffer.View.Inverse();
+			OriginViewProjBuffer.InvProj = OriginViewProjBuffer.Proj.Inverse();
 		}
 	}
 	for (USpotLightComponent* Light : LightManager->GetSpotLightList())
@@ -262,18 +262,24 @@ void FSceneRenderer::RenderShadowMaps()
 		// IsOverrideCameraLightPerspective 임시 구현
 		if (Light->IsOverrideCameraLightPerspective())
 		{
-			ViewProjBuffer.View = Requests2D[Requests2D.Num() - 1].ViewMatrix;
-			ViewProjBuffer.Proj = Requests2D[Requests2D.Num() - 1].ProjectionMatrix;
-			ViewProjBuffer.InvView = ViewProjBuffer.View.Inverse();
-			ViewProjBuffer.InvProj = ViewProjBuffer.Proj.Inverse();
+			OriginViewProjBuffer.View = Requests2D[Requests2D.Num() - 1].ViewMatrix;
+			OriginViewProjBuffer.Proj = Requests2D[Requests2D.Num() - 1].ProjectionMatrix;
+			OriginViewProjBuffer.InvView = OriginViewProjBuffer.View.Inverse();
+			OriginViewProjBuffer.InvProj = OriginViewProjBuffer.Proj.Inverse();
 		}
 	}
+	for (UPointLightComponent* Light : LightManager->GetPointLightList())
+	{
+		Light->GetShadowRenderRequests(View, RequestsCube); // OriginalSubViewIndex(0~5) 채워짐
+	}
+
+	// 2D 아틀라스 할당
+	LightManager->AllocateAtlasRegions2D(Requests2D);
+	// 2.2. 큐브맵 슬라이스 할당 (Allocate only)
+	LightManager->AllocateAtlasCubeSlices(RequestsCube); // FLightManager가 RequestsCube의 AssignedSliceIndex와 Size 업데이트
 
 	// --- 1단계: 2D 아틀라스 렌더링 (Spot + Directional) ---
 	{
-		// Requests2D 의 텍스처를 모두 아틀라스에 배치될 위치 지정
-		LightManager->BuildShadowAtlas2D(Requests2D);
-
 		ID3D11DepthStencilView* AtlasDSV2D = LightManager->GetShadowAtlasDSV2D();
 		float AtlasTotalSize2D = (float)LightManager->GetShadowAtlasSize2D();
 		if (AtlasDSV2D && AtlasTotalSize2D > 0)
@@ -311,59 +317,40 @@ void FSceneRenderer::RenderShadowMaps()
 	// --- 2단계: 큐브맵 아틀라스 렌더링 (Point) ---
 	{
 		uint32 AtlasSizeCube = LightManager->GetShadowCubeArraySize();
-		uint32 MaxCubeSlices = LightManager->GetShadowCubeArrayCount();
+		uint32 MaxCubeSlices = LightManager->GetShadowCubeArrayCount(); // MaxCubeSlices는 FLightManager에서 가져옴
 		if (AtlasSizeCube > 0 && MaxCubeSlices > 0)
 		{
 			// 2.1. RHI 상태 설정 (큐브맵)
 			RHIDevice->RSSetState(ERasterizerMode::Shadows);
+			RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual); // 상태 설정 추가
 
 			// 큐브맵은 항상 1:1 종횡비의 전체 뷰포트 사용
 			D3D11_VIEWPORT ShadowVP = { 0.0f, 0.0f, (float)AtlasSizeCube, (float)AtlasSizeCube, 0.0f, 1.0f };
 			RHIDevice->GetDeviceContext()->RSSetViewports(1, &ShadowVP);
 
-			uint32 CurrentCubeSliceIndex = 0;
-
-			// 2.2. 포인트 라이트 순회
-			for (UPointLightComponent* Light : LightManager->GetPointLightList())
+			// 이제 RequestsCube 배열을 직접 순회
+			for (FShadowRenderRequest& Request : RequestsCube) // 레퍼런스 유지
 			{
-				TempRequestsCube.Empty();
-				Light->GetShadowRenderRequests(View, TempRequestsCube);
-
-				if (TempRequestsCube.IsEmpty())
+				// 슬라이스 할당 실패는 FLightManager::Allocate... 함수가 처리 (Size=0 설정)
+				if (Request.Size == 0) // 할당 실패한 요청 건너뛰기
 				{
-					// 이 라이트는 섀도우 끔
-					LightManager->SetShadowCubeMapData(Light, -1); // -1: 섀도우 없음
+					// 실패 시 FLightManager에 알림 (선택적이지만 안전)
+					LightManager->SetShadowCubeMapData(Request.LightOwner, -1);
 					continue;
 				}
 
-				if (CurrentCubeSliceIndex >= MaxCubeSlices)
+				// 할당된 슬라이스 인덱스와 원본 면 인덱스 사용
+				int32 SliceIndex = Request.AssignedSliceIndex;   // FLightManager가 할당한 값
+				int32 FaceIndex = Request.SubViewIndex; // 원본 면 인덱스
+
+				// 2.3. 면 렌더링 (기존 로직 유지)
+				ID3D11DepthStencilView* FaceDSV = LightManager->GetShadowCubeFaceDSV(SliceIndex, FaceIndex);
+				if (FaceDSV)
 				{
-					// 큐브 아틀라스가 꽉 참
-					LightManager->SetShadowCubeMapData(Light, -1);
-					break;
+					RHIDevice->OMSetCustomRenderTargets(0, nullptr, FaceDSV);
+					RHIDevice->ClearDepthBuffer(1.0f, 0); // 각 면을 클리어
+					RenderShadowDepthPass(Request.ViewMatrix, Request.ProjectionMatrix, ShadowMeshBatches);
 				}
-
-				// 2.3. 6개 면 렌더링
-				for (FShadowRenderRequest& Request : TempRequestsCube) // 6번 루프
-				{
-					int32 FaceIndex = Request.SubViewIndex;
-
-					// [핵심] FLightManager로부터 (Slice, Face)에 맞는 DSV를 가져와 설정
-					ID3D11DepthStencilView* FaceDSV = LightManager->GetShadowCubeFaceDSV(CurrentCubeSliceIndex, FaceIndex);
-					if (FaceDSV)
-					{
-						RHIDevice->OMSetCustomRenderTargets(0, nullptr, FaceDSV);
-						RHIDevice->ClearDepthBuffer(1.0f, 0); // 각 면을 클리어
-
-						// 뎁스 패스 렌더링
-						RenderShadowDepthPass(Request.ViewMatrix, Request.ProjectionMatrix, ShadowMeshBatches);
-					}
-				}
-
-				// 2.4. FLightManager에 큐브맵 데이터 전달
-				LightManager->SetShadowCubeMapData(Light, CurrentCubeSliceIndex);
-
-				CurrentCubeSliceIndex++;
 			}
 		}
 	}
@@ -377,7 +364,7 @@ void FSceneRenderer::RenderShadowMaps()
 	RHIDevice->GetDeviceContext()->RSSetViewports(1, &OriginVP);
 	
 	// ViewProjBufferType 복구 (라이트 시점 Override 일 경우 마지막 라이트 시점으로 설정됨)
-	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(ViewProjBuffer));
+	RHIDevice->SetAndUpdateConstantBuffer(ViewProjBufferType(OriginViewProjBuffer));
 }
 
 void FSceneRenderer::RenderShadowDepthPass(FMatrix& InLightView, FMatrix& InLightProj, const TArray<FMeshBatchElement>& InShadowBatches)
