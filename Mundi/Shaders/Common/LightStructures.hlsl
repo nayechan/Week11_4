@@ -4,9 +4,7 @@
 //                모든 조명 기반 셰이더에서 공유 (UberLit, Decal 등)
 //================================================================================================
 
-// --- 전역 상수 정의 ---
-#define NUM_POINT_LIGHT_MAX 16
-#define NUM_SPOT_LIGHT_MAX 16
+#define CASCADED_MAX 8
 
 // --- 조명 정보 구조체 (LightInfo.h와 완전히 일치) ---
 // 주의: Color는 이미 Intensity와 Temperature가 포함됨 (C++에서 계산)
@@ -29,12 +27,19 @@ struct FDirectionalLightInfo
 {
     float4 Color;       // 16 bytes - FLinearColor (Intensity + Temperature 포함)
     float3 Direction;   // 12 bytes - FVector
-    float bCastShadows;
+    uint bCastShadows;
     
+    uint bCascaded;
     uint CascadeCount; // 4 bytes
-    float3 Padding;
+    float CascadedOverlapValue;
+    float CascadedAreaColorDebugValue;
     
-    FShadowMapData Cascades[4];
+    float CascadedAreaShadowDebugValue;
+    float3 DirectionalLightInfoPadding;
+    
+    float4 CascadedSliceDepth[CASCADED_MAX / 4 + 1];
+
+    FShadowMapData Cascades[CASCADED_MAX];
 };
 
 struct FPointLightInfo

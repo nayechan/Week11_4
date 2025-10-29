@@ -102,11 +102,11 @@ FMatrix UCameraComponent::GetProjectionMatrix(float ViewportAspectRatio, FViewpo
             NearClip, FarClip);*/
     }
 }
-TArray<FVector> UCameraComponent::GetFrustumVertices(FViewport* Viewport)
+TArray<FVector> UCameraComponent::GetFrustumVertices(FViewport* Viewport) const
 {
     return GetFrustumVerticesCascaded(Viewport, NearClip, FarClip);
 }
-TArray<FVector> UCameraComponent::GetFrustumVerticesCascaded(FViewport* Viewport, const float Near, const float Far)
+TArray<FVector> UCameraComponent::GetFrustumVerticesCascaded(FViewport* Viewport, const float Near, const float Far) const
 {
     TArray<FVector> Vertices;
     Vertices.reserve(8);
@@ -129,16 +129,30 @@ TArray<FVector> UCameraComponent::GetFrustumVerticesCascaded(FViewport* Viewport
         FarHalfHeight = NearHalfHeight;
         FarHalfWidth = NearHalfWidth;
     }
-    Vertices.emplace_back(FVector(-NearHalfWidth, -NearHalfHeight, NearClip));
-    Vertices.emplace_back(FVector(NearHalfWidth, -NearHalfHeight, NearClip));
-    Vertices.emplace_back(FVector(NearHalfWidth, NearHalfHeight, NearClip));
-    Vertices.emplace_back(FVector(-NearHalfWidth, NearHalfHeight, NearClip));
-    Vertices.emplace_back(FVector(-FarHalfWidth, -FarHalfHeight, FarClip));
-    Vertices.emplace_back(FVector(FarHalfWidth, -FarHalfHeight, FarClip));
-    Vertices.emplace_back(FVector(FarHalfWidth, FarHalfHeight, FarClip));
-    Vertices.emplace_back(FVector(-FarHalfWidth, FarHalfHeight, FarClip));
+    Vertices.emplace_back(FVector(-NearHalfWidth, -NearHalfHeight, Near));
+    Vertices.emplace_back(FVector(NearHalfWidth, -NearHalfHeight, Near));
+    Vertices.emplace_back(FVector(NearHalfWidth, NearHalfHeight, Near));
+    Vertices.emplace_back(FVector(-NearHalfWidth, NearHalfHeight, Near));
+    Vertices.emplace_back(FVector(-FarHalfWidth, -FarHalfHeight, Far));
+    Vertices.emplace_back(FVector(FarHalfWidth, -FarHalfHeight, Far));
+    Vertices.emplace_back(FVector(FarHalfWidth, FarHalfHeight, Far));
+    Vertices.emplace_back(FVector(-FarHalfWidth, FarHalfHeight, Far));
 
     return Vertices;
+}
+TArray<float> UCameraComponent::GetCascadedSliceDepth(int CascadedCount, float LinearBlending) const
+{
+    TArray<float> CascadedSliceDepth;
+    CascadedSliceDepth.reserve(CascadedCount + 1);
+    LinearBlending = LinearBlending < 0 ? 0 : (LinearBlending > 1 ? 1 : LinearBlending); //clamp(0,1,LinearBlending);
+    for (int i = 0; i < CascadedCount + 1; i++)
+    {
+        float CurDepth = 0;
+        float LogValue = NearClip * pow((FarClip / NearClip), (float)i / CascadedCount);
+        float LinearValue = NearClip + (FarClip - NearClip) * (float)i / CascadedCount;
+        CascadedSliceDepth.push_back((1 - LinearBlending) * LogValue + LinearBlending * LinearValue);
+    }
+    return CascadedSliceDepth;
 }
 
 FVector UCameraComponent::GetForward() const

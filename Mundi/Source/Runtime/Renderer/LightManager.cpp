@@ -218,10 +218,8 @@ void FLightManager::UpdateLightBuffer(D3D11RHI* RHIDevice)
 		if (Light->IsCastShadows() && ShadowDataCache2D.Contains(Light))
 		{
 			const TArray<FShadowMapData>& Cascades = ShadowDataCache2D[Light];
-			int32 CascadeCount = FMath::Min(Cascades.Num(), 4); // 최대 4개까지만 복사
+			int32 CascadeCount = FMath::Min(Cascades.Num(), CASCADED_MAX); // 최대 4개까지만 복사
 
-			LightBuffer.DirectionalLight.bCastShadows = (CascadeCount > 0);
-			LightBuffer.DirectionalLight.CascadeCount = CascadeCount;
 			for (int32 i = 0; i < CascadeCount; ++i)
 			{
 				LightBuffer.DirectionalLight.Cascades[i] = Cascades[i];

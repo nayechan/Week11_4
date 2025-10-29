@@ -11,12 +11,19 @@
 IMPLEMENT_CLASS(UDirectionalLightComponent)
 
 BEGIN_PROPERTIES(UDirectionalLightComponent)
-	MARK_AS_COMPONENT("디렉셔널 라이트", "방향성 라이트 (태양광 같은 평행광) 컴포넌트입니다.")
-	ADD_PROPERTY_RANGE(float, Near, "ShadowMap", 0.01f, 10.0f, true, "쉐도우 맵 Near Plane")
-	ADD_PROPERTY_RANGE(float, Far, "ShadowMap", 11.0f, 1000.0f, true, "쉐도우 맵 Far Plane")
-	ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "쉐도우 맵 Far Plane")
-	ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
+MARK_AS_COMPONENT("디렉셔널 라이트", "방향성 라이트 (태양광 같은 평행광) 컴포넌트입니다.")
+ADD_PROPERTY(bool, bCascaded, "ShadowMap", true, "Cascaded 사용 여부")
+ADD_PROPERTY_RANGE(int, CascadedCount, "ShadowMap", 1, 8, true, "Cascaded 갯수")
+ADD_PROPERTY_RANGE(float, CascadedLinearBlendingValue, "ShadowMap", 0, 1, true, "Cascaded Log~Linear 가중치 : 0~1")
+ADD_PROPERTY_RANGE(float, CascadedOverlapValue, "ShadowMap", 0, 0.5f, true, "Cascaded 확장 범위 크기")
+ADD_PROPERTY_RANGE(float, CascadedAreaColorDebugValue, "ShadowMap", 0, 1.0f, true, "Cascaded 범위 시각화")
+ADD_PROPERTY_RANGE(int, CascadedAreaShadowDebugValue, "ShadowMap", -1, 8, true, "Cascaded 쉐도우 구역 설정 (-1 : 전체 쉐도우)")
+ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "쉐도우 맵 Far Plane")
+ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
 END_PROPERTIES()
+
+bool UDirectionalLightComponent::Test = false;
+TArray<FVector> UDirectionalLightComponent::CascadedAABBGizmo{};
 
 UDirectionalLightComponent::UDirectionalLightComponent()
 {
@@ -29,28 +36,73 @@ UDirectionalLightComponent::~UDirectionalLightComponent()
 
 void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests)
 {
+	if (Test) {
+		CascadedAABBGizmo.clear();
+	}
 	FMatrix ShadowMapView = GetWorldRotation().Inverse().ToMatrix() * FMatrix::ZUpToYUp;
-	FMatrix RotInv = GetWorldRotation().Inverse().ToMatrix();
+	FMatrix ViewInv = View->Camera->GetViewMatrix().InverseAffine();
+	if (bCascaded == false)
+	{
+		TArray<FVector> CameraFrustum = View->Camera->GetFrustumVertices(View->Viewport);
+		CameraFrustum *= ViewInv;
+		CameraFrustum *= ShadowMapView;
+		FAABB CameraFrustumAABB = FAABB(CameraFrustum);
+		CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
+		FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
+		FShadowRenderRequest ShadowRenderRequest;
+		ShadowRenderRequest.LightOwner = this;
+		ShadowRenderRequest.ViewMatrix = ShadowMapView;
+		ShadowRenderRequest.ProjectionMatrix = ShadowMapOrtho;
+		ShadowRenderRequest.Size = ShadowResolutionScale;
+		ShadowRenderRequest.SubViewIndex = 0;
+		ShadowRenderRequest.AtlasScaleOffset = 0;
+		OutRequests.Add(ShadowRenderRequest);
+	}
+	else 
+	{
+		CascadedSliceDepth = View->Camera->GetCascadedSliceDepth(CascadedCount, CascadedLinearBlendingValue);
+		for (int i = 0; i < CascadedCount; i++)
+		{
+			float Near = CascadedSliceDepth[i];
+			float Far = CascadedSliceDepth[i + 1];
+			//Near -= Near * CascadedOverlapValue;
+			Far += Far * CascadedOverlapValue;
+			TArray<FVector> CameraFrustum = View->Camera->GetFrustumVerticesCascaded(View->Viewport, Near, Far);
+			CameraFrustum *= ViewInv;
+			CameraFrustum *= ShadowMapView;
+			FAABB CameraFrustumAABB = FAABB(CameraFrustum);
+			CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
+			FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
+			FShadowRenderRequest ShadowRenderRequest;
+			ShadowRenderRequest.LightOwner = this;
+			ShadowRenderRequest.ViewMatrix = ShadowMapView;
+			ShadowRenderRequest.ProjectionMatrix = ShadowMapOrtho;
+			ShadowRenderRequest.Size = ShadowResolutionScale;
+			ShadowRenderRequest.SubViewIndex = i;
+			ShadowRenderRequest.AtlasScaleOffset = 0;
+			OutRequests.Add(ShadowRenderRequest);
 
-	TArray<FVector> CameraFrustum = View->Camera->GetFrustumVertices(View->Viewport);
-	CameraFrustum *= View->Camera->GetViewMatrix().InverseAffine();
-	CameraFrustum *= ShadowMapView;
+			if (Test)
+			{
+				TArray<FVector> CameraFrustum2 = View->Camera->GetFrustumVerticesCascaded(View->Viewport, Near, Far);
+				CameraFrustum2 *= ViewInv;
+				CameraFrustum2 *= ShadowMapView;
+				FAABB CameraFrustumAABB = FAABB(CameraFrustum2);
+				CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
+				TArray<FVector> AABBVertices = CameraFrustumAABB.GetVertices();
+				AABBVertices *= ShadowMapView.InverseAffine();
+				for (int i = 0; i < 8; i++) 
+				{
+					CascadedAABBGizmo.Add(AABBVertices[i]);
+				}
 
-	FAABB CameraFrustumAABB = FAABB(CameraFrustum);
-
-	FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
-
-	// [권장] 최종 PSM 행렬을 직접 계산하는 함수 사용
-	FMatrix FinalProjectionMatrix = ShadowMapOrtho;
-
-	FShadowRenderRequest ShadowRenderRequest;
-	ShadowRenderRequest.LightOwner = this;
-	ShadowRenderRequest.ViewMatrix = ShadowMapView;
-	ShadowRenderRequest.ProjectionMatrix = ShadowMapOrtho;
-	ShadowRenderRequest.Size = ShadowResolutionScale;
-	ShadowRenderRequest.SubViewIndex = 0;
-	ShadowRenderRequest.AtlasScaleOffset = 0;
-	OutRequests.Add(ShadowRenderRequest);
+			}
+		}
+	}
+	if (Test)
+	{
+		Test = false;
+	}
 }
 
 FVector UDirectionalLightComponent::GetLightDirection() const
@@ -66,6 +118,17 @@ FDirectionalLightInfo UDirectionalLightComponent::GetLightInfo() const
 	// Use GetLightColorWithIntensity() to include Temperature + Intensity
 	Info.Color = GetLightColorWithIntensity();
 	Info.Direction = GetLightDirection();
+	Info.bCastShadows = bCastShadows ? 1 : 0;
+
+	Info.bCascaded = bCascaded ? 1 : 0;
+	Info.CascadeCount = CascadedCount;
+	Info.CascadedOverlapValue = CascadedOverlapValue;
+	Info.CascadedAreaColorDebugValue = CascadedAreaColorDebugValue;
+	Info.CascadedAreaShadowDebugValue = CascadedAreaShadowDebugValue;
+	for (int i = 0; i < CascadedSliceDepth.Num(); i++)
+	{
+		Info.CascadedSliceDepth[i] = CascadedSliceDepth[i];
+	}
 	return Info;
 }
 

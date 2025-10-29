@@ -10,7 +10,6 @@ void D3D11RHI::Initialize(HWND hWindow)
     CreateIdBuffer();
     CreateRasterizerState();
     CreateBlendState();
-    
     CONSTANT_BUFFER_LIST(CREATE_CONSTANT_BUFFER);
 
 	CreateDepthStencilState();
@@ -657,7 +656,7 @@ void D3D11RHI::CreateRasterizerState()
     // 섀도우 맵 전용 래스터라이저
     D3D11_RASTERIZER_DESC ShadowRasterizerDesc = {};
     ShadowRasterizerDesc.FillMode = D3D11_FILL_SOLID;
-    ShadowRasterizerDesc.CullMode = D3D11_CULL_BACK; // 또는 CULL_FRONT (섀도우 기법에 따라 다름)
+    ShadowRasterizerDesc.CullMode = D3D11_CULL_NONE; // 또는 CULL_FRONT (섀도우 기법에 따라 다름)
     ShadowRasterizerDesc.DepthClipEnable = TRUE;
 
     // 섀도우 아티팩트(Acne) 방지를 위한 Bias 설정

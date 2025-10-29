@@ -53,6 +53,21 @@ FVector FAABB::GetHalfExtent() const
 {
 	return (Max - Min) * 0.5f;
 }
+TArray<FVector> FAABB::GetVertices() const
+{
+	TArray<FVector> Vertices{
+		{Min.X, Min.Y,Min.Z},
+		{Max.X, Min.Y,Min.Z},
+		{Max.X, Min.Y,Max.Z},
+		{Min.X, Min.Y,Max.Z},
+		{Min.X, Max.Y,Min.Z},
+		{Max.X, Max.Y,Min.Z},
+		{Max.X, Max.Y,Max.Z},
+		{Min.X, Max.Y,Max.Z},
+	};
+
+	return Vertices;
+}
 
 // 다른 박스를 완전히 포함하는지 확인
 bool FAABB::Contains(const FAABB& Other) const

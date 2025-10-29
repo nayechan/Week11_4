@@ -33,7 +33,7 @@
 #include "SceneView.h"
 
 #include <Windows.h>
-
+#include "DirectionalLightComponent.h"
 URenderer::URenderer(D3D11RHI* InDevice) : RHIDevice(InDevice)
 {
 	InitializeLineBatch();
@@ -71,6 +71,14 @@ void URenderer::RenderSceneForView(UWorld* World, ACameraActor* Camera, FViewpor
 
 	// 2. FSceneRenderer 생성자에 'View'의 주소(&View)를 전달합니다.
 	FSceneRenderer SceneRenderer(World, &View, this);
+
+	TArray<FVector> Lines = CubeVerticesToLine(UDirectionalLightComponent::CascadedAABBGizmo);
+	FVector4 Colors[2] = { FVector4(1,0,1,1), FVector4(1,1,0,1) };
+	int CubeNum = Lines.Num() / 24;
+	for (int i = 0; i < CubeNum; i++)
+	{
+		AddLinesRange(Lines, i * 24, 24, Colors[i % 2]);
+	}
 
 	// 3. 실제로 렌더를 수행합니다.
 	SceneRenderer.Render();
@@ -187,6 +195,36 @@ void URenderer::AddLines(const TArray<FVector>& Lines, const FVector4& Color)
 
 		// Add indices for line (2 vertices per line)
 		LineBatchData->Indices.push_back(startIndex + i);
+	}
+}
+void URenderer::AddLinesRange(const TArray<FVector>& Lines, int startIdx, int Count, const FVector4& Color)
+{
+	if (!bLineBatchActive || !LineBatchData) return;
+	size_t VerticesCount = Lines.size();
+	if (VerticesCount % 2 != 0 || Count % 2 != 0)
+	{
+		return;
+	}
+
+	uint32 AddVerticesCount = Count;
+	uint32 LineBatchStartIndex = static_cast<uint32>(LineBatchData->Vertices.size());
+	// Reserve space for efficiency
+
+	LineBatchData->Vertices.reserve(LineBatchData->Vertices.size() + AddVerticesCount);
+	LineBatchData->Color.reserve(LineBatchData->Color.size() + AddVerticesCount);
+	LineBatchData->Indices.reserve(LineBatchData->Indices.size() + AddVerticesCount);
+
+	// Add all lines at once
+	for (size_t i = 0; i < AddVerticesCount; ++i)
+	{
+		// Add vertices
+		LineBatchData->Vertices.push_back(Lines[i + startIdx]);
+
+		// Add colors
+		LineBatchData->Color.push_back(Color);
+
+		// Add indices for line (2 vertices per line)
+		LineBatchData->Indices.push_back(LineBatchStartIndex + i);
 	}
 }
 

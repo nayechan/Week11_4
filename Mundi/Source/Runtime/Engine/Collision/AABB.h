@@ -29,6 +29,9 @@ struct FAABB
 	// 반쪽 크기 (Extent)
 	FVector GetHalfExtent() const;
 
+	TArray<FVector> GetVertices() const;
+
+
 	// 다른 박스를 완전히 포함하는지 확인
 	bool Contains(const FAABB& Other) const;
 

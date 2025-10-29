@@ -37,13 +37,22 @@ public:
 
 	bool IsOverrideCameraLightPerspective() { return bOverrideCameraLightPerspective; }
 
+	static bool Test;
+	static TArray<FVector> CascadedAABBGizmo;
+
 protected:
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;
 	ID3D11ShaderResourceView* ShadowMapSRV = nullptr;
 private:
-	float Angle = 45;
-	float Near = 0.1f;
-	float Far = 100.0f;
+	bool bCascaded = true;
+	int CascadedCount = 4;
+	float CascadedLinearBlendingValue = 0.5f;
+	float CascadedOverlapValue = 0.2f;
 	bool bOverrideCameraLightPerspective = false;
+	TArray<float> CascadedSliceDepth;
+
+	//로그용
+	float CascadedAreaColorDebugValue = 0;
+	int CascadedAreaShadowDebugValue = -1;
 };
