@@ -289,7 +289,13 @@ bool UPropertyRenderer::RenderBoolProperty(const FProperty& Prop, void* Instance
 bool UPropertyRenderer::RenderInt32Property(const FProperty& Prop, void* Instance)
 {
 	int32* Value = Prop.GetValuePtr<int32>(Instance);
-	return ImGui::DragInt(Prop.Name, Value, 1.0f, (int)Prop.MinValue, (int)Prop.MaxValue);
+	
+	// 드래그 속도를 계산합니다.
+	const float TotalRange = (float)Prop.MaxValue - (float)Prop.MinValue;
+	const float ProportionalSpeed = TotalRange * 0.0005f;
+	const float DragSpeed = FMath::Max(ProportionalSpeed, 0.01f);	// 최소 속도
+
+	return ImGui::DragInt(Prop.Name, Value, DragSpeed, (int)Prop.MinValue, (int)Prop.MaxValue);
 }
 
 bool UPropertyRenderer::RenderFloatProperty(const FProperty& Prop, void* Instance)
@@ -299,11 +305,16 @@ bool UPropertyRenderer::RenderFloatProperty(const FProperty& Prop, void* Instanc
 	// Min과 Max가 둘 다 0이면 범위 제한 없음
 	if (Prop.MinValue == 0.0f && Prop.MaxValue == 0.0f)
 	{
-		return ImGui::DragFloat(Prop.Name, Value, 0.01f);
+		return ImGui::DragFloat(Prop.Name, Value, 1.0f);
 	}
 	else
 	{
-		return ImGui::DragFloat(Prop.Name, Value, 0.01f, Prop.MinValue, Prop.MaxValue);
+		// 드래그 속도를 계산합니다.
+		const float TotalRange = (float)Prop.MaxValue - (float)Prop.MinValue;
+		const float ProportionalSpeed = TotalRange * 0.0005f;
+		const float DragSpeed = FMath::Max(ProportionalSpeed, 0.01f);	// 최소 속도
+
+		return ImGui::DragFloat(Prop.Name, Value, DragSpeed, Prop.MinValue, Prop.MaxValue);
 	}
 }
 
