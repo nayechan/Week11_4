@@ -114,8 +114,9 @@ PS_INPUT mainVS(VS_INPUT input)
             baseColor,
             specPower,
             output.position,
-            g_ShadowAtlasCube, g_ShadowSample,
-            g_ShadowAtlas2D, g_ShadowSample
+            g_ShadowSample,
+            g_ShadowAtlas2D,
+            g_ShadowAtlasCube
         );
 
         output.litColor = float4(litColor, 1.0f);
@@ -178,8 +179,9 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         baseColor,
         specPower,
         input.position,
-        g_ShadowAtlasCube, g_ShadowSample,
-        g_ShadowAtlas2D, g_ShadowSample
+        g_ShadowSample,
+        g_ShadowAtlas2D,
+        g_ShadowAtlasCube
     );
 
     float4 finalColor = float4(litColor, decalTexture.a * DecalOpacity);
