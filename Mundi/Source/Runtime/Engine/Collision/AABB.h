@@ -41,9 +41,12 @@ struct FAABB
 	// i번째 옥탄트 Bounds 반환
 	FAABB CreateOctant(int i) const;
 	
+	void SnapToGrid(const FVector& GridSize, bool bFloor);
+
 	bool IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& OutExitDistance);
 
 	static FAABB Union(const FAABB& A, const FAABB& B);
+
 };
 
 inline TArray<FVector> CubeVerticesToLine(const TArray<FVector>& CubeVertices)

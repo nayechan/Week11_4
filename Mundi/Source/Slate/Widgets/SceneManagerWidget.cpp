@@ -129,10 +129,6 @@ void USceneManagerWidget::Update()
 void USceneManagerWidget::RenderWidget()
 {
 	ImGui::Text("Scene Manager");
-	if (ImGui::Button("Test"))
-	{
-		UDirectionalLightComponent::Test = true;
-	}
 	// World status
 	UWorld* World = GetCurrentWorld();
 	if (!World)

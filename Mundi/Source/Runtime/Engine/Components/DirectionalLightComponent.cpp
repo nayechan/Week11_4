@@ -22,9 +22,6 @@ ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "ì‰
 ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
 END_PROPERTIES()
 
-bool UDirectionalLightComponent::Test = false;
-TArray<FVector> UDirectionalLightComponent::CascadedAABBGizmo{};
-
 UDirectionalLightComponent::UDirectionalLightComponent()
 {
 	ShadowResolutionScale = 8196;
@@ -36,17 +33,23 @@ UDirectionalLightComponent::~UDirectionalLightComponent()
 
 void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests)
 {
-	if (Test) {
-		CascadedAABBGizmo.clear();
-	}
 	FMatrix ShadowMapView = GetWorldRotation().Inverse().ToMatrix() * FMatrix::ZUpToYUp;
 	FMatrix ViewInv = View->Camera->GetViewMatrix().InverseAffine();
 	if (bCascaded == false)
 	{
 		TArray<FVector> CameraFrustum = View->Camera->GetFrustumVertices(View->Viewport);
+		float Near = View->Camera->GetNearClip();
+		float Far = View->Camera->GetFarClip();
+		float CenterDepth = (Far + Near) / 2;
+		FVector Center = FVector(0, 0, CenterDepth);
+		float MaxDis = FVector::Distance(Center, CameraFrustum[7]) * 2;
+		float WorldSizePerTexel = MaxDis / ShadowResolutionScale;
+		
 		CameraFrustum *= ViewInv;
 		CameraFrustum *= ShadowMapView;
 		FAABB CameraFrustumAABB = FAABB(CameraFrustum);
+		CameraFrustumAABB.Min = CameraFrustumAABB.Min.SnapToGrid(FVector(WorldSizePerTexel, WorldSizePerTexel,0), true);
+		CameraFrustumAABB.Max = CameraFrustumAABB.Min + FVector(MaxDis, MaxDis, MaxDis);
 		CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
 		FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
 		FShadowRenderRequest ShadowRenderRequest;
@@ -68,9 +71,16 @@ void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArra
 			//Near -= Near * CascadedOverlapValue;
 			Far += Far * CascadedOverlapValue;
 			TArray<FVector> CameraFrustum = View->Camera->GetFrustumVerticesCascaded(View->Viewport, Near, Far);
+			float CenterDepth = (Far + Near) / 2;
+			FVector Center = FVector(0, 0, CenterDepth);
+			float MaxDis = FVector::Distance(Center, CameraFrustum[7]) * 2;
+			float WorldSizePerTexel = MaxDis / ShadowResolutionScale;
+
 			CameraFrustum *= ViewInv;
 			CameraFrustum *= ShadowMapView;
 			FAABB CameraFrustumAABB = FAABB(CameraFrustum);
+			CameraFrustumAABB.Min = CameraFrustumAABB.Min.SnapToGrid(FVector(WorldSizePerTexel, WorldSizePerTexel, 0), true);
+			CameraFrustumAABB.Max = CameraFrustumAABB.Min + FVector(MaxDis, MaxDis, MaxDis);
 			CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
 			FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
 			FShadowRenderRequest ShadowRenderRequest;
@@ -81,27 +91,7 @@ void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArra
 			ShadowRenderRequest.SubViewIndex = i;
 			ShadowRenderRequest.AtlasScaleOffset = 0;
 			OutRequests.Add(ShadowRenderRequest);
-
-			if (Test)
-			{
-				TArray<FVector> CameraFrustum2 = View->Camera->GetFrustumVerticesCascaded(View->Viewport, Near, Far);
-				CameraFrustum2 *= ViewInv;
-				CameraFrustum2 *= ShadowMapView;
-				FAABB CameraFrustumAABB = FAABB(CameraFrustum2);
-				CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
-				TArray<FVector> AABBVertices = CameraFrustumAABB.GetVertices();
-				AABBVertices *= ShadowMapView.InverseAffine();
-				for (int i = 0; i < 8; i++) 
-				{
-					CascadedAABBGizmo.Add(AABBVertices[i]);
-				}
-
-			}
 		}
-	}
-	if (Test)
-	{
-		Test = false;
 	}
 }
 

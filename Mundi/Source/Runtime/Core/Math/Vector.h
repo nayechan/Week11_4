@@ -167,6 +167,8 @@ struct FVector
 	// 기본 연산
 	FVector operator+(const FVector& V) const { return FVector(X + V.X, Y + V.Y, Z + V.Z); }
 	FVector operator-(const FVector& V) const { return FVector(X - V.X, Y - V.Y, Z - V.Z); }
+	FVector operator*(const FVector& V) const { return FVector(X * V.X, Y * V.Y, Z * V.Z); }
+	FVector operator/(const FVector& V) const { return FVector(X / V.X, Y / V.Y, Z / V.Z); }
 	FVector operator*(float S)        const { return FVector(X * S, Y * S, Z * S); }
 	FVector operator/(float S)        const { return FVector(X / S, Y / S, Z / S); }
 	FVector operator+(float S)        const { return FVector(X + S, Y + S, Z + S); }
@@ -300,7 +302,23 @@ struct FVector
 	{
 		return FVector4(X, Y, Z, 1.0f);
 	}*/
-
+	FVector SnapToGrid(const FVector& GridSize, bool bFloor) const
+	{
+		float _X = 0, _Y = 0, _Z = 0;
+		if (bFloor)
+		{
+			_X = GridSize.X != 0 ? floorf(X / GridSize.X) * GridSize.X : X;
+			_Y = GridSize.Y != 0 ? floorf(Y / GridSize.Y) * GridSize.Y : Y;			
+			_Z = GridSize.Z != 0 ? floorf(Z / GridSize.Z) * GridSize.Z : Z;			
+		}
+		else
+		{
+			_X = GridSize.X != 0 ? ceilf(X / GridSize.X) * GridSize.X : X;
+			_Y = GridSize.Y != 0 ? ceilf(Y / GridSize.Y) * GridSize.Y : Y;
+			_Z = GridSize.Z != 0 ? ceilf(Z / GridSize.Z) * GridSize.Z : Z;
+		}
+		return FVector(_X, _Y, _Z);
+	}
 	void Log();
 };
 

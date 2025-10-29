@@ -134,6 +134,7 @@ FAABB FAABB::CreateOctant(int i) const
 	return FAABB(NewMin, NewMax);
 }
 
+
 bool FAABB::IntersectsRay(const FRay& InRay, float& OutEnterDistance, float& OutExitDistance)
 {
 	// 레이가 박스를 통과할 수 있는 [Enter, Exit] 구간

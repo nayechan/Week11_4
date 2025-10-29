@@ -72,14 +72,6 @@ void URenderer::RenderSceneForView(UWorld* World, ACameraActor* Camera, FViewpor
 	// 2. FSceneRenderer 생성자에 'View'의 주소(&View)를 전달합니다.
 	FSceneRenderer SceneRenderer(World, &View, this);
 
-	TArray<FVector> Lines = CubeVerticesToLine(UDirectionalLightComponent::CascadedAABBGizmo);
-	FVector4 Colors[2] = { FVector4(1,0,1,1), FVector4(1,1,0,1) };
-	int CubeNum = Lines.Num() / 24;
-	for (int i = 0; i < CubeNum; i++)
-	{
-		AddLinesRange(Lines, i * 24, 24, Colors[i % 2]);
-	}
-
 	// 3. 실제로 렌더를 수행합니다.
 	SceneRenderer.Render();
 }
