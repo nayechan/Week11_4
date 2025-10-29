@@ -289,14 +289,14 @@ void FSceneRenderer::RenderShadowMaps()
 		{
 			ID3D11ShaderResourceView* NullSRV[2] = { nullptr, nullptr };
 			RHIDevice->GetDeviceContext()->PSSetShaderResources(9, 2, NullSRV);
-			RHIDevice->OMSetCustomRenderTargets(1, &VSMAtlasRTV2D, AtlasDSV2D);
 			float ClearColor[] = {1.0f, 1.0f, 0.0f, 0.0f};
+			// VSM
+			RHIDevice->OMSetCustomRenderTargets(1, &VSMAtlasRTV2D, AtlasDSV2D);
 			RHIDevice->GetDeviceContext()->ClearRenderTargetView(VSMAtlasRTV2D, ClearColor);
 			// 1.1. RHI 상태 설정 (2D 아틀라스)
 			//RHIDevice->OMSetCustomRenderTargets(0, nullptr, AtlasDSV2D);
 			RHIDevice->GetDeviceContext()->ClearDepthStencilView(AtlasDSV2D, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1, 0);
 
-			RHIDevice->ClearDepthBuffer(1.0f, 0); // 이 부분 중복되는듯 ? 테스트 해보고 지울 예정
 			RHIDevice->RSSetState(ERasterizerMode::Shadows);
 			RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 

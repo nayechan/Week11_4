@@ -21,29 +21,6 @@ float2 mainPS(PS_INPUT Input) : SV_TARGET
     float NormalizedDepth = saturate(Distance / LightRadius);
     float Moment1 = NormalizedDepth;
     float Moment2 = NormalizedDepth * NormalizedDepth;
-    // float A = ProjectionMatrix[2][2];
-    // float B = ProjectionMatrix[3][2];
-    // float Near = -B / A;
-    // float Far = A / (A - 1.0f) * Near;
-    //
-    // float NDCDepth = Input.Position.z / Input.Position.w;
-    // NDCDepth = NDCDepth * 2.0f - 1.0f;
-    //
-    // // 선형화
-    // float4 ClipPos = float4(0.0f, 0.0f, NDCDepth, 1.0f);
-    // float4 ViewPos = mul(ClipPos, InverseProjectionMatrix);
-    // float LinearDepth = ViewPos.z / ViewPos.w;
-    //
-    // float NormalizedLinearDepth = (LinearDepth - Near) / (Far - Near);
-    // NormalizedLinearDepth = saturate(NormalizedLinearDepth);
-    //
-    // // float Moment1 = LinearDepth;
-    // // float Moment2 = LinearDepth * LinearDepth;
-    // float Moment1 = NormalizedLinearDepth;
-    // float Moment2 = NormalizedLinearDepth * NormalizedLinearDepth;
-    //
-    // // float Moment1 = NDCDepth;
-    // // float Moment2 = NDCDepth * NDCDepth;
 
     return float2(Moment1, Moment2);
 }

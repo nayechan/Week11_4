@@ -5,11 +5,6 @@ class FSceneView;
 
 struct FShadowRenderRequest;
 
-enum class EShadowMapType
-{
-	Standard,
-	Variance
-};
 
 // 실제 조명 효과를 가진 라이트들의 공통 베이스
 class ULightComponent : public ULightComponentBase
