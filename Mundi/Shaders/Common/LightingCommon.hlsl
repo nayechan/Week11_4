@@ -203,10 +203,71 @@ float3 CubemapUVToDirection(float2 uv, int faceIndex)
 // 쉐도우 샘플링 함수
 //================================================================================================
 
+float2 BoxFilter(float2 AtlasUV, Texture2D<float2> VShadowMap, SamplerState ShadowSampler, int KernelSize)
+{
+    float2 TexelSize;
+    VShadowMap.GetDimensions(TexelSize.x, TexelSize.y);
+    TexelSize = 1.0f / TexelSize;
+    float2 TotalMoments = float2(0.0f, 0.0f);
+
+    int Radius = KernelSize / 2;
+    float SamplerCount = 0.0f;
+
+    for (int y = -Radius; y <= Radius; y++)
+    {
+        for (int x = -Radius; x <= Radius; x++)
+        {
+            float2 Offset = float2(x, y) * TexelSize;
+            TotalMoments += VShadowMap.Sample(ShadowSampler, AtlasUV + Offset).xy;
+            SamplerCount += 1.0f;
+        }
+    }
+
+    return TotalMoments / SamplerCount;
+}
+
+float2 GaussianFilter(float2 AtlasUV, Texture2D<float2> VShadowMap, SamplerState ShadowSampler)
+{
+    const float GausWeights5x5[25] =
+    {
+        0.003765, 0.015019, 0.023792, 0.015019, 0.003765,
+        0.015019, 0.059912, 0.094907, 0.059912, 0.015019,
+        0.023792, 0.094907, 0.150342, 0.094907, 0.023792,
+        0.015019, 0.059912, 0.094907, 0.059912, 0.015019,
+        0.003765, 0.015019, 0.023792, 0.015019, 0.003765
+    };
+
+    float2 TexelSize;
+    VShadowMap.GetDimensions(TexelSize.x, TexelSize.y);
+    TexelSize = 1.0f / TexelSize;
+    float2 TotalMoments = float2(0.0f, 0.0f);
+
+    const int Radius = 2;
+
+    for (int y = -Radius; y <= Radius; y++)
+    {
+        for (int x = -Radius; x <= Radius; x++)
+        {
+            float2 Offset = float2(x, y) * TexelSize;
+
+            int Index = (y + Radius) * 5 + (x + Radius);
+            float Weight = GausWeights5x5[Index];
+
+            TotalMoments += VShadowMap.Sample(ShadowSampler, AtlasUV + Offset).xy * Weight;
+        }
+    }
+
+    return TotalMoments;
+}
+
 float SampleShadowVSM(float PixelDepth, float2 AtlasUV, Texture2D<float2> VShadowMap, SamplerState ShadowSampler)
 {
     // Moments.x : E(z), 평균 | Moments.y : E(z^2), 제곱의 평균
-    float2 Moments = VShadowMap.Sample(ShadowSampler, AtlasUV).xy;
+    //float2 Moments = VShadowMap.Sample(ShadowSampler, AtlasUV).xy;
+    
+    //float2 Moments = BoxFilter(AtlasUV, VShadowMap, ShadowSampler, 5);
+    
+    float2 Moments = GaussianFilter(AtlasUV, VShadowMap, ShadowSampler);
 
     // E(z), μ
     float Mean = Moments.x;
@@ -342,6 +403,7 @@ float SampleShadowPCF(float PixelDepth, float3 CubemapDir, uint LightIndex,
 float CalculateSpotLightShadowFactor(
     float3 WorldPos, FShadowMapData ShadowMapData, Texture2D ShadowMap, SamplerComparisonState ShadowSampler)
 {
+    
     // 빛 적용 가정
     float ShadowFactor = 1.0f;
     
@@ -366,7 +428,6 @@ float CalculateSpotLightShadowFactor(
         ShadowMap.GetDimensions(Width, Height);
         float2 AtlasTexelSize = float2(1.0f / Width, 1.0f / Height);
         float2 FilterRadiusUV = 1.5f * AtlasTexelSize;
-
         ShadowFactor = SampleShadowPCF(PixelDepth, AtlasUV, ShadowMapData.SampleCount, FilterRadiusUV, ShadowMap, ShadowSampler);        
     }
 
@@ -516,7 +577,7 @@ float3 CalculateDirectionalLight
 // Spot Light 계산 (Diffuse + Specular with Attenuation and Cone)
 float3 CalculateSpotLight(
     FSpotLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower,
-    Texture2D ShadowMap, SamplerComparisonState ShadowSampler)
+    Texture2D ShadowMap, SamplerComparisonState ShadowSampler, Texture2D<float2> VShadowMap, SamplerState VShadowSampler)
 {
     float3 lightVec = light.Position - worldPos;
     float distance = length(lightVec);
@@ -564,8 +625,12 @@ float3 CalculateSpotLight(
     // Shadow 적용 (bCastShadows 플래그 확인) - PCF 샘플링 사용
     if (light.bCastShadows)
     {
-        float shadowFactor = CalculateSpotLightShadowFactor(
-            worldPos, light.ShadowData, ShadowMap, ShadowSampler);
+        // float shadowFactor = CalculateSpotLightShadowFactor(
+        //     worldPos, light.ShadowData, ShadowMap, ShadowSampler);
+        // diffuse *= shadowFactor;
+        // specular *= shadowFactor;
+        float shadowFactor = CalculateSpotLightShadowFactorVSM(worldPos,
+            light.ShadowData, light.AttenuationRadius, VShadowMap, VShadowSampler);
         diffuse *= shadowFactor;
         specular *= shadowFactor;
     }
@@ -660,7 +725,9 @@ float3 CalculateAllLights(
     float4 screenPos,      // 타일 컴링용
     SamplerComparisonState ShadowSampler,
     Texture2D ShadowMap2D,
-    TextureCubeArray ShadowMapCube
+    TextureCubeArray ShadowMapCube,
+    Texture2D<float2> VSMShadowMap,
+    SamplerState VSMSampler
     )
 {
     float3 litColor = float3(0, 0, 0);
@@ -716,7 +783,8 @@ float3 CalculateAllLights(
                     baseColor,
                     LIGHTING_INCLUDE_SPECULAR,  // 매크로 자동 대응
                     specularPower,
-                    ShadowMap2D, ShadowSampler
+                    ShadowMap2D, ShadowSampler,
+                    VSMShadowMap, VSMSampler
                 );
             }
         }
@@ -741,15 +809,16 @@ float3 CalculateAllLights(
         for (int j = 0; j < SpotLightCount; j++)
         {
             litColor += CalculateSpotLight(
-                g_SpotLightList[j],
-                worldPos,
-                normal,
-                viewDir,
-                baseColor,
-                LIGHTING_INCLUDE_SPECULAR,
-                specularPower,
-                ShadowMap2D, ShadowSampler
-            );
+                    g_SpotLightList[j],
+                    worldPos,
+                    normal,
+                    viewDir,
+                    baseColor,
+                    LIGHTING_INCLUDE_SPECULAR,  // 매크로 자동 대응
+                    specularPower,
+                    ShadowMap2D, ShadowSampler,
+                    VSMShadowMap, VSMSampler
+                );
         }
     }
 
