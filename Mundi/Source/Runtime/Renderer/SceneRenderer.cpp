@@ -75,7 +75,7 @@ void FSceneRenderer::Render()
 	GatherVisibleProxies();
 
 	RenderShadowMaps();
-
+	
 	// ViewMode에 따라 렌더링 경로 결정
 	if (View->ViewMode == EViewModeIndex::VMI_Lit ||
 		View->ViewMode == EViewModeIndex::VMI_Lit_Gouraud ||

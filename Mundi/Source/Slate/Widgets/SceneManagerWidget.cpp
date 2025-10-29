@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <string>
 #include <EditorEngine.h>
-
+#include "DirectionalLightComponent.h"
 //// UE_LOG 대체 매크로
 //#define UE_LOG(fmt, ...)
 
@@ -129,6 +129,10 @@ void USceneManagerWidget::Update()
 void USceneManagerWidget::RenderWidget()
 {
 	ImGui::Text("Scene Manager");
+	if (ImGui::Button("Test"))
+	{
+		UDirectionalLightComponent::Test = true;
+	}
 	// World status
 	UWorld* World = GetCurrentWorld();
 	if (!World)

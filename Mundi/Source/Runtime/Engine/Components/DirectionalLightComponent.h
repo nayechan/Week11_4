@@ -37,6 +37,9 @@ public:
 
 	bool IsOverrideCameraLightPerspective() { return bOverrideCameraLightPerspective; }
 
+	static bool Test;
+	static TArray<FVector> CascadedAABBGizmo;
+
 protected:
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;
