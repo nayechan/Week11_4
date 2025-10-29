@@ -1320,6 +1320,7 @@ void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, b
 
 			// 2. 샘플러 바인딩
 			ID3D11SamplerState* Samplers[3] = { DefaultSampler, DefaultSampler, ShadowSampler };
+			RHIDevice->GetDeviceContext()->VSSetSamplers(0, 3, Samplers);
 			RHIDevice->GetDeviceContext()->PSSetSamplers(0, 3, Samplers);			
 
 			// 3. 재질 CBuffer 바인딩

@@ -443,6 +443,56 @@ float3 CalculateSpotLight(
     return diffuse + specular;
 }
 
+// Spot Light 계산 (그림자 제외 - Vertex Shader용)
+float3 CalculateSpotLightNoShadow(
+    FSpotLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
+{
+    float3 lightVec = light.Position - worldPos;
+    float distance = length(lightVec);
+
+    // epsilon으로 0으로 나누기 방지
+    distance = max(distance, 0.0001f);
+    float3 lightDir = lightVec / distance;
+    float3 spotDir = normalize(light.Direction);
+
+    // Spot 원뿔 감쇠 (각도 공간에서 보간하여 중간에서 급격하게 변함)
+    float cosAngle = dot(-lightDir, spotDir);
+
+    // cosine 공간 대신 각도 공간에서 보간 (균등한 감쇠를 위해)
+    float angle = degrees(acos(saturate(cosAngle)));  // 현재 각도 (도 단위)
+
+    // inner cone에서 1, outer cone에서 0, 중간에서 급격하게 변함
+    float spotAttenuation = 1.0 - smoothstep(light.InnerConeAngle, light.OuterConeAngle, angle);
+
+    // Falloff 모드에 따라 거리 감쇠 계산
+    float distanceAttenuation;
+    if (light.bUseInverseSquareFalloff)
+    {
+        // 물리 기반 역제곱 감쇠 (Unreal Engine 스타일)
+        distanceAttenuation = CalculateInverseSquareFalloff(distance, light.AttenuationRadius);
+    }
+    else
+    {
+        // 더 큰 제어를 위한 예술적 지수 기반 감쇠
+        distanceAttenuation = CalculateExponentFalloff(distance, light.AttenuationRadius, light.FalloffExponent);
+    }
+
+    // 두 감쇠를 결합
+    float attenuation = distanceAttenuation * spotAttenuation;
+
+    // Diffuse (light.Color는 이미 Intensity 포함)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
+
+    // Specular (선택사항)
+    float3 specular = float3(0.0f, 0.0f, 0.0f);
+    if (includeSpecular)
+    {
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower) * attenuation;
+    }
+
+    return diffuse + specular;
+}
+
 // Point Light 계산 (Diffuse + Specular with Attenuation and Falloff)
 float3 CalculatePointLight(
     FPointLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower,
@@ -487,6 +537,43 @@ float3 CalculatePointLight(
             ShadowMapCube, ShadowSampler);
         diffuse *= shadowFactor;
         specular *= shadowFactor;
+    }
+
+    return diffuse + specular;
+}
+
+// Point Light 계산 (그림자 제외 - Vertex Shader용)
+float3 CalculatePointLightNoShadow(
+    FPointLightInfo light, float3 worldPos, float3 normal, float3 viewDir, float4 materialColor, bool includeSpecular, float specularPower)
+{
+    float3 lightVec = light.Position - worldPos;
+    float distance = length(lightVec);
+
+    // epsilon으로 0으로 나누기 방지
+    distance = max(distance, 0.0001f);
+    float3 lightDir = lightVec / distance;
+
+    // Falloff 모드에 따라 감쇠 계산
+    float attenuation;
+    if (light.bUseInverseSquareFalloff)
+    {
+        // 물리 기반 역제곱 감쇠 (Unreal Engine 스타일)
+        attenuation = CalculateInverseSquareFalloff(distance, light.AttenuationRadius);
+    }
+    else
+    {
+        // 더 큰 제어를 위한 예술적 지수 기반 감쇠
+        attenuation = CalculateExponentFalloff(distance, light.AttenuationRadius, light.FalloffExponent);
+    }
+
+    // Diffuse (light.Color는 이미 Intensity 포함)
+    float3 diffuse = CalculateDiffuse(lightDir, normal, light.Color, materialColor) * attenuation;
+
+    // Specular (선택사항)
+    float3 specular = float3(0.0f, 0.0f, 0.0f);
+    if (includeSpecular)
+    {
+        specular = CalculateSpecular(lightDir, normal, viewDir, light.Color, specularPower) * attenuation;
     }
 
     return diffuse + specular;

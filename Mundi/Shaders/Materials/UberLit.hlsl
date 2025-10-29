@@ -217,16 +217,16 @@ PS_INPUT mainVS(VS_INPUT Input)
     // Directional light (diffuse + specular)
     finalColor += CalculateDirectionalLight(DirectionalLight, worldNormal, viewDir, baseColor, true, specPower);
 
-    // Point lights (diffuse + specular)
+    // Point lights (diffuse + specular) - 그림자 제외
     for (int i = 0; i < PointLightCount; i++)
     {
-        finalColor += CalculatePointLight(g_PointLightList[i], Out.WorldPos, worldNormal, viewDir, baseColor, true, specPower, g_ShadowAtlasCube, g_ShadowSample);
+        finalColor += CalculatePointLightNoShadow(g_PointLightList[i], Out.WorldPos, worldNormal, viewDir, baseColor, true, specPower);
     }
 
-    // Spot lights (diffuse + specular)
+    // Spot lights (diffuse + specular) - 그림자 제외
     for (int j = 0; j < SpotLightCount; j++)
     {
-        finalColor += CalculateSpotLight(g_SpotLightList[j], Out.WorldPos, worldNormal, viewDir, baseColor, true, specPower, g_ShadowAtlas2D, g_ShadowSample);
+        finalColor += CalculateSpotLightNoShadow(g_SpotLightList[j], Out.WorldPos, worldNormal, viewDir, baseColor, true, specPower);
     }
 
     Out.Color = float4(finalColor, baseColor.a);
@@ -280,17 +280,51 @@ PS_OUTPUT mainPS(PS_INPUT Input)
     return Output;
 #endif
     
-    // 텍스처 샘플링
-    float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv) * float4(Material.DiffuseColor, 1.0f);
+    // 텍스처 샘플링 (머트리얼 색상은 Gouraud는 VS에서 적용됨)
+    float4 texColor = g_DiffuseTexColor.Sample(g_Sample, uv);
 
-    // 머티리얼의 SpecularExponent 사용, 머티리얼이 없으면 기본값 사용
+    // 머트리얼의 SpecularExponent 사용, 머트리얼이 없으면 기본값 사용
     float specPower = bHasMaterial ? Material.SpecularExponent : 32.0f;
 
 #if LIGHTING_MODEL_GOURAUD
-    // Gouraud Shading: 조명이 이미 버텍스 셰이더에서 계산됨
+    // Gouraud Shading: 조명이 이미 버텍스 셸이더에서 계산됨 (그림자 제외)
+    // Pixel Shader에서 그림자 팩터만 계산해서 곱함
     float4 finalPixel = Input.Color;
+    
+    // 그림자 팩터 계산 (모든 라이트 통합)
+    float shadowFactor = 1.0f;
+    
+    // Directional Light 그림자
+    if (DirectionalLight.bCastShadows)
+    {
+        shadowFactor *= CalculateSpotLightShadowFactor(Input.WorldPos, DirectionalLight.Cascades[0], g_ShadowAtlas2D, g_ShadowSample);
+    }
+    
+    // Point Light 그림자
+    for (int i = 0; i < PointLightCount; i++)
+    {
+        if (g_PointLightList[i].bCastShadows)
+        {
+            shadowFactor *= CalculatePointLightShadowFactor(
+                Input.WorldPos, g_PointLightList[i].Position, g_PointLightList[i].AttenuationRadius,
+                g_PointLightList[i].LightIndex, 16, g_ShadowAtlasCube, g_ShadowSample);
+        }
+    }
+    
+    // Spot Light 그림자
+    for (int j = 0; j < SpotLightCount; j++)
+    {
+        if (g_SpotLightList[j].bCastShadows)
+        {
+            shadowFactor *= CalculateSpotLightShadowFactor(
+                Input.WorldPos, g_SpotLightList[j].ShadowData, g_ShadowAtlas2D, g_ShadowSample);
+        }
+    }
+    
+    // 그림자 적용 (VS에서 계산된 조명)
+    finalPixel.rgb *= shadowFactor;
 
-    // 텍스처 또는 머티리얼 색상 적용
+    // 텍스처 또는 머트리얼 색상 적용
     if (bHasTexture)
     {
         // 텍스처 모듈레이션: 조명 결과에 텍스처 곱하기
