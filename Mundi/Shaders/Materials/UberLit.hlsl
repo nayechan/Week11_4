@@ -519,8 +519,6 @@ PS_OUTPUT mainPS(PS_INPUT Input)
             else if (lightType == 1)  // Spot Light
             {
                 litColor +=  CalculateSpotLight(g_SpotLightList[lightIdx], Input.WorldPos, normal, float3(0, 0, 0), baseColor, false, 0.0f, g_ShadowAtlas2D, g_ShadowSample);
-                //float ShadowFactor = CalculateSpotLightShadowFactorVSM(Input.WorldPos, g_SpotLightList[lightIdx].ShadowData, g_SpotLightList[lightIdx].AttenuationRadius, g_VSMShadowAtlas, g_VSMSampler);
-                litColor += (SpotLightColor * ShadowFactor);
             }
         }
     }
@@ -536,7 +534,6 @@ PS_OUTPUT mainPS(PS_INPUT Input)
         for (int j = 0; j < SpotLightCount; j++)
         {
             litColor +=  CalculateSpotLight(g_SpotLightList[j], Input.WorldPos, normal, float3(0, 0, 0), baseColor, false, 0.0f, g_ShadowAtlas2D, g_ShadowSample);
-            //float ShadowFactor = CalculateSpotLightShadowFactorVSM(Input.WorldPos, g_SpotLightList[lightIdx].ShadowData, g_SpotLightList[j].AttenuationRadius, g_VSMShadowAtlas, g_VSMSampler);
         }
     }
 
@@ -630,7 +627,6 @@ PS_OUTPUT mainPS(PS_INPUT Input)
             else if (lightType == 1)  // Spot Light
             {
                 litColor +=  CalculateSpotLight(g_SpotLightList[lightIdx], Input.WorldPos, normal, viewDir, baseColor, true, specPower, g_ShadowAtlas2D, g_ShadowSample);
-                //float ShadowFactor = CalculateSpotLightShadowFactorVSM(Input.WorldPos, g_SpotLightList[lightIdx].ShadowData, g_SpotLightList[lightIdx].AttenuationRadius, g_VSMShadowAtlas, g_VSMSampler);
             }
         }
     }
@@ -646,7 +642,6 @@ PS_OUTPUT mainPS(PS_INPUT Input)
         for (int j = 0; j < SpotLightCount; j++)
         {
             litColor +=  CalculateSpotLight(g_SpotLightList[j], Input.WorldPos, normal, viewDir, baseColor, true, specPower, g_ShadowAtlas2D, g_ShadowSample);
-            //float ShadowFactor = CalculateSpotLightShadowFactorVSM(Input.WorldPos, g_SpotLightList[lightIdx].ShadowData, g_SpotLightList[j].AttenuationRadius, g_VSMShadowAtlas, g_VSMSampler);
         }
     }
 

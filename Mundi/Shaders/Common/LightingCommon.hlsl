@@ -203,6 +203,64 @@ float3 CubemapUVToDirection(float2 uv, int faceIndex)
 // 쉐도우 샘플링 함수
 //================================================================================================
 
+float SampleShadowVSM(float PixelDepth, float2 AtlasUV, Texture2D<float2> VShadowMap, SamplerState ShadowSampler)
+{
+    // Moments.x : E(z), 평균 | Moments.y : E(z^2), 제곱의 평균
+    float2 Moments = VShadowMap.Sample(ShadowSampler, AtlasUV).xy;
+
+    // E(z), μ
+    float Mean = Moments.x;
+    // σ
+    float Variance = Moments.y - (Moments.x * Moments.x);
+    float MinVariance = 0.0075f;
+    Variance = max(Variance, MinVariance);
+
+    float LitFactor = 1.0f;
+    float DepthDelta = PixelDepth - Mean;
+
+    // 픽셀이 평균보다 뒤에 있을 경우 그림자 계산
+    if (DepthDelta > 0.0f)
+    {
+        LitFactor = min(Variance / (Variance + (DepthDelta * DepthDelta)), 1.0f);        
+    }
+
+    return saturate(LitFactor);
+}
+
+float CalculateSpotLightShadowFactorVSM(
+    float3 WorldPos, FShadowMapData ShadowMapData, float Radius, Texture2D<float2> VShadowMap, SamplerState ShadowSampler)
+{
+    // 빛 적용 가정
+    float ShadowFactor = 1.0f;
+    
+    // 월드 -> 광원좌표 -> 텍스처 uv좌표
+    float4 ShadowTexCoord = mul(float4(WorldPos, 1.0f), ShadowMapData.ShadowViewProjMatrix);
+
+    // 원근 나눗셈
+    ShadowTexCoord.xyz /= ShadowTexCoord.w;    
+
+    // float2 Moments = VShadowMap.Sample(ShadowSampler, AtlasUV).xy;
+    //
+    // return Moments.x;
+
+    if (all(saturate(ShadowTexCoord.xyz) == ShadowTexCoord.xyz))
+    {
+        // 아틀라스 uv좌표로 변환
+        float2 AtlasUV = ShadowTexCoord.xy;
+        AtlasUV.x = AtlasUV.x * ShadowMapData.AtlasScaleOffset.x + ShadowMapData.AtlasScaleOffset.z;
+        AtlasUV.y = AtlasUV.y * ShadowMapData.AtlasScaleOffset.y + ShadowMapData.AtlasScaleOffset.w;
+        
+        // 텍스처 상에서 현재 픽셀의 깊이
+        //float PixelDepth = saturate(ShadowTexCoord.z - 0.25f);
+        float Distance = length(WorldPos - ShadowMapData.WorldPos);
+        float PixelDepth = saturate(Distance / Radius) - 0.001f;
+
+        ShadowFactor = SampleShadowVSM(PixelDepth, AtlasUV, VShadowMap, ShadowSampler);        
+    }
+
+    return ShadowFactor;
+}
+
 // PCF 샘플링 오버로드 (Spot Light용 - Texture2D)
 float SampleShadowPCF(float PixelDepth, float2 AtlasUV,
     int SampleCount, float2 FilterRadiusUV,
@@ -696,62 +754,4 @@ float3 CalculateAllLights(
     }
 
     return litColor;
-}
-
-float SampleShadowVSM(float PixelDepth, float2 AtlasUV, Texture2D<float2> VShadowMap, SamplerState ShadowSampler)
-{
-    // Moments.x : E(z), 평균 | Moments.y : E(z^2), 제곱의 평균
-    float2 Moments = VShadowMap.Sample(ShadowSampler, AtlasUV).xy;
-
-    // E(z), μ
-    float Mean = Moments.x;
-    // σ
-    float Variance = Moments.y - (Moments.x * Moments.x);
-    float MinVariance = 0.0075f;
-    Variance = max(Variance, MinVariance);
-
-    float LitFactor = 1.0f;
-    float DepthDelta = PixelDepth - Mean;
-
-    // 픽셀이 평균보다 뒤에 있을 경우 그림자 계산
-    if (DepthDelta > 0.0f)
-    {
-        LitFactor = min(Variance / (Variance + (DepthDelta * DepthDelta)), 1.0f);        
-    }
-
-    return saturate(LitFactor);
-}
-
-float CalculateSpotLightShadowFactorVSM(
-    float3 WorldPos, FShadowMapData ShadowMapData, float Radius, Texture2D<float2> VShadowMap, SamplerState ShadowSampler)
-{
-    // 빛 적용 가정
-    float ShadowFactor = 1.0f;
-    
-    // 월드 -> 광원좌표 -> 텍스처 uv좌표
-    float4 ShadowTexCoord = mul(float4(WorldPos, 1.0f), ShadowMapData.ShadowViewProjMatrix);
-
-    // 원근 나눗셈
-    ShadowTexCoord.xyz /= ShadowTexCoord.w;    
-
-    // float2 Moments = VShadowMap.Sample(ShadowSampler, AtlasUV).xy;
-    //
-    // return Moments.x;
-
-    if (all(saturate(ShadowTexCoord.xyz) == ShadowTexCoord.xyz))
-    {
-        // 아틀라스 uv좌표로 변환
-        float2 AtlasUV = ShadowTexCoord.xy;
-        AtlasUV.x = AtlasUV.x * ShadowMapData.AtlasScaleOffset.x + ShadowMapData.AtlasScaleOffset.z;
-        AtlasUV.y = AtlasUV.y * ShadowMapData.AtlasScaleOffset.y + ShadowMapData.AtlasScaleOffset.w;
-        
-        // 텍스처 상에서 현재 픽셀의 깊이
-        //float PixelDepth = saturate(ShadowTexCoord.z - 0.25f);
-        float Distance = length(WorldPos - ShadowMapData.WorldPos);
-        float PixelDepth = saturate(Distance / Radius) - 0.001f;
-
-        ShadowFactor = SampleShadowVSM(PixelDepth, AtlasUV, VShadowMap, ShadowSampler);        
-    }
-
-    return ShadowFactor;
 }
