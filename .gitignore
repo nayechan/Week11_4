@@ -28,7 +28,6 @@
 *.lai
 *.la
 *.a
-*.lib
 
 # Executables
 *.exe
@@ -55,20 +54,8 @@
 mono_crash.*
 
 # Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
+Binaries/
+Intermediate/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -113,7 +100,6 @@ StyleCopReport.xml
 *.ilk
 *.meta
 *.iobj
-*.pdb
 *.ipdb
 *.pgc
 *.pgd
@@ -445,25 +431,7 @@ gmae.ini
 
 ClassDiagram.cd
 editor.ini
-
-Mundi/Scene/*
-
-!Mundi/ThirdParty/DirectXTK/Bin**
-
-# DirectXTex 라이브러리 예외 처리 (디렉토리부터 먼저 예외)
-!Mundi/ThirdParty/DirectXTex/
-!Mundi/ThirdParty/DirectXTex/Lib/
-!Mundi/ThirdParty/DirectXTex/Lib/x64/
-!Mundi/ThirdParty/DirectXTex/Lib/x64/Debug/
-!Mundi/ThirdParty/DirectXTex/Lib/x64/Release/
-!Mundi/ThirdParty/DirectXTex/**/*.lib
-!Mundi/ThirdParty/Lua/**/*.lib
-!Mundi/ThirdParty/Lua/**/*.pdb
-
 WARP.md
-
-# Ignore bin files in Mundi/Data
-/Mundi/Data/**/*.bin
 
 # JetBrains IDEs' User-specific stuff
 .idea/
@@ -476,5 +444,6 @@ CLAUDE.md
 GEMINI.md
 
 # Untracked Data Files
+Mundi/Scene/*
 /Mundi/Data/untracked/**
 /Mundi/DerivedDataCache/**
