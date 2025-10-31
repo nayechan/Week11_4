@@ -7,6 +7,7 @@
 
 class UWorld;
 class USceneComponent;
+class UPrimitiveComponent;
 class UShapeComponent;
 class UTextRenderComponent;
 class UBillboardComponent;
@@ -152,6 +153,8 @@ public:
     // ───── 충돌 관련 ─────────────────────────  
     void OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp);
     void OnHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp);
+     
+    bool IsOverlappingActor(const AActor* Other) const;
 
 
     // ───── 복사 관련 ────────────────────────────

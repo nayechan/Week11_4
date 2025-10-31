@@ -26,3 +26,27 @@ void UPrimitiveComponent::OnSerialized()
 {
     Super::OnSerialized();
 }
+
+bool UPrimitiveComponent::IsOverlappingActor(const AActor* Other) const
+{
+    if (!Other)
+    {
+        return false;
+    }
+
+    const TArray<FOverlapInfo>& Infos = GetOverlapInfos();
+    for (const FOverlapInfo& Info : Infos)
+    {
+        if (Info.Other)
+        {
+            if (AActor* Owner = Info.Other->GetOwner())
+            {
+                if (Owner == Other)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}

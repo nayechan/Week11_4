@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "ShapeComponent.h"
 #include "OBB.h"
+#include "Collision.h"
 
 UShapeComponent::UShapeComponent()
 {
@@ -25,7 +26,33 @@ void UShapeComponent::UpdateOverlaps()
         return;
     }
     
+    UWorld* World = GetWorld();
+    if (!World) return; 
+    
     TSet<UShapeComponent*> Now;
+
+    //Test용 O(N^2)
+    for (AActor* Actor : World->GetActors())
+    {
+        for (USceneComponent* Comp : Actor->GetSceneComponents())
+        {
+            UShapeComponent* Other = Cast<UShapeComponent>(Comp);
+            if (!Other || Other == this) continue;
+            if (!Other->bGenerateOverlapEvents) continue;
+
+            // 브로드페이즈: AABB 교차
+            if (!WorldAABB.Intersects(Other->GetWorldAABB())) continue;
+
+            // 내로우페이즈: Collision 모듈
+            if (Collision::CheckOverlap(this, Other)) continue;
+
+            Now.Add(Other);
+            UE_LOG("Collision!!");
+        }
+    }
+        
+    // Overlap Info 갱신 
+
 
     // Broad Phase
 
