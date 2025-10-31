@@ -467,7 +467,7 @@ void UMainToolbarWidget::OnNewScene()
 {
     try
     {
-        UWorld* CurrentWorld = UUIManager::GetInstance().GetWorld();
+        UWorld* CurrentWorld = GWorld;
         if (!CurrentWorld)
         {
             UE_LOG("MainToolbar: Cannot find World!");
@@ -499,7 +499,7 @@ void UMainToolbarWidget::OnSaveScene()
 
     try
     {
-        UWorld* CurrentWorld = UUIManager::GetInstance().GetWorld();
+        UWorld* CurrentWorld = GWorld;
         if (!CurrentWorld)
         {
             UE_LOG("MainToolbar: Cannot find World!");
@@ -557,7 +557,7 @@ void UMainToolbarWidget::OnLoadScene()
         }
 
         // World 가져오기
-        UWorld* CurrentWorld = UUIManager::GetInstance().GetWorld();
+        UWorld* CurrentWorld = GWorld;
         if (!CurrentWorld)
         {
             UE_LOG("MainToolbar: Cannot find World!");

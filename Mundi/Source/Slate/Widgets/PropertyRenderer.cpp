@@ -510,6 +510,10 @@ bool UPropertyRenderer::RenderSRVProperty(const FProperty& Prop, void* Instance)
 
 bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void* ObjectInstance)
 {
+	// 콤보박스 전용 텍스트 필터를 static으로 선언합니다.
+	static ImGuiTextFilter ScriptComboFilter;
+	static char NewScriptNameBuffer[128] = "NewScript";
+
 	bool bChanged = false;
 	FString* FilePath = Property.GetValuePtr<FString>(ObjectInstance);
 	if (!FilePath) return false;
@@ -537,18 +541,49 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 
 	if (ImGui::BeginCombo("##ScriptCombo", PreviewText))
 	{
+		// 콤보박스 팝업이 '처음 열린 프레임'에만
+		if (ImGui::IsWindowAppearing())
+		{
+			// "다음에 그려질 위젯" (Search)에 포커스를 한 번만 줍니다.
+			ImGui::SetKeyboardFocusHere(0);
+		}
+
+		// 검색창을 렌더링하고, 포커스 여부를 '먼저' 변수에 저장
+		ScriptComboFilter.Draw("Search");
+		bool bFilterIsFocused = ImGui::IsItemFocused();
+
 		for (int i = 0; i < CachedScriptItems.Num(); ++i)
 		{
-			const bool bIsSelected = (CurrentItem == i);
-			if (ImGui::Selectable(CachedScriptItems[i], bIsSelected))
+			if (i == 0 || ScriptComboFilter.PassFilter(CachedScriptItems[i]))
 			{
-				CurrentItem = i;
-				*FilePath = CachedScriptPaths[i];
-				bChanged = true;
-			}
-			if (bIsSelected)
-			{
-				ImGui::SetItemDefaultFocus();
+				const bool bIsSelected = (CurrentItem == i);
+				if (ImGui::Selectable(CachedScriptItems[i], bIsSelected))
+				{
+					CurrentItem = i;
+					*FilePath = CachedScriptPaths[i];
+					bChanged = true;
+
+					// 0번("<스크립트 생성>")이 선택되었는지 확인
+					if (i == 0)
+					{
+						// 검색창(Filter)의 텍스트가 비어있지 않다면
+						if (ScriptComboFilter.InputBuf[0] != '\0')
+						{
+							// 검색창의 텍스트를 'NewScriptNameBuffer'로 복사
+							strncpy_s(NewScriptNameBuffer,
+								IM_ARRAYSIZE(NewScriptNameBuffer),
+								ScriptComboFilter.InputBuf,
+								_TRUNCATE);
+						}
+					}
+
+					// 항목이 선택되었으므로 검색창은 비웁니다.
+					ScriptComboFilter.Clear();
+				}
+				if (bIsSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
 			}
 		}
 		ImGui::EndCombo();
@@ -561,7 +596,6 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 		ImGui::Separator();
 
 		// "스크립트 생성 메뉴"
-		static char NewScriptNameBuffer[128] = "NewScript";
 		ImGui::InputText("스크립트 명", NewScriptNameBuffer, IM_ARRAYSIZE(NewScriptNameBuffer));
 		ImGui::SameLine();
 
@@ -613,6 +647,11 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 				{
 					UE_LOG(("[error] 파일 복사에 실패했습니다. " + FString(e.what())).c_str());
 				}
+			}
+
+			if (bChanged)
+			{
+				strcpy_s(NewScriptNameBuffer, IM_ARRAYSIZE(NewScriptNameBuffer), "NewScript");
 			}
 		}
 

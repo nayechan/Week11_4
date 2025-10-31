@@ -62,7 +62,17 @@ void ULuaScriptComponent::BeginPlay()
 	FGameObject* Obj = Owner->GetGameObject();
 	(*Lua)["Obj"] = Obj;
 
-	Lua->script_file(ScriptFilePath);
+	try
+	{
+		Lua->script_file(ScriptFilePath);
+	}
+	catch (const sol::error& Err)
+	{
+		UE_LOG("[error] %s", Err.what());
+		GEngine.EndPIE();
+		return;
+	}
+
 	// Lua->script_file("Data/Scripts/coroutineTest.lua");
 
 	/*Lua->script(R"(

@@ -83,7 +83,6 @@ private:
     TArray<FActorTreeNode*> RootNodes;
     
     // Helper Methods
-    UWorld* GetCurrentWorld() const;
     void RefreshActorTree();
     void BuildActorHierarchy();
     void RenderActorNode(FActorTreeNode* Node, int32 Depth = 0);

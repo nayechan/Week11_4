@@ -73,7 +73,7 @@ namespace
 	{
 		if (!ComponentClass || !ComponentClass->IsChildOf(UActorComponent::StaticClass()))
 			return false;
-		USceneComponent* SelectedSceneComponent = static_cast<USceneComponent*>(SelectedComponent);
+		USceneComponent* SelectedSceneComponent = Cast<USceneComponent>(SelectedComponent);
 
 		UObject* RawObject = ObjectFactory::NewObject(ComponentClass);
 		if (!RawObject)
@@ -119,6 +119,9 @@ namespace
 				Partition->Register(Cast<UStaticMeshComponent>(NewComp));
 			}
 		}
+
+		GWorld->GetSelectionManager()->SelectComponent(NewComp);
+
 		return true;
 	}
 

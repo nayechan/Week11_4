@@ -123,6 +123,7 @@ void UInputManager::ProcessMessage(HWND hWnd, UINT message, WPARAM wParam, LPARA
     {
         // ImGui가 입력을 사용 중인지 확인
         ImGuiIO& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
         imguiWantsMouse = io.WantCaptureMouse;
         imguiWantsKeyboard = io.WantCaptureKeyboard;
         

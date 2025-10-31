@@ -62,8 +62,6 @@ public:
 
 	// 기존 UIManager 호환성 메서드
 	void Release() { Shutdown(); }
-	void SetWorld(UWorld* InWorld) { WorldRef = InWorld; }
-	UWorld* GetWorld() const { return WorldRef; }
 	
 	// Actor management methods
 	void SetCamera(ACameraActor* InCameraActor) { CameraActorRef = InCameraActor; }
@@ -96,9 +94,6 @@ private:
 
 	// ImGui Helper
 	UImGuiHelper* ImGuiHelper = nullptr;
-
-	// 기존 UIManager 호환성을 위한 멤버 변수
-	UWorld* WorldRef = nullptr;
 	
 	// Actor references
 	ACameraActor* CameraActorRef = nullptr;

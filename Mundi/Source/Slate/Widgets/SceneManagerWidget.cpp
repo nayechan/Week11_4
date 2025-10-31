@@ -57,7 +57,7 @@ void USceneManagerWidget::Update()
 	// 액터 수 변화 감지만 수행 (최소한의 검사)
 	static size_t LastActorCount = 0;
 
-	UWorld* World = GetCurrentWorld();
+	UWorld* World = GWorld;
 	static ULevel* LastLevel = nullptr; // 레벨이 새로 로드됐는지 감지하기 위함.
 
 	if (World)
@@ -119,7 +119,7 @@ void USceneManagerWidget::Update()
 	CleanupCounter++;
 	if (CleanupCounter % 60 == 0) // 약 1초마다
 	{
-		if (UWorld* W = GetCurrentWorld())
+		if (UWorld* W = GWorld)
 		{
 			W->GetSelectionManager()->CleanupInvalidActors();
 		}
@@ -130,7 +130,7 @@ void USceneManagerWidget::RenderWidget()
 {
 	ImGui::Text("Scene Manager");
 	// World status
-	UWorld* World = GetCurrentWorld();
+	UWorld* World = GWorld;
 	if (!World)
 	{
 		ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "No World Available");
@@ -177,7 +177,7 @@ void USceneManagerWidget::RenderWidget()
 	// Status bar
 	ImGui::SameLine();
 	AActor* SelectedActor = nullptr;
-	if (UWorld* W = GetCurrentWorld())
+	if (UWorld* W = GWorld)
 	{
 		SelectedActor = W->GetSelectionManager()->GetSelectedActor();
 	}
@@ -204,16 +204,9 @@ void USceneManagerWidget::RenderWidget()
 	}
 }
 
-UWorld* USceneManagerWidget::GetCurrentWorld() const
-{
-	if (!UIManager)
-		return nullptr;
-	return UIManager->GetWorld();
-}
-
 void USceneManagerWidget::RefreshActorTree()
 {
-	UWorld* World = GetCurrentWorld();
+	UWorld* World = GWorld;
 	if (!World)
 	{
 		ClearActorTree();
@@ -229,7 +222,7 @@ void USceneManagerWidget::RefreshActorTree()
 
 void USceneManagerWidget::BuildActorHierarchy()
 {
-	UWorld* World = GetCurrentWorld();
+	UWorld* World = GWorld;
 	if (!World)
 		return;
 
@@ -270,7 +263,7 @@ void USceneManagerWidget::RenderActorNode(FActorTreeNode* Node, int32 Depth)
 
 	// Check if selected
 	bool bIsSelected = false;
-	if (UWorld* W = GetCurrentWorld())
+	if (UWorld* W = GWorld)
 	{
 		bIsSelected = W->GetSelectionManager()->IsActorSelected(Actor);
 	}
@@ -409,7 +402,7 @@ void USceneManagerWidget::HandleActorSelection(AActor* Actor)
 	if (!Actor)
 		return;
 
-	if (UWorld* W = GetCurrentWorld())
+	if (UWorld* W = GWorld)
 	{
 		// Clear previous selection and select this actor
 		W->GetSelectionManager()->ClearSelection();
@@ -450,7 +443,7 @@ void USceneManagerWidget::HandleActorDelete(AActor* Actor)
 	if (!Actor)
 		return;
 
-	UWorld* World = GetCurrentWorld();
+	UWorld* World = GWorld;
 	if (World)
 	{
 		World->DestroyActor(Actor);
@@ -584,14 +577,14 @@ USceneManagerWidget::FActorTreeNode* USceneManagerWidget::FindNodeByActor(AActor
 void USceneManagerWidget::SyncSelectionFromViewport()
 {
 	// SelectionManager에서 null 액터들을 정리
-	if (UWorld* W = GetCurrentWorld())
+	if (UWorld* W = GWorld)
 	{
 		W->GetSelectionManager()->CleanupInvalidActors();
 	}
 
 	// 선택된 액터가 null인지 확인
 	AActor* SelectedActor = nullptr;
-	if (UWorld* W = GetCurrentWorld())
+	if (UWorld* W = GWorld)
 	{
 		SelectedActor = W->GetSelectionManager()->GetSelectedActor();
 	}
@@ -642,7 +635,7 @@ USceneManagerWidget::FActorTreeNode* USceneManagerWidget::FindOrCreateCategoryNo
 
 void USceneManagerWidget::BuildCategorizedHierarchy()
 {
-	UWorld* World = GetCurrentWorld();
+	UWorld* World = GWorld;
 	if (!World)
 		return;
 
