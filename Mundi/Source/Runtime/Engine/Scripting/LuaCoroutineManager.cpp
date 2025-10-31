@@ -13,7 +13,7 @@ void FCoroTaskManager::Tick(double TotalTime)
 		switch (task.WaitType)
 		{
 			case EWaitType::Time:
-				UE_LOG("Now=%.3f Wake=%.3f", TotalTime, task.WakeTime);
+				// UE_LOG("Now=%.3f Wake=%.3f", TotalTime, task.WakeTime);
 				if (task.WakeTime > TotalTime) continue;
 				break;
 			case EWaitType::Predicate:
