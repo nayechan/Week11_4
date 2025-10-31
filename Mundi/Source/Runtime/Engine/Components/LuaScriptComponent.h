@@ -30,5 +30,4 @@ protected:
     FString ScriptFilePath;
 	FCoroTaskManager CoroutineManager;
 	sol::state* Lua;
-	double TotalTime =0.0;
 };

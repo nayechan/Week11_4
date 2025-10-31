@@ -16,11 +16,14 @@ ULuaScriptComponent::ULuaScriptComponent()
 
 ULuaScriptComponent::~ULuaScriptComponent()
 {
-	// if (Lua)
-	// {
-	// 	delete Lua;
-	// 	Lua = nullptr;
-	// }
+	// Todo : 순서 강제성 주입
+	CoroutineManager.ShutdownBeforeLuaClose(); // delete Lua보다 선행 되어야 함
+	
+	if (Lua)
+	{
+		delete Lua;
+		Lua = nullptr;
+	}
 }
 
 void ULuaScriptComponent::BeginPlay()
@@ -72,14 +75,21 @@ void ULuaScriptComponent::BeginPlay()
 		GEngine.EndPIE();
 		return;
 	}
-
+	
 	sol::function AI = (*Lua)["AI"].get<sol::function>();
 	if (!AI.valid()) { UE_LOG("AI not found\n"); return; }
-
+	
 	sol::coroutine co((*Lua), AI);
 	
 	CoroutineManager.AddCoroutine(std::move(co));
 
+	sol::function AI2 = (*Lua)["AI2"].get<sol::function>();
+	if (!AI2.valid()) { UE_LOG("AI2 not found\n"); return; }
+
+	sol::coroutine co2((*Lua), AI2);
+	
+	CoroutineManager.AddCoroutine(std::move(co2));
+	
     (*Lua)["BeginPlay"]();
 }
 
@@ -96,8 +106,7 @@ void ULuaScriptComponent::TickComponent(float DeltaTime)
 	if (Lua)
 	{
 		(*Lua)["Tick"](DeltaTime);
-		TotalTime+=DeltaTime;
-		CoroutineManager.Tick(TotalTime);
+		CoroutineManager.Tick(DeltaTime);
 	}
 }
 

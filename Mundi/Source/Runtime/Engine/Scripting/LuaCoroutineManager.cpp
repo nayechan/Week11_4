@@ -1,9 +1,29 @@
 ﻿#include "pch.h"
 #include "LuaCoroutineManager.h"
 
-void FCoroTaskManager::Tick(double TotalTime)
+void FCoroTaskManager::ShutdownBeforeLuaClose()
 {
-	// NOTE : 중단점을 찍어도 TotalTime는 멈추지 않음
+	for (auto& Task : Tasks)
+	{
+		if (Task.Co.valid())
+		{
+			Task.Co.abandon(); // Lua쪽 Coroutine 무력화 필수
+		}
+	}
+	Tasks.Empty(); 
+}
+
+void FCoroTaskManager::Tick(double DeltaTime)
+{
+	const double Clamped = std::min(DeltaTime, MaxDeltaClamp);
+	NowSeconds += Clamped;
+
+	Process(NowSeconds);
+}
+
+
+void FCoroTaskManager::Process(double Now)
+{
 	for (auto& task : Tasks)
 	{
 		if (task.Finished)
@@ -12,14 +32,14 @@ void FCoroTaskManager::Tick(double TotalTime)
 		// 조건 충족 여부
 		switch (task.WaitType)
 		{
-			case EWaitType::Time:
-				// UE_LOG("Now=%.3f Wake=%.3f", TotalTime, task.WakeTime);
-				if (task.WakeTime > TotalTime) continue;
-				break;
-			case EWaitType::Predicate:
-				// 람다 함수가 있지만, 조건이 달성 안 됐을 때
-				if (task.Predicate && !task.Predicate()) continue; 
-				break;
+		case EWaitType::Time:
+			// UE_LOG("Now=%.3f Wake=%.3f", TotalTime, task.WakeTime);
+			if (task.WakeTime > Now) continue;
+			break;
+		case EWaitType::Predicate:
+			// 람다 함수가 있지만, 조건이 달성 안 됐을 때
+			if (task.Predicate && !task.Predicate()) continue; 
+			break;
 			// case EWaitType::Event: // Event "Trigger"는 Tick 함수 내에서 조건 확인하지 않음
 		}
 
@@ -41,7 +61,7 @@ void FCoroTaskManager::Tick(double TotalTime)
 			{
 				double Sec = Result.get<double>(1);
 				task.WaitType = EWaitType::Time;
-				task.WakeTime = TotalTime + Sec;
+				task.WakeTime = Now + Sec;
 			}
 			else if (Tag == "wait_predicate")
 			{
@@ -66,6 +86,7 @@ void FCoroTaskManager::Tick(double TotalTime)
 		}
 	}
 }
+
 
 void FCoroTaskManager::AddCoroutine(sol::coroutine&& Co)
 {

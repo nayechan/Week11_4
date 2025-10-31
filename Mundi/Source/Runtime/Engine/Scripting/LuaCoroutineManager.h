@@ -23,10 +23,19 @@ struct FCoroTask
 class FCoroTaskManager
 {
 public:
-    void Tick(double TotalTime);
+    FCoroTaskManager() = default;
+    ~FCoroTaskManager() = default;
+    void ShutdownBeforeLuaClose();
+    
+    void Tick(double DeltaTime);
     void AddCoroutine(sol::coroutine&& Co);
     void TriggerEvent(const FString& EventName);
+    
+private:
+    void Process(double Now);
 
 private:
     TArray<FCoroTask> Tasks;
+    double NowSeconds = 0.0;
+    double MaxDeltaClamp = 0.1; // 한 프레임의 최대 반영시간, Debug으로 중단 시에도 시간이 가지 않게 방지
 };
