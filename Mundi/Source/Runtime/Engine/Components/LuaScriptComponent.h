@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "ActorComponent.h"
 #include "Vector.h"
+#include "../Scripting/LuaCoroutineManager.h"
 
 namespace sol { class state; }
 using state = sol::state;
@@ -16,8 +17,6 @@ public:
 
     ULuaScriptComponent();
 	~ULuaScriptComponent() override;
-protected:
-   
 
 public:
 	void BeginPlay() override;
@@ -29,6 +28,7 @@ public:
 protected:
     // 이 컴포넌트가 실행할 .lua 스크립트 파일의 경로 (에디터에서 설정)
     FString ScriptFilePath;
-
+	FCoroTaskManager CoroutineManager;
 	sol::state* Lua;
+	double TotalTime =0.0;
 };

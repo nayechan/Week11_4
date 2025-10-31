@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "LuaScriptComponent.h"
 #include <sol/state.hpp>
-
+#include <sol/coroutine.hpp>
 
 IMPLEMENT_CLASS(ULuaScriptComponent)
 
@@ -16,11 +16,11 @@ ULuaScriptComponent::ULuaScriptComponent()
 
 ULuaScriptComponent::~ULuaScriptComponent()
 {
-	if (Lua)
-	{
-		delete Lua;
-		Lua = nullptr;
-	}
+	// if (Lua)
+	// {
+	// 	delete Lua;
+	// 	Lua = nullptr;
+	// }
 }
 
 void ULuaScriptComponent::BeginPlay()
@@ -63,15 +63,15 @@ void ULuaScriptComponent::BeginPlay()
 	(*Lua)["Obj"] = Obj;
 
 	Lua->script_file(ScriptFilePath);
-	// Lua->script_file("Data/Scripts/coroutineTest.lua");
-
-	/*Lua->script(R"(
-	  function Tick(dt)
-	      obj.Location = obj.Location + obj.Velocity * dt
-	  end
-	)");*/
-
+	
 	(*Lua)["BeginPlay"]();
+	
+	sol::function AI = (*Lua)["AI"].get<sol::function>();
+	if (!AI.valid()) { UE_LOG("AI not found\n"); return; }
+
+	sol::coroutine co((*Lua), AI);
+	
+	CoroutineManager.AddCoroutine(std::move(co));
 }
 
 void ULuaScriptComponent::OnOverlap(const AActor* Other)
@@ -87,6 +87,8 @@ void ULuaScriptComponent::TickComponent(float DeltaTime)
 	if (Lua)
 	{
 		(*Lua)["Tick"](DeltaTime);
+		TotalTime+=DeltaTime;
+		CoroutineManager.Tick(TotalTime);
 	}
 }
 
