@@ -11,6 +11,7 @@ class FSceneView;
 
 struct FOverlapInfo
 {
+    AActor* OtherActor = nullptr;
     UPrimitiveComponent* Other = nullptr;
 };
 

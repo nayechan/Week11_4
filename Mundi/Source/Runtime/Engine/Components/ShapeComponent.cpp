@@ -58,33 +58,24 @@ void UShapeComponent::UpdateOverlaps()
             Now.Add(Other);
             UE_LOG("Collision!!");
         }
-    }
-        
-    
+    } 
+
     // Publish current overlaps
     OverlapInfos.clear();
     for (UShapeComponent* Other : Now)
     {
         FOverlapInfo Info;
+        Info.OtherActor = Other->GetOwner();
         Info.Other = Other;
         OverlapInfos.Add(Info);
-    }
-
-// Overlap Info 갱신 
-
-
-    // Broad Phase
-
-    // Narrow Phase
-
-    //Now.Add();
+    } 
 
     //Begin
-    //for( UShapeComponent* S : Now) 
-    //OnComponentBeginOverlap.Broadcast(this, S);
+    //for( UShapeComponent* Comp : Now) 
+    //OnComponentBeginOverlap.Broadcast(this, Comp);
 
-    //for( UShapeComponent* S: Prev)
-    //OnComponentEndOverlap.Broadcast(this, S);
+    //for( UShapeComponent* Comp : Prev)
+    //OnComponentEndOverlap.Broadcast(this, Comp);
 
     //공개 리스트 갱신
     //OverlapInfo <= Now

@@ -2,7 +2,7 @@
 #include "PrimitiveComponent.h"
 enum class EShapeKind : uint8
 {
-	Box,
+	Box = 0,
 	Sphere,
 	Capsule,
 };

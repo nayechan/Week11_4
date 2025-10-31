@@ -40,7 +40,11 @@ namespace FMath
 		return first;
 	}
 
-
+	template<typename T> 
+	static T Sqrt(T A)
+	{
+		return std::sqrt(A);
+	} 
 	
 	template<typename T>
 	static T Min(T A, T B) { return std::min(A, B); }
