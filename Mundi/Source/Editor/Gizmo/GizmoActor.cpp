@@ -20,6 +20,7 @@ AGizmoActor::AGizmoActor()
 	Name = "Gizmo Actor";
 
 	const float GizmoTotalSize = 1.5f;
+	const float STGizmoTotalSize = 7.0f;    // Scale, Translation Gizmo
 
 	//======= Arrow Component 생성 =======
 	RootComponent = CreateDefaultSubobject<USceneComponent>("DefaultSceneComponent");
@@ -40,9 +41,9 @@ AGizmoActor::AGizmoActor()
 	ArrowY->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
 	ArrowZ->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
 
-	ArrowX->SetDefaultScale({ GizmoTotalSize, GizmoTotalSize, GizmoTotalSize });
-	ArrowY->SetDefaultScale({ GizmoTotalSize, GizmoTotalSize, GizmoTotalSize });
-	ArrowZ->SetDefaultScale({ GizmoTotalSize, GizmoTotalSize, GizmoTotalSize });
+	ArrowX->SetDefaultScale({ STGizmoTotalSize, STGizmoTotalSize, STGizmoTotalSize });
+	ArrowY->SetDefaultScale({ STGizmoTotalSize, STGizmoTotalSize, STGizmoTotalSize });
+	ArrowZ->SetDefaultScale({ STGizmoTotalSize, STGizmoTotalSize, STGizmoTotalSize });
 
 	ArrowX->SetRenderPriority(100);
 	ArrowY->SetRenderPriority(100);
@@ -112,9 +113,9 @@ AGizmoActor::AGizmoActor()
 	ScaleY->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
 	ScaleZ->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
 
-	ScaleX->SetDefaultScale({ GizmoTotalSize, GizmoTotalSize, GizmoTotalSize });
-	ScaleY->SetDefaultScale({ GizmoTotalSize, GizmoTotalSize, GizmoTotalSize });
-	ScaleZ->SetDefaultScale({ GizmoTotalSize, GizmoTotalSize, GizmoTotalSize });
+	ScaleX->SetDefaultScale({ STGizmoTotalSize, STGizmoTotalSize, STGizmoTotalSize });
+	ScaleY->SetDefaultScale({ STGizmoTotalSize, STGizmoTotalSize, STGizmoTotalSize });
+	ScaleZ->SetDefaultScale({ STGizmoTotalSize, STGizmoTotalSize, STGizmoTotalSize });
 
 	ScaleX->SetRenderPriority(100);
 	ScaleY->SetRenderPriority(100);

@@ -172,7 +172,6 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 
 void AActor::RegisterAllComponents(UWorld* InWorld)
 {
-
 	for (UActorComponent* Component : OwnedComponents)
 	{
 		Component->RegisterComponent(InWorld);
@@ -225,7 +224,6 @@ void AActor::ClearSceneComponentCaches()
 	SceneComponents.Empty();
 	RootComponent = nullptr;
 }
-
 
 
 // ───────────────
@@ -525,7 +523,10 @@ void AActor::DuplicateSubObjects()
 					UActorComponent** FoundNewParentPtr = OldToNewComponentMap.Find(OriginalParent);
 					if (FoundNewParentPtr)
 					{
-						NewSceneComp->SetupAttachment(Cast<USceneComponent>(*FoundNewParentPtr), EAttachmentRule::KeepRelative);
+						if (USceneComponent* ParentSceneComponent = Cast<USceneComponent>(*FoundNewParentPtr))
+						{
+							NewSceneComp->SetupAttachment(ParentSceneComponent, EAttachmentRule::KeepRelative);
+						}
 					}
 				}
 			}

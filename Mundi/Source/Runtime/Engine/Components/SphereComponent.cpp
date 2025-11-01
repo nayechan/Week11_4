@@ -23,6 +23,11 @@ void USphereComponent::OnRegister(UWorld* InWorld)
 
 }
 
+void USphereComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}
+
 void USphereComponent::GetShape(FShape& Out) const
 {
     Out.Kind = EShapeKind::Sphere;

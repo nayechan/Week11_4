@@ -16,18 +16,11 @@ UShapeComponent::UShapeComponent() : bShapeIsVisible(true), bShapeHiddenInGame(t
     ShapeColor = FVector4(0.2f, 0.8f, 1.0f, 1.0f); 
 }
 
- 
 void UShapeComponent::OnRegister(UWorld* InWorld)
 {
     Super::OnRegister(InWorld);
     
     GetWorldAABB();
-
-    // 델리게이트 등록
-    //  if(AActor* Owner = GetOwner())
-    //      OnComponentBeginOverlay.AddDynamic(Owner, AActor::OnBeginOverlap);
-
-    UpdateOverlaps();
 }
 
 void UShapeComponent::OnTransformUpdated()
@@ -39,6 +32,12 @@ void UShapeComponent::OnTransformUpdated()
 
 void UShapeComponent::UpdateOverlaps()
 {
+    // 모양이 없는 UShapeComponent 자체는 충돌 검사를 수행할 수 없도록 함
+    if (GetClass() == UShapeComponent::StaticClass())
+    {
+        bGenerateOverlapEvents = false;
+    }
+
     if (!bGenerateOverlapEvents)
     {
         OverlapInfos.clear();
@@ -79,8 +78,8 @@ void UShapeComponent::UpdateOverlaps()
     } 
 
     //Begin
-    //for( UShapeComponent* Comp : Now) 
-    //OnComponentBeginOverlap.Broadcast(this, Comp);
+    for(UShapeComponent* Comp : Now) 
+        OnComponentBeginOverlap.Broadcast(this, Comp);
 
     //for( UShapeComponent* Comp : Prev)
     //OnComponentEndOverlap.Broadcast(this, Comp);
@@ -98,4 +97,7 @@ FAABB UShapeComponent::GetWorldAABB() const
     return WorldAABB; 
 }
 
-
+void UShapeComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}

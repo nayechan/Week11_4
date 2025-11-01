@@ -21,6 +21,11 @@ void UBoxComponent::OnRegister(UWorld* InWorld)
 	 
 }
 
+void UBoxComponent::DuplicateSubObjects()
+{
+	Super::DuplicateSubObjects();
+}
+
 void UBoxComponent::GetShape(FShape& Out) const
 {
 	Out.Kind = EShapeKind::Box;

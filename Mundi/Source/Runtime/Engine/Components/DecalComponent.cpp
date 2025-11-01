@@ -57,7 +57,7 @@ void UDecalComponent::TickComponent(float DeltaTime)
 
 void UDecalComponent::OnRegister(UWorld* InWorld)
 {
-	if (!SpriteComponent)
+	if (!SpriteComponent && !InWorld->bPie)
 	{
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
 		SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/S_DecalActorIcon.dds");
@@ -74,7 +74,6 @@ void UDecalComponent::OnRegister(UWorld* InWorld)
 		DirectionGizmo->SetDefaultScale(FVector(0.5f, 0.3f, 0.3f));
 		DirectionGizmo->SetDirection(FVector(0.5f, 0.0f, 0.0f));
 		DirectionGizmo->SetColor(FVector(0.62f, 0.125f, 0.94f));
-
 	}
 }
 

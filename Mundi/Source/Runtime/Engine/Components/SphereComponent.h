@@ -10,6 +10,10 @@ public:
     USphereComponent();
     void OnRegister(UWorld* InWorld) override;
 
+    // Duplication
+    virtual void DuplicateSubObjects() override;
+    DECLARE_DUPLICATE(USphereComponent)
+
 private:
     float SphereRadius;
 

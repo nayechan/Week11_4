@@ -10,6 +10,10 @@ public:
 	UCapsuleComponent();
 	void OnRegister(UWorld* World) override;
 
+	// Duplication
+	virtual void DuplicateSubObjects() override;
+	DECLARE_DUPLICATE(UCapsuleComponent)
+
 protected:
 	float CapsuleHalfHeight;
 	float CapsuleRadius;

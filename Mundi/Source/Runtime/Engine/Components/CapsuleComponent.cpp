@@ -24,6 +24,11 @@ void UCapsuleComponent::OnRegister(UWorld* World)
     CapsuleRadius *= 2;
 }
 
+void UCapsuleComponent::DuplicateSubObjects()
+{
+    Super::DuplicateSubObjects();
+}
+
 void UCapsuleComponent::GetShape(FShape& Out) const
 {
 	Out.Kind = EShapeKind::Capsule;
