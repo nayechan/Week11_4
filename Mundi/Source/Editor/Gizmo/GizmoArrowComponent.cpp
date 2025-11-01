@@ -15,6 +15,7 @@ UGizmoArrowComponent::UGizmoArrowComponent()
 
 	// 기즈모는 기본적으로 게임(PIE)에서 숨김
 	bHiddenInGame = true;
+	bIsEditable = false;
 }
 
 UGizmoArrowComponent::~UGizmoArrowComponent()

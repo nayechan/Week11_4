@@ -135,6 +135,11 @@ void UWorldPartitionManager::MarkDirty(UStaticMeshComponent* Smc)
 	AActor* Owner = Smc->GetOwner();
 	if (!Owner) return;
 
+	if (Smc->IsEditable())
+	{
+		return;
+	}
+
 	// 기즈모는 포함하지 않는다.
 	if (Cast<AGizmoActor>(Owner))
 		return;
