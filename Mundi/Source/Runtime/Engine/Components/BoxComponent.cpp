@@ -34,13 +34,19 @@ void UBoxComponent::GetShape(FShape& Out) const
 
 void UBoxComponent::RenderDebugVolume(URenderer* Renderer) const
 {
-	if (!bShapeIsVisible) return;
-	if (GetOwner() && (GetOwner()->GetWorld()->bPie))
+	// visible = 에디터용
+	// hiddeningame = 파이용
+	if (!GetOwner()) return;
+	if (!GetOwner()->GetWorld()->bPie)
+	{
+		if (!bShapeIsVisible)
+			return;
+	}
+	if (GetOwner()->GetWorld()->bPie)
 	{
 		if (bShapeHiddenInGame)
 			return;
 	}
-
 
 	const FVector Extent = BoxExtent;
 	const FTransform WorldTransform = GetWorldTransform();
