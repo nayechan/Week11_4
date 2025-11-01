@@ -23,6 +23,25 @@ struct DecalBufferType
     float Opacity;
 };
 
+// Fireball material parameters (b6 in PS)
+struct FireballBufferType
+{
+    float Time;
+    FVector2D Resolution;
+    float Padding0; // align to 16 bytes
+
+    FVector CameraPosition;
+    float Padding1; // align to 16 bytes
+
+    FVector2D UVScrollSpeed;
+    FVector2D UVRotateRad;
+
+    uint32 LayerCount;
+    float LayerDivBase;
+    float GateK;
+    float IntensityScale;
+};
+
 struct PostProcessBufferType // b0
 {
     float Near;
@@ -169,6 +188,7 @@ constexpr bool TYPE##IsPS = PS;
 #define CONSTANT_BUFFER_LIST(MACRO) \
 MACRO(ModelBufferType)              \
 MACRO(DecalBufferType)              \
+MACRO(FireballBufferType)           \
 MACRO(PostProcessBufferType)        \
 MACRO(FogBufferType)                \
 MACRO(FXAABufferType)               \
@@ -196,8 +216,12 @@ CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color
 CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
 CONSTANT_BUFFER_INFO(DecalBufferType, 6, true, true)
+CONSTANT_BUFFER_INFO(FireballBufferType, 6, false, true)
 CONSTANT_BUFFER_INFO(CameraBufferType, 7, true, true)  // b7, VS+PS (UberLit.hlsl과 일치)
 CONSTANT_BUFFER_INFO(FLightBufferType, 8, true, true)
 CONSTANT_BUFFER_INFO(FViewportConstants, 10, true, false)   // 뷰 포트 크기에 따라 전체 화면 복사를 보정하기 위해 설정 (10번 고유번호로 사용)
 CONSTANT_BUFFER_INFO(FTileCullingBufferType, 11, false, true)  // b11, PS only (UberLit.hlsl과 일치)
 CONSTANT_BUFFER_INFO(FPointLightShadowBufferType, 12, true, true)  // b11, VS only
+
+
+

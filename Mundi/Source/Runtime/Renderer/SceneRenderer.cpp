@@ -38,6 +38,8 @@
 #include "SceneView.h"
 #include "Shader.h"
 #include "ResourceManager.h"
+#include "../RHI/ConstantBufferType.h"
+#include <chrono>
 #include "TileLightCuller.h"
 #include "LineComponent.h"
 #include "LightStats.h"
@@ -807,7 +809,7 @@ void FSceneRenderer::RenderOpaquePass(EViewModeIndex InRenderViewMode)
 {
 	TArray<FShaderMacro> ShaderMacros;
 	FString ShaderPath = "Shaders/Materials/UberLit.hlsl";
-	bool bNeedsShaderOverride = true; // 뷰 모드가 셰이더를 강제하는지 여부
+	bool bNeedsShaderOverride = false; // 뷰 모드가 셰이더를 강제하는지 여부
 
 	switch (InRenderViewMode)
 	{
@@ -1384,6 +1386,46 @@ void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, b
 				}
 			}			// --- RHI 상태 업데이트 ---
 			// 1. 텍스처(SRV) 바인딩
+			// Fireball material mapping: ensure resources and constant buffer
+			{
+				bool bIsFireball = false;
+				if (Batch.Material && Batch.Material->GetShader())
+				{
+					const FString& ShaderPath = Batch.Material->GetShader()->GetFilePath();
+					bIsFireball = (ShaderPath == FString("Shaders/Materials/Fireball.hlsl"));
+				}
+				if (bIsFireball)
+				{
+					static UTexture* FireballNoiseTex = nullptr;
+					if (!FireballNoiseTex)
+					{
+						FireballNoiseTex = UResourceManager::GetInstance().Load<UTexture>(GDataDir + "/Textures/FireballNoise.jpg");
+					}
+					if (FireballNoiseTex)
+					{
+						DiffuseTextureSRV = FireballNoiseTex->GetShaderResourceView();
+						PixelConst.bHasDiffuseTexture = (DiffuseTextureSRV != nullptr);
+					}
+
+					// Bind Fireball constant buffer (b6)
+					static auto sStart = std::chrono::high_resolution_clock::now();
+					const auto now = std::chrono::high_resolution_clock::now();
+					const float t = std::chrono::duration<float>(now - sStart).count();
+
+					FireballBufferType FireCB{};
+					FireCB.Time = t;
+					FireCB.Resolution = FVector2D(static_cast<float>(RHIDevice->GetViewportWidth()), static_cast<float>(RHIDevice->GetViewportHeight()));
+					FireCB.CameraPosition = View->ViewLocation;
+					FireCB.UVScrollSpeed = FVector2D(0.05f, 0.02f);
+					FireCB.UVRotateRad = FVector2D(0.5f, 0.0f);
+					FireCB.LayerCount = 10;
+					FireCB.LayerDivBase = 1.0f;
+					FireCB.GateK = 6.0f;
+					FireCB.IntensityScale = 1.0f;
+					RHIDevice->SetAndUpdateConstantBuffer(FireCB);
+				}
+			}
+
 			ID3D11ShaderResourceView* Srvs[2] = { DiffuseTextureSRV, NormalTextureSRV };
 			RHIDevice->GetDeviceContext()->PSSetShaderResources(0, 2, Srvs);
 

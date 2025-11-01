@@ -127,6 +127,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <FxCompile Include="Shaders\Materials\Fireball.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shaders\Shadows\DepthOnly_PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <FileType>Document</FileType>
@@ -135,6 +139,7 @@
     <ClCompile Include="Source\Editor\Clipboard\ClipboardManager.cpp" />
     <ClCompile Include="Source\Editor\PlatformProcess.cpp" />
     <ClCompile Include="Source\Runtime\Core\Math\Vector.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Object\FireballActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\AmbientLightComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\CapsuleComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\DirectionalLightComponent.cpp" />
@@ -370,6 +375,7 @@
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h" />
     <ClInclude Include="Source\Editor\PlatformProcess.h" />
     <ClInclude Include="Source\Runtime\Core\Misc\PathUtils.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\FireballActor.h" />
     <ClInclude Include="Source\Runtime\Core\Object\Property.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\LuaScriptComponent.h" />

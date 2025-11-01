@@ -53,6 +53,9 @@
     <FxCompile Include="Shaders\Shadows\DepthOnly_VS.hlsl">
       <Filter>Shaders\Shadows</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Materials\Fireball.hlsl">
+      <Filter>Shaders\Materials</Filter>
+    </FxCompile>
   </ItemGroup>
   <!-- Root Files -->
   <ItemGroup>
@@ -450,6 +453,9 @@
     </ClCompile>
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Core\Object\FireballActor.cpp">
+      <Filter>Source\Runtime\Core\Object</Filter>
     </ClCompile>
   </ItemGroup>
   <!-- ThirdParty/ImGui Files -->
@@ -931,6 +937,9 @@
     </ClInclude>
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h">
       <Filter>ThirdParty\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Core\Object\FireballActor.h">
+      <Filter>Source\Runtime\Core\Object</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
