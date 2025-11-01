@@ -203,7 +203,7 @@ void USceneComponent::AddWorldOffset(const FVector& Delta)
 void USceneComponent::AddWorldRotation(const FQuat& DeltaRot)
 {
     FTransform W = GetWorldTransform();
-    W.Rotation = DeltaRot * W.Rotation;
+    W.Rotation = DeltaRot * W.Rotation; 
     SetWorldTransform(W); // SetWorldTransform에서 Euler 동기화
 }
 

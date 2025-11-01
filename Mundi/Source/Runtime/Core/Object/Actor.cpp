@@ -56,6 +56,7 @@ void AActor::Tick(float DeltaSeconds)
 	}
 
 	SetActorLocation(LuaGameObject->Location);
+	SetActorScale(LuaGameObject->Scale);
 }
 void AActor::EndPlay(EEndPlayReason Reason)
 {
@@ -262,7 +263,7 @@ void AActor::SetActorLocation(const FVector& NewLocation)
 		RootComponent->SetWorldLocation(NewLocation);
 		MarkPartitionDirty();
 	}
-}
+} 
 
 FVector AActor::GetActorLocation() const
 {

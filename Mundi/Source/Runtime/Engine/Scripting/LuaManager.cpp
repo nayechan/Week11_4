@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "LuaManager.h"
 
 FLuaManager::FLuaManager()
@@ -20,6 +20,7 @@ FLuaManager::FLuaManager()
         "UUID", &FGameObject::UUID,
         "Location", &FGameObject::Location,
         "Velocity", &FGameObject::Velocity,
+        "Scale", &FGameObject::Scale,
         "PrintLocation", &FGameObject::PrintLocation
     );
 

@@ -27,7 +27,7 @@ AFireBallActor::AFireBallActor()
 	RotatingComponent->SetRotationRate(FVector(0, 0, 400.0f));
 
 	UTexture* NoiseTex = UResourceManager::GetInstance().Load<UTexture>(GDataDir + "/Textures/FireballNoise.jpg");
-	 
+	
 	// lua scrupt 
 }
 

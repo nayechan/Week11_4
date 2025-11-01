@@ -18,5 +18,4 @@ protected:
 protected:
 	UPointLightComponent* PointLightComponent;  
 	URotatingMovementComponent* RotatingComponent;
-
 };

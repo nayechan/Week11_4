@@ -19,6 +19,7 @@ public:
     uint32  UUID;
     FVector Location;
     FVector Velocity;
+    FVector Scale;
 
     void PrintLocation()
     {
@@ -101,7 +102,7 @@ public:
     FTransform GetActorTransform() const;
 
     void SetActorLocation(const FVector& NewLocation);
-    FVector GetActorLocation() const;
+    FVector GetActorLocation() const; 
 
     void SetActorRotation(const FVector& EulerDegree);
     void SetActorRotation(const FQuat& InQuat);
