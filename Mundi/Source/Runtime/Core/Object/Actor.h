@@ -152,6 +152,7 @@ public:
     }
     // ───── 충돌 관련 ─────────────────────────  
     void OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp);
+    void OnEndOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp);
     void OnHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp);
      
     bool IsOverlappingActor(const AActor* Other) const;

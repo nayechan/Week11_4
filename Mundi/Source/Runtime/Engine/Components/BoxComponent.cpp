@@ -80,6 +80,7 @@ void UBoxComponent::RenderDebugVolume(URenderer* Renderer) const
 		EndPoints.Add(WorldSpace[Edge[i][1]]);
 		Colors.Add(ShapeColor); // 동일 색으로 라인 렌더
 	}
+
 	Renderer->AddLines(StartPoints, EndPoints, Colors);
 }
 

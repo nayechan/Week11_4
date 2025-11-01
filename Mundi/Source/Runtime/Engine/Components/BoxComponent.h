@@ -20,5 +20,6 @@ private:
 	void GetShape(FShape& Out) const override;
 
 public:
+	//GetReenderCollection 
 	void RenderDebugVolume(class URenderer* Renderer) const override;
 };

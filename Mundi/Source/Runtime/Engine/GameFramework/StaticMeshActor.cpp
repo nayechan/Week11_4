@@ -19,22 +19,7 @@ AStaticMeshActor::AStaticMeshActor()
     // 루트 교체
     RootComponent = StaticMeshComponent;
 }
-
-void AStaticMeshActor::BeginPlay()
-{
-    Super::BeginPlay();
-
-    // 델리게이트 등록
-    for (UActorComponent* Component : OwnedComponents)
-    {
-        if (UShapeComponent* Shape = Cast<UShapeComponent>(Component))
-        {
-            Shape->OnComponentBeginOverlap.AddDynamic(this, &AActor::OnBeginOverlap);
-            break;
-        }
-    }
-}
-
+ 
 void AStaticMeshActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);

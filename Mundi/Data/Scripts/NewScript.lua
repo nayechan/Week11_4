@@ -1,11 +1,9 @@
 function BeginPlay()
-    print("[BeginPlay] ")
-    Obj:PrintLocation()
+    print("[BeginPlay]")
 end
 
 function EndPlay()
-    print("[EndPlay] ")
-    Obj:PrintLocation()
+    print("[EndPlay]")
 end
 
 function OnOverlap(OtherActor)

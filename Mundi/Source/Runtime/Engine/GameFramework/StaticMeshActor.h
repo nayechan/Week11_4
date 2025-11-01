@@ -9,8 +9,7 @@ public:
 	DECLARE_CLASS(AStaticMeshActor, AActor)
 	GENERATED_REFLECTION_BODY()
 
-	AStaticMeshActor();
-	virtual void BeginPlay() override;
+	AStaticMeshActor(); 
 	virtual void Tick(float DeltaTime) override;
 protected:
 	~AStaticMeshActor() override;
