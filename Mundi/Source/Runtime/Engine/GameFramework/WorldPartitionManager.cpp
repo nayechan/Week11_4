@@ -135,7 +135,7 @@ void UWorldPartitionManager::MarkDirty(UStaticMeshComponent* Smc)
 	AActor* Owner = Smc->GetOwner();
 	if (!Owner) return;
 
-	if (Smc->IsEditable())
+	if (!Smc->IsEditable())
 	{
 		return;
 	}

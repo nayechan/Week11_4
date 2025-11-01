@@ -211,7 +211,6 @@ bool UWorld::DestroyActor(AActor* Actor)
 
 	Actor->UnregisterAllComponents(/*bCallEndPlayOnBegun=*/true);
 	Actor->DestroyAllComponents();
-	Actor->ClearSceneComponentCaches();
 
 // 레벨에서 제거 시도
 	if (Level && Level->RemoveActor(Actor))
@@ -402,12 +401,12 @@ AActor* UWorld::SpawnPrefabActor(const FWideString& PrefabPath)
 				UE_LOG("[error] SpawnActor failed: ObjectFactory could not create an instance of");
 				return nullptr;
 			}
-
 			// 월드 참조 설정
 			NewActor->SetWorld(this);
 			NewActor->Serialize(true, ActorDataJson);
 
 			AddActorToLevel(NewActor);
+			return NewActor;
 		}
 	}
 	else
