@@ -106,7 +106,7 @@ void UWorld::Tick(float DeltaSeconds)
         if (EditorActor && !bPie) EditorActor->Tick(DeltaSeconds);
     }
 
-	if (LuaManager)
+	if (LuaManager && bPie)
 	{
 		LuaManager->Tick(DeltaSeconds);
 	}
@@ -165,7 +165,6 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 		}
 		PIEWorld->AddActorToLevel(NewActor);
 		NewActor->SetWorld(PIEWorld);
-		
 	}
 
 	return PIEWorld;

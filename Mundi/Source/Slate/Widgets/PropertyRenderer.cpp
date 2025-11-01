@@ -285,11 +285,12 @@ void UPropertyRenderer::CacheResources()
 		const FString ScriptDir = GDataDir + "/Scripts/";
 		if (fs::exists(ScriptDir) && fs::is_directory(ScriptDir))
 		{
-			for (const auto& entry : fs::recursive_directory_iterator(ScriptDir))
+			for (const auto& Entry : fs::recursive_directory_iterator(ScriptDir))
 			{
-				if (entry.is_regular_file() && entry.path().extension() == ".lua")
+				if (Entry.is_regular_file() && Entry.path().extension() == ".lua")
 				{
-					CachedScriptPaths.Add(NormalizePath(entry.path().string()));
+					FString Path = WideToUTF8(Entry.path().generic_wstring());
+					CachedScriptPaths.Add(NormalizePath(Path));
 				}
 			}
 		}
@@ -544,7 +545,7 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	// 실제 파일이 존재하는지 확인
 	if (!FilePath->empty())
 	{
-		if (!fs::exists(*FilePath))
+		if (!fs::exists(UTF8ToWide(*FilePath)))
 		{
 			bFileIsMissing = true;
 			// (missing) 태그가 붙은 임시 텍스트 생성
@@ -650,15 +651,15 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 			const FString TemplatePath = GDataDir + "/Templates/template.lua";
 
 			// 2. 디렉토리 생성 (없을 경우)
-			fs::create_directories(BaseDir);
+			fs::create_directories(UTF8ToWide(BaseDir));
 
 			// 3. 템플릿 파일 존재 여부 확인
-			if (!fs::exists(TemplatePath))
+			if (!fs::exists(UTF8ToWide(TemplatePath)))
 			{
 				UE_LOG("[error] 템플릿 파일(template.lua)을 찾을 수 없습니다.");
 			}
 			// 4. 생성할 파일이 이미 존재하는지 중복 체크
-			else if (fs::exists(RelativePath))
+			else if (fs::exists(UTF8ToWide(RelativePath)))
 			{
 				UE_LOG(("[error] '" + NewFileName + Extension + "' 파일이 이미 존재합니다.").c_str());
 			}
@@ -667,7 +668,7 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 				try
 				{
 					// 템플릿 파일을 새 경로로 복사
-					fs::copy(TemplatePath, RelativePath, fs::copy_options::overwrite_existing);
+					fs::copy(UTF8ToWide(TemplatePath), UTF8ToWide(RelativePath), fs::copy_options::overwrite_existing);
 
 					// 4. 새 파일을 캐시에 즉시 추가
 					CachedScriptPaths.Add(RelativePath);
@@ -678,9 +679,9 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 					*FilePath = RelativePath;
 					bChanged = true;
 				}
-				catch (const fs::filesystem_error& e)
+				catch (const fs::filesystem_error& E)
 				{
-					UE_LOG(("[error] 파일 복사에 실패했습니다. " + FString(e.what())).c_str());
+					UE_LOG(("[error] 파일 복사에 실패했습니다. " + FString(E.what())).c_str());
 				}
 			}
 
@@ -697,7 +698,7 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	{
 		if (ImGui::Button("편집하기"))
 		{
-			FPlatformProcess::OpenFileInDefaultEditor(*FilePath);
+			FPlatformProcess::OpenFileInDefaultEditor(UTF8ToWide(*FilePath));
 		}
 	}
 

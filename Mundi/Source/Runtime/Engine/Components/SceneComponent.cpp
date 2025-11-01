@@ -261,7 +261,6 @@ void USceneComponent::SetupAttachment(USceneComponent* InParent, EAttachmentRule
     {
         auto& Siblings = AttachParent->AttachChildren;
         Siblings.erase(std::remove(Siblings.begin(), Siblings.end(), this), Siblings.end());
-
     }
 
     // 새 부모 설정
@@ -319,13 +318,7 @@ void USceneComponent::DuplicateSubObjects()
 
     AttachParent = nullptr; // 부모 컴포넌트가 이 객체의 SetupAttachment를 호출할 경우, 불필요한 로직(기존 부모에서 제거) 수행 방지
     SpriteComponent = nullptr;
-
-    // AttachChildren 배열의 실제 요소의 포인터 값을 바꿔야 하므로 *이 아닌, *&로 받음
-    for (USceneComponent*& Child : AttachChildren)
-    {
-        Child = Child->Duplicate();
-        Child->SetParent(this); // Child의 AttachParent를 재설정
-    }
+    AttachChildren.clear(); // Actor에서 할당해줌
 }
 
 // ──────────────────────────────
@@ -372,11 +365,10 @@ void USceneComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 
 void USceneComponent::OnRegister(UWorld* InWorld)
 {
-    if (!std::strcmp(this->GetClass()->Name , USceneComponent::StaticClass()->Name) && !SpriteComponent)
+    if (!std::strcmp(this->GetClass()->Name , USceneComponent::StaticClass()->Name) && !SpriteComponent && !InWorld->bPie)
     {
         CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);
         SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/EmptyActor.dds");
-
     }
 }
 

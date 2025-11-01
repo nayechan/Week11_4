@@ -3,7 +3,8 @@
 #include <windows.h>
 #include <shellapi.h>
 
-void FPlatformProcess::OpenFileInDefaultEditor(const FString& RelativePath)
+// FWideString 즉 UTF-16 형식으로 된 문자열만 열 수 있음
+void FPlatformProcess::OpenFileInDefaultEditor(const FWideString& RelativePath)
 {
     // 1. 상대 경로를 기반으로 절대 경로를 생성
     //    (현재 작업 디렉토리 기준)

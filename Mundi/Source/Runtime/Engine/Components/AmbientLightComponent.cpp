@@ -40,7 +40,10 @@ void UAmbientLightComponent::OnTransformUpdated()
 void UAmbientLightComponent::OnRegister(UWorld* InWorld)
 {
 	Super::OnRegister(InWorld);
-	SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/SkyLight.dds");
+	if (SpriteComponent)
+	{
+		SpriteComponent->SetTextureName(GDataDir + "/UI/Icons/SkyLight.dds");
+	}
 	InWorld->GetLightManager()->RegisterLight(this);
 }
 

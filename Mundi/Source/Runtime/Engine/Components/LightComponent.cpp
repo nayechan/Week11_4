@@ -102,7 +102,7 @@ void ULightComponent::OnRegister(UWorld* InWorld)
 {
 	Super::OnRegister(InWorld);
 	UE_LOG("LightComponent::OnRegister called");
-	if (!SpriteComponent)
+	if (!SpriteComponent && !InWorld->bPie)
 	{
 		UE_LOG("Creating SpriteComponent (Billboard)...");
 		CREATE_EDITOR_COMPONENT(SpriteComponent, UBillboardComponent);

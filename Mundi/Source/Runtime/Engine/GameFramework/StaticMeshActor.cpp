@@ -3,6 +3,7 @@
 #include "StaticMeshComponent.h"
 #include "ObjectFactory.h"
 #include "BillboardComponent.h"
+#include "ShapeComponent.h"
 
 IMPLEMENT_CLASS(AStaticMeshActor)
 
@@ -18,7 +19,7 @@ AStaticMeshActor::AStaticMeshActor()
     // 루트 교체
     RootComponent = StaticMeshComponent;
 }
-
+ 
 void AStaticMeshActor::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);

@@ -13,19 +13,26 @@ void FLuaCoroutineScheduler::ShutdownBeforeLuaClose()
 	Tasks.Empty(); 
 }
 
-FLuaCoroHandle FLuaCoroutineScheduler::Register(sol::coroutine&& Co, void* Owner)
+FLuaCoroutineScheduler::FLuaCoroutineScheduler()
+{
+	Tasks.Reserve(100);
+}
+
+FLuaCoroHandle FLuaCoroutineScheduler::Register(sol::thread&& InThread, sol::coroutine&& Co, void* Owner)
 {
 	FCoroTask Task;
+	Task.Thread = std::move(InThread);
 	Task.Co     = std::move(Co);
 	Task.Owner  = Owner;
 	Task.Id     = ++NextId;
 	Tasks.push_back(std::move(Task));
-
+	
 	return FLuaCoroHandle{ Task.Id };
 }
 
 void FLuaCoroutineScheduler::Tick(double DeltaTime)
 {
+	// TODO : Release 할 때는(Debug 안 하는 모드에서) MaxDeltaClamp 뺄 것!
 	const double Clamped = std::min(DeltaTime, MaxDeltaClamp);
 	NowSeconds += Clamped;
 
@@ -61,7 +68,7 @@ void FLuaCoroutineScheduler::Process(double Now)
 			task.Finished = true;
 			continue;
 		}
-
+		
 		// 이후 yield가 다시 올 경우, 다음 조건 실행 = 재세팅
 		if (Result.status() == sol::call_status::yielded)
 		{
@@ -93,7 +100,19 @@ void FLuaCoroutineScheduler::Process(double Now)
 				task.WaitType = EWaitType::None;
 			}
 		}
-		else
+		else if (Result.status() == sol::call_status::runtime)
+		{
+			task.Finished = true;
+		}
+		else if (Result.status() == sol::call_status::ok)
+		{
+			task.Finished = true;
+		}
+		else if (Result.status() == sol::call_status::file)
+		{
+			task.Finished = true;
+		}
+		else if (Result.status() == sol::call_status::memory)
 		{
 			task.Finished = true;
 		}

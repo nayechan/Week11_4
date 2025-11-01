@@ -23,10 +23,14 @@ void ULuaScriptComponent::BeginPlay()
 	Env = LuaVM->CreateEnvironment();
 	Env["Obj"] = Owner->GetGameObject();
 
-	Env["StartCoroutine"] = [LuaVM, this, L=Lua](sol::function Func)
-	{
-		sol::coroutine co(*L, Func);
-		LuaVM->GetScheduler().Register(std::move(co), this);
+	Env["StartCoroutine"] = [LuaVM, this](sol::function f) {
+		sol::state_view L = LuaVM->GetState();
+
+		sol::thread Thread = sol::thread::create(L); // Coroutine 관리할 Thread 생성
+		sol::state_view ThreadState = Thread.state();
+
+		sol::coroutine Coroutine(ThreadState.lua_state(), f);                // 스레드에 함수 올리기
+		return LuaVM->GetScheduler().Register(std::move(Thread), std::move(Coroutine), this);
 	};
 	
 	if(ScriptFilePath.empty())

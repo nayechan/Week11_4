@@ -6,7 +6,12 @@ function BeginPlay()
     
     Obj.Velocity.X = 4
     StartCoroutine(AI)
-    StartCoroutine(AI2)
+    print("사이")
+    StartCoroutine(AI)
+    print("사이2")
+    StartCoroutine(AI)
+    print("사이3")
+    StartCoroutine(AI)
 end
 
 function AI()
@@ -16,11 +21,9 @@ function AI()
 end
 
 function AI2()
-    print("AI2222222 start")
-    coroutine.yield("wait_predicate", function()
-        return Obj.Velocity.X <= 5
-    end)
-    print("Patrol End2")
+    print("AI start")
+    coroutine.yield("wait_predicate", 1.0)
+    print("Patrol End")
 end
 
 function EndPlay()
