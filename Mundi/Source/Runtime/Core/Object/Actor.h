@@ -62,7 +62,7 @@ public:
     USceneComponent* GetRootComponent() const { return RootComponent; }
    
     // 소유 컴포넌트(모든 타입)
-    UActorComponent* AddComponentByClass(UClass* ComponentClass);
+    UActorComponent* AddNewComponent(UClass* ComponentClass, USceneComponent* ParentToAttach = nullptr);
     void AddOwnedComponent(UActorComponent* Component);
     void RemoveOwnedComponent(UActorComponent* Component);
 
