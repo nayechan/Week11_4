@@ -25,6 +25,7 @@ void ULuaScriptComponent::BeginPlay()
 
 	Env["StartCoroutine"] = [LuaVM, this, L=Lua](sol::function f)
 	{
+		
 		sol::coroutine co(*L, f);
 		LuaVM->GetScheduler().Register(std::move(co), this);
 	};
@@ -39,14 +40,7 @@ void ULuaScriptComponent::BeginPlay()
 		GEngine.EndPIE();
 		return;
 	}
-	Env.set_function("print", sol::overload(
-	[](const FString& msg) {
-		UE_LOG("[Lua-Str] %s\n", msg.c_str());
-	},
-	[](int num){
-		UE_LOG("[Lua] %d\n", num);
-	}
-	));
+	
 	// 함수 캐시
 	FuncBeginPlay = FLuaManager::GetFunc(Env, "BeginPlay");
 	FuncTick      = FLuaManager::GetFunc(Env, "Tick");

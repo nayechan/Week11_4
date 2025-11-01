@@ -14,5 +14,5 @@ end
 
 function Tick(dt)
     Obj.Location = Obj.Location + Obj.Velocity * dt
-    -- Obj:PrintLocation()
+    Obj:PrintLocation()
 end

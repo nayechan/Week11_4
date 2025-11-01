@@ -6,17 +6,7 @@ FLuaManager::FLuaManager()
     Lua = new sol::state();
     
     Lua->open_libraries(sol::lib::base, sol::lib::coroutine);
-
-    // 전역 Table에 등록
-    Lua->set_function("print", sol::overload(
-        [](const FString& msg) {
-            UE_LOG("[Lua-Str] %s\n", msg.c_str());
-        },
-        [](int num){
-            UE_LOG("[Lua] %d\n", num);
-        }
-    ));
-	
+    
     Lua->new_usertype<FVector>("Vector",
         sol::constructors<FVector(), FVector(float, float, float)>(),
         "X", &FVector::X,
@@ -35,7 +25,19 @@ FLuaManager::FLuaManager()
 
     SharedLib = Lua->create_table();
     
-    SharedLib["print"] = Lua->globals()["print"];
+    SharedLib.set_function("print", sol::overload(
+        [](const FString& msg) {
+            UE_LOG("[Lua-Str] %s\n", msg.c_str());
+        },
+        [](int num){
+            UE_LOG("[Lua] %d\n", num);
+        }
+    ));
+
+    // Shared lib의 fall back은 G
+    sol::table MetaTableShared = Lua->create_table();
+    MetaTableShared[sol::meta_function::index] = Lua->globals();
+    SharedLib[sol::metatable_key]  = MetaTableShared;
 }
 
 FLuaManager::~FLuaManager()
@@ -51,8 +53,9 @@ FLuaManager::~FLuaManager()
 
 sol::environment FLuaManager::CreateEnvironment()
 {
-    sol::environment Env(*Lua, sol::create, Lua->globals());
+    sol::environment Env(*Lua, sol::create);
 
+    // Environment의 Fall back은 SharedLib
     sol::table MetaTable = Lua->create_table();
     MetaTable[sol::meta_function::index] = SharedLib;
     Env[sol::metatable_key] = MetaTable;
