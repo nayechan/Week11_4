@@ -4,9 +4,9 @@
 FLuaManager::FLuaManager()
 {
     Lua = new sol::state();
-    
+
     Lua->open_libraries(sol::lib::base, sol::lib::coroutine);
-    
+
     Lua->new_usertype<FVector>("Vector",
         sol::constructors<FVector(), FVector(float, float, float)>(),
         "X", &FVector::X,
@@ -24,13 +24,31 @@ FLuaManager::FLuaManager()
     );
 
     SharedLib = Lua->create_table();
-    
+
     SharedLib.set_function("print", sol::overload(
-        [](const FString& msg) {
+        [](const FString& msg)
+        {
             UE_LOG("[Lua-Str] %s\n", msg.c_str());
         },
-        [](int num){
+        [](int num)
+        {
             UE_LOG("[Lua] %d\n", num);
+        }
+    ));
+
+    SharedLib.set_function("SpawnPrefab", sol::overload(
+        [](const FString& PrefabPath) -> FGameObject*
+        {
+            FGameObject* NewObject = nullptr;
+
+            AActor* NewActor = GWorld->SpawnPrefabActor(PrefabPath);
+
+            if (NewActor)
+            {
+                NewObject = NewActor->GetGameObject();
+            }
+
+            return NewObject;
         }
     ));
 

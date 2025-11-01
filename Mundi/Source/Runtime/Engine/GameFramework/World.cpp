@@ -366,3 +366,43 @@ AActor* UWorld::SpawnActor(UClass* Class)
 	// 기본 Transform(원점)으로 스폰하는 메인 함수를 호출합니다.
 	return SpawnActor(Class, FTransform());
 }
+
+AActor* UWorld::SpawnPrefabActor(const FString& PrefabPath)
+{
+	JSON ActorDataJson;
+
+	if (FJsonSerializer::LoadJsonFromFile(ActorDataJson, PrefabPath))
+	{
+		// Pair.first는 ID 문자열, Pair.second는 단일 프리미티브의 JSON 데이터입니다.
+
+		FString TypeString;
+		if (FJsonSerializer::ReadString(ActorDataJson, "Type", TypeString))
+		{
+			//UClass* NewClass = FActorTypeMapper::TypeToActor(TypeString);
+			UClass* NewClass = UClass::FindClass(TypeString);
+
+			UWorld* World = GWorld;
+
+			// 유효성 검사: Class가 유효하고 AActor를 상속했는지 확인
+			if (!NewClass || !NewClass->IsChildOf(AActor::StaticClass()))
+			{
+				UE_LOG("[error] SpawnActor failed: Invalid class provided.");
+				return nullptr;
+			}
+
+			// ObjectFactory를 통해 UClass*로부터 객체 인스턴스 생성
+			AActor* NewActor = Cast<AActor>(ObjectFactory::NewObject(NewClass));
+			if (!NewActor)
+			{
+				UE_LOG("[error] SpawnActor failed: ObjectFactory could not create an instance of");
+				return nullptr;
+			}
+
+			Level->AddActor(NewActor);
+
+			NewActor->Serialize(true, ActorDataJson);
+		}
+	}
+
+	return nullptr;
+}

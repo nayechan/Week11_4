@@ -370,7 +370,9 @@ void UEditorEngine::StartPIE()
     ////스폰을 위한 월드셋
     //UI.SetWorld(PIEWorld);
 
-    for (AActor* Actor : GWorld->GetLevel()->GetActors())
+    // BeginPlay 중에 새로운 actor가 생성될 수도 있어서 복사 후 호출
+    TArray<AActor*> LevelActors = GWorld->GetLevel()->GetActors();
+    for (AActor* Actor : LevelActors)
     {
         Actor->BeginPlay();
     }

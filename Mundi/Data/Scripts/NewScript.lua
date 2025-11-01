@@ -1,5 +1,6 @@
 function BeginPlay()
     print("[BeginPlay]")
+    -- NewObj = SpawnPrefab("Data/Prefabs/AAmbientLightActor_1.prefab")
 end
 
 function EndPlay()
