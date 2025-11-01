@@ -437,6 +437,21 @@ bool AActor::IsOverlappingActor(const AActor* Other) const
     return false;
 }
 
+void AActor::OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
+{
+	UE_LOG("On Begin Overlap");
+}
+
+void AActor::OnEndOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
+{
+	UE_LOG("On End Overlap");
+}
+void AActor::OnHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
+{
+	UE_LOG("On Hit");
+} 
+
+
 void AActor::DuplicateSubObjects()
 {
 	Super::DuplicateSubObjects();

@@ -19,14 +19,6 @@ void UPrimitiveComponent::SetMaterialByName(uint32 InElementIndex, const FString
     SetMaterial(InElementIndex, UResourceManager::GetInstance().Load<UMaterial>(InMaterialName));
 } 
  
-void AActor::OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
-{
-    UE_LOG("On Begin Overlap");
-}
-void AActor::OnHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
-{
-    UE_LOG("On Hit");
-}
 void UPrimitiveComponent::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();

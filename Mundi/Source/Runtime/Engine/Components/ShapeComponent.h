@@ -33,6 +33,7 @@ public:
 	GENERATED_REFLECTION_BODY();
 
 	DECLARE_DELEGATE(OnComponentBeginOverlap, UPrimitiveComponent*, UPrimitiveComponent*);
+	DECLARE_DELEGATE(OnComponentEndOverlap, UPrimitiveComponent*, UPrimitiveComponent*);
 
 	UShapeComponent();
 
@@ -54,8 +55,8 @@ public:
  
 protected: 
 	mutable FAABB WorldAABB; //브로드 페이즈 용 
-	//TSet<UShapeComponent*> OverlapNow; // 이번 프레임에서 overlap 된 Shap Comps
-	//TSet<UShapeComponent*> OverlapPrev; // 지난 프레임에서 overlap 됐으면 Cache
+	TSet<UShapeComponent*> OverlapNow; // 이번 프레임에서 overlap 된 Shap Comps
+	TSet<UShapeComponent*> OverlapPrev; // 지난 프레임에서 overlap 됐으면 Cache
 		
     
 	FVector4 ShapeColor ; 

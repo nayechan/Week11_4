@@ -22,7 +22,8 @@ void UShapeComponent::BeginPlay()
 
     // 델리게이트 등록
     if (AActor* Owner = GetOwner()) {
-        FDelegateHandle Handle = OnComponentBeginOverlap.AddDynamic(Owner, &AActor::OnBeginOverlap);
+        FDelegateHandle BeginHandle = OnComponentBeginOverlap.AddDynamic(Owner, &AActor::OnBeginOverlap);
+        FDelegateHandle EndHandle = OnComponentEndOverlap.AddDynamic(Owner, &AActor::OnEndOverlap);
     }
 }
 
@@ -56,10 +57,10 @@ void UShapeComponent::UpdateOverlaps()
     
     UWorld* World = GetWorld();
     if (!World) return; 
-    
-    TSet<UShapeComponent*> Now;
-
+      
     //Test용 O(N^2)
+    OverlapNow.clear();
+
     for (AActor* Actor : World->GetActors())
     {
         for (USceneComponent* Comp : Actor->GetSceneComponents())
@@ -72,14 +73,14 @@ void UShapeComponent::UpdateOverlaps()
             // 내로우페이즈: Collision 모듈
             if (!Collision::CheckOverlap(this, Other)) continue;
 
-            Now.Add(Other);
+            OverlapNow.Add(Other);
             UE_LOG("Collision!!");
         }
     } 
 
     // Publish current overlaps
     OverlapInfos.clear();
-    for (UShapeComponent* Other : Now)
+    for (UShapeComponent* Other : OverlapNow)
     {
         FOverlapInfo Info;
         Info.OtherActor = Other->GetOwner();
@@ -88,12 +89,26 @@ void UShapeComponent::UpdateOverlaps()
     } 
 
     //Begin
-    for(UShapeComponent* Comp : Now) 
-        OnComponentBeginOverlap.Broadcast(this, Comp);
+    for (UShapeComponent* Comp : OverlapNow)
+    {
+        if (!OverlapPrev.Contains(Comp))
+        {
+            OnComponentBeginOverlap.Broadcast(this, Comp);
+        }
+    }
 
-    //for( UShapeComponent* Comp : Prev)
-    //OnComponentEndOverlap.Broadcast(this, Comp);
-     
+    for (UShapeComponent* Comp : OverlapPrev)
+    {
+        if (!OverlapNow.Contains(Comp))
+        {
+            OnComponentEndOverlap.Broadcast(this, Comp);
+        }
+    }
+
+    OverlapPrev.clear();
+    for( UShapeComponent* Comp : OverlapPrev)
+        OnComponentEndOverlap.Broadcast(this, Comp);
+
 }
 
 FAABB UShapeComponent::GetWorldAABB() const
