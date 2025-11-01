@@ -11,6 +11,7 @@ class UResourceManager;
 class UUIManager;
 class UInputManager;
 class USelectionManager;
+class FLuaManager;
 class AActor;
 class URenderer;
 class ACameraActor;
@@ -68,6 +69,7 @@ public:
     void SetLevel(std::unique_ptr<ULevel> InLevel);
     ULevel* GetLevel() const { return Level.get(); }
     FLightManager* GetLightManager() const { return LightManager.get(); }
+    FLuaManager* GetLuaManager() const { return LuaManager.get(); }
 
     ACameraActor* GetCameraActor() { return MainCameraActor; }
     void SetCameraActor(ACameraActor* InCamera) 
@@ -114,6 +116,10 @@ private:
 
     /** === 라이트 매니저 ===*/
     std::unique_ptr<FLightManager> LightManager;
+
+    /** === 루아 매니저 ===*/
+    std::unique_ptr<FLuaManager> LuaManager;
+    
     // Object naming system
     TMap<FString, int32> ObjectTypeCounts;
 

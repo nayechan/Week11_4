@@ -538,12 +538,31 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 
 	// 콤보박스에 표시될 텍스트
 	const char* PreviewText = CachedScriptItems[CurrentItem];
+	FString FormattedPreviewText; // (missing) 텍스트를 담을 임시 FString
+	bool bFileIsMissing = false;
+
+	// 실제 파일이 존재하는지 확인
+	if (!FilePath->empty())
+	{
+		if (!fs::exists(*FilePath))
+		{
+			bFileIsMissing = true;
+			// (missing) 태그가 붙은 임시 텍스트 생성
+			FormattedPreviewText = "(missing) " + *FilePath;
+			// 콤보박스 프리뷰가 임시 텍스트를 가리키도록 함
+			PreviewText = FormattedPreviewText.c_str();
+		}
+	}
 
 	if (ImGui::BeginCombo("##ScriptCombo", PreviewText))
 	{
 		// 콤보박스 팝업이 '처음 열린 프레임'에만
 		if (ImGui::IsWindowAppearing())
 		{
+			// 스크립트 목록 다시 로드하기 위해서
+			CachedScriptPaths.Empty();
+			CachedScriptItems.Empty();
+
 			// "다음에 그려질 위젯" (Search)에 포커스를 한 번만 줍니다.
 			ImGui::SetKeyboardFocusHere(0);
 		}
@@ -590,8 +609,24 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	}
 	ImGui::PopID();
 
+	// 사라진 파일 표시
+	if (bFileIsMissing)
+	{
+		// 파일이 존재하지 않음 (빨간색 텍스트 + 선택 해제 버튼)
+		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
+		ImGui::TextWrapped("파일이 존재하지 않습니다. 경로를 다시 설정하십시오.");
+		ImGui::PopStyleColor();
+
+		ImGui::SameLine();
+		if (ImGui::SmallButton("선택 해제"))
+		{
+			*FilePath = ""; // 경로를 비움
+			bChanged = true;
+			// CurrentItem은 다음 프레임에 0으로 다시 계산될 것임
+		}
+	}
 	// 3. 스크립트 생성 UI (선택된 파일이 없을 때만 표시)
-	if (FilePath->empty() || CurrentItem == 0)
+	else if (FilePath->empty() || CurrentItem == 0)
 	{
 		ImGui::Separator();
 

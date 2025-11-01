@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "ActorComponent.h"
 #include "Vector.h"
+#include "../Scripting/LuaCoroutineScheduler.h"
 
 namespace sol { class state; }
 using state = sol::state;
@@ -16,8 +17,6 @@ public:
 
     ULuaScriptComponent();
 	~ULuaScriptComponent() override;
-protected:
-   
 
 public:
 	void BeginPlay() override;
@@ -26,9 +25,17 @@ public:
 	
 	void OnOverlap(const AActor* Other);
 
+	bool Call(const char* FuncName, sol::variadic_args VarArgs); // 다른 클래스가 날 호출할 때 씀
 protected:
     // 이 컴포넌트가 실행할 .lua 스크립트 파일의 경로 (에디터에서 설정)
     FString ScriptFilePath;
 
 	sol::state* Lua;
+	sol::environment Env;
+	
+	/* 함수 캐시 */
+	sol::protected_function FuncBeginPlay; 
+	sol::protected_function FuncTick;
+	sol::protected_function FuncOnOverlap;
+	sol::protected_function FuncEndPlay;
 };

@@ -1,10 +1,10 @@
 function BeginPlay()
-    print("[BeginPlay] " .. Obj.UUID)
+    print("[BeginPlay] ")
     Obj:PrintLocation()
 end
 
 function EndPlay()
-    print("[EndPlay] " .. Obj.UUID)
+    print("[EndPlay] ")
     Obj:PrintLocation()
 end
 

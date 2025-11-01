@@ -2,15 +2,23 @@ function BeginPlay()
     print("[BeginPlay] " .. Obj.UUID)
     Obj:PrintLocation()
     
-    co = coroutine.create(function ()
-            for i=1,10 do
-                print("co", i)
-                coroutine.yield()
-            end
-        end)
-    --[[CoroutineTest()]]--
+    Obj.Velocity.X = 4
+    Co = coroutine.create(AI)
 end
 
+function AI()
+    print("AI start")
+    coroutine.yield("wait_time", 1.0)
+    print("Patrol End")
+end
+
+function AI2()
+    print("AI2222222 start")
+    coroutine.yield("wait_predicate", function()
+        return Obj.Velocity.X <= 5
+    end)
+    print("Patrol End2")
+end
 
 function EndPlay()
     print("[EndPlay] " .. Obj.UUID)
@@ -23,5 +31,4 @@ end
 
 function Tick(dt)
     Obj.Location = Obj.Location + Obj.Velocity * dt
-    --[[Obj:PrintLocation()]]--
 end
