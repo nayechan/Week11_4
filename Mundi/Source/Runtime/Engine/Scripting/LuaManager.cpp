@@ -1,12 +1,12 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "LuaManager.h"
 
 FLuaManager::FLuaManager()
 {
     Lua = new sol::state();
-    
+
     Lua->open_libraries(sol::lib::base, sol::lib::coroutine);
-    
+
     Lua->new_usertype<FVector>("Vector",
         sol::constructors<FVector(), FVector(float, float, float)>(),
         "X", &FVector::X,
@@ -42,9 +42,26 @@ FLuaManager::FLuaManager()
     SharedLib["GlobalConfig"] = Lua->create_table();
     // SharedLib["GlobalConfig"]["Gravity"] = 9.8;
 
-    sol::table MetaShared = Lua->create_table();
-    MetaShared[sol::meta_function::index] = Lua->globals();
-    SharedLib[sol::metatable_key] = MetaShared;
+    SharedLib.set_function("SpawnPrefab", sol::overload(
+        [](const FString& PrefabPath) -> FGameObject*
+        {
+            FGameObject* NewObject = nullptr;
+
+            AActor* NewActor = GWorld->SpawnPrefabActor(PrefabPath);
+
+            if (NewActor)
+            {
+                NewObject = NewActor->GetGameObject();
+            }
+
+            return NewObject;
+        }
+    ));
+
+    // Shared lib의 fall back은 G
+    sol::table MetaTableShared = Lua->create_table();
+    MetaTableShared[sol::meta_function::index] = Lua->globals();
+    SharedLib[sol::metatable_key]  = MetaTableShared;
 }
 
 FLuaManager::~FLuaManager()

@@ -29,6 +29,8 @@
 #include "SpotLightComponent.h"
 #include "SceneComponent.h"
 #include "Color.h"
+#include "PlatformProcess.h"
+#include "JsonSerializer.h"
 
 using namespace std;
 
@@ -370,6 +372,16 @@ void UTargetActorTransformWidget::RenderHeader(AActor* SelectedActor, UActorComp
 	ImGui::Text(SelectedActor->GetName().ToString().c_str());
 	ImGui::SameLine();
 
+	if (ImGui::Button("to Prefab", ImVec2(80, 25)))
+	{
+		std::filesystem::path PrefabPath = FPlatformProcess::OpenSaveFileDialog(UTF8ToWide(GDataDir) + L"/Prefabs", L"prefab", L"Prefab Files", UTF8ToWide(SelectedActor->ObjectName.ToString()));
+		JSON ActorJson;
+		ActorJson["Type"] = SelectedActor->GetClass()->Name;
+		SelectedActor->Serialize(false, ActorJson);
+		bool bSuccess = FJsonSerializer::SaveJsonToFile(ActorJson, (char*)PrefabPath.generic_u8string().c_str());
+	}
+
+	ImGui::SameLine();
 	const float ButtonWidth = 60.0f;
 	const float ButtonHeight = 25.0f;
 	float Avail = ImGui::GetContentRegionAvail().x;
