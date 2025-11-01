@@ -10,6 +10,10 @@ public:
 	UBoxComponent(); 
 	void OnRegister(UWorld* InWorld) override;
 
+	// Duplication
+	virtual void DuplicateSubObjects() override;
+	DECLARE_DUPLICATE(UBoxComponent)
+
 private:
 	FVector BoxExtent; // Half Extent
 

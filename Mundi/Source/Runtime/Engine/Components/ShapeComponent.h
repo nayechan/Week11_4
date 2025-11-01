@@ -34,12 +34,10 @@ public:
 
 	DECLARE_DELEGATE(OnComponentBeginOverlap, UPrimitiveComponent*, UPrimitiveComponent*);
 
-	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UShapeComponent)
-
 	UShapeComponent();
 
 	virtual void GetShape(FShape& OutShape) const {};
+	virtual void BeginPlay() override;
     virtual void OnRegister(UWorld* InWorld) override;
     virtual void OnTransformUpdated() override;
 
@@ -47,6 +45,10 @@ public:
 
     FAABB GetWorldAABB() const; 
 	virtual const TArray<FOverlapInfo>& GetOverlapInfos() const override { return OverlapInfos; }
+
+	// Duplication
+	virtual void DuplicateSubObjects() override;
+	DECLARE_DUPLICATE(UShapeComponent)
 
 	// ㅡㅡㅡㅡㅡㅡㅡㅡㅡ디버깅용ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
  
