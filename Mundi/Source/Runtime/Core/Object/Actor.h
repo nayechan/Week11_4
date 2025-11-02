@@ -18,6 +18,7 @@ class FGameObject
 public:
     uint32  UUID;
     FVector Location;
+    FVector Rotation;
     FVector Velocity;
     FVector Scale;
 

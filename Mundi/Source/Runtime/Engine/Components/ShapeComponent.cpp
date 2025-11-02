@@ -67,7 +67,7 @@ void UShapeComponent::UpdateOverlaps()
             if (!Collision::CheckOverlap(this, Other)) continue;
 
             OverlapNow.Add(Other);
-            UE_LOG("Collision!!");
+            //UE_LOG("Collision!!");
         }
     } 
 

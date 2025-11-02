@@ -5,13 +5,14 @@ FLuaManager::FLuaManager()
 {
     Lua = new sol::state();
 
-    Lua->open_libraries(sol::lib::base, sol::lib::coroutine);
+    Lua->open_libraries(sol::lib::base, sol::lib::coroutine, sol::lib::math , sol::lib::os);
 
    
 
     Lua->new_usertype<FGameObject>("GameObject",
         "UUID", &FGameObject::UUID,
         "Location", &FGameObject::Location,
+        "Rotation", &FGameObject::Rotation,
         "Velocity", &FGameObject::Velocity,
         "Scale", &FGameObject::Scale,
         "PrintLocation", &FGameObject::PrintLocation

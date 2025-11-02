@@ -9,5 +9,5 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Mundi_Week09/Mundi/Data/Model/2/material_0_baseColor.png
-map_Bump -bm 1.000000 Mundi_Week09/Mundi/DerivedDataCache/Model/2/material_0_normal.png.dds
+map_Kd material_0_baseColor_copy.png
+map_Bump -bm 1.000000 material_0_normal_copy.png

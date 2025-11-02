@@ -59,6 +59,7 @@ void AActor::Tick(float DeltaSeconds)
 	if (LuaGameObject)
 	{
 		SetActorLocation(LuaGameObject->Location);
+		SetActorRotation(LuaGameObject->Rotation);
 		SetActorScale(LuaGameObject->Scale);
 	}
 }
