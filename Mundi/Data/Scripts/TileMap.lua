@@ -27,13 +27,13 @@ function BeginPlay()
     GlobalConfig.RemoveTileByUUID = function(tileUUID)
         local meta = TileMeta[tileUUID]
         if not meta then
-            print("No tile found for UUID: " .. tostring(tileUUID))
+            -- print("No tile found for UUID: " .. tostring(tileUUID))
             return
         end
 
         local tile = meta.tile
         if not tile then
-            print("Tile object not found: " .. tostring(tileUUID))
+            -- print("Tile object not found: " .. tostring(tileUUID))
             return
         end
 
@@ -47,7 +47,7 @@ function BeginPlay()
         Tiles[meta.index] = nil
         TileMeta[tileUUID] = nil
 
-        print("Tile removed (UUID): " .. tileUUID)
+        -- print("Tile removed (UUID): " .. tileUUID)
     end
 end
 
