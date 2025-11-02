@@ -80,7 +80,7 @@ protected:
     bool bIsActive = true;       // 활성 상태(사용자 on/off), 물리 적용
     bool bHiddenInGame = false; // 게임에서 숨김 여부
     bool bCanEverTick = false;   // 컴포넌트 설계상 틱 지원 여부
-    bool bTickEnabled = false;   // 현재 틱 켜짐 여부
+    bool bTickEnabled = true;   // 현재 틱 켜짐 여부
 
     bool bRegistered = false;    // RegisterComponent가 호출됐는가
     bool bHasBegunPlay = false;  // BeginPlay가 호출됐는가

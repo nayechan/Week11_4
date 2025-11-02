@@ -523,8 +523,6 @@ void AActor::DuplicateSubObjects()
 
 	// 기본 프로퍼티 초기화
 	bIsPicked = false;
-	bCanEverTick = true;
-	bHiddenInEditor = false;
 	bIsCulled = false;
 	World = nullptr; // PIE World는 복제 프로세스의 상위 레벨에서 설정해 주어야 합니다.
 

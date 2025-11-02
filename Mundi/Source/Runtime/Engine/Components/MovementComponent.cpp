@@ -13,7 +13,6 @@ UMovementComponent::UMovementComponent()
 {
     // Movement component는 기본적으로 Tick 가능
     bCanEverTick = true;
-    Owner = GetOwner();
 }
 
 UMovementComponent::~UMovementComponent()
@@ -37,11 +36,6 @@ void UMovementComponent::InitializeComponent()
 
 void UMovementComponent::TickComponent(float DeltaSeconds)
 {
-    Super::TickComponent(DeltaSeconds);
-
-    if (!bIsActive || !bCanEverTick)
-        return;
-
     // 매 프레임 호출, 파생 클래스에서 오버라이드하여 이동 로직 구현
 }
 

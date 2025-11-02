@@ -12,13 +12,6 @@ BEGIN_PROPERTIES(UActorComponent)
 END_PROPERTIES()
     
 UActorComponent::UActorComponent()
-    : Owner(nullptr)
-    , bIsActive(true)
-    , bCanEverTick(false)
-    , bTickEnabled(true)
-    , bRegistered(false)
-    , bHasBegunPlay(false)
-    , bPendingDestroy(false)
 {
 }
 
@@ -105,7 +98,6 @@ void UActorComponent::BeginPlay()
 
 void UActorComponent::TickComponent(float DeltaTime)
 {
-    if (!IsComponentTickEnabled()) return;
     // 매 프레임 처리
 }
 
@@ -121,7 +113,6 @@ void UActorComponent::DuplicateSubObjects()
 {
     Super::DuplicateSubObjects();
 
-    bCanEverTick = true; // 매 프레임 Tick 가능 여부
     Owner = nullptr; // Actor에서 이거 설정해 줌
 }
 

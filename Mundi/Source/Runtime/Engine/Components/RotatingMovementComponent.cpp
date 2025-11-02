@@ -26,16 +26,6 @@ URotatingMovementComponent::~URotatingMovementComponent()
 
 void URotatingMovementComponent::TickComponent(float DeltaSeconds)
 {
-    // Editor World에서는 Tick 안함.
-    // + GetWorld로 GWorld 받아오면 Dangilng Pointer 버그있음
-    if (!GWorld->bPie)
-        return;
-
-    Super::TickComponent(DeltaSeconds);
-
-    if (!bIsActive || !bCanEverTick)
-        return;
-
     if (!UpdatedComponent)
         return;
 

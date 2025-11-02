@@ -13,7 +13,11 @@ BEGIN_PROPERTIES(ULuaScriptComponent)
 	ADD_PROPERTY_SCRIPT(FString, ScriptFilePath, "Script", ".lua", true, "Lua Script 파일 경로")
 END_PROPERTIES()
 
-ULuaScriptComponent::ULuaScriptComponent() {}
+ULuaScriptComponent::ULuaScriptComponent()
+{
+	bCanEverTick = true;	// tick 지원 여부
+}
+
 ULuaScriptComponent::~ULuaScriptComponent() { Lua = nullptr; }
 
 void ULuaScriptComponent::BeginPlay()

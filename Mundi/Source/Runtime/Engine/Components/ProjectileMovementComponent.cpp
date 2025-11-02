@@ -42,14 +42,10 @@ UProjectileMovementComponent::~UProjectileMovementComponent()
 
 void UProjectileMovementComponent::TickComponent(float DeltaSeconds)
 {
-    // Editor World에서는 Tick 안함
-    if (!GWorld->bPie)
+    if (!UpdatedComponent)
+    {
         return;
-
-    Super::TickComponent(DeltaSeconds);
-
-    if (!bIsActive || !bCanEverTick || !UpdatedComponent)
-        return;
+    }
 
     // 1. 생명주기 체크
     if (ProjectileLifespan > 0.0f)
@@ -80,7 +76,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaSeconds)
     }
 
     // 3. 중력 적용
-    Velocity += Gravity * DeltaSeconds;
+    Velocity.Z += Gravity * DeltaSeconds;
 
     // 4. 가속도 적용
     Velocity += Acceleration * DeltaSeconds;
