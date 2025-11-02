@@ -1,5 +1,5 @@
 -- Fireball 생성, 삭제를 관리해주는 스크립트입니다. 
-local MaxFireNumber = 5
+local MaxFireNumber = 10
 local CurrentFireNumber = 0
 local FireballsPool = {} 
 
@@ -10,6 +10,7 @@ local MaxVelocity = 10
 local function PushFireball(Fireball) 
     Fireball.bIsActive = false
     Fireball.Velocity = Vector(0,0,0)
+    --여기에 문제가 있는 것 같은,, 초기화 이슈 
     Fireball.Location = GlobalConfig.SpawnAreaPos
 
     FireballsPool[#FireballsPool + 1] = Fireball

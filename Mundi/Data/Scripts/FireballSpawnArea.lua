@@ -8,8 +8,6 @@ function BeginPlay()
     Obj.Scale = Vector(10, 10, 1)
 
     GlobalConfig.SpawnAreaPos = Obj.Location
- 
-    
 end
 
 function EndPlay()
@@ -46,7 +44,7 @@ function Tick(dt)
         
         local SpawnCheck =  GlobalConfig.SpawnFireballAt(Pos)
         if  SpawnCheck then
-            print("Spawn Fireball !!!!!!!")
+            --print("Spawn Fireball !!!!!!!")
         end
 
     end 

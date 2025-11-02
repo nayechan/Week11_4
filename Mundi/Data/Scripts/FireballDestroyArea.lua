@@ -1,8 +1,5 @@
 function BeginPlay()
     print("[BeginPlay] " .. Obj.UUID)
-
-    Obj.Velocity = Vector(0,0, -10) 
-    Obj.bIsActive = true
 end
 
 function EndPlay()
@@ -14,13 +11,6 @@ function OnOverlap(OtherActor)
 end
 
 function Tick(dt)
-    Obj.Location = Obj.Location + Obj.Velocity * dt
- 
-     
-    if not Obj.bIsActive then
-        return 
-    end
-
     Obj.Location = Obj.Location + Obj.Velocity * dt
     --[[Obj:PrintLocation()]]--
     --[[print("[Tick] ")]]--

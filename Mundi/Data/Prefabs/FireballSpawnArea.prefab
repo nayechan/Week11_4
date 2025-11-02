@@ -1,12 +1,12 @@
 {
   "Name" : "스태틱 메시_0",
   "OwnedComponents" : [{
-      "ScriptFilePath" : "Data/Scripts/FireballArea.lua",
+      "ScriptFilePath" : "Data/Scripts/FireballSpawnArea.lua",
       "Type" : "ULuaScriptComponent",
       "bIsActive" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 755,
+      "Id" : 143,
       "MaterialSlots" : [{
           "AssetPath" : "texture",
           "Type" : "UMaterial"
@@ -24,6 +24,6 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }],
-  "RootComponentId" : 755,
+  "RootComponentId" : 143,
   "Type" : "AStaticMeshActor"
 }
