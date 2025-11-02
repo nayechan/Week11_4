@@ -14,6 +14,9 @@ public:
     sol::state& GetState() { return *Lua; }
     sol::environment CreateEnvironment();
 
+    void RegisterComponentProxy(sol::state& Lua);
+    void ExposeAllComponentsToLua();
+    
     bool LoadScriptInto(sol::environment& Env, const FString& Path);
     
     // Env 테이블에서 Name(함수 이름) 키를 조회해서 함수로 캐스팅

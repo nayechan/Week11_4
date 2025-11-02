@@ -75,6 +75,7 @@ public:
     // 씬 컴포넌트(트리/렌더용)
     const TArray<USceneComponent*>& GetSceneComponents() const { return SceneComponents; }
     const TSet<UActorComponent*>& GetOwnedComponents() const { return OwnedComponents; }
+    UActorComponent* GetComponent(UClass* ComponentClass);
     
     // 컴포넌트 생성 (템플릿)
     template<typename T>

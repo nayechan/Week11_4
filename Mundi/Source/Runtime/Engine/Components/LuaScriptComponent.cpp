@@ -30,7 +30,10 @@ void ULuaScriptComponent::BeginPlay()
 
 	// 독립된 환경 생성, Engine Object&Util 주입
 	Env = LuaVM->CreateEnvironment();
-	Env["Obj"] = Owner->GetGameObject();
+
+	FGameObject* Obj = Owner->GetGameObject();
+	Obj->SetOwner(GetOwner());
+	Env["Obj"] = Obj;
 
 	Env["StartCoroutine"] = [LuaVM, this](sol::function f) {
 		sol::state_view L = LuaVM->GetState();
