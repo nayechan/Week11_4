@@ -23,8 +23,6 @@ FLuaManager::FLuaManager()
         "Scale", &FGameObject::Scale,
         "PrintLocation", &FGameObject::PrintLocation
     );
-
-    SharedLib = Lua->create_table();
     
     Lua->set_function("print", sol::overload(
         [](const FString& msg) {
@@ -36,10 +34,13 @@ FLuaManager::FLuaManager()
         },
         
         [](double num){
-            UE_LOG("[Lua] %d\n", num);
+            UE_LOG("[Lua] %f\n", num);
         }
     ));
+
+    SharedLib = Lua->create_table();
     
+    // GlobalConfig는 전역 table
     SharedLib["GlobalConfig"] = Lua->create_table();
     // SharedLib["GlobalConfig"]["Gravity"] = 9.8;
 
@@ -58,8 +59,10 @@ FLuaManager::FLuaManager()
             return NewObject;
         }
     ));
+    RegisterComponentProxy(*Lua);
+    ExposeAllComponentsToLua();
 
-    // Shared lib의 fall back은 G
+    // 위 등록 마친 뒤 fall back 설정 : Shared lib의 fall back은 G
     sol::table MetaTableShared = Lua->create_table();
     MetaTableShared[sol::meta_function::index] = Lua->globals();
     SharedLib[sol::metatable_key]  = MetaTableShared;
@@ -88,6 +91,175 @@ sol::environment FLuaManager::CreateEnvironment()
     return Env;
 }
 
+struct FBoundProp {
+    const FProperty* Property = nullptr;
+    // TODO : 추후 세부 설정(editable, readonly...)
+};
+
+struct FBoundClassDesc { // 해당 Class에 있는 Property 목록
+    UClass* Class = nullptr;
+    TMap<FString, FBoundProp> PropsByName;  
+};
+
+static TMap<UClass*, FBoundClassDesc> GBoundClasses;
+
+struct LuaTypeIO {
+    // C++ to Lua
+    std::function<sol::object(sol::state_view, const void* Base, const FProperty&)> Read;
+    // Lua to C++
+    std::function<void(sol::object, void* Base, const FProperty&)> Write;
+};
+
+static void BuildBoundClass(UClass* Class) {
+    if (!Class) return;
+    if (GBoundClasses.count(Class)) return;
+    
+    FBoundClassDesc Desc;
+    Desc.Class = Class;
+
+    for (auto& Property : Class->GetAllProperties()) {
+        if (!Property.bIsEditAnywhere) continue;
+
+        FBoundProp BoundProp;
+        BoundProp.Property = &Property;
+        FString LuaName =Property.Name;
+
+        Desc.PropsByName.emplace(LuaName, BoundProp);
+    }
+    GBoundClasses.emplace(Class, std::move(Desc));
+}
+
+struct LuaComponentProxy {
+    void*   Instance = nullptr; /* 객체 주소 */
+    UClass* Class    = nullptr; /* 메타 정보 */
+
+    // __index : lua가 읽을 때
+    static sol::object Index(sol::this_state Lua, LuaComponentProxy& Self, const char* Key) {
+        if (!Self.Instance) return sol::nil;
+        
+        auto It = GBoundClasses.find(Self.Class);
+        if (It == GBoundClasses.end()) return sol::nil;
+
+        // 이름(Key)으로 해당 Property 찾음
+        auto Iterate = It->second.PropsByName.find(Key);
+        if (Iterate == It->second.PropsByName.end()) return sol::nil;
+
+        const FBoundProp& BoundProp = Iterate->second;
+        const FProperty* Property = BoundProp.Property;
+        
+        sol::state_view State(Lua);
+
+        switch (Property->Type) {
+        /* TODO : 호환 자료형 더 늘리기*/
+        case EPropertyType::Float:  return sol::make_object(State, *Property->GetValuePtr<float>(Self.Instance));
+        case EPropertyType::Int32:  return sol::make_object(State, *Property->GetValuePtr<int>(Self.Instance));
+        case EPropertyType::FString: return sol::make_object(State, *Property->GetValuePtr<FString>(Self.Instance));
+        case EPropertyType::FVector: return sol::make_object(State, *Property->GetValuePtr<FVector>(Self.Instance));
+        default: return sol::nil;
+        }
+    }
+
+    // __newindex : lua가 쓸 때
+    static void NewIndex(LuaComponentProxy& Self, const char* Key, sol::object Obj) {
+        auto IterateClass = GBoundClasses.find(Self.Class);
+        if (IterateClass == GBoundClasses.end()) return;
+
+        auto It = IterateClass->second.PropsByName.find(Key);
+        if (It == IterateClass->second.PropsByName.end()) return;
+
+        const FBoundProp& BoundProp = It->second;
+        const FProperty* Property = BoundProp.Property;
+        
+        switch (Property->Type) {
+        case EPropertyType::Float:
+            if (Obj.get_type() == sol::type::number)
+                *Property->GetValuePtr<float>(Self.Instance) = (float)Obj.as<double>();
+            break;
+        case EPropertyType::Int32:
+            if (Obj.get_type() == sol::type::number)
+                *Property->GetValuePtr<int>(Self.Instance) = (int)Obj.as<double>();
+            break;
+        case EPropertyType::FString:
+            if (Obj.get_type() == sol::type::string)
+                *Property->GetValuePtr<FString>(Self.Instance) = Obj.as<FString>();
+            break;
+        case EPropertyType::FVector:
+            if (Obj.is<FVector>()) {
+                *Property->GetValuePtr<FVector>(Self.Instance) = Obj.as<FVector>();
+            } else if (Obj.get_type() == sol::type::table) {
+                sol::table t = Obj.as<sol::table>();
+                FVector tmp{
+                    (float)t.get_or("X", 0.0),
+                    (float)t.get_or("Y", 0.0),
+                    (float)t.get_or("Z", 0.0)
+                };
+                *Property->GetValuePtr<FVector>(Self.Instance) = tmp;
+            }
+            break;
+        default: break;
+        }
+    }
+};
+
+void FLuaManager::RegisterComponentProxy(sol::state& Lua) {
+    Lua.new_usertype<LuaComponentProxy>("Component",
+        sol::meta_function::index,     &LuaComponentProxy::Index,
+        sol::meta_function::new_index, &LuaComponentProxy::NewIndex
+    );
+}
+
+static sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class) {
+    BuildBoundClass(Class);
+    LuaComponentProxy Proxy;
+    Proxy.Instance = Instance;
+    Proxy.Class = Class;
+    return sol::make_object(SolState, std::move(Proxy));
+}
+
+void FLuaManager::ExposeAllComponentsToLua()
+{
+    SharedLib["Components"] = Lua->create_table();
+
+    SharedLib.set_function("AddComponent",
+        [this](sol::object Obj, const FString& ClassName)
+        {
+           if (!Obj.is<FGameObject&>()) {
+                UE_LOG("[Lua] Error: Expected GameObject\n");
+                return sol::make_object(*Lua, sol::nil);
+            }
+        
+            FGameObject& GameObject = Obj.as<FGameObject&>();
+            AActor* Actor = GameObject.GetOwner();
+
+            UClass* Class = UClass::FindClass(ClassName);
+            if (!Class) return sol::make_object(*Lua, sol::nil);
+
+            UActorComponent* Comp = Actor->AddNewComponent(Class);
+            return MakeCompProxy(*Lua, Comp, Class);
+        });
+
+    SharedLib.set_function("GetComponent",
+        [this](sol::object Obj, const FString& ClassName)
+        {
+            if (!Obj.is<FGameObject&>()) {
+                UE_LOG("[Lua] Error: Expected GameObject\n");
+                return sol::make_object(*Lua, sol::nil);
+            }
+            
+            FGameObject& GameObject = Obj.as<FGameObject&>();
+            AActor* Actor = GameObject.GetOwner();
+
+            UClass* Class = UClass::FindClass(ClassName);
+            if (!Class) return sol::make_object(*Lua, sol::nil);
+            
+            UActorComponent* Comp = Actor->GetComponent(Class);
+            if (!Comp) return sol::make_object(*Lua, sol::nil); 
+            
+            return MakeCompProxy(*Lua, Comp, Class);
+        }
+    );
+}
+
 bool FLuaManager::LoadScriptInto(sol::environment& Env, const FString& Path) {
     auto Chunk = Lua->load_file(Path);
     if (!Chunk.valid()) { sol::error Err = Chunk; UE_LOG("[Lua] %s", Err.what()); return false; }
@@ -110,6 +282,7 @@ void FLuaManager::ShutdownBeforeLuaClose()
     SharedLib = sol::nil;
 }
 
+// Lua 함수 캐시 함수
 sol::protected_function FLuaManager::GetFunc(sol::environment& Env, const char* Name)
 {
     // (*Lua)[BeginPlay]()를 VM이 아닌, env에서 생성 및 캐시한다.
@@ -117,7 +290,7 @@ sol::protected_function FLuaManager::GetFunc(sol::environment& Env, const char* 
     if (!Env.valid())
         return {};
 
-    sol::object Object = Env.raw_get_or(Name, sol::make_object(Env.lua_state(), sol::nil));
+    sol::object Object = Env[Name];
     
     if (Object == sol::nil || Object.get_type() != sol::type::function)
         return {};

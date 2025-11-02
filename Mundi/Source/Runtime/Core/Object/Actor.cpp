@@ -227,6 +227,18 @@ void AActor::RemoveOwnedComponent(UActorComponent* Component)
 	Component->DestroyComponent();
 }
 
+// Actor의 첫번째 Component 찾아 반환
+UActorComponent* AActor::GetComponent(UClass* ComponentClass)
+{
+	if (!ComponentClass) return nullptr;
+	for (UActorComponent* Comp : OwnedComponents)
+	{
+		if (!Comp) continue;
+		if (Comp->IsA(ComponentClass)) return Comp;
+	}
+	return nullptr;
+}
+
 void AActor::RegisterAllComponents(UWorld* InWorld)
 {
 	for (UActorComponent* Component : OwnedComponents)

@@ -19,8 +19,8 @@ enum class EPropertyType : uint8
 	Array,			// TArray 용으로 추가
 	SRV,
 	ScriptFile,
-
 	// 추후 추가될 프로퍼티들은 직접 해줘야함.
+	Count			// 요소 개수, 항상 마지막!
 };
 
 // 프로퍼티 메타데이터
