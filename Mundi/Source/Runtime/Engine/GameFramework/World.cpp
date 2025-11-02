@@ -60,11 +60,16 @@ UWorld::~UWorld()
 
 void UWorld::Initialize()
 {
-	CreateLevel();
+	// 최근에 사용한 레벨 불러오기를 시도합니다.
+	if (!TryLoadLastUsedLevel())
+	{
+		// 실패 시 (또는 저장된 레벨이 없을 시) 기본 씬을 생성합니다.
+		CreateLevel();
+	}
 
+	// 에디터 전용 액터들을 초기화합니다.
 	InitializeGrid();
 	InitializeGizmo();
-
 }
 
 void UWorld::InitializeGrid()
@@ -88,6 +93,37 @@ void UWorld::InitializeGizmo()
 	EditorActors.push_back(GizmoActor);
 }
 
+bool UWorld::TryLoadLastUsedLevel()
+{
+	if (!EditorINI.Contains("LastUsedLevel"))
+	{
+		return false;
+	}
+
+	FWideString LastUsedLevelPath = UTF8ToWide(EditorINI["LastUsedLevel"]);
+	
+	// 로드 직전: Transform 위젯/선택 초기화
+	UUIManager::GetInstance().ClearTransformWidgetSelection();
+	GWorld->GetSelectionManager()->ClearSelection();
+
+	std::unique_ptr<ULevel> NewLevel = ULevelService::CreateDefaultLevel();
+	JSON LevelJsonData;
+	if (FJsonSerializer::LoadJsonFromFile(LevelJsonData, LastUsedLevelPath))
+	{
+		NewLevel->Serialize(true, LevelJsonData);
+	}
+	else
+	{
+		UE_LOG("[error] MainToolbar: Failed To Load Level From: %s", LastUsedLevelPath.c_str());
+		return false;
+	}
+
+	SetLevel(std::move(NewLevel));
+
+	UE_LOG("MainToolbar: Scene loaded successfully: %s", LastUsedLevelPath.c_str());
+	return true;
+}
+
 void UWorld::Tick(float DeltaSeconds)
 {
     Partition->Update(DeltaSeconds, /*budget*/256);
@@ -95,7 +131,9 @@ void UWorld::Tick(float DeltaSeconds)
 //순서 바꾸면 안댐
 	if (Level)
 	{
-		for (AActor* Actor : Level->GetActors())
+		// Tick 중에 새로운 actor가 추가될 수도 있어서 복사 후 호출
+		TArray<AActor*> LevelActors = Level->GetActors();
+		for (AActor* Actor : LevelActors)
 		{
 			if (Actor && (Actor->CanTickInEditor() || bPie))
 			{
@@ -148,7 +186,6 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 	FWorldContext PIEWorldContext = FWorldContext(PIEWorld, EWorldType::Game);
 	GEngine.AddWorldContext(PIEWorldContext);
 	
-
 	const TArray<AActor*>& SourceActors = InEditorWorld->GetLevel()->GetActors();
 	for (AActor* SourceActor : SourceActors)
 	{

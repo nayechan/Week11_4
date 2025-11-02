@@ -46,6 +46,11 @@ FLuaManager::FLuaManager()
         
         [](double num){
             UE_LOG("[Lua] %f\n", num);
+        },
+
+        [](FVector Vector)
+        {
+            UE_LOG("[Lua] (%f, %f, %f)\n", Vector.X, Vector.Y, Vector.Z);
         }
     ));
 
