@@ -11,7 +11,7 @@ local function PushFireball(Fireball)
     Fireball.bIsActive = false
     Fireball.Velocity = Vector(0,0,0)
     --여기에 문제가 있는 것 같은,, 초기화 이슈 
-    Fireball.Location = GlobalConfig.SpawnAreaPos
+    --Fireball.Location = GlobalConfig.SpawnAreaPos
 
     FireballsPool[#FireballsPool + 1] = Fireball
 

@@ -32,9 +32,16 @@ AStaticMeshActor::~AStaticMeshActor()
 
 FAABB AStaticMeshActor::GetBounds() const
 {
-    if (StaticMeshComponent)
+    // 멤버 변수를 직접 사용하지 않고, 현재의 RootComponent를 확인하도록 수정
+    // 기본 컴포넌트가 제거되는 도중에 어떤 로직에 의해 GetBounds() 함수가 호출
+    // 이 시점에 AStaticMeshActor의 멤버변수인 UStaticMeshComponent는 아직 새로운 컴포넌트
+    // ID 751로 업데이트되기 전. 제거된 기본 컴포넌트를 여전히 가리키고 있음. 
+    // 유효하지 않은 staticmeshcomponent 포인터의 getworldaabb 함수를 호출 시도.
+
+    UStaticMeshComponent* CurrentSMC = Cast<UStaticMeshComponent>(RootComponent);
+    if (CurrentSMC)
     {
-        return StaticMeshComponent->GetWorldAABB();
+        return CurrentSMC->GetWorldAABB();
     }
 
     return FAABB();

@@ -489,22 +489,25 @@ void UTargetActorTransformWidget::RenderSelectedActorDetails(AActor* SelectedAct
 	{
 		return;
 	}
+	// 리플렉션이 적용된 컴포넌트는 자동으로 UI 생성
+	ImGui::Separator();
+	ImGui::Text("[Reflected Properties]");
+	UPropertyRenderer::RenderAllPropertiesWithInheritance(SelectedActor);
+
+
 	USceneComponent* RootComponent = SelectedActor->GetRootComponent();
-	const TArray<FProperty>& Properties = USceneComponent::StaticClass()->GetProperties();
-	
-
-	UPropertyRenderer::RenderProperties(Properties, RootComponent);
-
-	bool bActorHiddenInGame = SelectedActor->GetActorHiddenInGame();
-	if (ImGui::Checkbox("bActorHiddendInGame", &bActorHiddenInGame))
+	if (RootComponent)
 	{
-		SelectedActor->SetActorHiddenInGame(bActorHiddenInGame);
+		RenderSelectedComponentDetails(RootComponent);
 	}
+
+	ImGui::Spacing();
+	ImGui::Separator();
+
 }
 
 void UTargetActorTransformWidget::RenderSelectedComponentDetails(UActorComponent* SelectedComponent)
 {
-
 	ImGui::Spacing();
 	ImGui::Separator();
 

@@ -3,6 +3,7 @@
 #include "OBB.h"
 #include "Collision.h"
 #include "World.h"
+#include "../Scripting/GameObject.h"
 
 IMPLEMENT_CLASS(UShapeComponent)
 
@@ -62,12 +63,21 @@ void UShapeComponent::UpdateOverlaps()
             if (!Other || Other == this) continue;
             if (Other->GetOwner() == this->GetOwner()) continue;
             if (!Other->bGenerateOverlapEvents) continue;
- 
+            
+            AActor* Owner = this->GetOwner();
+            AActor* OtherOwner = Other->GetOwner();
+
+            if (Owner && Owner->GetTag() == "Tile"
+                && OtherOwner && OtherOwner->GetTag() == "Tile")
+            {
+                continue;
+            }
+
             // Collision 모듈
             if (!Collision::CheckOverlap(this, Other)) continue;
 
             OverlapNow.Add(Other);
-            UE_LOG("Collision!!");
+            //UE_LOG("Collision!!");
         }
     } 
 
@@ -87,6 +97,10 @@ void UShapeComponent::UpdateOverlaps()
         if (!OverlapPrev.Contains(Comp))
         {
             Owner->OnComponentBeginOverlap.Broadcast(this, Comp);
+            if (AActor* OtherOwner = Comp->GetOwner())
+            {
+                OtherOwner->OnComponentBeginOverlap.Broadcast(Comp, this);
+            }
             
             if (bBlockComponent)
             {

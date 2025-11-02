@@ -18,6 +18,7 @@ class AActor : public UObject
 {
 public:
     DECLARE_CLASS(AActor, UObject)
+    GENERATED_REFLECTION_BODY()
 
     DECLARE_DELEGATE(OnComponentBeginOverlap, UPrimitiveComponent*, UPrimitiveComponent*);
     DECLARE_DELEGATE(OnComponentEndOverlap, UPrimitiveComponent*, UPrimitiveComponent*);
@@ -38,6 +39,9 @@ public:
     // 이름
     void SetName(const FString& InName) { Name = InName; }
     const FName& GetName() { return Name; }
+    
+    void SetTag(const FString& InTag) { Tag = InTag; }
+    const FString& GetTag() const { return Tag; }
 
     // 월드/표시
     void SetWorld(UWorld* InWorld) { World = InWorld; }
@@ -140,8 +144,8 @@ public:
     void SetActorHiddenInEditor(bool bNewHidden);
     bool GetActorHiddenInEditor() const { return bHiddenInEditor; }
     // Visible false인 경우 게임, 에디터 모두 안 보임
-    void SetActorHiddenInGame(bool bNewHidden) { bHiddenInGame = bNewHidden; }
-    bool GetActorHiddenInGame() { return bHiddenInGame; }
+    void SetActorHiddenInGame(bool bNewHidden) { bActorHiddenInGame = bNewHidden; }
+    bool GetActorHiddenInGame() { return bActorHiddenInGame; }
     bool IsActorVisible() const;
 
     bool CanTickInEditor() const
@@ -172,6 +176,8 @@ public:
     USceneComponent* RootComponent = nullptr;
     UTextRenderComponent* TextComp = nullptr;
 
+    FString Tag;  // for collision check
+
 protected:
     // NOTE: RootComponent, CollisionComponent 등 기본 보호 컴포넌트들도
     // OwnedComponents와 SceneComponents에 포함되어 관리됨.
@@ -179,7 +185,7 @@ protected:
     TArray<USceneComponent*> SceneComponents; // 씬 컴포넌트들만 별도 캐시(트리/렌더/ImGui용)
     
     bool bTickInEditor = false; // 에디터에서도 틱 허용
-    bool bHiddenInGame = false;
+    bool bActorHiddenInGame = false;
     // Actor의 Visibility는 루트 컴포넌트로 설정
     bool bHiddenInEditor = false;
     bool bPendingDestroy = false;

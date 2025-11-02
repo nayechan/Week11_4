@@ -17,6 +17,7 @@ FLuaManager::FLuaManager()
 
     Lua->new_usertype<FGameObject>("GameObject",
         "UUID", &FGameObject::UUID,
+        "Tag", &FGameObject::Tag,
         "Location", sol::property(&FGameObject::GetLocation, &FGameObject::SetLocation),
         "Rotation", sol::property(&FGameObject::GetRotation, &FGameObject::SetRotation), 
         "Scale", sol::property(&FGameObject::GetScale, &FGameObject::SetScale),
