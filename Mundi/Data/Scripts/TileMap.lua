@@ -1,8 +1,8 @@
 local Tiles = {}
 local TileMeta = {}
 local TileSize = 2;
-local GridWidth = 11
-local GridHeight = 11
+local GridWidth = 11 * 3
+local GridHeight = 11 * 3
 
 -- Lua 내부용 가짜 UUID 생성기
 local uuidCounter = 0

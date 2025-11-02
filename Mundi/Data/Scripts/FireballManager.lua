@@ -34,7 +34,7 @@ local function PopFireball()
 end
 
 function DestroyFireball(Fireball)
-    coroutine.yield("wait_time", 3.0)
+    coroutine.yield("wait_time", 2.0)
     PushFireball(Fireball)
 end
 
