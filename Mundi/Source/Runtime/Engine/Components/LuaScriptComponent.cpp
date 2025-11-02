@@ -3,6 +3,8 @@
 #include "PrimitiveComponent.h"
 #include <sol/state.hpp>
 #include <sol/coroutine.hpp>
+
+#include "CameraActor.h"
 #include "../Scripting/LuaManager.h"
 #include "../Scripting/GameObject.h"
 

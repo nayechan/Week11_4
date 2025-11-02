@@ -38,6 +38,7 @@ public:
     FMatrix GetViewProjectionMatrix() const;
 
     // Directions (world)
+    void SetForward(FVector InForward);
     FVector GetForward() const;
     FVector GetRight() const;
     FVector GetUp() const;

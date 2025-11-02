@@ -3,6 +3,7 @@
 #include "GameObject.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
+#include <tuple>
 
 FLuaManager::FLuaManager()
 {
@@ -48,7 +49,16 @@ FLuaManager::FLuaManager()
                 }
                 Camera->SetActorLocation(FVector(X, Y, Z));
             }
-        )
+        ),
+        "SetForward",
+        [](ACameraActor* Camera, FVector Direction)
+        {
+            if (!Camera)
+            {
+                return;
+            }
+            Camera->SetForward(Direction);
+        }
     );
     Lua->new_usertype<UInputManager>("InputManager",
         "IsKeyDown", sol::overload(
@@ -69,10 +79,14 @@ FLuaManager::FLuaManager()
                 if (Key.empty()) return false;
                 return Self->IsKeyReleased(Key[0]);
             }),
-    "IsMouseButtonDown", &UInputManager::IsMouseButtonDown,
-    "IsMouseButtonPressed", &UInputManager::IsMouseButtonPressed,
-    "IsMouseButtonReleased", &UInputManager::IsMouseButtonReleased
-);                
+        "IsMouseButtonDown", &UInputManager::IsMouseButtonDown,
+        "IsMouseButtonPressed", &UInputManager::IsMouseButtonPressed,
+        "IsMouseButtonReleased", &UInputManager::IsMouseButtonReleased,
+        "GetMouseDelta", [](UInputManager* Self) {
+            const FVector2D Delta = Self->GetMouseDelta();
+            return FVector(Delta.X, Delta.Y, 1.0);
+        }
+    );                
     
     sol::table MouseButton = Lua->create_table("MouseButton");
     MouseButton["Left"] = EMouseButton::LeftButton;

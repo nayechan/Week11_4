@@ -146,6 +146,25 @@ FMatrix ACameraActor::GetViewProjectionMatrix() const
     return GetViewMatrix() * GetProjectionMatrix();
 }
 
+void ACameraActor::SetForward(FVector InForward)
+{
+    const FVector Forward = InForward.GetSafeNormal();
+    if (Forward.IsZero())
+    {
+        return;
+    }
+
+    const float HorizontalLen = std::sqrt(Forward.X * Forward.X + Forward.Y * Forward.Y);
+    float YawDeg = CameraYawDeg;
+    if (HorizontalLen > KINDA_SMALL_NUMBER)
+    {
+        YawDeg = RadiansToDegrees(std::atan2(Forward.Y, Forward.X));
+    }
+    const float PitchDeg = -RadiansToDegrees(std::atan2(Forward.Z, HorizontalLen));
+
+    SetAnglesImmediate(PitchDeg, YawDeg);
+}
+
 FVector ACameraActor::GetForward() const
 {
     return CameraComponent ? CameraComponent->GetForward() : FVector(1, 0, 0);
