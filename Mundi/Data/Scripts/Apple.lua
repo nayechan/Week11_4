@@ -1,3 +1,7 @@
+-- Apple.lua
+
+local LifeTime = 5.0 -- 사과 생존 시간 (초)
+
 local function NormalizeCopy(V)
     local Out = Vector(V.X, V.Y, V.Z)
     Out:Normalize()
@@ -6,10 +10,15 @@ end
 
 function BeginPlay()
     print("[BeginPlay] " .. Obj.UUID)
+    Obj.Tag = "apple"
     Obj.Velocity = Vector(1, 0, 0)
     Obj.bIsActive = true
 
-    
+    StartCoroutine(function()
+        coroutine.yield("wait_time", LifeTime)
+        DeleteObject(Obj)
+        print("[Apple] Lifetime expired, deleted.")
+    end)
 end
 
 function EndPlay()
@@ -18,6 +27,12 @@ end
 
 function OnBeginOverlap(OtherActor)
     --[[Obj:PrintLocation()]]--
+    if OtherActor.Tag == "fireball" then
+        print("[Apple] Hit Fireball! Resetting it.")
+        if GlobalConfig.ResetFireballs then
+            GlobalConfig.ResetFireballs(OtherActor)
+        end
+    end
 end
 
 function OnEndOverlap(OtherActor)
