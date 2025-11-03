@@ -41,7 +41,6 @@ function BeginPlay()
         -- if tile.Mesh then tile.Mesh.bVisible = false end
         -- if tile.Collider then tile.Collider.bEnabled = false end
         tile.bIsActive = false
-        tile.Location.Z = tile.Location.Z - 10
 
         -- -- 메타테이블에서 제거
         Tiles[meta.index] = nil

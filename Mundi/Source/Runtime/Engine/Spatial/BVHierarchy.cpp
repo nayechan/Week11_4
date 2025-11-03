@@ -93,7 +93,15 @@ void FBVHierarchy::Update(UPrimitiveComponent* InComponent)
         return;
     }
 
-    StaticMeshComponentBounds.Add(InComponent, InComponent->GetWorldAABB());
+    if (InComponent->IsPendingDestroy() || !InComponent->GetOwner())
+    {
+        Remove(InComponent);
+        return;
+    }
+
+    const FAABB WorldBounds = InComponent->GetWorldAABB();
+
+    StaticMeshComponentBounds.Add(InComponent, WorldBounds);
     bPendingRebuild = true;
 }
 

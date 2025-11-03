@@ -10,9 +10,9 @@ local MovementDelta = 0.1
 local ForwardVector         = Vector(1, 0, 0)
 local CameraLocation        = Vector(0, 0, 0)
 
-local Gravity               = -1.0
-local bGravity              = false
-local bActive               = false
+local Gravity               = -50.0
+local bStart                = false
+local bDie                  = false
 
 local ActiveIDs = {}
 local IDCount = 0
@@ -24,7 +24,12 @@ function AddID(id)
     if not ActiveIDs[id] then
         ActiveIDs[id] = true
         IDCount = IDCount + 1
-        -- print("Added ID:".. id .. "Count:".. IDCount)
+        print("Added ID:".. id .. "Count:".. IDCount)
+
+        if Gravity < 0 and not bStart then
+            Gravity = 0
+            bStart = true
+        end
     end
 end
 
@@ -57,10 +62,8 @@ local function RotateAroundAxis(VectorIn, Axis, Angle)
 end
 
 ------------------------------------------------------------
-function BeginPlay()
-    print("[BeginPlay] " .. Obj.UUID)
-    Obj.Location = PlayerInitPosition
-    Obj.Velocity = PlayerInitVelocity
+function BeginPlay()  
+    Rebirth()
 
     local Camera = GetCamera()
     if Camera then
@@ -71,15 +74,12 @@ function BeginPlay()
 end
 
 function EndPlay()
-    print("[EndPlay] " .. Obj.UUID)
+    ActiveIDs = {}
 end
 
 function OnBeginOverlap(OtherActor)
     if OtherActor.Tag == "tile" then
         AddID(OtherActor.UUID)
-        if not bActive then
-            bActive = true
-        end
     elseif OtherActor.Tag == "fireball" then
         Die()
     end
@@ -92,43 +92,27 @@ function OnEndOverlap(OtherActor)
 end
 
 function Tick(Delta)
+    PlayerMove(Delta)
+
+    if not ManageGameState() then
+        return
+    end
+
+    if InputManager:IsKeyDown('W') then MoveForward(MovementDelta) end
+    if InputManager:IsKeyDown('S') then MoveForward(-MovementDelta) end
+    if InputManager:IsKeyDown('A') then MoveRight(-MovementDelta) end
+    if InputManager:IsKeyDown('D') then MoveRight(MovementDelta) end
+    if InputManager:IsKeyDown('Q') then Die() end -- 죽기를 선택
+    if InputManager:IsMouseButtonPressed(0) then ShootProjectile() end
+
+    CameraMove()
+    Rotate()
+end
+
+function PlayerMove(Delta)
     local GravityAccel = Vector(0, 0, Gravity)
     Obj.Velocity = GravityAccel * Delta
     Obj.Location = Obj.Location + Obj.Velocity * Delta
-
-    if not bActive then -- Not Started
-        Gravity = -30
-        MoveCamera()
-        return
-
-    elseif bGravity then -- and Active! => Die
-        Gravity = -50
-        
-        if Obj.Location.Z < -5 then
-            Rebirth()
-        end
-
-    elseif not bGravity then -- and Active!
-        Gravity = 0.0
-        MoveCamera()
-
-        if IDCount == 0 then
-            Die()
-        end
-
-        Rotate()
-
-        if InputManager:IsKeyDown('W') then MoveForward(MovementDelta) end
-        if InputManager:IsKeyDown('S') then MoveForward(-MovementDelta) end
-        if InputManager:IsKeyDown('A') then MoveRight(-MovementDelta) end
-        if InputManager:IsKeyDown('D') then MoveRight(MovementDelta) end
-        if InputManager:IsKeyDown('E') then Die() end -- 죽기를 선택
-
-        if InputManager:IsMouseButtonPressed(0) then
-            print("Left button clicked")
-            ShootProjectile()
-        end
-    end
 end
 
 function ShootProjectile()
@@ -152,17 +136,45 @@ function ShootProjectile()
     print(string.format("Projectile fired! Loc:(%.2f, %.2f, %.2f)", projectile.Location.X, projectile.Location.Y, projectile.Location.Z))
 end
 
-function Die()
-    bGravity = true
+------------------------------------------------------------
+function ManageGameState()
+    if GlobalConfig.GameState == "Playing" then
+        if bDie then
+            return false
+        elseif IDCount == 0 and Gravity == 0 then
+            Die()
+            return false
+        end
+        return true
+
+    elseif GlobalConfig.GameState == "End" then
+        DeleteObject(Obj) 
+    end
+
+    return false
+end
+
+function Die()    
     ActiveIDs = {}
+    bDie = true
+    Gravity = -50
+    print(Gravity)
+    
+    StartCoroutine(EndAfter)
+end
+
+function EndAfter()
+    coroutine.yield("wait_time", 2)
+    GlobalConfig.PlayerState = "Dead"
 end
 
 function Rebirth()
-    bActive = false
-    bGravity = false
-    Obj.Location = PlayerInitPosition
-end
+    bDie = false
+    Gravity = -50
 
+    Obj.Location = PlayerInitPosition
+    Obj.Velocity = PlayerInitVelocity
+end
 ------------------------------------------------------------
 function Rotate()
     local MouseDelta = InputManager:GetMouseDelta()
@@ -202,7 +214,7 @@ end
 
 ---------------------------------------------------------
 
-function MoveCamera()
+function CameraMove()
     SetCamera()
     Billboard()
 end

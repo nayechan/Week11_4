@@ -20,15 +20,21 @@ ULuaScriptComponent::ULuaScriptComponent()
 	bCanEverTick = true;	// tick 지원 여부
 }
 
-ULuaScriptComponent::~ULuaScriptComponent() { Lua = nullptr; }
+ULuaScriptComponent::~ULuaScriptComponent()
+{
+	Owner->OnComponentBeginOverlap.Remove(BeginHandleLua);
+	Owner->OnComponentEndOverlap.Remove(EndHandleLua);
+	
+	Lua = nullptr;
+}
 
 void ULuaScriptComponent::BeginPlay()
 {
 	// 델리게이트 등록
 	if (AActor* Owner = GetOwner())
 	{
-		FDelegateHandle BeginHandleLua = Owner->OnComponentBeginOverlap.AddDynamic(this, &ULuaScriptComponent::OnBeginOverlap);
-		FDelegateHandle EndHandleLua = Owner->OnComponentEndOverlap.AddDynamic(this, &ULuaScriptComponent::OnEndOverlap);
+		BeginHandleLua = Owner->OnComponentBeginOverlap.AddDynamic(this, &ULuaScriptComponent::OnBeginOverlap);
+		EndHandleLua = Owner->OnComponentEndOverlap.AddDynamic(this, &ULuaScriptComponent::OnEndOverlap);
 		//FDelegateHandle HitHandleLua = Owner->OnComponentHit.AddDynamic(this, ULuaScriptComponent::OnHit);
 	}
 

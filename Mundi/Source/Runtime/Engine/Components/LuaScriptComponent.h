@@ -42,4 +42,7 @@ protected:
 	sol::protected_function FuncOnEndOverlap{};
 	sol::protected_function FuncOnHit{};
 	sol::protected_function FuncEndPlay{};
+
+	FDelegateHandle BeginHandleLua; 
+	FDelegateHandle EndHandleLua;
 };

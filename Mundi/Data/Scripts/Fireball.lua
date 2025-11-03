@@ -10,7 +10,6 @@ end
 
 function OnBeginOverlap(OtherActor)
     --[[Obj:PrintLocation()]]--
-    print("Fireball ")
 end
 
 function OnEndOverlap(OtherActor)

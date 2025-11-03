@@ -184,7 +184,7 @@ void ACameraActor::ProcessEditorCameraInput(float DeltaSeconds)
 {
     if (World->bPie)
     {
-        return;
+        //return;
     }
 
     UInputManager& InputManager = UInputManager::GetInstance();
