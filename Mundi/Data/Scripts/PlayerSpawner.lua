@@ -18,8 +18,8 @@ function OnEndOverlap(OtherActor)
 end
 
 function Tick(dt)
-    print(GlobalConfig.GameState)
-    
+    --print(GlobalConfig.GameState)
+
     if GlobalConfig.GameState == "Init" then
         SpawnPrefab("Data/Prefabs/Player.prefab")
         GlobalConfig.PlayerState = "Alive"

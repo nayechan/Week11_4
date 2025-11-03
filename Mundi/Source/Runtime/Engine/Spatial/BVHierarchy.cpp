@@ -93,7 +93,7 @@ void FBVHierarchy::Update(UPrimitiveComponent* InComponent)
         return;
     }
 
-    if (InComponent->IsPendingDestroy() || !InComponent->GetOwner())
+    if (InComponent->IsPendingDestroy() || !InComponent->GetOwner() || !InComponent->GetOwner()->IsActorActive())
     {
         Remove(InComponent);
         return;

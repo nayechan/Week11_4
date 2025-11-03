@@ -2,13 +2,8 @@ UpVector = Vector(0, 0, 1)
 
 local YawSensitivity        = 0.005
 local PitchSensitivity      = 0.0025
-local PitchGuardDegrees     = 1.0
-local VerticalDotLimit      = math.cos(math.rad(90 - PitchGuardDegrees)) -- ≈ cos(89°)
 
 local MovementDelta = 0.1
-
-local ForwardVector         = Vector(1, 0, 0)
-local CameraLocation        = Vector(0, 0, 0)
 
 local Gravity               = -50.0
 local bStart                = false
@@ -17,8 +12,11 @@ local bDie                  = false
 local ActiveIDs = {}
 local IDCount = 0
 
-local PlayerInitPosition = Vector(0, 0, 3)
+local PlayerInitPosition = Vector(0, 0, 2)
 local PlayerInitVelocity = Vector(0, 0, 0)
+
+local CameraLocation     = PlayerInitPosition
+local ForwardVector      = Vector(1, 0, 0)
 
 function AddID(id)
     if not ActiveIDs[id] then
@@ -64,7 +62,6 @@ end
 ------------------------------------------------------------
 function BeginPlay()  
     Rebirth()
-
     local Camera = GetCamera()
     if Camera then
         Camera:SetForward(ForwardVector)
@@ -149,13 +146,15 @@ function ManageGameState()
 
     elseif GlobalConfig.GameState == "End" then
         DeleteObject(Obj) 
+    
+    elseif GlobalConfig.GameState == "Init" then
+        Rebirth()
     end
 
     return false
 end
 
 function Die()    
-    ActiveIDs = {}
     bDie = true
     Gravity = -50
     print(Gravity)
@@ -169,6 +168,7 @@ function EndAfter()
 end
 
 function Rebirth()
+    ActiveIDs = {}
     bDie = false
     Gravity = -50
 

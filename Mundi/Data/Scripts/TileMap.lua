@@ -4,6 +4,8 @@ local TileSize = 2;
 local GridWidth = 11 * 1
 local GridHeight = 11 * 1
 
+local bIsGenerated = false
+
 -- Lua 내부용 가짜 UUID 생성기
 local uuidCounter = 0
 local function GenerateFakeUUID()
@@ -13,8 +15,6 @@ end
 
 function BeginPlay()
     print("[BeginPlay] " .. Obj.UUID)
-    GenerateGrid()
-
     GlobalConfig.TileMapInfo = {
         TileSize = TileSize,
         GridWidth = GridWidth,
@@ -73,6 +73,18 @@ function GenerateGrid()
     end
 end
 
+function DeleteGrid()
+    -- Tiles 배열 순회하면서 삭제
+    for index, tile in pairs(Tiles) do
+        if tile then
+            DeleteObject(tile)
+        end
+    end
+
+    Tiles = {}
+    TileMeta = {}
+end
+
 function EndPlay()
     print("[EndPlay] " .. Obj.UUID)
     GlobalConfig.TileMapInfo = nil
@@ -86,4 +98,23 @@ function OnEndOverlap(OtherActor)
 end
 
 function Tick(dt)
+    ManageState()
+end
+
+function ManageState()
+    if GlobalConfig.GameState == "Init" and not bIsGenerated then
+        GenerateGrid()
+        bIsGenerated = true
+        -- for UUID, Meta in pairs(TileMeta) do
+        --     if Meta.tile and Meta.tile.bIsActive == false then
+        --         Meta.tile.bIsActive = true
+        --         -- Tiles[Meta.index] = 
+        --         -- TileMeta[UUID] = nil
+        --         -- print("Tile activated (UUID): " .. uuid)
+        --     end
+        -- end
+    elseif GlobalConfig.GameState == "End" and bIsGenerated then
+        DeleteGrid()
+        bIsGenerated = false
+    end
 end
