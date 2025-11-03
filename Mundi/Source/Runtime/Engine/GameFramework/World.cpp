@@ -26,6 +26,7 @@
 #include "LightManager.h"
 #include "../Scripting/LuaManager.h"
 #include "ShapeComponent.h"
+#include "Hash.h"
 
 IMPLEMENT_CLASS(UWorld)
 
@@ -126,7 +127,9 @@ bool UWorld::TryLoadLastUsedLevel()
 
 // 함수 내부 코드 순서 유지 필요
 void UWorld::Tick(float DeltaSeconds)
-{
+{	
+	// 중복충돌 방지 pair clear 
+    FrameOverlapPairs.clear();
     Partition->Update(DeltaSeconds, /*budget*/256);
 
 	if (Level)
@@ -162,6 +165,24 @@ void UWorld::Tick(float DeltaSeconds)
 		LuaManager->Tick(DeltaSeconds);
 	}
 
+    // 매팅 충돌 곰사 
+    if (Level)
+    {
+        for (AActor* Actor : Level->GetActors())
+        {
+            if (!Actor) continue;
+            for (USceneComponent* Comp : Actor->GetSceneComponents())
+            {
+                if (UShapeComponent* Shape = Cast<UShapeComponent>(Comp))
+                {
+                    if (Shape->IsActive())
+                    {
+                        Shape->UpdateOverlaps();
+                    }
+                }
+            }
+        }
+    }
 	// 지연 삭제 처리
 	ProcessPendingKillActors();
 }
@@ -447,3 +468,31 @@ AActor* UWorld::SpawnPrefabActor(const FWideString& PrefabPath)
 
 	return nullptr;
 }
+
+
+bool UWorld::TryMarkOverlapPair(const AActor* A, const AActor* B)
+{
+	if (!A || !B) return false;
+	// Canonicalize by pointer value to ensure consistent ordering
+	uintptr_t Pa = reinterpret_cast<uintptr_t>(A);
+	uintptr_t Pb = reinterpret_cast<uintptr_t>(B);
+
+	if (Pa > Pb)
+	{
+		auto Tmp = Pa;
+		Pa = Pb;
+		Pb = Tmp;
+	}
+	uint64 Key1 = (uint64)Pa;
+	uint64 Key2 = (uint64)Pb;
+
+
+	uint64 Key = HashCombine(Key1, Key2);
+
+	if (FrameOverlapPairs.Contains(Key))
+		return false;
+
+	FrameOverlapPairs.Add(Key);
+	return true;
+}
+

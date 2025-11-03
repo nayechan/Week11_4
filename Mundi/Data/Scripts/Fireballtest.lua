@@ -18,6 +18,7 @@ function EndPlay()
 end
 
 function OnBeginOverlap(OtherActor)
+    print(OnOverlap Fireballtest)
 end
 
 function OnEndOverlap(OtherActor)

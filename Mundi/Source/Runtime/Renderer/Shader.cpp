@@ -71,7 +71,7 @@ uint64 UShader::GenerateShaderKey(const TArray<FShaderMacro>& InMacros)
 
 	// 3. FName의 해시를 조합하여 최종 키 해시 생성
 	// (FName의 GetTypeHash()는 내부적으로 정수 인덱스를 사용하므로 매우 빠릅니다.)
-	size_t KeyHash = 0;
+	uint64 KeyHash = 0;
 	for (const FName& Name : SortedNames)
 	{
 		const FName& Definition = UniqueMacroMap[Name];

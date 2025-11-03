@@ -84,7 +84,11 @@ public:
     FString GenerateUniqueActorName(const FString& ActorType);
 
     /** === 타임 / 틱 === */
+    
     virtual void Tick(float DeltaSeconds);
+    // Overlap pair de-duplication (per-frame)
+    bool TryMarkOverlapPair(const AActor* A, const AActor* B);
+
 
     /** === 필요한 엑터 게터 === */
     const TArray<AActor*>& GetActors() { static TArray<AActor*> Empty; return Level ? Level->GetActors() : Empty; }
@@ -136,6 +140,9 @@ private:
 
     // Per-world selection manager
     std::unique_ptr<USelectionManager> SelectionMgr;
+
+    // Per-frame processed overlap pairs (A,B) keyed canonically
+    TSet<uint64> FrameOverlapPairs;
 };
 
 template<class T>
@@ -163,3 +170,6 @@ inline T* UWorld::SpawnActor(const FTransform& Transform)
 
     return NewActor;
 }
+
+
+

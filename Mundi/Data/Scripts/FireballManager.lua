@@ -1,10 +1,12 @@
--- Fireball 생성, 삭제를 관리해주는 스크립트입니다. 
-local MaxFireNumber = 10
+﻿-- Fireball 생성, 삭제를 관리해주는 스크립트입니다. 
+local MaxFireNumber = 1
 local CurrentFireNumber = 0
 local FireballsPool = {} 
 
-local MinVelocity = 30
-local MaxVelocity = 60
+local MinVelocity = 1
+local MaxVelocity = 3
+
+local DestroyTime = 10.0
 
 
 local function PushFireball(Fireball) 
@@ -34,7 +36,7 @@ local function PopFireball()
 end
 
 function DestroyFireball(Fireball)
-    coroutine.yield("wait_time", 3.0)
+    coroutine.yield("wait_time", DestroyTime)
     PushFireball(Fireball)
 end
 
@@ -51,7 +53,7 @@ function BeginPlay()
 
     end
 
-    -- Fireball 생성 함수를 전역에 등록
+    -- Fireball 생성 함수를 전역에 등록    
     GlobalConfig.SpawnFireballAt = function(Pos, Dir)
 
         -- 최대 개수 조절
@@ -60,27 +62,25 @@ function BeginPlay()
             return false
         end
         
-        print(CurrentFireNumber)
+        -- print(CurrentFireNumber)
 
-        NewFireball = PopFireball()
-        
-        if NewFireball ~= nil then
-            NewFireball.Location = Pos
+        local newFireball = PopFireball()
+        if newFireball ~= nil then
+            newFireball.Location = Pos
             local speed = (MinVelocity + (MaxVelocity - MinVelocity) * math.random())
             if Dir == nil then
                 Dir = Vector(0, 0, -1)
             end
-            NewFireball.Velocity = Dir * speed
+            newFireball.Velocity = Dir * speed
             StartCoroutine(function()
-            DestroyFireball(NewFireball)
+            DestroyFireball(newFireball)
             end)
-            -- TODO 삭제 코루틴
         end
  
         return true
     end 
 
-    -- Fireball 생성 가능여부 함수를 전역에 등록
+        -- Fireball 생성 가능여부 함수를 전역에 등록
     GlobalConfig.IsCanSpawnFireball = function()
         return CurrentFireNumber < MaxFireNumber
     end  
@@ -105,4 +105,5 @@ function Tick(dt)
     
         
 end
+
 

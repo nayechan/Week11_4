@@ -10,6 +10,8 @@ function EndPlay()
 end
 
 function OnBeginOverlap(OtherActor)
+    --[[Obj:PrintLocation()]]--
+    print("Fireball ")
 end
 
 function OnEndOverlap(OtherActor)
@@ -18,7 +20,7 @@ end
 
 function Tick(dt)
     Obj.Location = Obj.Location + Obj.Velocity * dt
- 
+  
      
     if not Obj.bIsActive then
         return 

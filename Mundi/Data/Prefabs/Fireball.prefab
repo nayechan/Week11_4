@@ -1,7 +1,19 @@
 {
   "Name" : "AFireBallActor_0",
   "OwnedComponents" : [{
-      "Id" : 4076,
+      "PivotTranslation" : [0.000000, 0.000000, 0.000000],
+      "RotationRate" : [0.000000, 0.000000, 400.000000],
+      "Type" : "URotatingMovementComponent",
+      "bIsActive" : true,
+      "bRotationInLocalSpace" : true,
+      "bTickEnabled" : true
+    }, {
+      "ScriptFilePath" : "Data/Scripts/Fireball.lua",
+      "Type" : "ULuaScriptComponent",
+      "bIsActive" : true,
+      "bTickEnabled" : true
+    }, {
+      "Id" : 1531,
       "MaterialSlots" : [{
           "Overrides" : {
             "Scalars" : {
@@ -18,7 +30,7 @@
           "Type" : "UMaterialInstanceDynamic"
         }],
       "ParentId" : 0,
-      "RelativeLocation" : [1.532815, -1.532816, 1.173165],
+      "RelativeLocation" : [1.532815, -1.532816, 100.000000],
       "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
       "StaticMesh" : "Data/Model/SmoothSphere.obj",
@@ -30,49 +42,12 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }, {
-      "ScriptFilePath" : "Data/Scripts/Fireball.lua",
-      "Type" : "ULuaScriptComponent",
-      "bIsActive" : true,
-      "bTickEnabled" : true
-    }, {
-      "PivotTranslation" : [0.000000, 0.000000, 0.000000],
-      "RotationRate" : [0.000000, 0.000000, 400.000000],
-      "Type" : "URotatingMovementComponent",
-      "bIsActive" : true,
-      "bRotationInLocalSpace" : true,
-      "bTickEnabled" : true
-    }, {
-      "AttenuationRadius" : 5.000000,
-      "FalloffExponent" : 2.000000,
-      "Id" : 4080,
-      "Intensity" : 1.000000,
-      "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
-      "OverrideCameraLightNum" : 0,
-      "ParentId" : 4076,
+      "Id" : 1534,
+      "ParentId" : 1531,
       "RelativeLocation" : [0.000000, 0.000000, 0.000000],
       "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
-      "ShadowBias" : 0.000000,
-      "ShadowResolutionScale" : 1024,
-      "ShadowSharpen" : 0.000000,
-      "ShadowSlopeBias" : 0.000000,
-      "SourceRadius" : 0.000000,
-      "Temperature" : 6500.000000,
-      "Type" : "UPointLightComponent",
-      "bCastShadows" : true,
-      "bHiddenInGame" : false,
-      "bIsActive" : true,
-      "bIsVisible" : true,
-      "bOverrideCameraLightPerspective" : false,
-      "bTickEnabled" : true,
-      "bUseInverseSquareFalloff" : true
-    }, {
-      "Id" : 4079,
-      "ParentId" : 4076,
-      "RelativeLocation" : [0.000000, 0.000000, 0.000000],
-      "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
-      "RelativeScale" : [1.000000, 1.000000, 1.000000],
-      "SphereRadius" : 1.100000,
+      "SphereRadius" : 1.000000,
       "Type" : "USphereComponent",
       "bBlockComponent" : false,
       "bGenerateOverlapEvents" : true,
@@ -83,7 +58,7 @@
       "bShapeIsVisible" : true,
       "bTickEnabled" : true
     }],
-  "RootComponentId" : 4076,
+  "RootComponentId" : 1531,
   "Tag" : "fireball",
   "Type" : "AStaticMeshActor",
   "bActorHiddenInGame" : false
