@@ -113,9 +113,11 @@ function Tick(Delta)
 end
 
 function PlayerMove(Delta)
-    local GravityAccel = Vector(0, 0, Gravity)
-    Obj.Velocity = GravityAccel * Delta
-    Obj.Location = Obj.Location + Obj.Velocity * Delta
+    if GlobalConfig.GameState == "Playing" then
+        local GravityAccel = Vector(0, 0, Gravity)
+        Obj.Velocity = GravityAccel * Delta
+        Obj.Location = Obj.Location + Obj.Velocity * Delta
+    end
 end
 
 function ShootProjectile()

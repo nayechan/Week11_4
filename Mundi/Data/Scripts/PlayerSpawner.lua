@@ -50,7 +50,7 @@ function Tick(dt)
 end
 
 function WaitAndInit()
-    coroutine.yield("wait_time", 5.0)
+    coroutine.yield("wait_time", 1.0)
     GlobalConfig.GameState = "Init"
 end
 
