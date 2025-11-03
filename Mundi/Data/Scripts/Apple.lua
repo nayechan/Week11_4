@@ -28,10 +28,25 @@ end
 function OnBeginOverlap(OtherActor)
     --[[Obj:PrintLocation()]]--
     if OtherActor.Tag == "fireball" then
-        print("[Apple] Hit Fireball! Resetting it.")
-        if GlobalConfig.ResetFireballs then
-            GlobalConfig.ResetFireballs(OtherActor)
+        -- print("[Apple] Hit Fireball! Resetting it.")
+        local fireVel = OtherActor.Velocity
+        if fireVel then
+            -- 기본적으로 반대 방향으로 튕기기
+            local reflected = Vector(-fireVel.X, -fireVel.Y, -fireVel.Z)
+
+            -- 위쪽(+Z축 방향으로)으로 약간 더해줌
+            local upwardBoost = 5.0  -- 위로 튀는 강도 (조정 가능)
+            reflected.Z = reflected.Z + upwardBoost
+
+            -- 감속 계수 적용 (속도가 너무 빠르면)
+            reflected = reflected * 0.8
+
+            OtherActor.Velocity = reflected
         end
+
+        -- if GlobalConfig.ResetFireballs then
+        --     GlobalConfig.ResetFireballs(OtherActor)
+        -- end
     end
 end
 
