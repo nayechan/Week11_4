@@ -88,7 +88,20 @@ FLuaManager::FLuaManager()
             const FVector2D Delta = Self->GetMouseDelta();
             return FVector(Delta.X, Delta.Y, 1.0);
         },
-        "SetCursorVisible", &UInputManager::SetCursorVisible
+        "SetCursorVisible", [](UInputManager* Self, bool bVisible){
+            if (bVisible)
+            {
+                UE_LOG("Set Visible!");
+                Self->SetCursorVisible(true);
+                if (Self->IsCursorLocked())
+                    Self->ReleaseCursor();
+            } else
+            {
+                UE_LOG("Not Set Visible!");
+                Self->SetCursorVisible(false);
+                Self->LockCursor();
+            }
+        }
     );                
     
     sol::table MouseButton = Lua->create_table("MouseButton");
@@ -148,8 +161,14 @@ FLuaManager::FLuaManager()
             return GWorld->GetCameraActor();
         }
     );
-
-
+    SharedLib.set_function("SetForward",
+        [](FGameObject& GameObject, const FVector& InForward)
+        {
+            AActor* Owner = GameObject.GetOwner();
+            Owner->GetRootComponent()->SetForward(InForward);
+            Owner = nullptr;
+        }
+    );
     SharedLib.set_function("DeleteObject", sol::overload(
         [](const FGameObject& GameObject)
         {

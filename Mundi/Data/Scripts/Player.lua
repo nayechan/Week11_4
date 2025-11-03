@@ -129,8 +129,6 @@ function ShootProjectile()
     projectile.Location = Obj.Location + (ForwardVector * forwardOffset) + (UpVector * upOffset)
     projectile.Velocity = ForwardVector * speed
     projectile.bIsActive = true
-
-    print(string.format("Projectile fired! Loc:(%.2f, %.2f, %.2f)", projectile.Location.X, projectile.Location.Y, projectile.Location.Z))
 end
 
 ------------------------------------------------------------
@@ -163,7 +161,7 @@ function Die()
 end
 
 function EndAfter()
-    coroutine.yield("wait_time", 2)
+    coroutine.yield("wait_time", 1)
     GlobalConfig.PlayerState = "Dead"
 end
 
@@ -200,6 +198,9 @@ function Rotate()
     end
 
     ForwardVector = NormalizeCopy(Candidate)
+
+    LootAt = Vector(-ForwardVector.X, -ForwardVector.Y, 0)
+    SetForward(Obj, LootAt)
 end
 
 function MoveForward(Delta)

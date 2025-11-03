@@ -52,6 +52,7 @@ public:
     void SetWorldLocation(const FVector& L);
     FVector GetWorldLocation() const;
 
+    void SetForward(FVector InForward);
     void SetWorldRotation(const FQuat& R);
     FQuat GetWorldRotation() const;
 

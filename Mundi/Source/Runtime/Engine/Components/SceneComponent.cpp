@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "SceneComponent.h"
 #include <algorithm>
+#include <cmath>
 #include "ObjectFactory.h"
 #include "PrimitiveComponent.h"
 #include "WorldPartitionManager.h"
@@ -169,6 +170,44 @@ void USceneComponent::SetWorldLocation(const FVector& L)
 FVector USceneComponent::GetWorldLocation() const
 {
     return GetWorldTransform().Translation;
+}
+
+void USceneComponent::SetForward(FVector InForward)
+{
+    const FVector Forward = InForward.GetSafeNormal();
+    if (Forward.IsZero())
+    {
+        return;
+    }
+
+    const float HorizontalLen = std::sqrt(Forward.X * Forward.X + Forward.Y * Forward.Y);
+
+    float YawRad;
+    if (HorizontalLen > KINDA_SMALL_NUMBER)
+    {
+        YawRad = std::atan2(Forward.Y, Forward.X);
+    }
+    else
+    {
+        const FVector CurrentForward = GetWorldRotation().RotateVector(FVector(1, 0, 0)).GetSafeNormal();
+        YawRad = std::atan2(CurrentForward.Y, CurrentForward.X);
+    }
+
+    float PitchRad;
+    if (HorizontalLen > KINDA_SMALL_NUMBER)
+    {
+        PitchRad = -std::atan2(Forward.Z, HorizontalLen);
+    }
+    else
+    {
+        PitchRad = Forward.Z >= 0.0f ? -HALF_PI : HALF_PI;
+    }
+
+    const FQuat YawQuat = FQuat::FromAxisAngle(FVector(0, 0, 1), YawRad);
+    const FQuat PitchQuat = FQuat::FromAxisAngle(FVector(0, 1, 0), PitchRad);
+    const FQuat NewRotation = (YawQuat * PitchQuat).GetNormalized();
+
+    SetWorldRotation(NewRotation);
 }
 
 void USceneComponent::SetWorldRotation(const FQuat& R)
