@@ -75,7 +75,7 @@ function EndPlay()
 end
 
 function OnBeginOverlap(OtherActor)
-    if OtherActor.Tag == "Tile" then
+    if OtherActor.Tag == "tile" then
         AddID(OtherActor.UUID)
         if not bActive then
             bActive = true
@@ -86,7 +86,7 @@ function OnBeginOverlap(OtherActor)
 end
 
 function OnEndOverlap(OtherActor)
-    if OtherActor.Tag == "Tile" then
+    if OtherActor.Tag == "tile" then
         RemoveID(OtherActor.UUID)
     end
 end

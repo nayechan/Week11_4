@@ -71,12 +71,12 @@ function Tick(dt)
     if level == 1 then
         RotationSpeed = .1 
     elseif level == 2 then
-        RotationSpeed = .2
+        RotationSpeed = .5
     elseif level == 3 then
-        RotationSpeed = .3
+        RotationSpeed = .7
     elseif level == 4 then
-        RotationSpeed = .4
-        
+        RotationSpeed = 1.
+    end
 
     -- 사인 진동으로 Z 각 계산: BaseRotZ ± AmplitudeDeg
     local zOffset = AmplitudeDeg * math.sin(2.0 * math.pi * RotationSpeed * RotTime)    

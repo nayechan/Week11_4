@@ -627,7 +627,7 @@ namespace sol {
 			ref = luaL_ref(lua_state(), LUA_REGISTRYINDEX);
 		}
 		basic_reference(lua_State* L_, lua_nil_t) noexcept : luastate(detail::pick_main_thread<main_only>(L_, L_)) {
-		}
+		}		
 
 		~basic_reference() noexcept {
 			if (lua_state() == nullptr || ref == LUA_NOREF)
