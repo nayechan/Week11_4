@@ -46,6 +46,8 @@ public:
     void InitializeGrid();
     void InitializeGizmo();
 
+    bool TryLoadLastUsedLevel();
+
     template<class T>
     T* SpawnActor();
 
@@ -108,7 +110,6 @@ public:
     static UWorld* DuplicateWorldForPIE(UWorld* InEditorWorld);
 
 private:
-    bool TryLoadLastUsedLevel();
     bool DestroyActor(AActor* Actor);   // 즉시 삭제
 
 private:

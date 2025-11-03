@@ -61,12 +61,8 @@ UWorld::~UWorld()
 
 void UWorld::Initialize()
 {
-	// 최근에 사용한 레벨 불러오기를 시도합니다.
-	if (!TryLoadLastUsedLevel())
-	{
-		// 실패 시 (또는 저장된 레벨이 없을 시) 기본 씬을 생성합니다.
-		CreateLevel();
-	}
+	// 기본 씬을 생성합니다.
+	CreateLevel();
 
 	// 에디터 전용 액터들을 초기화합니다.
 	InitializeGrid();
