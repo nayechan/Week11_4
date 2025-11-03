@@ -6,7 +6,7 @@ local TimeAcc = 0.0
 -- Rotation: oscillate around Z from initial rotation
 local RotAccum = 0.0
 local RotSpeed = 1.0          -- radians per second
-local RotAmplitudeDeg = 45.0  -- +/- degrees
+local RotAmplitudeDeg = 1.0  -- +/- degrees
 local BaseRot = nil           -- will store Obj.Rotation at BeginPlay
 
 function BeginPlay()
@@ -15,8 +15,7 @@ function BeginPlay()
     GlobalConfig.SpawnAreaPos = Obj.Location
     BaseRot = Obj.Rotation
 
-    FireballSpawner = SpawnPrefab("Data/Prefabs/FireballSpawnArea.prefab")
-    -- Place at Owner's local (0,0,0): equals actor world origin
+    FireballSpawner = SpawnPrefab("Data/Prefabs/FireballSpawnArea.prefab") 
     FireballSpawner.Location = Obj.Location
     
     -- Orient spawner to look along Owner's local +X axis

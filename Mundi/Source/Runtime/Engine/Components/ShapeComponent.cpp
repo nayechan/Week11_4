@@ -129,9 +129,14 @@ void UShapeComponent::UpdateOverlaps()
                 OtherOwner->OnComponentBeginOverlap.Broadcast(Comp, this);
             }
 
+            // Hit호출 
+            Owner->OnComponentHit.Broadcast(this, Comp);
             if (bBlockComponent)
             {
-                Owner->OnComponentHit.Broadcast(this, Comp);
+                if (AActor* OtherOwner = Comp->GetOwner())
+                {
+                    OtherOwner->OnComponentHit.Broadcast(Comp, this);
+                }
             }
         }
     }
