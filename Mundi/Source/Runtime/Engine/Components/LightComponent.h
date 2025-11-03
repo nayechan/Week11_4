@@ -32,10 +32,10 @@ public:
 	virtual void DuplicateSubObjects() override;
 	DECLARE_DUPLICATE(ULightComponent)
 
-	float GetShadowResolutionScale() { return ShadowResolutionScale; }
-	float GetShadowBias() { return ShadowBias; }
-	float GetShadowSlopeBias() { return ShadowSlopeBias; }
-	float GetShadowSharpen() { return ShadowSharpen; }
+	float GetShadowResolutionScale() const { return ShadowResolutionScale; }
+	float GetShadowBias() const { return ShadowBias; }
+	float GetShadowSlopeBias() const { return ShadowSlopeBias; }
+	float GetShadowSharpen() const { return ShadowSharpen; }
 
 protected:
 	float Temperature = 6500.0f; // 색온도 (K)
@@ -44,5 +44,4 @@ protected:
 	float ShadowBias = 0.0f;	// NOTE: 추후 필요한 기본값으로 설정 필요
 	float ShadowSlopeBias = 0.0f;	// NOTE: 추후 필요한 기본값으로 설정 필요
 	float ShadowSharpen = 0.0f;	// NOTE: 추후 필요한 기본값으로 설정 필요
-
 };

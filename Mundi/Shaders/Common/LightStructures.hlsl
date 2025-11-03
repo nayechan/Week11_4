@@ -16,7 +16,10 @@ struct FShadowMapData
     float4 AtlasScaleOffset;
     float3 WorldPos;
     int SampleCount;
-    float4 Padding;
+    float ShadowBias;
+    float ShadowSlopeBias;
+    float ShadowSharpen;
+    float Padding;
 };
 
 struct FAmbientLightInfo
@@ -52,6 +55,10 @@ struct FPointLightInfo
     uint bUseInverseSquareFalloff; // 4 bytes - uint32 (true = 물리 기반, false = 지수 기반)
     uint bCastShadows;      // 4 bytes - 쉐도우 캐스팅 여부
     uint LightIndex;        // 4 bytes - 쉐도우 맵 배열 인덱스
+    float ShadowBias;
+    float ShadowSlopeBias;
+    float ShadowSharpen;
+    float Padding;
 };
 
 struct FSpotLightInfo

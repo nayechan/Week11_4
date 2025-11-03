@@ -72,6 +72,10 @@ FPointLightInfo UPointLightComponent::GetLightInfo() const
 	Info.bCastShadows = 0u;		// UpdateLightBuffer 에서 초기화 해줌
 	Info.ShadowArrayIndex = -1; // UpdateLightBuffer 에서 초기화 해줌
 
+	Info.ShadowBias = GetShadowBias();
+	Info.ShadowSlopeBias = GetShadowSlopeBias();
+	Info.ShadowSharpen = GetShadowSharpen();
+
 	return Info;
 }
 
