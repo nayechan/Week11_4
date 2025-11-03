@@ -63,5 +63,4 @@ protected:
 	TArray<FOverlapInfo> OverlapInfos; 
 	//TODO: float LineThickness;
 
-	
 };

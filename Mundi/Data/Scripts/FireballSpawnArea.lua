@@ -44,6 +44,9 @@ function Tick(dt)
         local Pos = Vector(RangeX, RangeY, LocalPos.Z)
         
         local Front = Obj:GetForward()
+        if GlobalConfig.SpawnerForwardByUUID and GlobalConfig.SpawnerForwardByUUID[Obj.UUID] then
+            Front = GlobalConfig.SpawnerForwardByUUID[Obj.UUID]
+        end
         local SpawnCheck =  GlobalConfig.SpawnFireballAt(Pos, Front)
         if  SpawnCheck then
             --print("Spawn Fireball !!!!!!!")

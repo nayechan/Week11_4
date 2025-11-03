@@ -1,10 +1,10 @@
 ﻿-- Fireball 생성, 삭제를 관리해주는 스크립트입니다. 
-local MaxFireNumber = 1
+local MaxFireNumber = 10
 local CurrentFireNumber = 0
 local FireballsPool = {} 
 
-local MinVelocity = 1
-local MaxVelocity = 3
+local MinVelocity = 10
+local MaxVelocity = 30
 
 local DestroyTime = 10.0
 

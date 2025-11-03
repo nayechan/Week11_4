@@ -1,15 +1,15 @@
 {
   "Name" : "스태틱 메시_0",
   "OwnedComponents" : [{
-      "Id" : 13821,
+      "Id" : 4306,
       "MaterialSlots" : [{
           "AssetPath" : "Material_0",
           "Type" : "UMaterial"
         }],
       "ParentId" : 0,
-      "RelativeLocation" : [-57.741001, -0.873126, 13.302286],
-      "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-      "RelativeScale" : [10.000000, 10.000000, 10.000000],
+      "RelativeLocation" : [-43.865955, 56.164707, 2.190370],
+      "RelativeRotationEuler" : [-0.226494, 0.174790, -52.342075],
+      "RelativeScale" : [20.000000, 20.000000, 20.000000],
       "StaticMesh" : "Data/Model/CGC.obj",
       "Type" : "UStaticMeshComponent",
       "bBlockComponent" : false,
@@ -19,30 +19,12 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 14031,
+      "Id" : 4307,
       "MaterialSlots" : [{
           "AssetPath" : "texture",
           "Type" : "UMaterial"
         }],
-      "ParentId" : 13821,
-      "RelativeLocation" : [0.500000, 1.500000, -0.700000],
-      "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-      "RelativeScale" : [1.000000, 1.000000, 1.000000],
-      "StaticMesh" : "Data/cube-tex.obj",
-      "Type" : "UStaticMeshComponent",
-      "bBlockComponent" : false,
-      "bGenerateOverlapEvents" : true,
-      "bHiddenInGame" : false,
-      "bIsActive" : true,
-      "bIsVisible" : true,
-      "bTickEnabled" : true
-    }, {
-      "Id" : 14032,
-      "MaterialSlots" : [{
-          "AssetPath" : "texture",
-          "Type" : "UMaterial"
-        }],
-      "ParentId" : 13821,
+      "ParentId" : 4306,
       "RelativeLocation" : [0.500000, 0.000000, 1.499749],
       "RelativeRotationEuler" : [-31.001650, 1.740373, -87.106621],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
@@ -55,14 +37,14 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 14033,
+      "Id" : 4308,
       "MaterialSlots" : [{
           "AssetPath" : "texture",
           "Type" : "UMaterial"
         }],
-      "ParentId" : 13821,
-      "RelativeLocation" : [0.500000, -1.500000, -0.700000],
-      "RelativeRotationEuler" : [0.000000, 0.000000, -2.133733],
+      "ParentId" : 4306,
+      "RelativeLocation" : [0.500000, 1.500000, -0.700000],
+      "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
       "StaticMesh" : "Data/cube-tex.obj",
       "Type" : "UStaticMeshComponent",
@@ -73,7 +55,7 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }],
-  "RootComponentId" : 13821,
+  "RootComponentId" : 4306,
   "Tag" : "",
   "Type" : "AStaticMeshActor",
   "bActorHiddenInGame" : false

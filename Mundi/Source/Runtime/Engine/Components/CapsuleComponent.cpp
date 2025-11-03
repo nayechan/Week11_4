@@ -11,17 +11,48 @@ END_PROPERTIES()
 
 UCapsuleComponent::UCapsuleComponent()
 {
-	CapsuleHalfHeight = WorldAABB.GetHalfExtent().Z;
-	CapsuleRadius = FMath::Max(WorldAABB.GetHalfExtent().X, WorldAABB.GetHalfExtent().Y);
+    CapsuleHalfHeight = 0.5f;
+    CapsuleRadius = 0.5f;
+
+	//CapsuleHalfHeight = WorldAABB.GetHalfExtent().Z;
+	//CapsuleRadius = FMath::Max(WorldAABB.GetHalfExtent().X, WorldAABB.GetHalfExtent().Y);
 }
 
 void UCapsuleComponent::OnRegister(UWorld* World)
 {
-	Super::OnRegister(World);
+	//Super::OnRegister(World);
+    //
+	//CapsuleHalfHeight = WorldAABB.GetHalfExtent().Z ;
+	//CapsuleRadius = WorldAABB.GetHalfExtent().X < WorldAABB.GetHalfExtent().Y ? WorldAABB.GetHalfExtent().Y : WorldAABB.GetHalfExtent().X;
+    //CapsuleRadius *= 2;
 
-	CapsuleHalfHeight = WorldAABB.GetHalfExtent().Z ;
-	CapsuleRadius = WorldAABB.GetHalfExtent().X < WorldAABB.GetHalfExtent().Y ? WorldAABB.GetHalfExtent().Y : WorldAABB.GetHalfExtent().X;
-    CapsuleRadius *= 2;
+
+    Super::OnRegister(World);
+
+    if (AActor* Owner = GetOwner())
+    {
+        FAABB ActorBounds = Owner->GetBounds();
+        FVector WorldHalfExtent = ActorBounds.GetHalfExtent();
+
+        // World scale로 나눠서 local 값 계산
+        const FTransform WorldTransform = GetWorldTransform();
+        const FVector S = FVector(
+            std::fabs(WorldTransform.Scale3D.X),
+            std::fabs(WorldTransform.Scale3D.Y),
+            std::fabs(WorldTransform.Scale3D.Z)
+        );
+
+        constexpr float Eps = 1e-6f;
+
+        // Z축 = 높이, XY축 = 반지름
+        float LocalHalfHeight = S.Z > Eps ? WorldHalfExtent.Z / S.Z : WorldHalfExtent.Z;
+        float LocalRadiusX = S.X > Eps ? WorldHalfExtent.X / S.X : WorldHalfExtent.X;
+        float LocalRadiusY = S.Y > Eps ? WorldHalfExtent.Y / S.Y : WorldHalfExtent.Y;
+
+        CapsuleHalfHeight = LocalHalfHeight;
+        CapsuleRadius = FMath::Max(LocalRadiusX, LocalRadiusY); 
+    }
+
 }
 
 void UCapsuleComponent::DuplicateSubObjects()
@@ -52,7 +83,8 @@ void UCapsuleComponent::RenderDebugVolume(URenderer* Renderer) const
      
 
     // 위치, 회전 변환만 가져와서 사용, Scale은 사용자가 조정 
-    const FMatrix WorldNoScale = FMatrix::FromTRS(GetWorldLocation(), GetWorldRotation(), FVector(1.0f, 1.0f, 1.0f));
+    const FMatrix WorldNoScale = FMatrix::FromTRS(GetWorldLocation(), 
+        GetWorldRotation(), FVector(1.0f, 1.0f, 1.0f));
      
     const int NumOfSphereSlice = 4;
     const int NumHemisphereSegments = 8; 

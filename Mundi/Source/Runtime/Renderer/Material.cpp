@@ -175,7 +175,7 @@ void UMaterialInstanceDynamic::Serialize(const bool bInIsLoading, JSON& InOutHan
 		// 1. 부모 로드
 		FString ParentPath;
 		FJsonSerializer::ReadString(InOutHandle, "ParentPath", ParentPath, "", false);
-		this->ParentMaterial = UResourceManager::GetInstance().Load<UMaterial>(ParentPath);
+			this->ParentMaterial = UResourceManager::GetInstance().Load<UMaterial>(ParentPath);
 		if (!this->ParentMaterial)
 		{
 			this->ParentMaterial = UResourceManager::GetInstance().GetDefaultMaterial();

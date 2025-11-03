@@ -12,16 +12,41 @@ END_PROPERTIES()
 
 USphereComponent::USphereComponent()
 {
-
+    SphereRadius = 0.5f;
 }
 
 void USphereComponent::OnRegister(UWorld* InWorld)
 {
+    //Super::OnRegister(InWorld);
+    //
+    //if (SphereRadius == 0)
+    //{
+    //    SphereRadius = FMath::Max(WorldAABB.GetHalfExtent().X, WorldAABB.GetHalfExtent().Y, WorldAABB.GetHalfExtent().Z);
+    //}
+
     Super::OnRegister(InWorld);
 
-    if (SphereRadius == 0)
+    if (AActor* Owner = GetOwner())
     {
-        SphereRadius = FMath::Max(WorldAABB.GetHalfExtent().X, WorldAABB.GetHalfExtent().Y, WorldAABB.GetHalfExtent().Z);
+        FAABB ActorBounds = Owner->GetBounds();
+        FVector WorldHalfExtent = ActorBounds.GetHalfExtent();
+
+        // World scale로 나눠서 local 값 계산
+        const FTransform WorldTransform = GetWorldTransform();
+        const FVector S = FVector(
+            std::fabs(WorldTransform.Scale3D.X),
+            std::fabs(WorldTransform.Scale3D.Y),
+            std::fabs(WorldTransform.Scale3D.Z)
+        );
+
+        constexpr float Eps = 1e-6f;
+
+        // XYZ 중 최대값을 반지름으로 사용
+        float LocalRadiusX = S.X > Eps ? WorldHalfExtent.X / S.X : WorldHalfExtent.X;
+        float LocalRadiusY = S.Y > Eps ? WorldHalfExtent.Y / S.Y : WorldHalfExtent.Y;
+        float LocalRadiusZ = S.Z > Eps ? WorldHalfExtent.Z / S.Z : WorldHalfExtent.Z;
+
+        SphereRadius = FMath::Max(LocalRadiusX, FMath::Max(LocalRadiusY, LocalRadiusZ)); 
     }
 }
 

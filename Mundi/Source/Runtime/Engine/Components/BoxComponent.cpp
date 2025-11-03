@@ -10,22 +10,43 @@ END_PROPERTIES()
 
 UBoxComponent::UBoxComponent()
 {
-	BoxExtent = WorldAABB.GetHalfExtent(); 
+	///BoxExtent = WorldAABB.GetHalfExtent(); 
+
+	BoxExtent = FVector(0.5f, 0.5f, 0.5f); 
 }
 
 void UBoxComponent::OnRegister(UWorld* InWorld)
-{
+{ 
 	Super::OnRegister(InWorld);
 
-	BoxExtent = WorldAABB.GetHalfExtent();
-	 
+	// Owner의 실제 바운드를 가져옴
+	if (AActor* Owner = GetOwner())
+	{
+		FAABB ActorBounds = Owner->GetBounds();
+		FVector WorldHalfExtent = ActorBounds.GetHalfExtent();
+
+		// World scale로 나눠서 local extent 계산
+		const FTransform WordTransform = GetWorldTransform();
+		const FVector S = FVector(
+			std::fabs(WordTransform.Scale3D.X),
+			std::fabs(WordTransform.Scale3D.Y),
+			std::fabs(WordTransform.Scale3D.Z)
+		);
+
+		constexpr float Eps = 1e-6f;
+		BoxExtent = FVector(
+			S.X > Eps ? WorldHalfExtent.X / S.X : WorldHalfExtent.X,
+			S.Y > Eps ? WorldHalfExtent.Y / S.Y : WorldHalfExtent.Y,
+			S.Z > Eps ? WorldHalfExtent.Z / S.Z : WorldHalfExtent.Z
+		);
+
+	}
 }
 
 void UBoxComponent::DuplicateSubObjects()
 {
 	Super::DuplicateSubObjects();
-}
-
+} 
 void UBoxComponent::GetShape(FShape& Out) const
 {
 	Out.Kind = EShapeKind::Box;
