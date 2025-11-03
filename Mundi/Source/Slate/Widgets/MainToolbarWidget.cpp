@@ -567,7 +567,14 @@ void UMainToolbarWidget::OnSaveScene()
     const FWideString BaseDir = UTF8ToWide(GDataDir) + L"/Scenes";
     const FWideString Extension = L".scene";
     const FWideString Description = L"Scene Files";
-    const FWideString DefaultFileName = L"NewScene";
+    FWideString DefaultFileName = L"NewScene";
+
+    // 마지막으로 사용한 씬 이름 가져오기
+    if (EditorINI.Contains("LastUsedLevel"))
+    {
+        std::filesystem::path LastUsedPath(UTF8ToWide(EditorINI["LastUsedLevel"]));
+        DefaultFileName = LastUsedPath.stem().wstring();
+    }
 
     // Windows 파일 다이얼로그 열기
     std::filesystem::path SelectedPath = FPlatformProcess::OpenSaveFileDialog(BaseDir, Extension, Description, DefaultFileName);
@@ -590,7 +597,7 @@ void UMainToolbarWidget::OnSaveScene()
         if (bSuccess)
         {
             UE_LOG("MainToolbar: Scene saved: %s", SelectedPath.generic_u8string().c_str());
-            EditorINI["LastUsedLevel"] = WideToUTF8(SelectedPath);
+            EditorINI["LastUsedLevel"] = WideToUTF8(fs::relative(SelectedPath));
         }
         else
         {
@@ -633,7 +640,7 @@ void UMainToolbarWidget::OnLoadScene()
         if (FJsonSerializer::LoadJsonFromFile(LevelJsonData, SelectedPath))
         {
             NewLevel->Serialize(true, LevelJsonData);
-            EditorINI["LastUsedLevel"] = WideToUTF8(SelectedPath);
+            EditorINI["LastUsedLevel"] = WideToUTF8(fs::relative(SelectedPath));
         }
         else
         {
