@@ -17,7 +17,9 @@ BEGIN_PROPERTIES(UShapeComponent)
 UShapeComponent::UShapeComponent() : bShapeIsVisible(true), bShapeHiddenInGame(true)
 {
     ShapeColor = FVector4(0.2f, 0.8f, 1.0f, 1.0f); 
+    bCanEverTick = true;
 }
+
 void UShapeComponent::BeginPlay()
 {
     Super::BeginPlay();
@@ -47,8 +49,8 @@ void UShapeComponent::OnTransformUpdated()
     Super::OnTransformUpdated();
 }
 
-void UShapeComponent::UpdateOverlaps()
-{ 
+void UShapeComponent::TickComponent(float DeltaSeconds)
+{
     if (GetClass() == UShapeComponent::StaticClass())
     {
         bGenerateOverlapEvents = false;
@@ -57,7 +59,6 @@ void UShapeComponent::UpdateOverlaps()
     if (!bGenerateOverlapEvents)
     {
         OverlapInfos.clear();
-
     }
 
     UWorld* World = GetWorld();
@@ -68,6 +69,9 @@ void UShapeComponent::UpdateOverlaps()
 
     for (AActor* Actor : World->GetActors())
     {
+        if (!Actor || !Actor->IsActorActive())
+            continue;
+
         for (USceneComponent* Comp : Actor->GetSceneComponents())
         {
             UShapeComponent* Other = Cast<UShapeComponent>(Comp);
@@ -160,14 +164,14 @@ void UShapeComponent::UpdateOverlaps()
             if (AActor* OtherOwner = Comp->GetOwner())
             {
                 OtherOwner->OnComponentEndOverlap.Broadcast(Comp, this);
-            }  
+            }
         }
     }
 
     OverlapPrev.clear();
     for (UShapeComponent* Comp : OverlapNow)
     {
-        OverlapPrev.Add(Comp); 
+        OverlapPrev.Add(Comp);
     }
 }
 

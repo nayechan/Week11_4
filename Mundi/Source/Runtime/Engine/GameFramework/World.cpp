@@ -161,25 +161,6 @@ void UWorld::Tick(float DeltaSeconds)
 		LuaManager->Tick(DeltaSeconds);
 	}
 
-    // 매팅 충돌 곰사 
-    if (Level)
-    {
-        for (AActor* Actor : Level->GetActors())
-        {
-            if (!Actor || !Actor->IsActorActive())
-				continue;
-            for (USceneComponent* Comp : Actor->GetSceneComponents())
-            {
-                if (UShapeComponent* Shape = Cast<UShapeComponent>(Comp))
-                {
-                    if (Shape->IsActive())
-                    {
-                        Shape->UpdateOverlaps();
-                    }
-                }
-            }
-        }
-    }
 	// 지연 삭제 처리
 	ProcessPendingKillActors();
 }
