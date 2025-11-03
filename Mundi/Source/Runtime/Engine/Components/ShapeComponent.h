@@ -34,6 +34,8 @@ public:
 
 	UShapeComponent();
 
+	virtual void TickComponent(float DeltaSeconds) override;
+
 	virtual void GetShape(FShape& OutShape) const {};
 	virtual void BeginPlay() override;
     virtual void OnRegister(UWorld* InWorld) override;
