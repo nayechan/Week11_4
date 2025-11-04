@@ -1,5 +1,5 @@
 function BeginPlay()
-    print("[BeginPlay] " .. Obj.UUID)
+    
     -- firball = SpawnPrefab("Data/Prefabs/Fireball.prefab")
     -- firball = SpawnPrefab("Data/Prefabs/Fireball.prefab")
     StartCoroutine(AI)
@@ -18,7 +18,7 @@ function EndPlay()
 end
 
 function OnBeginOverlap(OtherActor)
-    print(OnOverlap Fireballtest)
+     
 end
 
 function OnEndOverlap(OtherActor)

@@ -110,14 +110,12 @@ FLuaManager::FLuaManager()
         },
         "SetCursorVisible", [](UInputManager* Self, bool bVisible){
             if (bVisible)
-            {
-                UE_LOG("Set Visible!");
+            { 
                 Self->SetCursorVisible(true);
                 if (Self->IsCursorLocked())
                     Self->ReleaseCursor();
             } else
-            {
-                UE_LOG("Not Set Visible!");
+            { 
                 Self->SetCursorVisible(false);
                 Self->LockCursor();
             }

@@ -1,10 +1,10 @@
 function BeginPlay()
-    print("[BeginPlay] " .. Obj.UUID)
+    
     
 end
 
 function EndPlay()
-    print("[EndPlay] " .. Obj.UUID)
+    
 end
 
 function OnBeginOverlap(OtherActor)
@@ -22,7 +22,7 @@ function Tick(dt)
         return
     end
 
-    
+
     local rc = GetComponent(Obj, "URotatingMovementComponent") 
 
     

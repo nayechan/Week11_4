@@ -42,7 +42,7 @@ end
 
 
 function BeginPlay()
-    print("[FireballManager BeginPlay] " .. Obj.UUID)
+    
 
     for i = 1, MaxFireNumber do 
         local Fireball = SpawnPrefab("Data/Prefabs/Fireball.prefab")
@@ -93,7 +93,7 @@ function BeginPlay()
 end 
 
 function EndPlay()
-    print("[FireballManager EndPlay] " .. Obj.UUID)
+     
     -- Cleanup exposed functions
     GlobalConfig.SpawnFireballAt = nil
     GlobalConfig.IsCanSpawnFireball = nil

@@ -45,14 +45,11 @@ local function SpawnStageDecal(stage)
         if decalComp then
             decalComp.FadeSpeed = 0
         end
-
-        print(string.format("[Stage %d] Spawned %s at (%.1f, %.1f, %.1f)",
-            stage, prefabPath, decal.Location.X, decal.Location.Y, decal.Location.Z))
+ 
     end
 end
 
-function BeginPlay()
-    print("[BeginPlay] " .. Obj.UUID)
+function BeginPlay() 
     Obj.Tag = "Damageable"
 
     meshComp = GetComponent(Obj, "UStaticMeshComponent")
@@ -63,8 +60,7 @@ function BeginPlay()
     currentStage = 1
 end
 
-function EndPlay()
-    print("[EndPlay] " .. Obj.UUID)
+function EndPlay() 
 end
 
 function Tick(dt)
@@ -92,16 +88,13 @@ function Tick(dt)
     meshComp:SetColor(0, "DiffuseColor", newColor)
 
     -- 색상 구간 진입 시 데칼 스폰
-    if ratio >= 0.0 and ratio < 0.33 and GlobalConfig.CoachLevel < 2 then
-        print("[Stage 2] Spawn CrackDecal1")
+    if ratio >= 0.0 and ratio < 0.33 and GlobalConfig.CoachLevel < 2 then 
         SpawnStageDecal(2)
         GlobalConfig.CoachLevel = 2
-    elseif ratio >= 0.33 and ratio < 0.66 and GlobalConfig.CoachLevel < 3 then
-        print("[Stage 3] Spawn CrackDecal2")
+    elseif ratio >= 0.33 and ratio < 0.66 and GlobalConfig.CoachLevel < 3 then 
         SpawnStageDecal(3)
         GlobalConfig.CoachLevel = 3
-    elseif ratio >= 0.66 and GlobalConfig.CoachLevel < 4 then
-        print("[Stage 4] Spawn CrackDecal3")
+    elseif ratio >= 0.66 and GlobalConfig.CoachLevel < 4 then 
         SpawnStageDecal(4)
         GlobalConfig.CoachLevel = 4
     end

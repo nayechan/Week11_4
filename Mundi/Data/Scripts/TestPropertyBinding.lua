@@ -1,5 +1,5 @@
 function BeginPlay()
-    print("[BeginPlay] " .. Obj.UUID)
+      
     Obj.Velocity.X = 0.0
     Obj.Velocity.Y = 0.0
     Obj.Velocity.Z = 0.0
@@ -11,11 +11,11 @@ function BeginPlay()
 
     AddComponent(Obj, "USpotLightComponent")
 
-    print("Yes Binding!")
+    
 end
 
 function EndPlay()
-    print("[EndPlay] " .. Obj.UUID)
+  
 end
 function OnBeginOverlap(OtherActor)
 end

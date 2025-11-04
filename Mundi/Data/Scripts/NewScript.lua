@@ -1,10 +1,10 @@
 function BeginPlay()
-    print("[BeginPlay]")
+    
 
     local v1 = Vector()
     local v2 = Vector(10, 10, 10)
     local v3 = Obj.Location
-    print(v2.X)
+     
     Obj:PrintLocation();
     StartCoroutine(EditAfterOneSec)
 end
@@ -15,7 +15,7 @@ function EditAfterOneSec()
 end
 
 function EndPlay()
-    print("[EndPlay]")
+     
 end
 
 function OnBeginOverlap(OtherActor)
