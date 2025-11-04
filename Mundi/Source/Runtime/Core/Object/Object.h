@@ -18,7 +18,7 @@ struct UClass
 {
     const char* Name = nullptr;
     const UClass* Super = nullptr;   // 루트(UObject)는 nullptr
-    std::size_t   Size = 0;
+    SIZE_T   Size = 0;
 
     // 리플렉션 시스템 확장
     TArray<FProperty> Properties;              // 프로퍼티 목록
@@ -30,8 +30,9 @@ struct UClass
     mutable bool bAllPropertiesCached = false;      // 캐시 유효성 플래그
 
     constexpr UClass() = default;
-    constexpr UClass(const char* n, const UClass* s, std::size_t z)
-        :Name(n), Super(s), Size(z) {
+    constexpr UClass(const char* n, const UClass* s, SIZE_T z)
+        :Name(n), Super(s), Size(z)
+    {
     }
     bool IsChildOf(const UClass* Base) const noexcept
     {
@@ -146,9 +147,30 @@ protected:
 
 public:
     // UObject-scoped allocation only
-    static void* operator new(std::size_t size) { return CMemoryManager::Allocate(size); }
-    static void  operator delete(void* ptr) noexcept { CMemoryManager::Deallocate(ptr); }
-    static void  operator delete(void* ptr, std::size_t) noexcept { CMemoryManager::Deallocate(ptr); }
+    static void* operator new(SIZE_T Size)
+    {
+        return FMemoryManager::Allocate(Size, alignof(std::max_align_t));
+    }
+    static void* operator new(SIZE_T Size, std::align_val_t Alignment)
+    {
+        return FMemoryManager::Allocate(Size, static_cast<size_t>(Alignment));
+    }
+    static void operator delete(void* Ptr) noexcept
+    {
+        FMemoryManager::Deallocate(Ptr);
+    }
+    static void operator delete(void* Ptr, SIZE_T Size) noexcept
+    {
+        FMemoryManager::Deallocate(Ptr);
+    }
+    static void operator delete(void* Ptr, std::align_val_t Alignment) noexcept
+    {
+        FMemoryManager::Deallocate(Ptr);
+    }
+    static void operator delete(void* Ptr, SIZE_T Size, std::align_val_t Alignment) noexcept
+    {
+        FMemoryManager::Deallocate(Ptr);
+    }
 
     FString GetName();    // 원문
     FString GetComparisonName(); // lower-case

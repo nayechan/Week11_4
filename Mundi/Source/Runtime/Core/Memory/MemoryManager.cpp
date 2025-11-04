@@ -1,44 +1,47 @@
 ﻿#include "pch.h"
 #include "MemoryManager.h"
 #include <cstddef>
+#include <malloc.h>
+#include <algorithm>
 
-uint32 CMemoryManager::TotalAllocationBytes = 0;
-uint32 CMemoryManager::TotalAllocationCount = 0;
+uint32 FMemoryManager::TotalAllocationBytes = 0;
+uint32 FMemoryManager::TotalAllocationCount = 0;
 
-void* CMemoryManager::Allocate(size_t size)
+void* FMemoryManager::Allocate(SIZE_T Size, SIZE_T Alignment)
 {
-    size_t totalSize = size + sizeof(size_t);
+	SIZE_T TotalSize = Size + sizeof(SIZE_T);
+	SIZE_T FinalAlignment = std::max(Alignment, alignof(SIZE_T));
+
 #if defined(_MSC_VER) && defined(_DEBUG)
-    void* raw = _malloc_dbg(totalSize, _NORMAL_BLOCK, nullptr, 0);
+	void* Raw = _aligned_malloc_dbg(TotalSize, FinalAlignment, nullptr, 0);
 #else
-    void* raw = std::malloc(totalSize);
+	void* Raw = _aligned_malloc(TotalSize, FinalAlignment);
 #endif
-    if (!raw)
-        return nullptr;
+	if (!Raw)
+		return nullptr;
 
-    *reinterpret_cast<size_t*>(raw) = size;
-    TotalAllocationBytes += static_cast<uint32>(size);
-    TotalAllocationCount++;
+	*reinterpret_cast<SIZE_T*>(Raw) = Size;
+	TotalAllocationBytes += static_cast<uint32>(Size);
+	TotalAllocationCount++;
 
-    return static_cast<void*>(static_cast<unsigned char*>(raw) + sizeof(size_t));
+	return static_cast<void*>(static_cast<unsigned char*>(Raw) + sizeof(SIZE_T));
 }
 
-void CMemoryManager::Deallocate(void* ptr)
+void FMemoryManager::Deallocate(void* Ptr)
 {
-    if (!ptr)
-        return;
+	if (!Ptr)
+		return;
 
-    unsigned char* userPtr = static_cast<unsigned char*>(ptr);
-    unsigned char* raw = userPtr - sizeof(size_t);
-    size_t size = *reinterpret_cast<size_t*>(raw);
+	unsigned char* UserPtr = static_cast<unsigned char*>(Ptr);
+	unsigned char* Raw = UserPtr - sizeof(SIZE_T);
+	SIZE_T Size = *reinterpret_cast<SIZE_T*>(Raw);
 
-    TotalAllocationBytes -= static_cast<uint32>(size);
-    TotalAllocationCount--;
+	TotalAllocationBytes -= static_cast<uint32>(Size);
+	TotalAllocationCount--;
+
 #if defined(_MSC_VER) && defined(_DEBUG)
-    _free_dbg(raw, _NORMAL_BLOCK);
+	_aligned_free_dbg(Raw, _NORMAL_BLOCK);
 #else
-    std::free(raw);
+	_aligned_free(Raw);
 #endif
 }
-
-// Global operators removed. Allocation is scoped to UObject via class-specific operators.

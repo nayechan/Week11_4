@@ -13,6 +13,7 @@ typedef float float32;
 typedef double float64;
 typedef bool UBOOL;
 typedef wchar_t WIDECHAR;
+//typedef size_t SIZE_T;    // Windows SDK 헤더인 basetsd.h 에 이미 선언되어 있음
 
 /** UE5 스타일 문자열 정의 */
 typedef std::string FString;
@@ -29,7 +30,7 @@ template<typename T1, typename T2>
 using TPair = std::pair<T1, T2>;
 
 /** TStaticArray 구현 (고정 크기 배열) */
-template<typename T, size_t N>
+template<typename T, SIZE_T N>
 using TStaticArray = std::array<T, N>;
 
 /** TArray 구현 */
@@ -124,17 +125,17 @@ public:
 
     void Reserve(int64 Capacity)
     {
-        this->reserve(static_cast<size_t>(Capacity));
+        this->reserve(static_cast<SIZE_T>(Capacity));
     }
 
     void SetNum(int32 NewSize)
     {
-        this->resize(static_cast<size_t>(NewSize));
+        this->resize(static_cast<SIZE_T>(NewSize));
     }
 
     void SetNum(int32 NewSize, const T& DefaultValue)
     {
-        this->resize(static_cast<size_t>(NewSize), DefaultValue);
+        this->resize(static_cast<SIZE_T>(NewSize), DefaultValue);
     }
 
     /** 접근 */
@@ -576,12 +577,12 @@ static inline FString ToUtf8(const FString& Ansi)
 
     // ANSI -> Wide
     int WideLen = MultiByteToWideChar(CP_ACP, 0, Ansi.c_str(), -1, nullptr, 0);
-    FWideString Wide(static_cast<size_t>(WideLen - 1), L'\0');
+    FWideString Wide(static_cast<SIZE_T>(WideLen - 1), L'\0');
     MultiByteToWideChar(CP_ACP, 0, Ansi.c_str(), -1, Wide.data(), WideLen);
 
     // Wide -> UTF-8
     int Utf8Len = WideCharToMultiByte(CP_UTF8, 0, Wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    FString Utf8(static_cast<size_t>(Utf8Len - 1), '\0');
+    FString Utf8(static_cast<SIZE_T>(Utf8Len - 1), '\0');
     WideCharToMultiByte(CP_UTF8, 0, Wide.c_str(), -1, Utf8.data(), Utf8Len, nullptr, nullptr);
     return Utf8;
 }

@@ -223,10 +223,10 @@ void UStatsOverlayD2D::Draw()
 
 	if (bShowMemory)
 	{
-		double Mb = static_cast<double>(CMemoryManager::TotalAllocationBytes) / (1024.0 * 1024.0);
+		double Mb = static_cast<double>(FMemoryManager::TotalAllocationBytes) / (1024.0 * 1024.0);
 
 		wchar_t Buf[128];
-		swprintf_s(Buf, L"Memory: %.1f MB\nAllocs: %u", Mb, CMemoryManager::TotalAllocationCount);
+		swprintf_s(Buf, L"Memory: %.1f MB\nAllocs: %u", Mb, FMemoryManager::TotalAllocationCount);
 
 		D2D1_RECT_F Rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + PanelHeight);
 		DrawTextBlock(
