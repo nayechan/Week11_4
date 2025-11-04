@@ -3,9 +3,10 @@ UpVector = Vector(0, 0, 1)
 local YawSensitivity        = 0.005
 local PitchSensitivity      = 0.0025
 
-local MovementDelta = 0.1
+local MovementDelta = 10
 
-local Gravity               = -50.0
+local GravityConst               = -9.8 * 0.4
+local CurGravity            = 0
 local bStart                = false
 local bDie                  = false
 
@@ -22,9 +23,9 @@ function AddID(id)
     if not ActiveIDs[id] then
         ActiveIDs[id] = true
         IDCount = IDCount + 1
-      
-        if Gravity < 0 and not bStart then
-            Gravity = 0
+
+        if CurGravity < 0 and not bStart then
+            CurGravity = 0
             bStart = true
         end
     end
@@ -62,7 +63,7 @@ end
 function BeginPlay()  
     ActiveIDs = {}
     bDie = false
-    Gravity = -50
+    CurGravity = GravityConst
 
     Obj.Location = PlayerInitPosition
     Obj.Velocity = PlayerInitVelocity
@@ -100,10 +101,10 @@ function Tick(Delta)
         return
     end
 
-    if InputManager:IsKeyDown('W') then MoveForward(MovementDelta) end
-    if InputManager:IsKeyDown('S') then MoveForward(-MovementDelta) end
-    if InputManager:IsKeyDown('A') then MoveRight(-MovementDelta) end
-    if InputManager:IsKeyDown('D') then MoveRight(MovementDelta) end
+    if InputManager:IsKeyDown('W') then MoveForward(MovementDelta * Delta) end
+    if InputManager:IsKeyDown('S') then MoveForward(-MovementDelta * Delta) end
+    if InputManager:IsKeyDown('A') then MoveRight(-MovementDelta * Delta) end
+    if InputManager:IsKeyDown('D') then MoveRight(MovementDelta * Delta) end
     if InputManager:IsKeyPressed('Q') then Die() end -- 죽기를 선택
     if InputManager:IsMouseButtonPressed(0) then ShootProjectile() end
 
@@ -113,9 +114,9 @@ end
 
 function PlayerMove(Delta)
     if GlobalConfig.GameState == "Playing" then
-        local GravityAccel = Vector(0, 0, Gravity)
-        Obj.Velocity = GravityAccel * Delta
-        Obj.Location = Obj.Location + Obj.Velocity * Delta
+        local CurGravityAccel = Vector(0, 0, CurGravity)
+        Obj.Velocity = CurGravityAccel * Delta
+        Obj.Location = Obj.Location + Obj.Velocity
     end
 end
 
@@ -143,7 +144,7 @@ function ManageGameState()
     if GlobalConfig.GameState == "Playing" then
         if bDie then
             return false
-        elseif IDCount == 0 and Gravity == 0 then
+        elseif IDCount == 0 and CurGravity == 0 then
             Die()
             return false
         end
@@ -161,8 +162,7 @@ end
 
 function Die()    
     bDie = true
-    Gravity = -50
-    
+    CurGravity = GravityConst
     local ActiveIDs = {}
     
     StartCoroutine(EndAfter)
@@ -176,7 +176,7 @@ end
 function Rebirth()
     ActiveIDs = {}
     bDie = false
-    Gravity = -50
+    CurGravity = GravityConst
 
     Obj.Location = PlayerInitPosition
     Obj.Velocity = PlayerInitVelocity
