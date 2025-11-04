@@ -135,6 +135,12 @@ FMeshData* UMeshLoader::LoadMesh(const std::filesystem::path& FilePath)
                 static_cast<float>(rand()) / RAND_MAX,
                 1.0f
             ));
+            
+            /*if (Face.IndexNormal > 0 && Face.IndexNormal <= Normals.size())
+            {
+                const FNormal& Normal = Normals[Face.IndexNormal - 1];
+                MeshData->Normal.push_back(FVector(Normal.x, Normal.y, Normal.z));
+            }*/
 
             MeshData->Indices.push_back(newIndex);
             UniqueVertexMap[key] = newIndex;
