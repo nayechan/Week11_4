@@ -148,9 +148,6 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
         UE_LOG("USlateManager: ConsoleWindow created successfully");
         UGlobalConsole::SetConsoleWidget(ConsoleWindow->GetConsoleWidget());
         UE_LOG("USlateManager: GlobalConsole connected to ConsoleWidget");
-        bIsConsoleVisible = true;
-        bIsConsoleAnimating = false;
-        ConsoleAnimationProgress = 1.0f;
     }
     else
     {
@@ -196,7 +193,7 @@ void USlateManager::Render()
     }
 
     // 콘솔 오버레이 렌더링 (모든 것 위에 표시)
-    if (ConsoleWindow)
+    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
     {
         extern float CLIENTWIDTH;
         extern float CLIENTHEIGHT;
@@ -244,8 +241,13 @@ void USlateManager::Render()
         if (ImGui::Begin("ConsoleOverlay", &isWindowOpen, flags))
         {
             // 콘솔이 포커스를 잃으면 닫기
-                        // Always visible: do not auto-close on focus loss
-
+            if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
+                bIsConsoleVisible &&
+                !bIsConsoleAnimating)
+            {
+                ToggleConsole(); // 콘솔 닫기
+            }
+            
             // 둥근 모서리가 있는 반투명 배경 추가
             ImDrawList* DrawList = ImGui::GetWindowDrawList();
             ImVec2 WindowPos = ImGui::GetWindowPos();
@@ -308,7 +310,7 @@ void USlateManager::Update(float DeltaSeconds)
     }
 
     // ConsoleWindow 업데이트
-    if (ConsoleWindow)
+    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
     {
         ConsoleWindow->Update();
     }
@@ -349,7 +351,10 @@ void USlateManager::ProcessInput()
     OnMouseMove(MousePosition);
 
     // Alt + ` (억음 부호 키)로 콘솔 토글
-    if (ImGui::IsKeyPressed(ImGuiKey_GraveAccent) && ImGui::GetIO().KeyAlt){ bIsConsoleVisible=true; bIsConsoleAnimating=false; ConsoleAnimationProgress=1.0f; }
+    if (ImGui::IsKeyPressed(ImGuiKey_GraveAccent) && ImGui::GetIO().KeyAlt)
+    {
+        ToggleConsole();
+    }
 
     // 단축키로 기즈모 모드 변경
     if (World->GetGizmoActor())
