@@ -126,7 +126,7 @@ void UWorld::Tick(float DeltaSeconds)
 {	
 	// 중복충돌 방지 pair clear 
     FrameOverlapPairs.clear();
-    //Partition->Update(DeltaSeconds, /*budget*/256);	// NOTE: 임시 처리
+    Partition->Update(DeltaSeconds, /*budget*/256);
 
 	if (Level)
 	{

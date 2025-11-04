@@ -135,7 +135,7 @@ void FSceneRenderer::RenderLitPath()
 
 	// Base Pass
 	RenderOpaquePass(View->RenderSettings->GetViewMode());
-	//RenderDecalPass();	// NOTE: 임시 처리
+	RenderDecalPass();
 }
 
 void FSceneRenderer::RenderWireframePath()
