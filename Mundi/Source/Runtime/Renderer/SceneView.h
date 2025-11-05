@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Vector.h" // FMatrix
 #include "Enums.h"
 #include "CameraComponent.h"
@@ -62,6 +62,7 @@ public:
             , ZFar(V.ZFar)
         {}
     };
+    void InitRenderSetting(FViewport* InViewport, URenderSettings* InRenderSettings);
 private:
     TArray<FShaderMacro> CreateViewShaderMacros();
 

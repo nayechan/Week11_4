@@ -13,29 +13,7 @@ FSceneView::FSceneView(UCameraComponent* InCamera, FViewport* InViewport, URende
 		return;
 	}
 
-	// --- 이 로직이 FSceneRenderer::PrepareView()에서 이동해 옴 ---
-
-	float AspectRatio = 1.0f;
-	if (Viewport->GetSizeY() > 0)
-	{
-		AspectRatio = (float)Viewport->GetSizeX() / (float)Viewport->GetSizeY();
-	}
-
-	ViewMatrix = Camera->GetViewMatrix();
-	ProjectionMatrix = Camera->GetProjectionMatrix(AspectRatio, Viewport);
-	ViewFrustum = CreateFrustumFromCamera(*Camera, AspectRatio);
-	ViewLocation = Camera->GetWorldLocation();
-	ZNear = Camera->GetNearClip();
-	ZFar = Camera->GetFarClip();
-
-	ViewRect.MinX = Viewport->GetStartX();
-	ViewRect.MinY = Viewport->GetStartY();
-	ViewRect.MaxX = ViewRect.MinX + Viewport->GetSizeX();
-	ViewRect.MaxY = ViewRect.MinY + Viewport->GetSizeY();
-
-	ProjectionMode = Camera->GetProjectionMode();
-
-    ViewShaderMacros = CreateViewShaderMacros();
+	InitRenderSetting(InViewport, InRenderSettings);
 }
 
 TArray<FShaderMacro> FSceneView::CreateViewShaderMacros()
@@ -83,4 +61,31 @@ TArray<FShaderMacro> FSceneView::CreateViewShaderMacros()
 	}
 
 	return ShaderMacros;
+}
+
+void FSceneView::InitRenderSetting(FViewport* InViewport, URenderSettings* InRenderSettings)
+{
+	// --- 이 로직이 FSceneRenderer::PrepareView()에서 이동해 옴 ---
+
+	float AspectRatio = 1.0f;
+	if (Viewport->GetSizeY() > 0)
+	{
+		AspectRatio = (float)Viewport->GetSizeX() / (float)Viewport->GetSizeY();
+	}
+
+	ViewMatrix = Camera->GetViewMatrix();
+	ProjectionMatrix = Camera->GetProjectionMatrix(AspectRatio, Viewport);
+	ViewFrustum = CreateFrustumFromCamera(*Camera, AspectRatio);
+	ViewLocation = Camera->GetWorldLocation();
+	ZNear = Camera->GetNearClip();
+	ZFar = Camera->GetFarClip();
+
+	ViewRect.MinX = Viewport->GetStartX();
+	ViewRect.MinY = Viewport->GetStartY();
+	ViewRect.MaxX = ViewRect.MinX + Viewport->GetSizeX();
+	ViewRect.MaxY = ViewRect.MinY + Viewport->GetSizeY();
+
+	ProjectionMode = Camera->GetProjectionMode();
+
+	ViewShaderMacros = CreateViewShaderMacros();
 }
