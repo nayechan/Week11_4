@@ -124,7 +124,7 @@ function PlayerMove(Delta)
         
         if IsGrounded() then
             if VelocityZ < 0 then VelocityZ = 0 end
-            if Obj.Location.Z < GroundHeight then Obj.Location.Z = GroundHeight end
+            if Obj.Location.Z < GroundHeight then Obj.Location.Z = GroundHeight + 1 end
         else
             VelocityZ = VelocityZ + (-10 * Delta)
         end
@@ -227,8 +227,8 @@ function Rotate()
     local Candidate = RotateAroundAxis(ForwardVector, RightVector, Pitch)
 
     -- 수직 잠김 방지
-    if (Candidate.Z > 0.2) then -- 아래로 각도 제한
-        Candidate.Z = 0.2
+    if (Candidate.Z > 0.4) then -- 아래로 각도 제한
+        Candidate.Z = 0.4
     end
     if (Candidate.Z < -0.75) then -- 위로 각도 제한
         Candidate.Z = -0.75

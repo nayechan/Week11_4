@@ -169,6 +169,21 @@ FLuaManager::FLuaManager()
             return NewObject;
         }
     ));
+    SharedLib.set_function("DeleteObject", sol::overload(
+        [](const FGameObject& GameObject)
+        {
+            for (TObjectIterator<AActor> It; It; ++It)
+            {
+                AActor* Actor = *It;
+
+                if (Actor->UUID == GameObject.UUID)
+                {
+                    Actor->Destroy();   // 지연 삭제 요청 (즉시 삭제하면 터짐)
+                    break;
+                }
+            }
+        }
+    ));
     SharedLib.set_function("GetCamera",
         []() -> UCameraComponent*
         {
