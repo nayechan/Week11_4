@@ -62,7 +62,7 @@ bool FOcclusionCullingManagerCPU::ComputeRectAndMinZ(
 		float v4[4];
 		MulPointRow(p, D.WorldView, v4);     // p_world * (World*View) == p_world * View (월드좌표니까 View만 와도 OK)
 		const float zView = v4[2];          // LH: +Z 앞
-		const float zLin01 = LinearizeZ01(zView, D.ZNear, D.ZFar);
+		const float zLin01 = LinearizeZ01(zView, D.NearClip, D.FarClip);
 
 		MinZLin = std::min(MinZLin, zLin01);
 		MaxZLin = std::max(MaxZLin, zLin01);

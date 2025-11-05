@@ -22,6 +22,60 @@ BEGIN_PROPERTIES(UDirectionalLightComponent)
 	ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
 END_PROPERTIES()
 
+namespace
+{
+	TArray<float> GetCascadedSliceDepth(int CascadedCount, float LinearBlending, float NearClip, float FarClip)
+	{
+		TArray<float> CascadedSliceDepth;
+		CascadedSliceDepth.reserve(CascadedCount + 1);
+		LinearBlending = LinearBlending < 0 ? 0 : (LinearBlending > 1 ? 1 : LinearBlending); //clamp(0,1,LinearBlending);
+		for (int i = 0; i < CascadedCount + 1; i++)
+		{
+			float CurDepth = 0;
+			float LogValue = NearClip * pow((FarClip / NearClip), (float)i / CascadedCount);
+			float LinearValue = NearClip + (FarClip - NearClip) * (float)i / CascadedCount;
+			CascadedSliceDepth.push_back((1 - LinearBlending) * LogValue + LinearBlending * LinearValue);
+		}
+		return CascadedSliceDepth;
+	}
+
+	TArray<FVector> GetFrustumVertices(ECameraProjectionMode ProjectionMode, FViewport* Viewport, float FieldOfView, float Near, float Far, float ZoomFactor)
+	{
+		TArray<FVector> Vertices;
+		Vertices.reserve(8);
+		float NearHalfHeight, NearHalfWidth, FarHalfHeight, FarHalfWidth;
+		if (ProjectionMode == ECameraProjectionMode::Perspective)
+		{
+			const float Tan = tan(DegreesToRadians(FieldOfView) * 0.5f);
+			const float Aspect = Viewport->GetAspectRatio();
+			NearHalfHeight = Tan * Near;
+			NearHalfWidth = NearHalfHeight * Aspect;
+			FarHalfHeight = Tan * Far;
+			FarHalfWidth = FarHalfHeight * Aspect;
+		}
+		else
+		{
+			const float pixelsPerWorldUnit = 10.0f;
+
+			NearHalfHeight = (Viewport->GetSizeY() / pixelsPerWorldUnit) * ZoomFactor;
+			NearHalfWidth = (Viewport->GetSizeX() / pixelsPerWorldUnit) * ZoomFactor;
+			FarHalfHeight = NearHalfHeight;
+			FarHalfWidth = NearHalfWidth;
+		}
+		Vertices.emplace_back(FVector(-NearHalfWidth, -NearHalfHeight, Near));
+		Vertices.emplace_back(FVector(NearHalfWidth, -NearHalfHeight, Near));
+		Vertices.emplace_back(FVector(NearHalfWidth, NearHalfHeight, Near));
+		Vertices.emplace_back(FVector(-NearHalfWidth, NearHalfHeight, Near));
+		Vertices.emplace_back(FVector(-FarHalfWidth, -FarHalfHeight, Far));
+		Vertices.emplace_back(FVector(FarHalfWidth, -FarHalfHeight, Far));
+		Vertices.emplace_back(FVector(FarHalfWidth, FarHalfHeight, Far));
+		Vertices.emplace_back(FVector(-FarHalfWidth, FarHalfHeight, Far));
+
+		return Vertices;
+	}
+
+}
+
 UDirectionalLightComponent::UDirectionalLightComponent()
 {
 	ShadowResolutionScale = 2048;
@@ -34,12 +88,12 @@ UDirectionalLightComponent::~UDirectionalLightComponent()
 void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArray<FShadowRenderRequest>& OutRequests)
 {
 	FMatrix ShadowMapView = GetWorldRotation().Inverse().ToMatrix() * FMatrix::ZUpToYUp;
-	FMatrix ViewInv = View->Camera->GetViewMatrix().InverseAffine();
+	FMatrix ViewInv = View->ViewMatrix.InverseAffine();
 	if (bCascaded == false)
 	{
-		TArray<FVector> CameraFrustum = View->Camera->GetFrustumVertices(View->Viewport);
-		float Near = View->Camera->GetNearClip();
-		float Far = View->Camera->GetFarClip();
+		TArray<FVector> CameraFrustum = GetFrustumVertices(View->ProjectionMode, View->Viewport, View->FieldOfView, View->NearClip, View->FarClip, View->ZoomFactor);
+		float Near = View->NearClip;
+		float Far = View->FarClip;
 		float CenterDepth = (Far + Near) / 2;
 		FVector Center = FVector(0, 0, CenterDepth);
 		float MaxDis = FVector::Distance(Center, CameraFrustum[7]) * 2;
@@ -50,7 +104,7 @@ void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArra
 		FAABB CameraFrustumAABB = FAABB(CameraFrustum);
 		CameraFrustumAABB.Min = CameraFrustumAABB.Min.SnapToGrid(FVector(WorldSizePerTexel, WorldSizePerTexel,0), true);
 		CameraFrustumAABB.Max = CameraFrustumAABB.Min + FVector(MaxDis, MaxDis, MaxDis);
-		CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
+		CameraFrustumAABB.Min.Z -= View->FarClip;
 		FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
 		FShadowRenderRequest ShadowRenderRequest;
 		ShadowRenderRequest.LightOwner = this;
@@ -63,14 +117,14 @@ void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArra
 	}
 	else 
 	{
-		CascadedSliceDepth = View->Camera->GetCascadedSliceDepth(CascadedCount, CascadedLinearBlendingValue);
+		CascadedSliceDepth = GetCascadedSliceDepth(CascadedCount, CascadedLinearBlendingValue, View->NearClip, View->FarClip);
 		for (int i = 0; i < CascadedCount; i++)
 		{
 			float Near = CascadedSliceDepth[i];
 			float Far = CascadedSliceDepth[i + 1];
 			//Near -= Near * CascadedOverlapValue;
 			Far += Far * CascadedOverlapValue;
-			TArray<FVector> CameraFrustum = View->Camera->GetFrustumVerticesCascaded(View->Viewport, Near, Far);
+			TArray<FVector> CameraFrustum = GetFrustumVertices(View->ProjectionMode, View->Viewport, View->FieldOfView, Near, Far, View->ZoomFactor);
 			float CenterDepth = (Far + Near) / 2;
 			FVector Center = FVector(0, 0, CenterDepth);
 			float MaxDis = FVector::Distance(Center, CameraFrustum[7]) * 2;
@@ -81,7 +135,7 @@ void UDirectionalLightComponent::GetShadowRenderRequests(FSceneView* View, TArra
 			FAABB CameraFrustumAABB = FAABB(CameraFrustum);
 			CameraFrustumAABB.Min = CameraFrustumAABB.Min.SnapToGrid(FVector(WorldSizePerTexel, WorldSizePerTexel, 0), true);
 			CameraFrustumAABB.Max = CameraFrustumAABB.Min + FVector(MaxDis, MaxDis, MaxDis);
-			CameraFrustumAABB.Min.Z -= View->Camera->GetFarClip();
+			CameraFrustumAABB.Min.Z -= View->FarClip;
 			FMatrix ShadowMapOrtho = FMatrix::OrthoMatrix(CameraFrustumAABB);
 			FShadowRenderRequest ShadowRenderRequest;
 			ShadowRenderRequest.LightOwner = this;

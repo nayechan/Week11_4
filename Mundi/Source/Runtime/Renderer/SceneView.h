@@ -11,11 +11,6 @@ class UCameraComponent;
 class FViewport;
 struct FPostProcessModifier;
 
-struct FPostProcessInput
-{
-    TArray<FPostProcessModifier> Modifiers; // PCM이 채워 넣음
-};
-
 /**
  * @struct FViewportRect
  * @brief 뷰포트 내의 사각 영역
@@ -25,6 +20,21 @@ struct FViewportRect
     uint32 MinX = 0, MinY = 0, MaxX = 0, MaxY = 0;
     uint32 Width() const { return MaxX - MinX; }
     uint32 Height() const { return MaxY - MinY; }
+};
+
+
+struct FMinimalViewInfo
+{
+    FMatrix ViewMatrix;
+    FMatrix ProjectionMatrix;
+    FVector ViewLocation;
+    FQuat ViewRotation;
+    float FieldOfView = 0.0f;
+    float ZoomFactor = 0.0f;
+    float NearClip = 0.0f;
+    float FarClip = 0.0f;
+    FViewportRect ViewRect;
+    ECameraProjectionMode ProjectionMode;
 };
 
 /**
@@ -37,10 +47,8 @@ class FSceneView
 {
 public:
     // 메인 뷰(카메라)를 위한 생성자
-    FSceneView() = default;
+    FSceneView(FMinimalViewInfo* InMinimalViewInfo, FViewport* InViewport, URenderSettings* InRenderSettings);
     FSceneView(UCameraComponent* InCamera, FViewport* InViewport, URenderSettings* InRenderSettings);
-
-    void InitRenderSetting(FViewport* InViewport, URenderSettings* InRenderSettings);
 
 private:
     TArray<FShaderMacro> CreateViewShaderMacros();
@@ -54,15 +62,18 @@ public:
     FQuat ViewRotation{};
     FViewportRect ViewRect{}; // 이 뷰가 그려질 뷰포트상의 영역
 
-    UCameraComponent* Camera;
+    TArray<FVector> FrustumVertices;
+
     FViewport* Viewport;
     URenderSettings* RenderSettings;
 
     // 렌더링 설정
     ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;
     TArray<FShaderMacro> ViewShaderMacros;
-    float ZNear{}, ZFar{};
+    float FieldOfView = 0.0f;
+    float ZoomFactor = 0.0f;
+    float NearClip = 0.0f;
+    float FarClip = 0.0f;
 
-    // 이번 프레임 Postprocess
-    FPostProcessInput PostProcessInput;
+    TArray<FPostProcessModifier> Modifiers;
 };

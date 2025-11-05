@@ -777,8 +777,8 @@ void FSceneRenderer::PerformTileLightCulling()
 			SpotLights,
 			View->ViewMatrix,
 			View->ProjectionMatrix,
-			View->ZNear,
-			View->ZFar,
+			View->NearClip,
+			View->FarClip,
 			ViewportWidth,
 			ViewportHeight
 		);
@@ -963,7 +963,7 @@ void FSceneRenderer::RenderDecalPass()
 
 void FSceneRenderer::RenderPostProcessingPasses()
 {
-	TArray<FPostProcessModifier> PostProcessModifiers = View->PostProcessInput.Modifiers;
+	TArray<FPostProcessModifier> PostProcessModifiers = View->Modifiers;
 
 	// TODO : 다른 데에서 하기, 맨 앞으로 넘기기
 	// Register Height Fog Modifiers, 첫번째만 등록 된다.
@@ -1070,7 +1070,7 @@ void FSceneRenderer::RenderSceneDepthPostProcess()
 	// 상수 버퍼 업데이트
 	ECameraProjectionMode ProjectionMode = View->ProjectionMode;
 	//RHIDevice->UpdatePostProcessCB(ZNear, ZFar, ProjectionMode == ECameraProjectionMode::Orthographic);
-	RHIDevice->SetAndUpdateConstantBuffer(PostProcessBufferType(View->ZNear, View->ZFar, ProjectionMode == ECameraProjectionMode::Orthographic));
+	RHIDevice->SetAndUpdateConstantBuffer(PostProcessBufferType(View->NearClip, View->FarClip, ProjectionMode == ECameraProjectionMode::Orthographic));
 
 	// Draw
 	RHIDevice->DrawFullScreenQuad();

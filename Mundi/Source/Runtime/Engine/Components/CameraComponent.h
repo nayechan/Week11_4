@@ -26,13 +26,13 @@ public:
     void SetNearClipPlane(float NewNear) { NearClip = NewNear; }
     void SetFarClipPlane(float NewFar) { FarClip = NewFar; }
     void SetProjectionMode(ECameraProjectionMode Mode) { ProjectionMode = Mode; }
-    void SetZoomFactor(float InZoomFactor) { ZooMFactor = InZoomFactor; };
+    void SetZoomFactor(float InZoomFactor) { ZoomFactor = InZoomFactor; };
     
     float GetFOV() const { return FieldOfView; }
     float GetAspectRatio() const { return AspectRatio; }
     float GetNearClip() const { return NearClip; }
     float GetFarClip() const { return FarClip; }
-    float GetZoomFactor()const { return ZooMFactor; };
+    float GetZoomFactor()const { return ZoomFactor; };
     ECameraProjectionMode GetProjectionMode() const { return ProjectionMode; }
 
     // Matrices
@@ -40,10 +40,6 @@ public:
     FMatrix GetProjectionMatrix() const;
     FMatrix GetProjectionMatrix(float ViewportAspectRatio) const; //사용 x
     FMatrix GetProjectionMatrix(float ViewportAspectRatio, FViewport* Viewport) const; //ViewportAspectRatio는 Viewport에서 얻어올 수 있음
-
-    TArray<FVector> GetFrustumVertices(FViewport* Viewport) const;
-    TArray<FVector> GetFrustumVerticesCascaded(FViewport* Viewport, const float Near, const float Far) const;
-    TArray<float> GetCascadedSliceDepth(int CascadedCount, float LinearBlending = 0.5f) const;
 
     void SetViewGizmo()
     {
@@ -71,7 +67,7 @@ private:
     float NearClip;
     float FarClip;
 
-    float ZooMFactor;
+    float ZoomFactor;
 
 
     ECameraProjectionMode ProjectionMode;

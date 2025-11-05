@@ -48,7 +48,7 @@ void FHeightFogPass::Execute(const FPostProcessModifier& M, FSceneView* View, D3
     // 상수 버퍼 업데이트
     ECameraProjectionMode ProjectionMode = View->ProjectionMode;
     
-    RHIDevice->SetAndUpdateConstantBuffer(PostProcessBufferType(View->ZNear, View->ZFar, ProjectionMode == ECameraProjectionMode::Orthographic));
+    RHIDevice->SetAndUpdateConstantBuffer(PostProcessBufferType(View->NearClip, View->FarClip, ProjectionMode == ECameraProjectionMode::Orthographic));
     if (UHeightFogComponent* F = Cast<UHeightFogComponent>(M.SourceObject))
     {
         RHIDevice->SetAndUpdateConstantBuffer(FogBufferType(F->GetFogDensity(), F->GetFogHeightFalloff(), F->GetStartDistance(), F->GetFogCutoffDistance(), F->GetFogInscatteringColor().ToFVector4(), F->GetFogMaxOpacity(), F->GetFogHeight()));   

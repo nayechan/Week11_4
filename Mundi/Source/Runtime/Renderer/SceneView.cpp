@@ -4,23 +4,78 @@
 #include "FViewport.h"
 #include "Frustum.h"
 
-FSceneView::FSceneView(UCameraComponent* InCamera, FViewport* InViewport, URenderSettings* InRenderSettings)
-: Camera(InCamera)
+FSceneView::FSceneView(FMinimalViewInfo* InMinimalViewInfo, FViewport* InViewport, URenderSettings* InRenderSettings)
+	: Viewport(InViewport), RenderSettings(InRenderSettings)
 {
-    if (!Camera || !InViewport || !InRenderSettings)
+	if (!InMinimalViewInfo || !Viewport || !RenderSettings)
+	{
+		UE_LOG("[FSceneView::FSceneView()]: InMinimalViewInfo 또는 Viewport 또는 RenderSettings가 없습니다.");
+		return;
+	}
+
+	// --- 이 로직이 FSceneRenderer::PrepareView()에서 이동해 옴 ---
+
+	float AspectRatio = 1.0f;
+	if (Viewport->GetSizeY() > 0)
+	{
+		AspectRatio = (float)Viewport->GetSizeX() / (float)Viewport->GetSizeY();
+	}
+
+	ViewMatrix = InMinimalViewInfo->ViewMatrix;
+	ProjectionMatrix = InMinimalViewInfo->ProjectionMatrix;
+	//ViewFrustum = CreateFrustumFromCamera(*InMinimalViewInfo->RectRati;
+	ViewLocation = InMinimalViewInfo->ViewLocation;
+	ViewRotation = InMinimalViewInfo->ViewRotation;
+	NearClip = InMinimalViewInfo->NearClip;
+	FarClip = InMinimalViewInfo->FarClip;
+	FieldOfView = InMinimalViewInfo->FieldOfView;
+	ZoomFactor = InMinimalViewInfo->ZoomFactor;
+	ProjectionMode = InMinimalViewInfo->ProjectionMode;
+
+	ViewRect.MinX = Viewport->GetStartX();
+	ViewRect.MinY = Viewport->GetStartY();
+	ViewRect.MaxX = ViewRect.MinX + Viewport->GetSizeX();
+	ViewRect.MaxY = ViewRect.MinY + Viewport->GetSizeY();
+
+
+	ViewShaderMacros = CreateViewShaderMacros();
+}
+
+FSceneView::FSceneView(UCameraComponent* InCamera, FViewport* InViewport, URenderSettings* InRenderSettings)
+	: Viewport(InViewport), RenderSettings(InRenderSettings)
+{
+	if (!InCamera || !Viewport || !RenderSettings)
 	{
 		UE_LOG("[FSceneView::FSceneView()]: CameraActor 또는 Viewport 또는 RenderSettings가 없습니다.");
 		return;
 	}
 
-	ViewMatrix = Camera->GetViewMatrix();
-	ViewLocation = Camera->GetWorldLocation();
-	ViewRotation = Camera->GetWorldRotation();
-	ZNear = Camera->GetNearClip();
-	ZFar = Camera->GetFarClip();
-	ProjectionMode = Camera->GetProjectionMode();
+	// --- 이 로직이 FSceneRenderer::PrepareView()에서 이동해 옴 ---
 
-	InitRenderSetting(InViewport, InRenderSettings);
+	float AspectRatio = 1.0f;
+	if (Viewport->GetSizeY() > 0)
+	{
+		AspectRatio = (float)Viewport->GetSizeX() / (float)Viewport->GetSizeY();
+	}
+
+	ViewMatrix = InCamera->GetViewMatrix();
+	ProjectionMatrix = InCamera->GetProjectionMatrix(AspectRatio, Viewport);
+	//ViewFrustum = CreateFrustumFromCamera(*InCamera, AspectRatio);
+	ViewLocation = InCamera->GetWorldLocation();
+	ViewRotation = InCamera->GetWorldRotation();
+	NearClip = InCamera->GetNearClip();
+	FarClip = InCamera->GetFarClip();
+	FieldOfView = InCamera->GetFOV();
+	ZoomFactor = InCamera->GetZoomFactor();
+
+	ViewRect.MinX = Viewport->GetStartX();
+	ViewRect.MinY = Viewport->GetStartY();
+	ViewRect.MaxX = ViewRect.MinX + Viewport->GetSizeX();
+	ViewRect.MaxY = ViewRect.MinY + Viewport->GetSizeY();
+
+	ProjectionMode = InCamera->GetProjectionMode();
+
+	ViewShaderMacros = CreateViewShaderMacros();
 }
 
 TArray<FShaderMacro> FSceneView::CreateViewShaderMacros()
@@ -68,30 +123,4 @@ TArray<FShaderMacro> FSceneView::CreateViewShaderMacros()
 	}
 
 	return ShaderMacros;
-}
-
-void FSceneView::InitRenderSetting(FViewport* InViewport, URenderSettings* InRenderSettings)
-{
-	// --- 이 로직이 FSceneRenderer::PrepareView()에서 이동해 옴 ---
-	Viewport = InViewport;
-	RenderSettings = InRenderSettings;
-
-	float AspectRatio = 1.0f;
-	if (InViewport->GetSizeY() > 0)
-	{
-		AspectRatio = (float)InViewport->GetSizeX() / (float)InViewport->GetSizeY();
-	}
-
-	if (Camera)
-	{
-		ProjectionMatrix = Camera->GetProjectionMatrix(AspectRatio, InViewport);
-		ViewFrustum = CreateFrustumFromCamera(*Camera, AspectRatio);
-
-		ViewRect.MinX = InViewport->GetStartX();
-		ViewRect.MinY = InViewport->GetStartY();
-		ViewRect.MaxX = ViewRect.MinX + InViewport->GetSizeX();
-		ViewRect.MaxY = ViewRect.MinY + InViewport->GetSizeY();
-
-		ViewShaderMacros = CreateViewShaderMacros();
-	}
 }

@@ -85,52 +85,48 @@ void FViewportClient::Draw(FViewport* Viewport)
 {
 	if (!Viewport || !World) return;
 
-	FSceneView* RenderView = nullptr;
-
 	if (World->bPie)
 	{
 		// 0번 PCM을 가져옴
-		APlayerCameraManager* PCM = World->GetFirstPlayerCameraManager();
-		if (PCM)
+		APlayerCameraManager* PlayerCameraManager = World->GetFirstPlayerCameraManager();
+		if (PlayerCameraManager)
 		{
-			RenderView = PCM->GetSceneView(Viewport, &World->GetRenderSettings());
+			PlayerCameraManager->CacheViewport(Viewport);	// 한프레임 지연 있고, 단일 뷰포트만 지원 (일단 이렇게 처리)
+
 			URenderer* Renderer = URenderManager::GetInstance().GetRenderer();
 			if (Renderer)
 			{
+				FMinimalViewInfo* MinimalViewInfo = PlayerCameraManager->GetSceneView();
+				TArray<FPostProcessModifier> Modifiers = PlayerCameraManager->GetModifiers();
+
+				FSceneView SceneView(MinimalViewInfo, Viewport, &World->GetRenderSettings());
+				SceneView.Modifiers = Modifiers;
 				World->GetRenderSettings().SetViewMode(ViewMode);
 
 				// 더 명확한 이름의 함수를 호출
-				Renderer->RenderSceneForView(World, RenderView, Viewport);
+				Renderer->RenderSceneForView(World, &SceneView, Viewport);
 			}
 			return;
 		}
 	}
 
-	if (!RenderView)
+	// 1. 뷰 타입에 따라 카메라 설정 등 사전 작업을 먼저 수행
+	switch (ViewportType)
 	{
-		// 1. 뷰 타입에 따라 카메라 설정 등 사전 작업을 먼저 수행
-		switch (ViewportType)
-		{
-		case EViewportType::Perspective:
-		{
-			Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Perspective);
-			break;
-		}
-		default: // 모든 Orthographic 케이스
-		{
-			Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Orthographic);
-			SetupCameraMode();
-			break;
-		}
-		}
-
-		RenderView = new FSceneView(Camera->GetCameraComponent(), Viewport, &World->GetRenderSettings());
+	case EViewportType::Perspective:
+	{
+		Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Perspective);
+		break;
+	}
+	default: // 모든 Orthographic 케이스
+	{
+		Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Orthographic);
+		SetupCameraMode();
+		break;
+	}
 	}
 
-	if (!RenderView || !RenderView->Viewport)
-	{
-		return;
-	}
+	FSceneView RenderView(Camera->GetCameraComponent(), Viewport, &World->GetRenderSettings());
 
 	// 2. 렌더링 호출은 뷰 타입 설정이 모두 끝난 후 마지막에 한 번만 수행
 	URenderer* Renderer = URenderManager::GetInstance().GetRenderer();
@@ -139,12 +135,7 @@ void FViewportClient::Draw(FViewport* Viewport)
 		World->GetRenderSettings().SetViewMode(ViewMode);
 
 		// 더 명확한 이름의 함수를 호출
-		Renderer->RenderSceneForView(World, RenderView, Viewport);
-	}
-
-	if (RenderView)
-	{
-		delete RenderView;
+		Renderer->RenderSceneForView(World, &RenderView, Viewport);
 	}
 }
 

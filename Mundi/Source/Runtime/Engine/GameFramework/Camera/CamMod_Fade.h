@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CameraModifierBase.h"
+#include "PostProcessing/PostProcessing.h"
 
 class UCamMod_Fade : public UCameraModifierBase
 {
@@ -16,7 +17,7 @@ public:
 
     float CurrentAlpha = 0.f; // 이번 프레임 출력 알파
     
-    virtual void ApplyToView(float DeltaTime, FSceneView& InOutView) override
+    virtual void ApplyToView(float DeltaTime) override
     {
         if (!bEnabled) return;
 
@@ -29,7 +30,7 @@ public:
         if (T >= 1.f) bEnabled = false;
     }
 
-    virtual void CollectPostProcess(TArray<FPostProcessModifier>& Out, const FSceneView&) override
+    virtual void CollectPostProcess(TArray<FPostProcessModifier>& Out) override
     {
         if (!bEnabled && CurrentAlpha <= 0.f) return;
         if (CurrentAlpha <= 0.f) return; 

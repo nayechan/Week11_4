@@ -18,23 +18,11 @@ END_PROPERTIES()
 APlayerCameraManager::APlayerCameraManager()
 {
 	Name = "Player Camera Manager";
-	
-	SceneView = new FSceneView();
 }
 
 APlayerCameraManager::~APlayerCameraManager()
 {
-	if (SceneView != nullptr)
-	{
-		delete SceneView;
-		SceneView = nullptr;
-	}
-	
-	if(BlendStartView)
-	{
-		delete BlendStartView;
-		BlendStartView = nullptr;
-	}
+
 }
 
 void APlayerCameraManager::StartCameraShake(float InDuration, float AmpLoc, float AmpRotDeg, float Frequency,
@@ -81,15 +69,15 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	for (UCameraModifierBase* M : ActiveModifiers)
 	{
 		if (!M || !M->bEnabled || M->Weight <= 0.f) continue;
-		M->ApplyToView(DeltaTime, *SceneView);
+		M->ApplyToView(DeltaTime);
 	}
 
 	// 2) 후처리: PP 모디파이어 초기화 + 수집
-	SceneView->PostProcessInput.Modifiers.clear();
+	Modifiers.clear();
 	for (UCameraModifierBase* M : ActiveModifiers)
 	{
 		if (!M || !M->bEnabled || M->Weight <= 0.f) continue;
-		M->CollectPostProcess(SceneView->PostProcessInput.Modifiers, *SceneView);
+		M->CollectPostProcess(Modifiers);
 	}
 
 	// 3) 수명 정리
@@ -107,8 +95,8 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	if (PendingViewTarget)
 	{
 		float V = 1.0f - (BlendTimeRemaining / BlendTimeTotal);
-		FVector StartLocation = BlendStartView->ViewLocation;
-		FQuat StartRotation = BlendStartView->ViewRotation;
+		FVector StartLocation = BlendStartView.ViewLocation;
+		FQuat StartRotation = BlendStartView.ViewRotation;
 
 		FVector TargetLocation = PendingViewTarget->GetWorldLocation();
 		FQuat TargetRotation = PendingViewTarget->GetWorldRotation();
@@ -123,15 +111,23 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	}
 	else
 	{
-		if (CurrentViewTarget)
+		if (CurrentViewTarget && CachedViewport)
 		{
-			SceneView->Camera = CurrentViewTarget;
-			SceneView->ViewMatrix = CurrentViewTarget->GetViewMatrix();
-			SceneView->ViewLocation = CurrentViewTarget->GetWorldLocation();
-			SceneView->ViewRotation = CurrentViewTarget->GetWorldRotation();
-			SceneView->ZNear = CurrentViewTarget->GetNearClip();
-			SceneView->ZFar = CurrentViewTarget->GetFarClip();
-			SceneView->ProjectionMode = CurrentViewTarget->GetProjectionMode();
+			float AspectRatio = 1.0f;
+			if (CachedViewport->GetSizeY() > 0)
+			{
+				AspectRatio = (float)CachedViewport->GetSizeX() / (float)CachedViewport->GetSizeY();
+			}
+
+			SceneView.ViewMatrix = CurrentViewTarget->GetViewMatrix();
+			SceneView.ProjectionMatrix = CurrentViewTarget->GetProjectionMatrix(AspectRatio, CachedViewport);
+			SceneView.ViewLocation = CurrentViewTarget->GetWorldLocation();
+			SceneView.ViewRotation = CurrentViewTarget->GetWorldRotation();
+			SceneView.NearClip = CurrentViewTarget->GetNearClip();
+			SceneView.FarClip = CurrentViewTarget->GetFarClip();
+			SceneView.FieldOfView = CurrentViewTarget->GetFOV();
+			SceneView.ZoomFactor = CurrentViewTarget->GetZoomFactor();
+			SceneView.ProjectionMode = CurrentViewTarget->GetProjectionMode();
 		}
 	}
 }
@@ -177,13 +173,8 @@ UCameraComponent* APlayerCameraManager::GetMainCamera()
 	return CurrentViewTarget;
 }
 
-FSceneView* APlayerCameraManager::GetSceneView(FViewport* InViewport, URenderSettings* InRenderSettings)
+FMinimalViewInfo* APlayerCameraManager::GetSceneView()
 {
-	if (!InViewport || !InRenderSettings)
-	{
-		return nullptr;
-	}
-
 	UCameraComponent* ViewTarget = CurrentViewTarget;
 	if (!ViewTarget)
 	{
@@ -195,13 +186,7 @@ FSceneView* APlayerCameraManager::GetSceneView(FViewport* InViewport, URenderSet
 		return nullptr;
 	}
 
-	if (SceneView && SceneView->Camera == ViewTarget)
-	{
-		SceneView->InitRenderSetting(InViewport, InRenderSettings);
-		return SceneView; 
-	}
-
-	return nullptr;
+	return &SceneView; 
 }
 
 void APlayerCameraManager::SetViewTarget(UCameraComponent* NewViewTarget)
@@ -213,14 +198,8 @@ void APlayerCameraManager::SetViewTarget(UCameraComponent* NewViewTarget)
 
 void APlayerCameraManager::SetViewTargetWithBlend(UCameraComponent* NewViewTarget, float InBlendTime)
 {
-	if(BlendStartView)
-	{
-		delete BlendStartView;
-		BlendStartView = nullptr;
-	}
-
 	// "현재 뷰 타겟"의 뷰 정보를 스냅샷으로 저장해야 합니다.
-	*BlendStartView = *SceneView;
+	BlendStartView = SceneView;
 
 	// 현재 뷰를 블렌딩 시작 뷰로 저장
 	PendingViewTarget = NewViewTarget;

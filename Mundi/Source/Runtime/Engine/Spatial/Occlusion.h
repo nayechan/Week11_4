@@ -11,8 +11,8 @@ struct FCandidateDrawable
     FAABB   Bound;        // 월드 AABB (Min/Max)
     FMatrix  WorldViewProj;// 행벡터 기준 WVP
     FMatrix  WorldView;    // ★ 추가: World-space * View  (여기서는 View만 주면 됨)
-    float    ZNear;        // ★ 추가
-    float    ZFar;         // ★ 추가
+    float    NearClip;        // ★ 추가
+    float    FarClip;         // ★ 추가
 };
 
 // 교체 (MaxZ 추가)

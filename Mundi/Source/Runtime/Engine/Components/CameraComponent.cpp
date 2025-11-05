@@ -13,7 +13,7 @@ BEGIN_PROPERTIES(UCameraComponent)
 	ADD_PROPERTY_RANGE(float, AspectRatio, "Camera", 0.1f, 10.0f, true, "화면 비율입니다.")
 	ADD_PROPERTY_RANGE(float, NearClip, "Camera", 0.01f, 1000.0f, true, "근거리 클리핑 평면입니다.")
 	ADD_PROPERTY_RANGE(float, FarClip, "Camera", 1.0f, 100000.0f, true, "원거리 클리핑 평면입니다.")
-	ADD_PROPERTY_RANGE(float, ZooMFactor, "Camera", 0.1f, 10.0f, true, "줌 배율입니다.")
+	ADD_PROPERTY_RANGE(float, ZoomFactor, "Camera", 0.1f, 10.0f, true, "줌 배율입니다.")
 END_PROPERTIES()
 
 UCameraComponent::UCameraComponent()
@@ -22,7 +22,7 @@ UCameraComponent::UCameraComponent()
     , NearClip(0.1f)
     , FarClip(100.0f)
     , ProjectionMode(ECameraProjectionMode::Perspective)
-    , ZooMFactor(1.0f)
+    , ZoomFactor(1.0f)
 
 {
 }
@@ -66,7 +66,7 @@ FMatrix UCameraComponent::GetProjectionMatrix(float ViewportAspectRatio) const
         float orthoWidth = orthoHeight * ViewportAspectRatio;
 
         // 줌 계산
-        orthoWidth = orthoWidth * ZooMFactor;
+        orthoWidth = orthoWidth * ZoomFactor;
         orthoHeight = orthoWidth / ViewportAspectRatio;
 
 
@@ -81,7 +81,7 @@ FMatrix UCameraComponent::GetProjectionMatrix(float ViewportAspectRatio, FViewpo
     if (ProjectionMode == ECameraProjectionMode::Perspective)
     {
         return FMatrix::PerspectiveFovLH(
-            FieldOfView * (PI / 180.0f),
+            DegreesToRadians(FieldOfView),
             ViewportAspectRatio,
             NearClip, FarClip);
     }
@@ -91,8 +91,8 @@ FMatrix UCameraComponent::GetProjectionMatrix(float ViewportAspectRatio, FViewpo
         const float pixelsPerWorldUnit = 10.0f;
 
         // 뷰포트 크기를 월드 단위로 변환
-        float orthoWidth = (Viewport->GetSizeX() / pixelsPerWorldUnit) * ZooMFactor;
-        float orthoHeight = (Viewport->GetSizeY() / pixelsPerWorldUnit) * ZooMFactor;
+        float orthoWidth = (Viewport->GetSizeX() / pixelsPerWorldUnit) * ZoomFactor;
+        float orthoHeight = (Viewport->GetSizeY() / pixelsPerWorldUnit) * ZoomFactor;
 
         return FMatrix::OrthoLH(
             orthoWidth,
@@ -101,58 +101,6 @@ FMatrix UCameraComponent::GetProjectionMatrix(float ViewportAspectRatio, FViewpo
         /*return FMatrix::OrthoLH_XForward(orthoWidth, orthoHeight,
             NearClip, FarClip);*/
     }
-}
-TArray<FVector> UCameraComponent::GetFrustumVertices(FViewport* Viewport) const
-{
-    return GetFrustumVerticesCascaded(Viewport, NearClip, FarClip);
-}
-TArray<FVector> UCameraComponent::GetFrustumVerticesCascaded(FViewport* Viewport, const float Near, const float Far) const
-{
-    TArray<FVector> Vertices;
-    Vertices.reserve(8);
-    float NearHalfHeight, NearHalfWidth, FarHalfHeight, FarHalfWidth;
-    if (ProjectionMode == ECameraProjectionMode::Perspective)
-    {
-        const float Tan = tan(DegreesToRadians(FieldOfView) * 0.5f);
-        const float Aspect = Viewport->GetAspectRatio();
-        NearHalfHeight = Tan * Near;
-        NearHalfWidth = NearHalfHeight * Aspect;
-        FarHalfHeight = Tan * Far;
-        FarHalfWidth = FarHalfHeight * Aspect;
-    }
-    else
-    {
-        const float pixelsPerWorldUnit = 10.0f;
-
-        NearHalfHeight = (Viewport->GetSizeY() / pixelsPerWorldUnit) * ZooMFactor;
-        NearHalfWidth = (Viewport->GetSizeX() / pixelsPerWorldUnit) * ZooMFactor;
-        FarHalfHeight = NearHalfHeight;
-        FarHalfWidth = NearHalfWidth;
-    }
-    Vertices.emplace_back(FVector(-NearHalfWidth, -NearHalfHeight, Near));
-    Vertices.emplace_back(FVector(NearHalfWidth, -NearHalfHeight, Near));
-    Vertices.emplace_back(FVector(NearHalfWidth, NearHalfHeight, Near));
-    Vertices.emplace_back(FVector(-NearHalfWidth, NearHalfHeight, Near));
-    Vertices.emplace_back(FVector(-FarHalfWidth, -FarHalfHeight, Far));
-    Vertices.emplace_back(FVector(FarHalfWidth, -FarHalfHeight, Far));
-    Vertices.emplace_back(FVector(FarHalfWidth, FarHalfHeight, Far));
-    Vertices.emplace_back(FVector(-FarHalfWidth, FarHalfHeight, Far));
-
-    return Vertices;
-}
-TArray<float> UCameraComponent::GetCascadedSliceDepth(int CascadedCount, float LinearBlending) const
-{
-    TArray<float> CascadedSliceDepth;
-    CascadedSliceDepth.reserve(CascadedCount + 1);
-    LinearBlending = LinearBlending < 0 ? 0 : (LinearBlending > 1 ? 1 : LinearBlending); //clamp(0,1,LinearBlending);
-    for (int i = 0; i < CascadedCount + 1; i++)
-    {
-        float CurDepth = 0;
-        float LogValue = NearClip * pow((FarClip / NearClip), (float)i / CascadedCount);
-        float LinearValue = NearClip + (FarClip - NearClip) * (float)i / CascadedCount;
-        CascadedSliceDepth.push_back((1 - LinearBlending) * LogValue + LinearBlending * LinearValue);
-    }
-    return CascadedSliceDepth;
 }
 
 FVector UCameraComponent::GetForward() const
