@@ -64,6 +64,30 @@ struct FogBufferType // b2
     float Padding[2]; // 16바이트 정렬을 위한 패딩
 };
 
+struct alignas(16) FFadeInOutBufferType // b2
+{
+    FLinearColor FadeColor = FLinearColor(0, 0, 0, 1);  //보통 (0, 0, 0, 1)
+    
+    float Opacity = 0.0f;   // 0~1
+    float Weight  = 1.0f;
+    float _Pad[2] = {0,0};
+};
+static_assert(sizeof(FFadeInOutBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
+struct alignas(16) FVinetteBufferType // b2
+{
+    FLinearColor Color;
+    
+    float     Radius    = 0.35f;                        // 효과 시작 반경(0~1)
+    float     Softness  = 0.25f;                        // 페더 폭(0~1)
+    float     Intensity = 1.0f;                       // 컬러 블렌드 강도 (0~1)
+    float     Roundness = 2.0f;                       // 1=마름모, 2= 원형, >1 더 네모에 가깝게
+    
+    float     Weight    = 1.0f;
+    float     _Pad0[3];
+};
+static_assert(sizeof(FVinetteBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
 struct FXAABufferType // b2
 {
     FVector2D ScreenSize; // 화면 해상도 (e.g., float2(1920.0f, 1080.0f))
@@ -191,6 +215,8 @@ MACRO(DecalBufferType)              \
 MACRO(FireballBufferType)           \
 MACRO(PostProcessBufferType)        \
 MACRO(FogBufferType)                \
+MACRO(FFadeInOutBufferType)         \
+MACRO(FVinetteBufferType)           \
 MACRO(FXAABufferType)               \
 MACRO(FPixelConstBufferType)        \
 MACRO(ViewProjBufferType)           \
@@ -212,6 +238,8 @@ CONSTANT_BUFFER_INFO(ModelBufferType, 0, true, false)
 CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
 CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, true) // b1 카메라 행렬 고정
 CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FFadeInOutBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FVinetteBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color
 CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
@@ -219,7 +247,7 @@ CONSTANT_BUFFER_INFO(DecalBufferType, 6, true, true)
 CONSTANT_BUFFER_INFO(FireballBufferType, 6, false, true)
 CONSTANT_BUFFER_INFO(CameraBufferType, 7, true, true)  // b7, VS+PS (UberLit.hlsl과 일치)
 CONSTANT_BUFFER_INFO(FLightBufferType, 8, true, true)
-CONSTANT_BUFFER_INFO(FViewportConstants, 10, true, false)   // 뷰 포트 크기에 따라 전체 화면 복사를 보정하기 위해 설정 (10번 고유번호로 사용)
+CONSTANT_BUFFER_INFO(FViewportConstants, 10, true, true)   // 뷰 포트 크기에 따라 전체 화면 복사를 보정하기 위해 설정 (10번 고유번호로 사용)
 CONSTANT_BUFFER_INFO(FTileCullingBufferType, 11, false, true)  // b11, PS only (UberLit.hlsl과 일치)
 CONSTANT_BUFFER_INFO(FPointLightShadowBufferType, 12, true, true)  // b11, VS only
 

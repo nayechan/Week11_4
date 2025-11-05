@@ -35,7 +35,6 @@ public:
     float GetZoomFactor()const { return ZooMFactor; };
     ECameraProjectionMode GetProjectionMode() const { return ProjectionMode; }
 
-
     // Matrices
     FMatrix GetViewMatrix() const;
     FMatrix GetProjectionMatrix() const;

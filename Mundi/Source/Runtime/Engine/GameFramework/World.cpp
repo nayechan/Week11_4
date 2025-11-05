@@ -26,6 +26,7 @@
 #include "LightManager.h"
 #include "../Scripting/LuaManager.h"
 #include "ShapeComponent.h"
+#include "PlayerCameraManager.h"
 #include "Hash.h"
 
 IMPLEMENT_CLASS(UWorld)
@@ -123,7 +124,7 @@ bool UWorld::TryLoadLastUsedLevel()
 
 // 함수 내부 코드 순서 유지 필요
 void UWorld::Tick(float DeltaSeconds)
-{	
+{
 	// 중복충돌 방지 pair clear 
     FrameOverlapPairs.clear();
     Partition->Update(DeltaSeconds, /*budget*/256);
@@ -196,6 +197,16 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 			UE_LOG("Duplicate failed: NewActor is nullptr");
 			continue;
 		}
+
+		// PlayerCameraManager 복사
+		if (InEditorWorld->PlayerCameraManager == SourceActor)
+		{
+			if (APlayerCameraManager* NewPlayerCameraManager = Cast<APlayerCameraManager>(NewActor))
+			{
+				PIEWorld->PlayerCameraManager = NewPlayerCameraManager;
+			}
+		}
+
 		PIEWorld->AddActorToLevel(NewActor);
 	}
 
@@ -301,6 +312,8 @@ void UWorld::SetLevel(std::unique_ptr<ULevel> InLevel)
     // Make UI/selection safe before destroying previous actors
     if (SelectionMgr) SelectionMgr->ClearSelection();
 
+	PlayerCameraManager = nullptr;
+
     // Cleanup current
     if (Level)
     {
@@ -319,18 +332,30 @@ void UWorld::SetLevel(std::unique_ptr<ULevel> InLevel)
     if (Level)
     {
 		Partition->BulkRegister(Level->GetActors());
-        for (AActor* A : Level->GetActors())
+        for (AActor* Actor : Level->GetActors())
         {
-			if (A)
+			if (Actor)
 			{
-				A->SetWorld(this);
-				A->RegisterAllComponents(this);
-			}
+				Actor->SetWorld(this);
+				Actor->RegisterAllComponents(this);
+}
         }
     }
 
+	// 씬에서 PCM 검색
+	this->PlayerCameraManager = FindActor<APlayerCameraManager>();
+
+	// 씬에서 APCM을 찾지 못했다면, 비상용으로 새로 생성
+	if (this->PlayerCameraManager == nullptr)
+	{
+		AActor* NewPlayerCameraManager = SpawnActor(APlayerCameraManager::StaticClass());
+		this->PlayerCameraManager = Cast<APlayerCameraManager>(NewPlayerCameraManager);
+		UE_LOG("[info] 씬에서 APlayerCameraManager를 찾지 못해, 비어있는 인스턴스를 새로 생성합니다.");
+	}
+
     // Clean any dangling selection references just in case
-    if (SelectionMgr) SelectionMgr->CleanupInvalidActors();
+    if (SelectionMgr)
+		SelectionMgr->CleanupInvalidActors();
 }
 
 void UWorld::AddActorToLevel(AActor* Actor)
@@ -458,12 +483,11 @@ AActor* UWorld::SpawnPrefabActor(const FWideString& PrefabPath)
 	return nullptr;
 }
 
-
-bool UWorld::TryMarkOverlapPair(const AActor* A, const AActor* B)
+bool UWorld::TryMarkOverlapPair(const AActor* Actor, const AActor* B)
 {
-	if (!A || !B) return false;
+	if (!Actor || !B) return false;
 	// Canonicalize by pointer value to ensure consistent ordering
-	uintptr_t Pa = reinterpret_cast<uintptr_t>(A);
+	uintptr_t Pa = reinterpret_cast<uintptr_t>(Actor);
 	uintptr_t Pb = reinterpret_cast<uintptr_t>(B);
 
 	if (Pa > Pb)
@@ -484,4 +508,3 @@ bool UWorld::TryMarkOverlapPair(const AActor* A, const AActor* B)
 	FrameOverlapPairs.Add(Key);
 	return true;
 }
-

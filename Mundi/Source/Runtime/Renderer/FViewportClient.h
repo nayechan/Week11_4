@@ -48,7 +48,6 @@ public:
 
     EViewMode GetViewMode() { return ViewMode;}
 
-
 protected:
     EViewportType ViewportType = EViewportType::Perspective;
     UWorld* World = nullptr;

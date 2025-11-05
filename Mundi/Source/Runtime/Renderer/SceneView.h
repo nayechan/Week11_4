@@ -29,7 +29,7 @@ class FSceneView
 {
 public:
     // 메인 뷰(카메라)를 위한 생성자
-    FSceneView(ACameraActor* InCamera, FViewport* InViewport, URenderSettings* InRenderSettings);
+    FSceneView(UCameraComponent* InCamera, FViewport* InViewport, URenderSettings* InRenderSettings);
 
 private:
     TArray<FShaderMacro> CreateViewShaderMacros();

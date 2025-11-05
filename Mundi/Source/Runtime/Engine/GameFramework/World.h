@@ -20,14 +20,16 @@ class AGridActor;
 class FViewport;
 class USlateManager;
 class URenderManager;
-struct FTransform;
-struct FSceneCompData;
 class SViewportWindow;
 class UWorldPartitionManager;
 class AStaticMeshActor;
 class BVHierachy;
 class UStaticMesh;
 class FOcclusionCullingManagerCPU;
+class APlayerCameraManager;
+
+struct FTransform;
+struct FSceneCompData;
 struct Frustum;
 struct FCandidateDrawable;
 
@@ -53,6 +55,12 @@ public:
 
     template<class T>
     T* SpawnActor(const FTransform& Transform);
+
+    template<typename T>
+    T* FindActor();
+
+    template<typename T>
+    TArray<T*> FindActors();
 
     AActor* SpawnActor(UClass* Class, const FTransform& Transform);
     AActor* SpawnActor(UClass* Class);
@@ -99,6 +107,9 @@ public:
     // Per-world SelectionManager accessor
     USelectionManager* GetSelectionManager() { return SelectionMgr.get(); }
 
+    void SetFirstPlayerCameraManager(APlayerCameraManager* InPlayerCameraManager) {  PlayerCameraManager = InPlayerCameraManager; };
+    APlayerCameraManager* GetFirstPlayerCameraManager() { return PlayerCameraManager; };
+
     // PIE용 World 생성
     static UWorld* DuplicateWorldForPIE(UWorld* InEditorWorld);
 
@@ -111,6 +122,7 @@ private:
     ACameraActor* MainCameraActor = nullptr;
     AGridActor* GridActor = nullptr;
     AGizmoActor* GizmoActor = nullptr;
+    APlayerCameraManager* PlayerCameraManager;
 
     /** === 레벨 컨테이너 === */
     std::unique_ptr<ULevel> Level;
@@ -165,5 +177,48 @@ inline T* UWorld::SpawnActor(const FTransform& Transform)
     return NewActor;
 }
 
+// 월드에서 특정 클래스(T)의 '첫 번째' 액터를 찾아 반환합니다. 없으면 nullptr.
+template<typename T>
+T* UWorld::FindActor()
+{
+    // T::StaticClass()를 통해 템플릿 타입의 UClass를 가져옵니다.
+    UClass* TypeClass = T::StaticClass();
+    if (!TypeClass)
+    {
+        return nullptr;
+    }
 
+    for (AActor* Actor : Level->GetActors())
+    {
+        if (Actor && !Actor->IsPendingDestroy() &&Actor->IsA(TypeClass))
+        {
+            // 찾은 액터를 T* 타입으로 캐스팅하여 반환합니다.
+            // (IsA를 통과했으므로 Cast는 안전함)
+            return Cast<T>(Actor);
+        }
+    }
+    return nullptr;
+}
 
+template<typename T>
+TArray<T*> UWorld::FindActors()
+{
+    TArray<T*> FoundActors;
+
+    // T::StaticClass()를 통해 템플릿 타입의 UClass를 가져옵니다.
+    UClass* TypeClass = T::StaticClass();
+    if (!TypeClass)
+    {
+        return FoundActors; // 빈 배열 반환
+    }
+
+    for (AActor* Actor : Level->GetActors())
+    {
+        if (Actor && !Actor->IsPendingDestroy() && Actor->IsA(TypeClass))
+        {
+            // 일치하는 모든 액터를 캐스팅하여 배열에 추가
+            FoundActors.Add(Cast<T>(Actor));
+        }
+    }
+    return FoundActors;
+}
