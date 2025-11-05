@@ -26,6 +26,8 @@ TArray<FString> UPropertyRenderer::CachedShaderPaths;
 TArray<const char*> UPropertyRenderer::CachedShaderItems;
 TArray<FString> UPropertyRenderer::CachedTexturePaths;
 TArray<const char*> UPropertyRenderer::CachedTextureItems;
+TArray<FString> UPropertyRenderer::CachedSoundPaths;
+TArray<const char*> UPropertyRenderer::CachedSoundItems;
 TArray<FString> UPropertyRenderer::CachedScriptPaths;
 TArray<const char*> UPropertyRenderer::CachedScriptItems;
 
@@ -103,6 +105,9 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 		}
 		break;
 
+	case EPropertyType::Sound:
+		bChanged = RenderSoundProperty(Property, ObjectInstance);
+		break;
 	default:
 		ImGui::Text("%s: [Unknown Type]", Property.Name);
 		break;
@@ -304,6 +309,16 @@ void UPropertyRenderer::CacheResources()
 			CachedScriptItems.Add(CachedScriptPaths[i].c_str());
 		}
 	}
+    // 5. Sound (.wav)
+    if (CachedSoundPaths.IsEmpty() && CachedSoundItems.IsEmpty())
+    {
+        CachedSoundPaths = ResMgr.GetAllFilePaths<USound>();
+        CachedSoundItems.Add("None");
+        for (const FString& path : CachedSoundPaths)
+        {
+            CachedSoundItems.push_back(path.c_str());
+        }
+    }
 }
 
 void UPropertyRenderer::ClearResourcesCache()
@@ -316,6 +331,8 @@ void UPropertyRenderer::ClearResourcesCache()
 	CachedShaderItems.Empty();
 	CachedTexturePaths.Empty();
 	CachedTextureItems.Empty();
+	CachedSoundPaths.Empty();
+	CachedSoundItems.Empty();
 	CachedScriptPaths.Empty();
 	CachedScriptItems.Empty();
 }
@@ -499,6 +516,43 @@ bool UPropertyRenderer::RenderTextureProperty(const FProperty& Prop, void* Insta
 
 	return false;
 }
+
+
+bool UPropertyRenderer::RenderSoundProperty(const FProperty& Prop, void* Instance)
+{
+	USound** SoundPtr = Prop.GetValuePtr<USound*>(Instance);
+	USound* CurrentSound = *SoundPtr;
+	USound* NewSound = nullptr;
+
+	// 헬퍼 함수를 호출하여 텍스처 콤보박스를 렌더링합니다.
+	bool bChanged = RenderSoundSelectionComboSimple(Prop.Name, CurrentSound, NewSound);
+
+	if (bChanged)
+	{
+		// 프로퍼티 포인터 업데이트
+		*SoundPtr = NewSound;
+
+		// 새 텍스처 경로 (None일 경우 빈 문자열)
+		FString NewPath = (NewSound) ? NewSound->GetFilePath() : "";
+
+		// 컴포넌트별 Setter 호출
+		UObject* Obj = static_cast<UObject*>(Instance);
+		if (UBillboardComponent* Billboard = Cast<UBillboardComponent>(Obj))
+		{
+			Billboard->SetTexture(NewPath);
+		}
+		else if (UDecalComponent* Decal = Cast<UDecalComponent>(Obj))
+		{
+			Decal->SetDecalTexture(NewPath);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+
 bool UPropertyRenderer::RenderSRVProperty(const FProperty& Prop, void* Instance)
 {
 	ULightComponent* LightComp = static_cast<ULightComponent*>(Instance);
@@ -1335,6 +1389,58 @@ bool UPropertyRenderer::RenderTextureSelectionCombo(const char* Label, UTexture*
 
 	return bChanged;
 }
+ 
+
+
+
+bool UPropertyRenderer::RenderSoundSelectionComboSimple(const char* Label, USound* CurrentSound, USound*& OutNewSound)
+{
+    if (CachedSoundItems.empty())
+    {
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "No Sound available in cache.");
+        return false;
+    }
+
+    bool bChanged = false;
+    FString CurrentSoundPath = (CurrentSound) ? CurrentSound->GetFilePath() : "None";
+
+    int SelectedSoundIdx = 0; // 0 = None
+    for (int j = 0; j < (int)CachedSoundPaths.size(); ++j)
+    {
+        if (CachedSoundPaths[j] == CurrentSoundPath)
+        {
+            SelectedSoundIdx = j + 1; // +1 for "None"
+            break;
+        }
+    }
+
+    const char* PreviewText = CachedSoundItems[SelectedSoundIdx];
+    ImGui::SetNextItemWidth(220.0f);
+    if (ImGui::BeginCombo(Label, PreviewText))
+    {
+        for (int i = 0; i < (int)CachedSoundItems.size(); ++i)
+        {
+            bool is_selected = (SelectedSoundIdx == i);
+            const char* ItemText = CachedSoundItems[i];
+
+            if (ImGui::Selectable(ItemText, is_selected))
+            {
+                USound* SelectedSound = (i == 0)
+                    ? nullptr
+                    : UResourceManager::GetInstance().Load<USound>(CachedSoundPaths[i - 1]);
+                OutNewSound = SelectedSound;
+                bChanged = true;
+            }
+
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    return bChanged;
+}
+
 
 bool UPropertyRenderer::RenderTransformProperty(const FProperty& Prop, void* Instance)
 {

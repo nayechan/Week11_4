@@ -512,6 +512,15 @@
     <ClCompile Include="Source\Runtime\Engine\GameFramework\GameEngine.cpp">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Components\AudioComponent.cpp">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\FAudioDevice.cpp">
+      <Filter>Source\Runtime\Engine\GameFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Audio\Sound.cpp">
+      <Filter>Source\Runtime\Engine\Audio</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\PostProcessing\FadeInOutPass.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\PostProcessing\VignettePass.cpp" />
@@ -1170,6 +1179,15 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h">
       <Filter>ThirdParty\ImGui</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\FAudioDevice.h">
+      <Filter>Source\Runtime\Engine\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h">
+      <Filter>Source\Runtime\Engine\Audio</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Runtime\Renderer\PostProcessing\HeightFogPass.h" />
     <ClInclude Include="Source\Runtime\Renderer\PostProcessing\PostProcessing.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.h">
@@ -1305,6 +1323,11 @@
     <Filter Include="ThirdParty\Lua">
       <UniqueIdentifier>{62188e64-0b7d-4374-bff8-56e10f190397}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Shadows">
+      <UniqueIdentifier>{a7b363cd-171e-40ec-a87b-f23e1f8d3c87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Engine\Audio">
+      <UniqueIdentifier>{231caf79-436b-43a0-baf6-994e8bab275a}</UniqueIdentifier>
     <Filter Include="ThirdParty\Lua\include">
       <UniqueIdentifier>{d3486e3a-6221-4c03-a2b4-5f731c6e43a4}</UniqueIdentifier>
     </Filter>

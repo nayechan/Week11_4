@@ -22,6 +22,7 @@ END_PROPERTIES()
 AActor::AActor()
 {
 	Name = "DefaultActor";
+	CustomTimeDillation = 1.0f;
 }
 
 AActor::~AActor()
@@ -332,6 +333,43 @@ void AActor::MarkPartitionDirty()
 {
 	if(GetWorld() && GetWorld()->GetPartitionManager())
 		GetWorld()->GetPartitionManager()->MarkDirty(this);
+}
+
+float AActor::GetCustomTimeDillation()
+{
+	if (!World) return 0.0f;
+
+	TWeakObjectPtr<AActor> Key(this);
+	FActorTimeState* TimeState = World->ActorTimingMap.Find(Key);
+
+	if (TimeState == nullptr) return 1.0f;
+
+	return CustomTimeDillation; 
+}
+
+void AActor::SetCustomTimeDillation(float Duration , float Dilation)
+{
+    // Dilation 더 큰걸 반영
+	CustomTimeDillation = FMath::Min( CustomTimeDillation, Dilation);
+
+    if (!World) return;
+	
+	// World에서 Duration을 관리하고 있으므로 업데이트
+    TWeakObjectPtr<AActor> Key(this);
+    FActorTimeState* TimeState = World->ActorTimingMap.Find(Key);
+
+    if (TimeState)
+    {
+        TimeState->Dilation = Dilation;
+        TimeState->Durtaion = Duration;
+    }
+    else
+    {
+        FActorTimeState NewState{};
+        NewState.Dilation = Dilation;
+        NewState.Durtaion = Duration;
+        World->ActorTimingMap.Add(Key, NewState);
+    }
 }
 
 void AActor::SetActorRotation(const FVector& EulerDegree)

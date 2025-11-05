@@ -123,13 +123,16 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	}
 	else
 	{
-		SceneView->Camera = CurrentViewTarget;
-		SceneView->ViewMatrix = CurrentViewTarget->GetViewMatrix();
-		SceneView->ViewLocation = CurrentViewTarget->GetWorldLocation();
-		SceneView->ViewRotation = CurrentViewTarget->GetWorldRotation();
-		SceneView->ZNear = CurrentViewTarget->GetNearClip();
-		SceneView->ZFar = CurrentViewTarget->GetFarClip();
-		SceneView->ProjectionMode = CurrentViewTarget->GetProjectionMode();
+		if (CurrentViewTarget)
+		{
+			SceneView->Camera = CurrentViewTarget;
+			SceneView->ViewMatrix = CurrentViewTarget->GetViewMatrix();
+			SceneView->ViewLocation = CurrentViewTarget->GetWorldLocation();
+			SceneView->ViewRotation = CurrentViewTarget->GetWorldRotation();
+			SceneView->ZNear = CurrentViewTarget->GetNearClip();
+			SceneView->ZFar = CurrentViewTarget->GetFarClip();
+			SceneView->ProjectionMode = CurrentViewTarget->GetProjectionMode();
+		}
 	}
 }
 
@@ -192,7 +195,7 @@ FSceneView* APlayerCameraManager::GetSceneView(FViewport* InViewport, URenderSet
 		return nullptr;
 	}
 
-	if (SceneView->Camera)
+	if (SceneView && SceneView->Camera == ViewTarget)
 	{
 		SceneView->InitRenderSetting(InViewport, InRenderSettings);
 		return SceneView; 

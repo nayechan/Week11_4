@@ -277,6 +277,36 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 				SerializePrimitiveArray<FString>(ArrayPtr, bInIsLoading, ArrayJson);
 				break;
 			}
+			case EPropertyType::Sound:
+			{
+				USound** Value = Prop.GetValuePtr<USound*>(this);
+				if (bInIsLoading)
+				{
+					FString SoundPath;
+					FJsonSerializer::ReadString(InOutHandle, Prop.Name, SoundPath);
+					if (!SoundPath.empty())
+					{
+						*Value = UResourceManager::GetInstance().Load<USound>(SoundPath);
+					}
+					else
+					{
+						*Value = nullptr;
+					}
+				}
+				else
+				{
+					if (*Value)
+					{
+						InOutHandle[Prop.Name] = (*Value)->GetFilePath().c_str();
+					}
+					else
+					{
+						InOutHandle[Prop.Name] = "";
+					}
+				}
+
+				break;
+			}
 			default:
 			{
 				//UE_LOG("[AutoSerialize] Array property '%s' has unsupported InnerType: %d", Prop.Name, static_cast<int>(Prop.InnerType));

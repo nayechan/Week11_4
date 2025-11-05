@@ -7,6 +7,7 @@
 #include "Texture.h"
 #include "TextureConverter.h"
 #include "DynamicMesh.h"
+#include "../Engine/Audio/Sound.h"
 #include "Quad.h"
 #include "LineDynamicMesh.h"
 
@@ -20,6 +21,7 @@ class UStaticMesh;
 class FMeshBVH;
 class UResourceBase;
 class UMaterial;
+class USound;
 
 //================================================================================================
 // UResourceManager
@@ -87,6 +89,8 @@ public:
 	void SetStaticMeshs();
 	const TArray<UStaticMesh*>& GetStaticMeshs() { return StaticMeshs; }
 
+	void SetAudioFiles();  
+
 	// --- Deprecated (향후 제거될 함수들) ---
 	TArray<UStaticMesh*> GetAllStaticMeshes() { return GetAll<UStaticMesh>(); }
 	TArray<FString> GetAllStaticMeshFilePaths() { return GetAllFilePaths<UStaticMesh>(); }
@@ -110,6 +114,8 @@ protected:
 	TMap<FString, FString> TextureToShaderMap;
 
 	TArray<UStaticMesh*> StaticMeshs;
+
+	TArray<USound*> Sounds;
 
 	// Deprecated
 	TMap<FString, FResourceData*> ResourceMap;
@@ -232,8 +238,8 @@ inline UShader* UResourceManager::Load(const FString& InFilePath, TArray<FShader
 template<typename T>
 ResourceType UResourceManager::GetResourceType()
 {
-	if (T::StaticClass() == UStaticMesh::StaticClass())
-		return ResourceType::StaticMesh;
+    if (T::StaticClass() == UStaticMesh::StaticClass())
+        return ResourceType::StaticMesh;
 	if (T::StaticClass() == UQuad::StaticClass())
 		return ResourceType::Quad;
 	if (T::StaticClass() == UDynamicMesh::StaticClass())
@@ -244,10 +250,12 @@ ResourceType UResourceManager::GetResourceType()
 		return ResourceType::Shader;
 	if (T::StaticClass() == UTexture::StaticClass())
 		return ResourceType::Texture;
-	if (T::StaticClass() == UMaterial::StaticClass())
-		return ResourceType::Material;
+    if (T::StaticClass() == UMaterial::StaticClass())
+        return ResourceType::Material;
+    if (T::StaticClass() == USound::StaticClass())
+        return ResourceType::Sound;
 
-	return ResourceType::None;
+    return ResourceType::None;
 }
 
 // Enumerate all resources of a type T

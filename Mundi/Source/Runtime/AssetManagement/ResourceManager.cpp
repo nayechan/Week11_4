@@ -7,6 +7,7 @@
 #include "Quad.h"
 #include "MeshBVH.h"
 #include "Enums.h"
+
 #include <filesystem>
 #include <cwctype>
 
@@ -147,6 +148,12 @@ void UResourceManager::SetStaticMeshs()
 {
     StaticMeshs = GetAll<UStaticMesh>();
 }
+
+void UResourceManager::SetAudioFiles()
+{ 
+    Sounds = GetAll<USound>();
+}
+
 
 void UResourceManager::CreateAxisMesh(float Length, const FString& FilePath)
 {

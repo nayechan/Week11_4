@@ -337,7 +337,7 @@ bool UInputManager::IsMouseButtonReleased(EMouseButton Button) const
 
 bool UInputManager::IsKeyDown(int KeyCode) const
 {
-    if (KeyCode < 0 || KeyCode >= 256) return false;
+    if (KeyCode < 0 || KeyCode >= 256) return false; 
     return KeyStates[KeyCode];
 }
 

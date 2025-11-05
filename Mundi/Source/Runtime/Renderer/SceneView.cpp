@@ -82,13 +82,16 @@ void FSceneView::InitRenderSetting(FViewport* InViewport, URenderSettings* InRen
 		AspectRatio = (float)InViewport->GetSizeX() / (float)InViewport->GetSizeY();
 	}
 
-	ProjectionMatrix = Camera->GetProjectionMatrix(AspectRatio, InViewport);
-	ViewFrustum = CreateFrustumFromCamera(*Camera, AspectRatio);
+	if (Camera)
+	{
+		ProjectionMatrix = Camera->GetProjectionMatrix(AspectRatio, InViewport);
+		ViewFrustum = CreateFrustumFromCamera(*Camera, AspectRatio);
 
-	ViewRect.MinX = InViewport->GetStartX();
-	ViewRect.MinY = InViewport->GetStartY();
-	ViewRect.MaxX = ViewRect.MinX + InViewport->GetSizeX();
-	ViewRect.MaxY = ViewRect.MinY + InViewport->GetSizeY();
+		ViewRect.MinX = InViewport->GetStartX();
+		ViewRect.MinY = InViewport->GetStartY();
+		ViewRect.MaxX = ViewRect.MinX + InViewport->GetSizeX();
+		ViewRect.MaxY = ViewRect.MinY + InViewport->GetSizeY();
 
-	ViewShaderMacros = CreateViewShaderMacros();
+		ViewShaderMacros = CreateViewShaderMacros();
+	}
 }

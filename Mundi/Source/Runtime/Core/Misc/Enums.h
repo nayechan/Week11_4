@@ -292,6 +292,7 @@ enum class ResourceType : uint8
     Shader,
     Texture,
     Material,
+    Sound,
 
     End
 };

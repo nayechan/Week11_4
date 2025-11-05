@@ -3,6 +3,7 @@
 TMap<FString, FString> EditorINI;
 const FString GDataDir = "Data";
 const FString GCacheDir = "DerivedDataCache";
+const FString GAudioDataDir = "Audio";
 
 // Global client area size used by various modules
 float CLIENTWIDTH = 1024.0f;

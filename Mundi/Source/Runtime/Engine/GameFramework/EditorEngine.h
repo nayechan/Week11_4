@@ -4,6 +4,7 @@
 class URenderer;
 class D3D11RHI;
 class UWorld;
+class FAudioDevice;
 
 struct FWorldContext
 {
@@ -64,6 +65,7 @@ private:
     
     //월드 핸들
     TArray<FWorldContext> WorldContexts;
+     
 
     //틱 상태
     bool bRunning = false;

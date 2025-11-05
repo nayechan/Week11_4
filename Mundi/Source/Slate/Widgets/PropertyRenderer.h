@@ -32,6 +32,7 @@ private:
 	static bool RenderObjectPtrProperty(const FProperty& Prop, void* Instance);
 	static bool RenderStructProperty(const FProperty& Prop, void* Instance);
 	static bool RenderTextureProperty(const FProperty& Prop, void* Instance);
+	static bool RenderSoundProperty(const FProperty& Prop, void* Instance);
 	static bool RenderSRVProperty(const FProperty& Prop, void* Instance);
 	static bool RenderScriptFileProperty(const FProperty& Prop, void* Instance);
 	static bool RenderPointLightCubeShadowMap(class FLightManager* LightManager, class ULightComponent* LightComp, int32 CubeSliceIndex);
@@ -41,6 +42,9 @@ private:
 	static bool RenderMaterialArrayProperty(const FProperty& Prop, void* Instance);
 	static bool RenderSingleMaterialSlot(const char* Label, UMaterialInterface** MaterialPtr, UObject* OwningObject, uint32 MaterialIndex);	// 단일 UMaterial* 슬롯을 렌더링하는 헬퍼 함수.
 	static bool RenderTextureSelectionCombo(const char* Label, UTexture* CurrentTexture, UTexture*& OutNewTexture);
+	static bool RenderSoundSelectionCombo(const char* Label, USound* CurrentSound, USound*& OutNewSound);
+	// Simplified sound combo without thumbnails
+	static bool RenderSoundSelectionComboSimple(const char* Label, USound* CurrentSound, USound*& OutNewSound);
 
 
 	// Transform 프로퍼티 렌더링 헬퍼 함수
@@ -59,6 +63,8 @@ private:
 	static TArray<const char*> CachedShaderItems;
 	static TArray<FString> CachedTexturePaths;
 	static TArray<const char*> CachedTextureItems;
+	static TArray<FString> CachedSoundPaths;
+	static TArray<const char*> CachedSoundItems;
 	static TArray<FString> CachedScriptPaths;
 	static TArray<const char*> CachedScriptItems;
 };

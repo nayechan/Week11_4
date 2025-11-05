@@ -297,7 +297,7 @@ void ACameraActor::ProcessCameraMovement(float DeltaSeconds)
     if (InputManager.IsKeyDown('D')) Move += Right;
     if (InputManager.IsKeyDown('A')) Move -= Right;
     if (InputManager.IsKeyDown('E')) Move += Up;
-    if (InputManager.IsKeyDown('Q')) Move -= Up;
+    if (InputManager.IsKeyDown('Q')) Move -= Up; 
 
     // 3) 이동 적용
     if (Move.SizeSquared() > 0.0f)
