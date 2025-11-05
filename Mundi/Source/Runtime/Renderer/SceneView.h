@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Vector.h" // FMatrix
 #include "Enums.h"
 #include "CameraComponent.h"

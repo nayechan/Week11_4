@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Actor.h"
 
 class UCameraComponent;
@@ -20,11 +20,11 @@ public:
 	
 	template<typename T> T* AddModifier(int32 InPriority = 0)
 	{
-		T* M = NewObject<T>(this);
-		M->Priority = InPriority;
-		ActiveModifiers.Add(M);
-		ActiveModifiers.Sort([](auto A, auto B){ return *A < *B; });
-		return M;
+\t\tT* Modifier = NewObject<T>();
+\t\tif (!Modifier)\r\n\t\t{\r\n\t\t\treturn nullptr;\r\n\t\t}\r\n\r\n\t\tModifier->Priority = InPriority;
+\t\tActiveModifiers.Add(Modifier);
+\t\tActiveModifiers.Sort([](auto A, auto B){ return *A < *B; });
+\t\treturn Modifier;
 	}
 	void BuildForFrame(float DeltaTime);
 	
@@ -64,3 +64,4 @@ private:
 	float BlendTimeTotal;
 	float BlendTimeRemaining;
 };
+

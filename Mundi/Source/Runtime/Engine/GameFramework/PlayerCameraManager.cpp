@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "PlayerCameraManager.h"
 #include "Camera/CameraModifierBase.h"
 #include "Camera/UCamMod_Fade.h"
@@ -64,7 +64,7 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	for (UCameraModifierBase* M : ActiveModifiers)
 	{
 		if (!M || !M->bEnabled || M->Weight <= 0.f) continue;
-		M->CollectPostProcess(SceneView->PostProcessInput.Modifiers, SceneView);
+		M->CollectPostProcess(SceneView->PostProcessInput.Modifiers, *SceneView);
 	}
 
 	// 3) 수명 정리
