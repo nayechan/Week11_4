@@ -68,26 +68,15 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 
 	if (CachedViewport)
 	{
-		const float ViewportWidth = (float)CachedViewport->GetSizeX();
-		const float ViewportHeight = (float)CachedViewport->GetSizeY();
-
-		// (여기에 레터박스 로직을 적용해야 합니다) ?? 나중에 위로 이동
-
 		// 최종 종횡비 (AspectRatio)
-		if (ViewportHeight > 0)
+		if (SceneView.ViewRect.Height() > 0)
 		{
-			SceneView.AspectRatio = ViewportWidth / ViewportHeight;
+			SceneView.AspectRatio = SceneView.ViewRect.Width() / SceneView.ViewRect.Height();
 		}
 		else
 		{
 			SceneView.AspectRatio = 1.7777f; // 16:9 폴백
 		}
-
-		// 최종 뷰 영역 (ViewRect)
-		SceneView.ViewRect.MinX = CachedViewport->GetStartX();
-		SceneView.ViewRect.MinY = CachedViewport->GetStartY();
-		SceneView.ViewRect.MaxX = SceneView.ViewRect.MinX + (int)ViewportWidth;
-		SceneView.ViewRect.MaxY = SceneView.ViewRect.MinY + (int)ViewportHeight;
 	}
 	else
 	{
@@ -316,6 +305,15 @@ void APlayerCameraManager::UpdateViewTarget(float DeltaTime)
 	}
 	else if (TargetCam) // 2. 블렌딩 중이 아닐 때
 	{
+		if (CachedViewport)
+		{
+			// 최종 뷰 영역 (ViewRect)
+			SceneView.ViewRect.MinX = CachedViewport->GetStartX();
+			SceneView.ViewRect.MinY = CachedViewport->GetStartY();
+			SceneView.ViewRect.MaxX = SceneView.ViewRect.MinX + CachedViewport->GetSizeX();
+			SceneView.ViewRect.MaxY = SceneView.ViewRect.MinY + CachedViewport->GetSizeY();
+		}
+
 		// SceneView의 모든 기본 값을 현재 타겟으로 설정
 		SceneView.ViewLocation = TargetCam->GetWorldLocation();
 		SceneView.ViewRotation = TargetCam->GetWorldRotation();

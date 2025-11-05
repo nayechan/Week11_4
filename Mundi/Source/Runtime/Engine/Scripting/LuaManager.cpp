@@ -178,30 +178,19 @@ FLuaManager::FLuaManager()
             return GWorld->GetFirstPlayerCameraManager()->GetMainCamera();
         }
     );
-    SharedLib.set_function("SetForward",
-        [](FGameObject& GameObject, const FVector& InForward)
+
+    SharedLib.set_function("GetCameraManager",
+        []() -> APlayerCameraManager*
         {
-            AActor* Owner = GameObject.GetOwner();
-            Owner->GetRootComponent()->SetForward(InForward);
-            Owner = nullptr;
+            if (!GWorld)
+            {
+                return nullptr;
+            }
+            return GWorld->GetFirstPlayerCameraManager();
         }
     );
-    SharedLib.set_function("DeleteObject", sol::overload(
-        [](const FGameObject& GameObject)
-        {
-            for (TObjectIterator<AActor> It; It; ++It)
-            {
-                AActor* Actor = *It;
 
-                if (Actor->UUID == GameObject.UUID)
-                {
-                    Actor->Destroy();   // 지연 삭제 요청 (즉시 삭제하면 터짐)
-                    break;
-                }
-            }
-        }
-    ));
-
+   
     SharedLib.set_function("Vector", sol::overload(
        []() { return FVector(0.0f, 0.0f, 0.0f); },
        [](float x, float y, float z) { return FVector(x, y, z); }
@@ -261,6 +250,7 @@ FLuaManager::FLuaManager()
     );
 
     RegisterComponentProxy(*Lua);
+    ExposeGlobalFunctions();
     ExposeAllComponentsToLua();
     ExposeComponentFunctions();
 
@@ -543,6 +533,143 @@ void FLuaManager::ExposeComponentFunctions()
         // 전역 맵에 테이블 등록 (필수)
         GComponentFunctionTables[BillboardCompClass] = FuncTable;
     }
+
+
+}
+
+void FLuaManager::ExposeGlobalFunctions()
+{
+    // GWorld에 접근하여 카메라 매니저 인스턴스를 가져오는 전역 함수
+    SharedLib.set_function("GetCameraManager",
+        []() -> APlayerCameraManager*
+        {
+            if (!GWorld)
+            {
+                return nullptr;
+            }
+            return GWorld->GetFirstPlayerCameraManager();
+        }
+    );
+
+    // APlayerCameraManager 클래스의 멤버 함수들 바인딩
+    Lua->new_usertype<APlayerCameraManager>("PlayerCameraManager",
+        sol::no_constructor,
+
+        // --- StartCameraShake ---
+        "StartCameraShake", sol::overload(
+            // (Full) 5개 인수
+            [](APlayerCameraManager* Self, float InDuration, float AmpLoc, float AmpRotDeg, float Frequency, int32 InPriority)
+            {
+                if (Self) Self->StartCameraShake(InDuration, AmpLoc, AmpRotDeg, Frequency, InPriority);
+            },
+            // (Priority 기본값 사용) 4개 인수
+            [](APlayerCameraManager* Self, float InDuration, float AmpLoc, float AmpRotDeg, float Frequency)
+            {
+                if (Self) Self->StartCameraShake(InDuration, AmpLoc, AmpRotDeg, Frequency);
+            }
+        ),
+
+        // --- StartFade ---
+        "StartFade", sol::overload(
+            // (Full) 5개 인수
+            [](APlayerCameraManager* Self, float InDuration, float FromAlpha, float ToAlpha, const FLinearColor& InColor, int32 InPriority)
+            {
+                if (Self) Self->StartFade(InDuration, FromAlpha, ToAlpha, InColor, InPriority);
+            },
+            // (Priority 기본값 사용) 4개 인수
+            [](APlayerCameraManager* Self, float InDuration, float FromAlpha, float ToAlpha, const FLinearColor& InColor)
+            {
+                if (Self) Self->StartFade(InDuration, FromAlpha, ToAlpha, InColor);
+            },
+            // (Color, Priority 기본값 사용) 3개 인수
+            [](APlayerCameraManager* Self, float InDuration, float FromAlpha, float ToAlpha)
+            {
+                if (Self) Self->StartFade(InDuration, FromAlpha, ToAlpha);
+            }
+        ),
+
+        // --- StartLetterBox ---
+        "StartLetterBox", sol::overload(
+            // (Full) 5개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Aspect, float BarHeight, const FLinearColor& InColor, int32 InPriority)
+            {
+                if (Self) Self->StartLetterBox(InDuration, Aspect, BarHeight, InColor, InPriority);
+            },
+            // (Priority 기본값 사용) 4개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Aspect, float BarHeight, const FLinearColor& InColor)
+            {
+                if (Self) Self->StartLetterBox(InDuration, Aspect, BarHeight, InColor);
+            },
+            // (Color, Priority 기본값 사용) 3개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Aspect, float BarHeight)
+            {
+                if (Self) Self->StartLetterBox(InDuration, Aspect, BarHeight);
+            }
+        ),
+
+        // --- StartVignette (int 반환) ---
+        "StartVignette", sol::overload(
+            // (Full) 7개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor, int32 InPriority) -> int
+            {
+                return Self ? Self->StartVignette(InDuration, Radius, Softness, Intensity, Roundness, InColor, InPriority) : -1;
+            },
+            // (Priority 기본값 사용) 6개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor) -> int
+            {
+                return Self ? Self->StartVignette(InDuration, Radius, Softness, Intensity, Roundness, InColor) : -1;
+            },
+            // (Color, Priority 기본값 사용) 5개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Radius, float Softness, float Intensity, float Roundness) -> int
+            {
+                return Self ? Self->StartVignette(InDuration, Radius, Softness, Intensity, Roundness) : -1;
+            }
+        ),
+
+        // --- UpdateVignette (int 반환) ---
+        "UpdateVignette", sol::overload(
+            // (Full) 8개 인수
+            [](APlayerCameraManager* Self, int Idx, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor, int32 InPriority) -> int
+            {
+                return Self ? Self->UpdateVignette(Idx, InDuration, Radius, Softness, Intensity, Roundness, InColor, InPriority) : -1;
+            },
+            // (Priority 기본값 사용) 7개 인수
+            [](APlayerCameraManager* Self, int Idx, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor) -> int
+            {
+                return Self ? Self->UpdateVignette(Idx, InDuration, Radius, Softness, Intensity, Roundness, InColor) : -1;
+            },
+            // (Color, Priority 기본값 사용) 6개 인수
+            [](APlayerCameraManager* Self, int Idx, float InDuration, float Radius, float Softness, float Intensity, float Roundness) -> int
+            {
+                return Self ? Self->UpdateVignette(Idx, InDuration, Radius, Softness, Intensity, Roundness) : -1;
+            }
+        ),
+
+        // --- AdjustVignette ---
+        "AdjustVignette", sol::overload(
+            // (Full) 7개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor, int32 InPriority)
+            {
+                if (Self) Self->AdjustVignette(InDuration, Radius, Softness, Intensity, Roundness, InColor, InPriority);
+            },
+            // (Priority 기본값 사용) 6개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor)
+            {
+                if (Self) Self->AdjustVignette(InDuration, Radius, Softness, Intensity, Roundness, InColor);
+            },
+            // (Color, Priority 기본값 사용) 5개 인수
+            [](APlayerCameraManager* Self, float InDuration, float Radius, float Softness, float Intensity, float Roundness)
+            {
+                if (Self) Self->AdjustVignette(InDuration, Radius, Softness, Intensity, Roundness);
+            }
+        ),
+
+        // --- DeleteVignette ---
+        "DeleteVignette", [](APlayerCameraManager* Self)
+        {
+            if (Self) Self->DeleteVignette();
+        }
+    );
 }
 
 bool FLuaManager::LoadScriptInto(sol::environment& Env, const FString& Path) {
