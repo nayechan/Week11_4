@@ -33,6 +33,9 @@ function BeginPlay()
         meshComp:SetColor(0, "DiffuseColor", Color(1.0, 1.0, 1.0)) -- 초기 하얀색
     end
 
+    -- Expose audio component globally for other scripts
+    GlobalConfig.AudioComp = GetComponent(Obj, "UAudioComponent")
+
     currentStage = 1
 end
 
@@ -48,10 +51,12 @@ function Tick(dt)
         return
     end
 
+    AudioComp = GetComponent(Obj, "UAudioComponent")
     -- CoachLevel이 1로 돌아오면 시간 및 색상 초기화
     if GlobalConfig.CoachLevel == 1 and prevCoachLevel ~= 1 then 
         elapsedTime = 0.0
         meshComp:SetColor(0, "DiffuseColor", Color(1.0, 1.0, 1.0)) -- 하얀색 복귀
+        
         currentStage = 1
     end
 
@@ -62,6 +67,7 @@ function Tick(dt)
 
     if elapsedTime <= whiteHoldTime then
         meshComp:SetColor(0, "DiffuseColor", Color(1.0, 1.0, 1.0))
+        
         return
     end
 
@@ -71,8 +77,9 @@ function Tick(dt)
     local newColor = LerpColorByTime(ratio)
     meshComp:SetColor(0, "DiffuseColor", newColor)
  
-
-    AudioComp = GetComponent(Obj, "UAudioComponent")
+    -- if firstCall then
+    --     AudioComp:PlayOneShot(0)
+    --     firstCall = false
     if ratio >= 0.0 and ratio < 0.33 and GlobalConfig.CoachLevel < 2 then
         if AudioComp ~= nil then 
             AudioComp:PlayOneShot(1);

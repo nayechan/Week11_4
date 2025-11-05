@@ -119,6 +119,11 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }, {
+          "ScriptFilePath" : "Data/Scripts/SHC.lua",
+          "Type" : "ULuaScriptComponent",
+          "bIsActive" : true,
+          "bTickEnabled" : true
+        }, {
           "Id" : 801,
           "ParentId" : 800,
           "Pitch" : 1.000000,
@@ -128,16 +133,11 @@
           "Sounds" : ["Data/Audio/CGC1.wav", "Data/Audio/CGC2.wav", "Data/Audio/SHC1.wav", "Data/Audio/SHC2.wav"],
           "Type" : "UAudioComponent",
           "Volume" : 3.000000,
-          "bAutoPlay" : true,
+          "bAutoPlay" : false,
           "bHiddenInGame" : false,
           "bIsActive" : true,
           "bIsLooping" : false,
           "bIsVisible" : true,
-          "bTickEnabled" : true
-        }, {
-          "ScriptFilePath" : "Data/Scripts/SHC.lua",
-          "Type" : "ULuaScriptComponent",
-          "bIsActive" : true,
           "bTickEnabled" : true
         }],
       "RootComponentId" : 800,
@@ -149,25 +149,7 @@
     "803" : {
       "Name" : "스태틱 메시_0",
       "OwnedComponents" : [{
-          "Id" : 805,
-          "MaterialSlots" : [{
-              "AssetPath" : "Material_0",
-              "Type" : "UMaterial"
-            }],
-          "ParentId" : 0,
-          "RelativeLocation" : [-18.940022, 56.164707, 2.190370],
-          "RelativeRotationEuler" : [0.000000, 0.000000, -49.951996],
-          "RelativeScale" : [20.000000, 20.000000, 20.000000],
-          "StaticMesh" : "Data/Model/CGC.obj",
-          "Type" : "UStaticMeshComponent",
-          "bBlockComponent" : false,
-          "bGenerateOverlapEvents" : true,
-          "bHiddenInGame" : false,
-          "bIsActive" : true,
-          "bIsVisible" : true,
-          "bTickEnabled" : true
-        }, {
-          "Id" : 807,
+          "Id" : 806,
           "ParentId" : 805,
           "Pitch" : 1.000000,
           "RelativeLocation" : [0.000000, 0.000000, 0.000000],
@@ -176,10 +158,28 @@
           "Sounds" : ["Data/Audio/CGC1.wav", "Data/Audio/CGC2.wav", "Data/Audio/SHC1.wav", "Data/Audio/SHC2.wav"],
           "Type" : "UAudioComponent",
           "Volume" : 3.000000,
-          "bAutoPlay" : true,
+          "bAutoPlay" : false,
           "bHiddenInGame" : false,
           "bIsActive" : true,
           "bIsLooping" : false,
+          "bIsVisible" : true,
+          "bTickEnabled" : true
+        }, {
+          "Id" : 805,
+          "MaterialSlots" : [{
+              "AssetPath" : "Material_0",
+              "Type" : "UMaterial"
+            }],
+          "ParentId" : 0,
+          "RelativeLocation" : [-18.940022, 56.164707, 2.190370],
+          "RelativeRotationEuler" : [0.000000, 0.000000, -49.951996],
+          "RelativeScale" : [30.000000, 30.000000, 30.000000],
+          "StaticMesh" : "Data/Model/CGC.obj",
+          "Type" : "UStaticMeshComponent",
+          "bBlockComponent" : false,
+          "bGenerateOverlapEvents" : true,
+          "bHiddenInGame" : false,
+          "bIsActive" : true,
           "bIsVisible" : true,
           "bTickEnabled" : true
         }, {
@@ -278,7 +278,7 @@
       "OwnedComponents" : [{
           "Id" : 816,
           "ParentId" : 0,
-          "RelativeLocation" : [-8.607930, 11.745107, 5.080332],
+          "RelativeLocation" : [0.000000, 0.000000, 2.000000],
           "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
           "RelativeScale" : [1.000000, 1.000000, 1.000000],
           "Type" : "USceneComponent",
@@ -328,8 +328,8 @@
       "OwnedComponents" : [{
           "Id" : 822,
           "ParentId" : 0,
-          "RelativeLocation" : [-10.858653, -39.284267, 17.186506],
-          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
+          "RelativeLocation" : [0.000000, 0.000000, 0.000000],
+          "RelativeRotationEuler" : [0.000000, 0.285794, 0.000000],
           "RelativeScale" : [1.000000, 1.000000, 1.000000],
           "Type" : "USceneComponent",
           "bHiddenInGame" : false,
@@ -364,69 +364,19 @@
         }],
       "RootComponentId" : 825,
       "Tag" : "",
+      "TransitionCurve" : [0.470000, 0.000000, 0.002813, 0.965000],
       "Type" : "APlayerCameraManager",
-      "bActorHiddenInGame" : false,
-      "bActorIsActive" : true
-    },
-    "826" : {
-      "CameraMoveSpeed" : 48.099998,
-      "CameraPitchDeg" : 0.000000,
-      "CameraYawDeg" : 0.000000,
-      "MouseSensitivity" : 0.100000,
-      "Name" : "카메라_0",
-      "OwnedComponents" : [{
-          "AspectRatio" : 1.000000,
-          "FarClip" : 100.000000,
-          "FieldOfView" : 60.000000,
-          "Id" : 828,
-          "NearClip" : 0.100000,
-          "ParentId" : 0,
-          "ProjectionMode" : 0,
-          "RelativeLocation" : [-6.993967, -2.258153, 4.770872],
-          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-          "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "Type" : "UCameraComponent",
-          "ZoomFactor" : 1.000000,
-          "bHiddenInGame" : false,
-          "bIsActive" : true,
-          "bIsVisible" : true,
-          "bTickEnabled" : true
-        }],
-      "PerspectiveCameraInput" : false,
-      "RootComponentId" : 828,
-      "Tag" : "",
-      "Type" : "ACameraActor",
-      "bActorHiddenInGame" : false,
-      "bActorIsActive" : true
-    },
-    "829" : {
-      "Name" : "액터_0",
-      "OwnedComponents" : [{
-          "Id" : 830,
-          "ParentId" : 0,
-          "RelativeLocation" : [-6.993967, -2.258153, 4.770872],
-          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-          "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "Type" : "USceneComponent",
-          "bHiddenInGame" : false,
-          "bIsActive" : true,
-          "bIsVisible" : true,
-          "bTickEnabled" : true
-        }],
-      "RootComponentId" : 830,
-      "Tag" : "",
-      "Type" : "AEmptyActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     }
   },
-  "NextUUID" : 1748,
+  "NextUUID" : 7363,
   "PerspectiveCamera" : {
     "FOV" : [60.000000],
     "FarClip" : [505.000000],
-    "Location" : [-56.300667, -29.868046, 76.320145],
+    "Location" : [-111.145020, -29.422245, 51.910049],
     "NearClip" : [0.100000],
-    "Rotation" : [0.000000, 44.270393, 31.733809]
+    "Rotation" : [0.000000, 28.470959, 14.434316]
   },
   "Version" : 1
 }

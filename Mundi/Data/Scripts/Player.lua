@@ -182,7 +182,8 @@ function Die()
  
     AudioComp = GetComponent(Obj, "UAudioComponent")
     AudioComp:PlayOneShot(0)   
-    TargetHitStop(Obj, 0.5, 0)
+    --TargetHitStop(Obj, 0.2, 0)
+    SetSlomo(1.0, 0.3)
      
 
     -- 전역 슬로모: 0.8초 동안 0.25배 속도
