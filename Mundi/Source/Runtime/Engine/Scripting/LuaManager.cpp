@@ -6,6 +6,7 @@
 #include "CameraComponent.h"
 #include "StaticMeshComponent.h"
 #include "BillboardComponent.h"
+#include "PlayerCameraManager.h"
 #include <tuple>
 
 FLuaManager::FLuaManager()
@@ -35,28 +36,28 @@ FLuaManager::FLuaManager()
         "GetForward", &FGameObject::GetForward
     );
     
-    Lua->new_usertype<ACameraActor>("CameraActor",
+    Lua->new_usertype<UCameraComponent>("CameraComponent",
         sol::no_constructor,
         "SetLocation", sol::overload(
-            [](ACameraActor* Camera, FVector Location)
+            [](UCameraComponent* Camera, FVector Location)
             {
                 if (!Camera)
                 {
                     return;
                 }
-                Camera->SetActorLocation(Location);
+                Camera->SetWorldLocation(Location);
             },
-            [](ACameraActor* Camera, float X, float Y, float Z)
+            [](UCameraComponent* Camera, float X, float Y, float Z)
             {
                 if (!Camera)
                 {
                     return;
                 }
-                Camera->SetActorLocation(FVector(X, Y, Z));
+                Camera->SetWorldLocation(FVector(X, Y, Z));
             }
         ),
         "SetForward",
-        [](ACameraActor* Camera, FVector Direction)
+        [](UCameraComponent* Camera, FVector Direction)
         {
             if (!Camera)
             {
@@ -64,22 +65,22 @@ FLuaManager::FLuaManager()
             }
             Camera->SetForward(Direction);
         },
-        "GetActorLocation", [](ACameraActor* Camera) -> FVector
+        "GetActorLocation", [](UCameraComponent* Camera) -> FVector
         {
             if (!Camera)
             {
                 // 유효하지 않은 경우 0 벡터 반환
                 return FVector(0.f, 0.f, 0.f);
             }
-            return Camera->GetActorLocation();
+            return Camera->GetWorldLocation();
         },
-        "GetActorRight", [](ACameraActor* Camera) -> FVector
+        "GetActorRight", [](UCameraComponent* Camera) -> FVector
         {
             if (!Camera) return FVector(0.f, 0.f, 1.f); // 기본값 (World Forward)
 
-            // C++ ACameraActor 클래스의 실제 함수명으로 변경해야 합니다.
+            // C++ UCameraComponent 클래스의 실제 함수명으로 변경해야 합니다.
             // (예: GetActorForwardVector(), GetForward() 등)
-            return Camera->GetActorRight();
+            return Camera->GetForward();
         }
     );
     Lua->new_usertype<UInputManager>("InputManager",
@@ -168,13 +169,13 @@ FLuaManager::FLuaManager()
         }
     ));
     SharedLib.set_function("GetCamera",
-        []() -> ACameraActor*
+        []() -> UCameraComponent*
         {
             if (!GWorld)
             {
                 return nullptr;
             }
-            return GWorld->GetCameraActor();
+            return GWorld->GetFirstPlayerCameraManager()->GetMainCamera();
         }
     );
     SharedLib.set_function("SetForward",

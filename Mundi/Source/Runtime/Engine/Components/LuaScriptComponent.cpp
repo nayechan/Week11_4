@@ -64,7 +64,9 @@ void ULuaScriptComponent::BeginPlay()
 
 	if (!LuaVM->LoadScriptInto(Env, ScriptFilePath)) {
 		UE_LOG("[Lua][error] failed to run: %s\n", ScriptFilePath.c_str());
+#ifdef _EDITOR
 		GEngine.EndPIE();
+#endif
 		return;
 	}
 
@@ -82,7 +84,9 @@ void ULuaScriptComponent::BeginPlay()
 		if (!Result.valid())
 		{
 			sol::error Err = Result; UE_LOG("[Lua][error] %s\n", Err.what());
+#ifdef _EDITOR
 			GEngine.EndPIE();
+#endif
 		}
 	}
 }
@@ -106,7 +110,9 @@ void ULuaScriptComponent::OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitive
 			if (!Result.valid())
 			{
 				sol::error Err = Result; UE_LOG("[Lua][error] %s\n", Err.what());
+#ifdef _EDITOR
 				GEngine.EndPIE();
+#endif
 			}
 		}
 	}
@@ -132,7 +138,9 @@ void ULuaScriptComponent::OnEndOverlap(UPrimitiveComponent* MyComp, UPrimitiveCo
 			if (!Result.valid())
 			{
 				sol::error Err = Result; UE_LOG("[Lua][error] %s\n", Err.what());
+#ifdef _EDITOR
 				GEngine.EndPIE();
+#endif
 			}
 		}
 	}
@@ -157,7 +165,9 @@ void ULuaScriptComponent::OnHit(UPrimitiveComponent* MyComp, UPrimitiveComponent
 			if (!Result.valid())
 			{
 				sol::error Err = Result; UE_LOG("[Lua][error] %s\n", Err.what());
+#ifdef _EDITOR
 				GEngine.EndPIE();
+#endif
 			}
 		}
 	}
@@ -178,7 +188,9 @@ void ULuaScriptComponent::EndPlay()
 		if (!Result.valid())
 		{
 			sol::error Err = Result; UE_LOG("[Lua][error] %s\n", Err.what());
+#ifdef _EDITOR
 			GEngine.EndPIE();
+#endif
 		}
 	}
 	

@@ -1,13 +1,14 @@
 ﻿#include "pch.h"
-#include "EditorEngine.h"
+#include "GameEngine.h"
 #include "USlateManager.h"
 #include "SelectionManager.h"
-#include "FAudioDevice.h"
+#include "FViewport.h"
+#include "PlayerCameraManager.h"
 #include <ObjManager.h>
+#include <sol/sol.hpp>
 
-
-float UEditorEngine::ClientWidth = 1024.0f;
-float UEditorEngine::ClientHeight = 1024.0f;
+float UGameEngine::ClientWidth = 1024.0f;
+float UGameEngine::ClientHeight = 1024.0f;
 
 static void LoadIniFile()
 {
@@ -41,12 +42,12 @@ static void SaveIniFile()
         outfile << pair.first << " = " << pair.second << std::endl;
 }
 
-UEditorEngine::UEditorEngine()
+UGameEngine::UGameEngine()
 {
 
 }
 
-UEditorEngine::~UEditorEngine()
+UGameEngine::~UGameEngine()
 {
     // Cleanup is now handled in Shutdown()
     // Do not call FObjManager::Clear() here due to static destruction order
@@ -54,7 +55,7 @@ UEditorEngine::~UEditorEngine()
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void UEditorEngine::GetViewportSize(HWND hWnd)
+void UGameEngine::GetViewportSize(HWND hWnd)
 {
     RECT clientRect{};
     GetClientRect(hWnd, &clientRect);
@@ -68,19 +69,15 @@ void UEditorEngine::GetViewportSize(HWND hWnd)
     //레거시
     extern float CLIENTWIDTH;
     extern float CLIENTHEIGHT;
-    
+
     CLIENTWIDTH = ClientWidth;
     CLIENTHEIGHT = ClientHeight;
 }
 
-LRESULT CALLBACK UEditorEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK UGameEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     // Input first
     INPUT.ProcessMessage(hWnd, message, wParam, lParam);
-
-    // ImGui next
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, message, wParam, lParam))
-        return true;
 
     switch (message)
     {
@@ -93,20 +90,11 @@ LRESULT CALLBACK UEditorEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
 
             UINT NewWidth = static_cast<UINT>(ClientWidth);
             UINT NewHeight = static_cast<UINT>(ClientHeight);
-            GEngine.GetRHIDevice()-> OnResize(NewWidth, NewHeight);
+            GEngine.GetRHIDevice()->OnResize(NewWidth, NewHeight);
 
             // Save CLIENT AREA size (will be converted back to window size on load)
             EditorINI["WindowWidth"] = std::to_string(NewWidth);
             EditorINI["WindowHeight"] = std::to_string(NewHeight);
-
-            if (ImGui::GetCurrentContext() != nullptr) 
-            {
-                ImGuiIO& io = ImGui::GetIO();
-                if (io.DisplaySize.x > 0 && io.DisplaySize.y > 0) 
-                {
-                    UI.RepositionImGuiWindows();
-                }
-            }
         }
     }
     break;
@@ -120,7 +108,7 @@ LRESULT CALLBACK UEditorEngine::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
     return 0;
 }
 
-UWorld* UEditorEngine::GetDefaultWorld()
+UWorld* UGameEngine::GetDefaultWorld()
 {
     if (!WorldContexts.IsEmpty() && WorldContexts[0].World)
     {
@@ -129,7 +117,7 @@ UWorld* UEditorEngine::GetDefaultWorld()
     return nullptr;
 }
 
-bool UEditorEngine::CreateMainWindow(HINSTANCE hInstance)
+bool UGameEngine::CreateMainWindow(HINSTANCE hInstance)
 {
     // 윈도우 생성
     WCHAR WindowClass[] = L"JungleWindowClass";
@@ -142,11 +130,13 @@ bool UEditorEngine::CreateMainWindow(HINSTANCE hInstance)
     int clientWidth = 1620, clientHeight = 1024;
     if (EditorINI.count("WindowWidth"))
     {
-        try { clientWidth = stoi(EditorINI["WindowWidth"]); } catch (...) {}
+        try { clientWidth = stoi(EditorINI["WindowWidth"]); }
+        catch (...) {}
     }
     if (EditorINI.count("WindowHeight"))
     {
-        try { clientHeight = stoi(EditorINI["WindowHeight"]); } catch (...) {}
+        try { clientHeight = stoi(EditorINI["WindowHeight"]); }
+        catch (...) {}
     }
 
     // Validate minimum window size to prevent unusable windows
@@ -173,82 +163,87 @@ bool UEditorEngine::CreateMainWindow(HINSTANCE hInstance)
     return true;
 }
 
-bool UEditorEngine::Startup(HINSTANCE hInstance)
+bool UGameEngine::Startup(HINSTANCE hInstance)
 {
     LoadIniFile();
 
     if (!CreateMainWindow(hInstance))
         return false;
 
-    //디바이스 리소스 및 렌더러 생성
+    // 디바이스 리소스 및 렌더러 생성
     RHIDevice.Initialize(HWnd);
     Renderer = std::make_unique<URenderer>(&RHIDevice);
 
-    // Audio Device 초기화
-    FAudioDevice::Initialize();
-          
-    //매니저 초기화
-    UI.Initialize(HWnd, RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
+    // 뷰포트 생성
+    GameViewport = std::make_unique<FViewport>();
+    if (!GameViewport->Initialize(0, 0, ClientWidth, ClientHeight, GetRHIDevice()->GetDevice()))
+    {
+        UE_LOG("Failed to initialize GameViewport!");
+        return false;
+    }
+
+    // 매니저 초기화
     INPUT.Initialize(HWnd);
 
-    FObjManager::Preload(); 
-
-    FAudioDevice::Preload();
+    FObjManager::Preload();
 
     ///////////////////////////////////
-    WorldContexts.Add(FWorldContext(NewObject<UWorld>(), EWorldType::Editor));
+    WorldContexts.Add(FWorldContext(NewObject<UWorld>(), EWorldType::Game));
     GWorld = WorldContexts[0].World;
-    WorldContexts[0].World->Initialize();
+    GWorld->Initialize();
+    GWorld->bPie = true;
     ///////////////////////////////////
 
-    // 슬레이트 매니저 (singleton)
-    FRect ScreenRect(0, 0, ClientWidth, ClientHeight);
-    SLATE.Initialize(RHIDevice.GetDevice(), GWorld, ScreenRect);
+    // 시작 scene(level)을 직접 로드 
+    const FString StartupScenePath = GDataDir + "/Scenes/PlayScene.scene";
+    if (!GWorld->LoadLevelFromFile(UTF8ToWide(StartupScenePath)))
+    {
+        UE_LOG("Failed to load startup scene: %s", StartupScenePath.c_str());
+        return false;
+    }
 
-    // 최근에 사용한 레벨 불러오기를 시도합니다.
-    GWorld->TryLoadLastUsedLevel();
+    // 로드된 월드의 모든 액터에 대해 BeginPlay() 호출
+    TArray<AActor*> LevelActors = GWorld->GetLevel()->GetActors();
+    for (AActor* Actor : LevelActors)
+    {
+        Actor->BeginPlay();
+    }
 
+    bPlayActive = true;
     bRunning = true;
     return true;
 }
 
-void UEditorEngine::Tick(float DeltaSeconds)
+void UGameEngine::Tick(float DeltaSeconds)
 {
     //@TODO UV 스크롤 입력 처리 로직 이동
     HandleUVInput(DeltaSeconds);
-    
-    //@TODO: Delta Time 계산 + EditorActor Tick은 어떻게 할 것인가 
+
     for (auto& WorldContext : WorldContexts)
     {
         WorldContext.World->Tick(DeltaSeconds);
-        //// 테스트용으로 분기해놨음
-        //if (WorldContext.World && bPIEActive && WorldContext.WorldType == EWorldType::Game)
-        //{
-        //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
-        //}
-        //else if (WorldContext.World && !bPIEActive && WorldContext.WorldType == EWorldType::Editor)
-        //{
-        //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
-        //}
     }
-    
-    SLATE.Update(DeltaSeconds);
-    UI.Update(DeltaSeconds);
     INPUT.Update();
 }
 
-void UEditorEngine::Render()
+void UGameEngine::Render()
 {
     Renderer->BeginFrame();
 
-    UI.Render();
-    SLATE.Render();
-    UI.EndFrame();
+    if (GWorld)
+    {
+        UCameraComponent* Camera = GWorld->GetFirstPlayerCameraManager()->GetMainCamera();
+        if (Camera)
+        {
+            Renderer->SetCurrentViewportSize(GameViewport->GetSizeX(), GameViewport->GetSizeY());
+            Renderer->RenderSceneForView(GWorld, Camera, GameViewport.get());
+        }
+    }
 
     Renderer->EndFrame();
 }
 
-void UEditorEngine::HandleUVInput(float DeltaSeconds)
+void UGameEngine::HandleUVInput(float DeltaSeconds)
 {
     UInputManager& InputMgr = UInputManager::GetInstance();
     if (InputMgr.IsKeyPressed('T'))
@@ -268,7 +263,7 @@ void UEditorEngine::HandleUVInput(float DeltaSeconds)
 
 }
 
-void UEditorEngine::MainLoop()
+void UGameEngine::MainLoop()
 {
     LARGE_INTEGER Frequency;
     QueryPerformanceFrequency(&Frequency);
@@ -298,52 +293,27 @@ void UEditorEngine::MainLoop()
 
         if (!bRunning) break;
 
-        if (bChangedPieToEditor)
-        {
-            if (GWorld && bPIEActive)
-            {
-                WorldContexts.pop_back();
-                ObjectFactory::DeleteObject(GWorld);
-            }
-
-            GWorld = WorldContexts[0].World;
-            GWorld->GetSelectionManager()->ClearSelection();
-            GWorld->GetLightManager()->SetDirtyFlag();
-            SLATE.SetPIEWorld(GWorld);
-
-            bPIEActive = false;
-            UE_LOG("[info] END PIE");
-
-            bChangedPieToEditor = false;
-        }
-
         Tick(DeltaSeconds);
         Render();
-        
+
         // Shader Hot Reloading - Call AFTER render to avoid mid-frame resource conflicts
         // This ensures all GPU commands are submitted before we check for shader updates
         UResourceManager::GetInstance().CheckAndReloadShaders(DeltaSeconds);
     }
 }
 
-void UEditorEngine::Shutdown()
+void UGameEngine::Shutdown()
 {
-    // Release ImGui first (it may hold D3D11 resources)
-    UUIManager::GetInstance().Release();
-
     // Delete all UObjects (Components, Actors, Resources)
     // Resource destructors will properly release D3D resources
     ObjectFactory::DeleteAll(true);
 
     // Clear FObjManager's static map BEFORE static destruction
-    // This must be done in Shutdown() (before main() exits) rather than ~UEditorEngine()
+    // This must be done in Shutdown() (before main() exits) rather than ~UGameEngine()
     // because ObjStaticMeshMap is a static member variable that may be destroyed
     // before the global GEngine variable's destructor runs
     FObjManager::Clear();
 
-    // AudioDevice 종료
-    FAudioDevice::Shutdown();
-     
     // IMPORTANT: Explicitly release Renderer before RHIDevice destructor runs
     // Renderer may hold references to D3D resources
     Renderer.reset();
@@ -352,35 +322,4 @@ void UEditorEngine::Shutdown()
     RHIDevice.Release();
 
     SaveIniFile();
-}
-
-
-void UEditorEngine::StartPIE()
-{
-    UE_LOG("[info] START PIE");
-
-    UWorld* EditorWorld = WorldContexts[0].World;
-    UWorld* PIEWorld = UWorld::DuplicateWorldForPIE(EditorWorld);
-
-    GWorld = PIEWorld;
-    SLATE.SetPIEWorld(GWorld);  // SLATE의 카메라를 가져와서 설정, TODO: 추후 월드의 카메라 컴포넌트를 가져와서 설정하도록 변경 필요
-
-    bPIEActive = true;
-
-    // BeginPlay 중에 새로운 actor가 추가될 수도 있어서 복사 후 호출
-    TArray<AActor*> LevelActors = GWorld->GetLevel()->GetActors();
-    for (AActor* Actor : LevelActors)
-    {
-        // NOTE: PIE 시작 후에는 액터 생성 시 직접 불러줘야 됨
-        Actor->BeginPlay();
-    }
-
-    // NOTE: BeginPlay 중에 삭제된 액터 삭제 후 Tick 시작
-    GWorld->ProcessPendingKillActors();
-}
-
-void UEditorEngine::EndPIE()
-{
-    // 지연 종료 처리 (UEditorEngine::MainLoop에서 종료 처리됨)
-    bChangedPieToEditor = true;
 }

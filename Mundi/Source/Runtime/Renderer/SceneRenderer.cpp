@@ -45,6 +45,7 @@
 #include "LightStats.h"
 #include "ShadowStats.h"
 #include "PlatformTime.h"
+#include "PostProcessing/VignettePass.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
 	: World(InWorld)
@@ -110,13 +111,16 @@ void FSceneRenderer::Render()
 	{
 		RenderSceneDepthPath();
 	}
-
-	//그리드와 디버그용 Primitive는 Post Processing 적용하지 않음.
-	RenderEditorPrimitivesPass();	// 빌보드, 기타 화살표 출력 (상호작용, 피킹 O)
-	RenderDebugPass();	//  그리드, 선택한 물체의 경계 출력 (상호작용, 피킹 X)
 	
-	// 오버레이(Overlay) Primitive 렌더링
-	RenderOverayEditorPrimitivesPass();	// 기즈모 출력
+	if (!World->bPie)
+	{
+		//그리드와 디버그용 Primitive는 Post Processing 적용하지 않음.
+		RenderEditorPrimitivesPass();	// 빌보드, 기타 화살표 출력 (상호작용, 피킹 O)
+		RenderDebugPass();	//  그리드, 선택한 물체의 경계 출력 (상호작용, 피킹 X)
+
+		// 오버레이(Overlay) Primitive 렌더링
+		RenderOverayEditorPrimitivesPass();	// 기즈모 출력
+	}
 
 	// FXAA 등 화면에서 최종 이미지 품질을 위해 적용되는 효과를 적용
 	ApplyScreenEffectsPass();
@@ -982,9 +986,19 @@ void FSceneRenderer::RenderPostProcessingPasses()
 	FadeInOut.bEnabled = true;
 	FadeInOut.Weight = 1.0;
 	FadeInOut.SourceObject = nullptr;
-	FFadeInOutBufferType FadeCB{ FLinearColor(1,0,0,1), /*Opacity*/0.5f, /*Weight*/FadeInOut.Weight, {0,0} };
+	FFadeInOutBufferType FadeCB{ FLinearColor(1,0,0,1), 0.5f, FadeInOut.Weight, {0,0} };
 	FadeInOut.JustForTest = &FadeCB;
-	PostProcessModifiers.Add(FadeInOut);
+	// PostProcessModifiers.Add(FadeInOut);
+
+	FPostProcessModifier Vignette;
+	Vignette.Type = EPostProcessEffectType::Vignette;
+	Vignette.bEnabled = true;
+	Vignette.Weight = 1.0;
+	Vignette.SourceObject = nullptr;
+	FVinetteBufferType VinetteCB{ FLinearColor(0.0, 1.0, 0.0, 1.0),
+		0.35f, 0.25f, 1.0f, 2.0f, FadeInOut.Weight, {0,0,0}};
+	Vignette.JustForTest = &VinetteCB;
+	// PostProcessModifiers.Add(Vignette);
 	
 	for (auto& Modifier : PostProcessModifiers)
 	{
@@ -995,6 +1009,9 @@ void FSceneRenderer::RenderPostProcessingPasses()
 			break;
 		case EPostProcessEffectType::Fade:
 			FadeInOutPass.Execute(Modifier, View, RHIDevice);
+			break;
+		case EPostProcessEffectType::Vignette:
+			VignettePass.Execute(Modifier, View, RHIDevice);
 			break;
 		}
 	}

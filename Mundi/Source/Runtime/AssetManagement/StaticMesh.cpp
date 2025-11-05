@@ -1,5 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StaticMesh.h"
+#include "StaticMeshComponent.h"
 #include "ObjManager.h"
 #include "ResourceManager.h"
 
@@ -7,6 +8,15 @@ IMPLEMENT_CLASS(UStaticMesh)
 
 UStaticMesh::~UStaticMesh()
 {
+    for (UStaticMeshComponent* Component : UsingComponents)
+    {
+        if (Component)
+        {
+            Component->OnStaticMeshReleased(this);
+        }
+    }
+    UsingComponents.Empty();
+
     ReleaseResources();
 }
 

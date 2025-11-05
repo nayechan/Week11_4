@@ -71,7 +71,7 @@
 // nlohmann
 #include "nlohmann/json.hpp"
 
-//Manager
+// Manager
 #include "Renderer.h"
 #include "InputManager.h"
 #include "UIManager.h"
@@ -93,11 +93,12 @@ extern TMap<FString, FString> EditorINI;
 extern const FString GDataDir;
 extern const FString GCacheDir;
 
-//Editor
+// Editor & Game
 #include "EditorEngine.h"
+#include "GameEngine.h"
 
 //CUR ENGINE MODE
-#define _EDITOR
+//#define _EDITOR
 
 #ifdef _EDITOR
 extern UEditorEngine GEngine;

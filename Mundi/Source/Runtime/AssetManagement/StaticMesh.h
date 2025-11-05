@@ -1,9 +1,10 @@
-﻿#pragma once
+#pragma once
 #include "ResourceBase.h"
 #include "Enums.h"
 #include "MeshBVH.h"
 #include <d3d11.h>
 
+class UStaticMeshComponent;
 class FMeshBVH;
 class UStaticMesh : public UResourceBase
 {
@@ -77,3 +78,4 @@ private:
     
     TArray<UStaticMeshComponent*> UsingComponents; // 유저에 의해 Material이 안 바뀐 이 Mesh를 사용 중인 Component들(render state sorting 위함)
 };
+

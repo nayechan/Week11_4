@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "MeshComponent.h"
 #include "Enums.h"
 #include "AABB.h"
@@ -23,6 +23,8 @@ protected:
 	void ClearDynamicMaterials();
 
 public:
+	void OnStaticMeshReleased(UStaticMesh* ReleasedMesh);
+
 	void CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View) override;
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "StaticMeshComponent.h"
 #include "StaticMesh.h"
 #include "Shader.h"
@@ -36,6 +36,16 @@ UStaticMeshComponent::~UStaticMeshComponent()
 
 	// 생성된 동적 머티리얼 인스턴스 해제
 	ClearDynamicMaterials();
+}
+
+void UStaticMeshComponent::OnStaticMeshReleased(UStaticMesh* ReleasedMesh)
+{
+	if (StaticMesh != ReleasedMesh)
+	{
+		return;
+	}
+
+	StaticMesh = nullptr;
 }
 
 // 컴포넌트가 소유한 모든 UMaterialInstanceDynamic을 삭제하고, 관련 배열을 비웁니다.
@@ -537,3 +547,4 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		InOutHandle[MaterialSlotsKey] = SlotsArrayJson;
 	}
 }
+
