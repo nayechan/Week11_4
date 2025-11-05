@@ -7,6 +7,7 @@
 #include "StaticMeshComponent.h"
 #include "BillboardComponent.h"
 #include "PlayerCameraManager.h"
+#include "AudioComponent.h"
 #include <tuple>
 
 FLuaManager::FLuaManager()
@@ -512,6 +513,7 @@ void FLuaManager::ExposeComponentFunctions()
             }
         );
 
+
         // 전역 맵에 테이블 등록 (필수)
         GComponentFunctionTables[StaticMeshCompClass] = FuncTable;
     }
@@ -542,6 +544,28 @@ void FLuaManager::ExposeComponentFunctions()
 
         // 전역 맵에 테이블 등록 (필수)
         GComponentFunctionTables[BillboardCompClass] = FuncTable;
+    }
+
+    // --- UAudioComponent bindings ---
+    UClass* AudioCompClass = UAudioComponent::StaticClass();
+    if (AudioCompClass)
+    {
+        sol::table FuncTable = GComponentFunctionTables.count(AudioCompClass)
+            ? GComponentFunctionTables[AudioCompClass]
+            : Lua->create_table();
+
+        FuncTable.set_function("PlayOneShot",
+            [](LuaComponentProxy& Proxy, uint32 SlotIndex)
+            {
+                if (Proxy.Instance && Proxy.Class == UAudioComponent::StaticClass())
+                {
+                    auto* Comp = static_cast<UAudioComponent*>(Proxy.Instance);
+                    Comp->Play();
+                }
+            }
+        );
+
+        GComponentFunctionTables[AudioCompClass] = FuncTable;
     }
 }
 

@@ -70,13 +70,19 @@ function Tick(dt)
     local ratio = math.min(activeTime / colorChangeDuration, 1.0)
     local newColor = LerpColorByTime(ratio)
     meshComp:SetColor(0, "DiffuseColor", newColor)
+ 
 
-    -- 색상 구간 진입 시 데칼 스폰
     if ratio >= 0.0 and ratio < 0.33 and GlobalConfig.CoachLevel < 2 then 
         GlobalConfig.CoachLevel = 2
+        AudioComp = GetComponent(Obj, "UAudioComponent")
+        AudioComp:PlayOneShot(0);
     elseif ratio >= 0.33 and ratio < 0.66 and GlobalConfig.CoachLevel < 3 then 
         GlobalConfig.CoachLevel = 3
+        AudioComp = GetComponent(Obj, "UAudioComponent")
+        AudioComp:PlayOneShot(0);
     elseif ratio >= 0.66 and GlobalConfig.CoachLevel < 4 then 
+        AudioComp = GetComponent(Obj, "UAudioComponent")
+        AudioComp:PlayOneShot(0);
         GlobalConfig.CoachLevel = 4
     end
 end

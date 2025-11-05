@@ -73,7 +73,7 @@ void UAudioComponent::EndPlay()
 void UAudioComponent::Play()
 {
     USound* Selected = Sound;
-   
+    bIsPlaying = true;
     if (!Selected)
         return;
 
@@ -87,6 +87,10 @@ void UAudioComponent::Play()
     {
         SourceVoice->SetFrequencyRatio(Pitch);
         bIsPlaying = true;
+    }
+    else
+    {
+        return;
     }
 }
 
