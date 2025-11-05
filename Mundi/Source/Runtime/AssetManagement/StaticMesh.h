@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "ResourceBase.h"
 #include "Enums.h"
 #include "MeshBVH.h"
@@ -37,14 +37,6 @@ public:
     
     FAABB GetLocalBound() const {return LocalBound; }
     
-    bool EraseUsingComponets(UStaticMeshComponent* InStaticMeshComponent);
-    bool AddUsingComponents(UStaticMeshComponent* InStaticMeshComponent);
-
-    TArray<UStaticMeshComponent*>& GetUsingComponents()
-    {
-        return UsingComponents;
-    }
-
     const FString& GetCacheFilePath() const { return CacheFilePath; }
 
 private:
@@ -75,7 +67,5 @@ private:
 
     // 로컬 AABB. (스태틱메시 액터 전체 경계 계산에 사용. StaticMeshAsset 로드할 때마다 갱신)
     FAABB LocalBound;
-    
-    TArray<UStaticMeshComponent*> UsingComponents; // 유저에 의해 Material이 안 바뀐 이 Mesh를 사용 중인 Component들(render state sorting 위함)
 };
 

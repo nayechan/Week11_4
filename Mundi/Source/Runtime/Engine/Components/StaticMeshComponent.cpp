@@ -29,11 +29,6 @@ UStaticMeshComponent::UStaticMeshComponent()
 
 UStaticMeshComponent::~UStaticMeshComponent()
 {
-	if (StaticMesh != nullptr)
-	{
-		StaticMesh->EraseUsingComponets(this);
-	}
-
 	// 생성된 동적 머티리얼 인스턴스 해제
 	ClearDynamicMaterials();
 }
@@ -166,21 +161,13 @@ void UStaticMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMesh
 
 void UStaticMeshComponent::SetStaticMesh(const FString& PathFileName)
 {
-	// 1. 새 메시를 설정하기 전에, 기존에 생성된 모든 MID와 슬롯 정보를 정리합니다.
+	// 새 메시를 설정하기 전에, 기존에 생성된 모든 MID와 슬롯 정보를 정리합니다.
 	ClearDynamicMaterials();
 
-	// 2. 기존 메시가 있다면 연결을 해제합니다.
-	if (StaticMesh != nullptr)
-	{
-		StaticMesh->EraseUsingComponets(this);
-	}
-
-	// 3. 새 메시를 로드합니다.
+	// 새 메시를 로드합니다.
 	StaticMesh = UResourceManager::GetInstance().Load<UStaticMesh>(PathFileName);
 	if (StaticMesh && StaticMesh->GetStaticMeshAsset())
 	{
-		StaticMesh->AddUsingComponents(this);
-
 		const TArray<FGroupInfo>& GroupInfos = StaticMesh->GetMeshGroupInfo();
 
 		// 4. 새 메시 정보에 맞게 슬롯을 재설정합니다.
@@ -514,12 +501,6 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 				}
 
 				MaterialSlots[i] = LoadedMaterial;
-			}
-
-			// AutoSerialize로 로드된 StaticMesh에 AddUsingComponents 호출
-			if (StaticMesh)
-			{
-				StaticMesh->AddUsingComponents(this);
 			}
 		}
 	}

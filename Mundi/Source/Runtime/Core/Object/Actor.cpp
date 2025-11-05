@@ -33,6 +33,12 @@ AActor::~AActor()
 	OwnedComponents.clear();
 	SceneComponents.Empty();
 	RootComponent = nullptr;
+
+	if (LuaGameObject)
+	{
+		delete LuaGameObject;
+		LuaGameObject = nullptr;
+	}
 }
 
 void AActor::BeginPlay()

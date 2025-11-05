@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "StaticMesh.h"
 #include "StaticMeshComponent.h"
 #include "ObjManager.h"
@@ -8,15 +8,6 @@ IMPLEMENT_CLASS(UStaticMesh)
 
 UStaticMesh::~UStaticMesh()
 {
-    for (UStaticMeshComponent* Component : UsingComponents)
-    {
-        if (Component)
-        {
-            Component->OnStaticMeshReleased(this);
-        }
-    }
-    UsingComponents.Empty();
-
     ReleaseResources();
 }
 
@@ -87,23 +78,6 @@ void UStaticMesh::SetVertexType(EVertexLayoutType InVertexType)
     }
 
     VertexStride = Stride;
-}
-
-bool UStaticMesh::EraseUsingComponets(UStaticMeshComponent* InStaticMeshComponent)
-{
-    auto it = std::find(UsingComponents.begin(), UsingComponents.end(), InStaticMeshComponent);
-    if (it != UsingComponents.end())
-    {
-        UsingComponents.erase(it);
-        return true;
-    }
-    return false;
-}
-
-bool UStaticMesh::AddUsingComponents(UStaticMeshComponent* InStaticMeshComponent)
-{
-    UsingComponents.Add(InStaticMeshComponent);
-    return true;
 }
 
 void UStaticMesh::CreateVertexBuffer(FMeshData* InMeshData, ID3D11Device* InDevice, EVertexLayoutType InVertexType)
