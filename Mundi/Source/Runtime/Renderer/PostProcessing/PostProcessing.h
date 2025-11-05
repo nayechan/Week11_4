@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../SceneView.h"
 
 enum class EPostProcessEffectType : uint8
@@ -7,6 +7,7 @@ enum class EPostProcessEffectType : uint8
     Vignette,
     Bloom,
     Fade,
+    Gamma,
 };
 
 struct FPostProcessPayload

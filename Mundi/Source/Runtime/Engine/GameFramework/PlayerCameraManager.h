@@ -26,6 +26,8 @@ public:
 	int UpdateVignette(int Idx, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor = FLinearColor::Zero(), int32 InPriority = 0);
 	void AdjustVignette(float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor = FLinearColor::Zero(), int32 InPriority = 0);
 	void DeleteVignette();
+	
+	void StartGamma(float Gamma); 
 
 protected:
 	~APlayerCameraManager() override;

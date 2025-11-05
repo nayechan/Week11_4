@@ -1,8 +1,8 @@
 UpVector = Vector(0, 0, 1)
 
-local InitZ = 0
-local VelZ = 0
-local JumpSpeed = 0.04
+local GroundHeight = 0
+local VelocityZ = 0
+local JumpSpeed = 6
 
 local YawSensitivity        = 0.005
 local PitchSensitivity      = 0.0025
@@ -31,7 +31,7 @@ function AddID(id)
         if CurGravity < 0 and not bStart then
             CurGravity = 0 
             bStart = true
-            InitZ = Obj.Location.Z  
+            GroundHeight = Obj.Location.Z  
         end
     end
 end
@@ -42,8 +42,7 @@ function RemoveID(id)
         IDCount = IDCount - 1
         -- print("Removed ID:".. id.."Count:".. IDCount)
         
-        if IDCount == 0 and (InitZ - 10) > Obj.Location.Z then
-             
+        if IDCount == 0 and (GroundHeight - 10) > Obj.Location.Z then
             Die()
         end
     end
@@ -70,14 +69,14 @@ function BeginPlay()
     ActiveIDs = {}
     bDie = false
     CurGravity = GravityConst
-    VelZ = 0
+    VelocityZ = 0
 
     Obj.Location = PlayerInitPosition
     Obj.Velocity = PlayerInitVelocity 
     
     local Camera = GetCamera()
     if Camera then
-        Camera:SetForward(ForwardVector)
+        Camera:SetCameraForward(ForwardVector)
     end
 
     ForwardVector = NormalizeCopy(ForwardVector)
@@ -113,7 +112,7 @@ function Tick(Delta)
     if InputManager:IsKeyDown('A') then MoveRight(-MovementDelta * Delta) end
     if InputManager:IsKeyDown('D') then MoveRight(MovementDelta * Delta) end
     if InputManager:IsKeyPressed('Q') then Die() end -- 죽기를 선택
-    if InputManager:IsKeyPressed(' ') then Jump(MovementDelta * Delta) end
+    if InputManager:IsKeyPressed(' ') then Jump(MovementDelta) end
     if InputManager:IsMouseButtonPressed(0) then ShootProjectile() end
 
     CameraMove()
@@ -124,17 +123,15 @@ function PlayerMove(Delta)
     if GlobalConfig.GameState == "Playing" then
         
         if IsGrounded() then
-            if VelZ < 0 then VelZ = 0 end
+            if VelocityZ < 0 then VelocityZ = 0 end
+            if Obj.Location.Z < GroundHeight then Obj.Location.Z = GroundHeight + 1 end
         else
-            VelZ = VelZ +  -0.1 * Delta
+            VelocityZ = VelocityZ + (-10 * Delta)
         end
             
         local CurGravityAccel = Vector(0, 0, CurGravity)
-        Obj.Velocity = CurGravityAccel * Delta +Vector(0,0,VelZ)
-        Obj.Location = Obj.Location + Obj.Velocity + Vector(0, 0, VelZ)
-        
-
-
+        Obj.Velocity = CurGravityAccel * Delta +Vector(0,0,VelocityZ*Delta)
+        Obj.Location = Obj.Location + Obj.Velocity
     end
 end
 
@@ -162,7 +159,7 @@ function ManageGameState()
     if GlobalConfig.GameState == "Playing" then
         if bDie then
             return false
-        elseif IDCount == 0 and CurGravity == 0 and Obj.Location.Z < (InitZ - 5)  then
+        elseif IDCount == 0 and CurGravity == 0 and Obj.Location.Z < (GroundHeight - 5)  then
                 Die()
             return false
         end
@@ -183,7 +180,6 @@ function Die()
         return
     end
  
-    
     AudioComp = GetComponent(Obj, "UAudioComponent")
     AudioComp:PlayOneShot(0)   
     TargetHitStop(Obj, 0.5, 0)
@@ -193,7 +189,7 @@ function Die()
     -- (주: TargetHitStop은 Actor 포인터가 필요하며, 현재는 Obj(FGameObject)만 있으므로 전역으로 처리)
     --TargetHitStop(Obj, 0.5, 0)
     bDie = true
-    VelZ = 0
+    VelocityZ = 0
     CurGravity = GravityConst
     local ActiveIDs = {}
 
@@ -209,7 +205,7 @@ function Rebirth()
     ActiveIDs = {}
     bDie = false
     CurGravity = GravityConst
-    VelZ = 0
+    VelocityZ = 0
 
     Obj.Location = PlayerInitPosition
     Obj.Velocity = PlayerInitVelocity
@@ -231,21 +227,17 @@ function Rotate()
     local Candidate = RotateAroundAxis(ForwardVector, RightVector, Pitch)
 
     -- 수직 잠김 방지
-    if (Candidate.Z > 0.2) then -- 아래로 각도 제한
-        Candidate.Z = 0.2
+    if (Candidate.Z > 0.4) then -- 아래로 각도 제한
+        Candidate.Z = 0.4
     end
-    if (Candidate.Z < -0.6) then -- 위로 각도 제한
-        Candidate.Z = -0.6
+    if (Candidate.Z < -0.75) then -- 위로 각도 제한
+        Candidate.Z = -0.75
     end
 
     ForwardVector = NormalizeCopy(Candidate)
 
     LootAt = Vector(-ForwardVector.X, -ForwardVector.Y, 0)
-    SetForward(Obj, LootAt)
-end
-
-function MoveForward(Delta)
-    Obj.Location = Obj.Location + Vector(ForwardVector.X,ForwardVector.Y, 0)  * Delta
+    SetPlayerForward(Obj, LootAt)
 end
 
 function IsGrounded()
@@ -254,10 +246,13 @@ end
 
 function Jump(Delta)
     if IsGrounded() then
-        VelZ = JumpSpeed
+        VelocityZ = JumpSpeed
     end
-
 end 
+
+function MoveForward(Delta)
+    Obj.Location = Obj.Location + Vector(ForwardVector.X,ForwardVector.Y, 0)  * Delta
+end
 
 function MoveRight(Delta)
     local RightVector = FVector.Cross(UpVector, ForwardVector)
@@ -272,16 +267,6 @@ function CameraMove()
     Billboard()
 end
 
-function Billboard()
-    local Camera = GetCamera()
-    if Camera then
-        local Eye = CameraLocation
-        local At = Obj.Location
-        local Direction = Vector(At.X - Eye.X, At.Y - Eye.Y, At.Z - Eye.Z)
-        Camera:SetForward(Direction)
-    end
-end
-
 function SetCamera()
     local BackDistance = 7.0
     local UpDistance   = 2.0
@@ -290,5 +275,16 @@ function SetCamera()
     if Camera then
         CameraLocation = Obj.Location + (ForwardVector * -BackDistance) + (UpVector * UpDistance)
         Camera:SetLocation(CameraLocation)
+    end
+end
+
+function Billboard()
+    local Camera = GetCamera()
+    if Camera then
+        local Eye = CameraLocation
+        local At = Obj.Location
+        local Direction = Vector(At.X - Eye.X, At.Y - Eye.Y, At.Z - Eye.Z)
+        print(Direction)
+        Camera:SetCameraForward(Direction)
     end
 end

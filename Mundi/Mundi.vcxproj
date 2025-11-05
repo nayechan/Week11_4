@@ -212,6 +212,16 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_StandAlone|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Shaders\PostProcess\GammaCorrection_PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug_StandAlone|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release_StandAlone|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_StandAlone|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_StandAlone|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shaders\Shadows\DepthOnly_PS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_StandAlone|x64'">true</ExcludedFromBuild>
@@ -265,6 +275,7 @@
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaManager.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\LightManager.cpp" />
+    <ClCompile Include="Source\Runtime\Renderer\PostProcessing\GammaPass.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\PostProcessing\HeightFogPass.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\PostProcessing\FadeInOutPass.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\PostProcessing\PostProcessing.cpp" />
@@ -570,6 +581,7 @@
     <ClInclude Include="Source\Runtime\Engine\Components\PointLightComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SpotLightComponent.h" />
     <ClInclude Include="Source\Runtime\Renderer\MeshBatchElement.h" />
+    <ClInclude Include="Source\Runtime\Renderer\PostProcessing\GammaPass.h" />
     <ClInclude Include="Source\Runtime\Renderer\PostProcessing\HeightFogPass.h" />
     <ClInclude Include="Source\Runtime\Renderer\PostProcessing\FadeInOutPass.h" />
     <ClInclude Include="Source\Runtime\Renderer\PostProcessing\PostProcessing.h" />

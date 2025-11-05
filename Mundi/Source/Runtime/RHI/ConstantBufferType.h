@@ -88,6 +88,13 @@ struct alignas(16) FVinetteBufferType // b2
 };
 static_assert(sizeof(FVinetteBufferType) % 16 == 0, "CB must be 16-byte aligned");
 
+struct alignas(16) FGammaCorrectionBufferType
+{
+    float Gamma;
+    float Padding[3];
+};
+static_assert(sizeof(FGammaCorrectionBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
 struct FXAABufferType // b2
 {
     FVector2D ScreenSize; // 화면 해상도 (e.g., float2(1920.0f, 1080.0f))
@@ -216,6 +223,7 @@ MACRO(FireballBufferType)           \
 MACRO(PostProcessBufferType)        \
 MACRO(FogBufferType)                \
 MACRO(FFadeInOutBufferType)         \
+MACRO(FGammaCorrectionBufferType)   \
 MACRO(FVinetteBufferType)           \
 MACRO(FXAABufferType)               \
 MACRO(FPixelConstBufferType)        \
@@ -239,6 +247,7 @@ CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
 CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, true) // b1 카메라 행렬 고정
 CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FFadeInOutBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FGammaCorrectionBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FVinetteBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color

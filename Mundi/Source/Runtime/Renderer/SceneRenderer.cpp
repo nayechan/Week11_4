@@ -963,7 +963,8 @@ void FSceneRenderer::RenderDecalPass()
 
 void FSceneRenderer::RenderPostProcessingPasses()
 {
-	TArray<FPostProcessModifier> PostProcessModifiers = View->Modifiers;
+	// Ensure first post-process pass samples from the current scene output
+ 	TArray<FPostProcessModifier> PostProcessModifiers = View->Modifiers;
 
 	// TODO : 다른 데에서 하기, 맨 앞으로 넘기기
 	// Register Height Fog Modifiers, 첫번째만 등록 된다.
@@ -1021,6 +1022,9 @@ void FSceneRenderer::RenderPostProcessingPasses()
 			break;
 		case EPostProcessEffectType::Vignette:
 			VignettePass.Execute(Modifier, View, RHIDevice);
+			break;
+		case EPostProcessEffectType::Gamma:
+			GammaPass.Execute(Modifier, View, RHIDevice);
 			break;
 		}
 	}

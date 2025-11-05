@@ -24,7 +24,7 @@ UResourceManager::~UResourceManager()
 UResourceManager& UResourceManager::GetInstance()
 {
     static UResourceManager* Instance = nullptr;
-    if (Instance == nullptr)
+        if (Instance == nullptr)
     {
         Instance = NewObject<UResourceManager>();
     }

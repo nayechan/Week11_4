@@ -57,7 +57,7 @@ FLuaManager::FLuaManager()
                 Camera->SetWorldLocation(FVector(X, Y, Z));
             }
         ),
-        "SetForward",
+        "SetCameraForward",
         [](UCameraComponent* Camera, FVector Direction)
         {
             if (!Camera)
@@ -169,6 +169,21 @@ FLuaManager::FLuaManager()
             return NewObject;
         }
     ));
+    SharedLib.set_function("DeleteObject", sol::overload(
+        [](const FGameObject& GameObject)
+        {
+            for (TObjectIterator<AActor> It; It; ++It)
+            {
+                AActor* Actor = *It;
+
+                if (Actor->UUID == GameObject.UUID)
+                {
+                    Actor->Destroy();   // 지연 삭제 요청 (즉시 삭제하면 터짐)
+                    break;
+                }
+            }
+        }
+    ));
     SharedLib.set_function("GetCamera",
         []() -> UCameraComponent*
         {
@@ -190,8 +205,18 @@ FLuaManager::FLuaManager()
             return GWorld->GetFirstPlayerCameraManager();
         }
     );
-
-   
+    SharedLib.set_function("SetPlayerForward",
+        [](FGameObject& GameObject, FVector Direction)
+        {
+            AActor* Player = GameObject.GetOwner();
+            
+            USceneComponent* PlayerSceneComp = static_cast<USceneComponent*>(Player->GetComponent(USceneComponent::StaticClass()));
+            if (PlayerSceneComp)
+            {
+                PlayerSceneComp->SetForward(Direction);
+            }
+        }
+   );
     SharedLib.set_function("Vector", sol::overload(
        []() { return FVector(0.0f, 0.0f, 0.0f); },
        [](float x, float y, float z) { return FVector(x, y, z); }
@@ -689,6 +714,16 @@ void FLuaManager::ExposeGlobalFunctions()
                 // 프록시에서 실제 컴포넌트 포인터 추출
                 auto* CameraComp = static_cast<UCameraComponent*>(Proxy.Instance);
                 self->SetViewTargetWithBlend(CameraComp, InBlendTime);
+            }
+        },
+
+        // --- Gamma Correction ---
+         // (Gamma Correction 기본값 사용) 1개 인수
+        "StartGamma", [](APlayerCameraManager* Self, float Gamma)
+        {
+            if (Self)
+            {
+                Self->StartGamma(Gamma);
             }
         }
     );

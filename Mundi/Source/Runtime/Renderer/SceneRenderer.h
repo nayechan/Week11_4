@@ -5,6 +5,7 @@
 #include "PostProcessing/FadeInOutPass.h"
 #include "PostProcessing/VignettePass.h"
 #include "PostProcessing/HeightFogPass.h"
+#include "PostProcessing/GammaPass.h"
 
 // 전방 선언 (헤더 파일 의존성 최소화)
 class UWorld;
@@ -152,5 +153,6 @@ private:
 	// PostProcessing 
 	FHeightFogPass HeightFogPass;
 	FFadeInOutPass FadeInOutPass;
-	FVignettePass VignettePass;
+	FVignettePass VignettePass; 
+	FGammaPass GammaPass;
 };
