@@ -4,6 +4,7 @@
 #include "Camera/CamMod_Fade.h"
 #include "Camera/CamMod_Shake.h"
 #include "Camera/CamMod_LetterBox.h"
+#include "Camera/CamMod_Vignette.h"
 #include "SceneView.h"
 #include "CameraActor.h"
 #include "World.h"
@@ -16,10 +17,6 @@ BEGIN_PROPERTIES(APlayerCameraManager)
 MARK_AS_SPAWNABLE("플레이어 카메라 매니저", "최종적으로 카메라 화면을 관리하는 액터입니다. (씬에 1개만 존재 필요)")
 END_PROPERTIES()
 
-APlayerCameraManager::APlayerCameraManager()
-{
-	Name = "Player Camera Manager";
-}
 
 APlayerCameraManager::~APlayerCameraManager()
 {
@@ -27,45 +24,6 @@ APlayerCameraManager::~APlayerCameraManager()
 	PendingViewTarget = nullptr;
 
 	CachedViewport = nullptr;
-}
-
-void APlayerCameraManager::StartCameraShake(float InDuration, float AmpLoc, float AmpRotDeg, float Frequency,
-	int32 InPriority)
-{
-	UCamMod_Shake* ShakeModifier = new UCamMod_Shake();
-	ShakeModifier->Priority = InPriority;
-	ShakeModifier->Initialize(InDuration, AmpLoc, AmpRotDeg, Frequency);
-	ActiveModifiers.Add(ShakeModifier);
-}
-
-void APlayerCameraManager::StartFade(float InDuration, float FromAlpha, float ToAlpha, const FLinearColor& InColor,
-	int32 InPriority)
-{
-	UCamMod_Fade* FadeModifier = new UCamMod_Fade();
-	FadeModifier->Priority   = InPriority;
-	FadeModifier->bEnabled   = true;
-
-	FadeModifier->FadeColor      = InColor;
-	FadeModifier->StartAlpha = FMath::Clamp(FromAlpha, 0.f, 1.f);
-	FadeModifier->EndAlpha   = FMath::Clamp(ToAlpha,   0.f, 1.f);
-	FadeModifier->Duration   = FMath::Max(0.f, InDuration);
-	FadeModifier->Elapsed    = 0.f;
-	FadeModifier->CurrentAlpha = FadeModifier->StartAlpha;
-
-	ActiveModifiers.Add(FadeModifier);
-	// ActiveModifiers.Sort([](UCameraModifierBase* A, UCameraModifierBase* B){ return *A < *B; });
-}
-
-void APlayerCameraManager::StartLetterBox(float InDuration, float Aspect, float BarHeight, const FLinearColor& InColor, int32 InPriority)
-{
-	UCamMod_LetterBox* LetterBoxModifier = new UCamMod_LetterBox();
-	LetterBoxModifier->Priority = InPriority;
-	LetterBoxModifier->AspectRatio = Aspect;
-	LetterBoxModifier->HeightBarSize = BarHeight;
-	LetterBoxModifier->Duration = InDuration;
-	LetterBoxModifier->BoxColor = InColor;
-
-	ActiveModifiers.Add(LetterBoxModifier);
 }
 
 void APlayerCameraManager::Tick(float DeltaTime)
@@ -227,6 +185,103 @@ void APlayerCameraManager::SetViewTargetWithBlend(UCameraComponent* NewViewTarge
 	BlendTimeTotal = InBlendTime;
 	BlendTimeRemaining = InBlendTime;
 }
+
+
+
+void APlayerCameraManager::StartCameraShake(float InDuration, float AmpLoc, float AmpRotDeg, float Frequency,
+	int32 InPriority)
+{
+	UCamMod_Shake* ShakeModifier = new UCamMod_Shake();
+	ShakeModifier->Priority = InPriority;
+	ShakeModifier->Initialize(InDuration, AmpLoc, AmpRotDeg, Frequency);
+	ActiveModifiers.Add(ShakeModifier);
+}
+
+void APlayerCameraManager::StartFade(float InDuration, float FromAlpha, float ToAlpha, const FLinearColor& InColor,
+	int32 InPriority)
+{
+	UCamMod_Fade* FadeModifier = new UCamMod_Fade();
+	FadeModifier->Priority = InPriority;
+	FadeModifier->bEnabled = true;
+
+	FadeModifier->FadeColor = InColor;
+	FadeModifier->StartAlpha = FMath::Clamp(FromAlpha, 0.f, 1.f);
+	FadeModifier->EndAlpha = FMath::Clamp(ToAlpha, 0.f, 1.f);
+	FadeModifier->Duration = FMath::Max(0.f, InDuration);
+	FadeModifier->Elapsed = 0.f;
+	FadeModifier->CurrentAlpha = FadeModifier->StartAlpha;
+
+	ActiveModifiers.Add(FadeModifier);
+	// ActiveModifiers.Sort([](UCameraModifierBase* A, UCameraModifierBase* B){ return *A < *B; });
+}
+
+void APlayerCameraManager::StartLetterBox(float InDuration, float Aspect, float BarHeight, const FLinearColor& InColor, int32 InPriority)
+{
+	UCamMod_LetterBox* LetterBoxModifier = new UCamMod_LetterBox();
+	LetterBoxModifier->Duration = InDuration;
+	LetterBoxModifier->Priority = InPriority;
+	LetterBoxModifier->AspectRatio = Aspect;
+	LetterBoxModifier->HeightBarSize = BarHeight;
+	LetterBoxModifier->BoxColor = InColor;
+
+	ActiveModifiers.Add(LetterBoxModifier);
+}
+
+int APlayerCameraManager::StartVignette(float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor, int32 InPriority)
+{
+	UCamMod_Vignette* VignetteModifier = new UCamMod_Vignette();
+	VignetteModifier->Duration = InDuration;
+	VignetteModifier->Priority = InPriority;
+	VignetteModifier->Radius = Radius;
+	VignetteModifier->Softness = Softness;
+	VignetteModifier->Intensity = Intensity;
+	VignetteModifier->Roundness = Roundness;
+	VignetteModifier->Color = InColor;
+
+	ActiveModifiers.Add(VignetteModifier);
+	return (ActiveModifiers.Num() - 1);
+}
+
+int APlayerCameraManager::UpdateVignette(int Idx, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor, int32 InPriority)
+{
+	if (ActiveModifiers.Num() <= Idx || !ActiveModifiers[Idx] || !Cast<UCamMod_Vignette>(ActiveModifiers[Idx]))
+	{
+		return -1;
+	}
+
+	UCamMod_Vignette* VignetteModifier = Cast<UCamMod_Vignette>(ActiveModifiers[Idx]);
+	VignetteModifier->Duration = InDuration;
+	VignetteModifier->Priority = InPriority;
+	VignetteModifier->Radius = Radius;
+	VignetteModifier->Softness = Softness;
+	VignetteModifier->Intensity = Intensity;
+	VignetteModifier->Roundness = Roundness;
+	VignetteModifier->Color = InColor;
+
+	ActiveModifiers[Idx] = VignetteModifier;
+
+	return Idx;
+}
+
+void APlayerCameraManager::AdjustVignette(float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor, int32 InPriority)
+{
+	if (LastVignetteIdx == -1)
+	{
+		LastVignetteIdx = StartVignette(InDuration, Radius, Softness, Intensity, Roundness, InColor, InPriority);
+	}
+	else
+	{
+		LastVignetteIdx = UpdateVignette(LastVignetteIdx, InDuration, Radius, Softness, Intensity, Roundness, InColor, InPriority);
+	}
+}
+
+void APlayerCameraManager::DeleteVignette()
+{
+	if (ActiveModifiers.Num() <= LastVignetteIdx || !ActiveModifiers[LastVignetteIdx] || !Cast<UCamMod_Vignette>(ActiveModifiers[LastVignetteIdx]))
+		return;
+	ActiveModifiers[LastVignetteIdx]->bEnabled = false;
+}
+
 
 
 //

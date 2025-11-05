@@ -7,7 +7,7 @@ class UCamMod_Fade : public UCameraModifierBase
 public:
     DECLARE_CLASS(UCamMod_Fade, UCameraModifierBase)
 
-    UCamMod_Fade();
+    UCamMod_Fade() = default;
     virtual ~UCamMod_Fade() = default;
     FLinearColor FadeColor = FLinearColor::Zero();
     float StartAlpha = 0.f;   // 시작 불투명도 [0..1]

@@ -8,29 +8,27 @@ class FViewport;
 class URenderSettings;
 class UCamMod_Fade;
 
-
 class APlayerCameraManager : public AActor
 {
 	DECLARE_CLASS(APlayerCameraManager, AActor)
 	GENERATED_REFLECTION_BODY()
 
 public:
-	APlayerCameraManager();
-
-	TArray<UCameraModifierBase*> ActiveModifiers;
+	APlayerCameraManager() { Name = "Player Camera Manager";  };
 
 	void StartCameraShake(float InDuration, float AmpLoc, float AmpRotDeg, float Frequency, int32 InPriority = 0);
+	
 	void StartFade(float InDuration, float FromAlpha, float ToAlpha, const FLinearColor& InColor= FLinearColor::Zero(), int32 InPriority = 0);
+	
 	void StartLetterBox(float InDuration, float Aspect, float BarHeight, const FLinearColor& InColor = FLinearColor::Zero(), int32 InPriority = 0);
 	
-	inline void FadeIn(float Duration, const FLinearColor& Color=FLinearColor::Zero(), int32 Priority=0)
-	{   // 검은 화면(1) → 씬(0)
-		StartFade(Duration, 1.f, 0.f, Color, Priority);
-	}
-	inline void FadeOut(float Duration, const FLinearColor& Color = FLinearColor::Zero(), int32 Priority = 0)
-	{   // 씬(0) → 검은 화면(1)
-		StartFade(Duration, 0.f, 1.f, Color, Priority);
-	}
+	int StartVignette(float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor = FLinearColor::Zero(), int32 InPriority = 0);
+	int UpdateVignette(int Idx, float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor = FLinearColor::Zero(), int32 InPriority = 0);
+	void AdjustVignette(float InDuration, float Radius, float Softness, float Intensity, float Roundness, const FLinearColor& InColor = FLinearColor::Zero(), int32 InPriority = 0);
+	void DeleteVignette();
+
+protected:
+	~APlayerCameraManager() override;
 
 	void AddModifier(UCameraModifierBase* Modifier)
 	{
@@ -39,8 +37,17 @@ public:
 
 	void BuildForFrame(float DeltaTime);
 
-protected:
-	~APlayerCameraManager() override;
+public:
+	TArray<UCameraModifierBase*> ActiveModifiers;
+
+	inline void FadeIn(float Duration, const FLinearColor& Color=FLinearColor::Zero(), int32 Priority=0)
+	{   // 검은 화면(1) → 씬(0)
+		StartFade(Duration, 1.f, 0.f, Color, Priority);
+	}
+	inline void FadeOut(float Duration, const FLinearColor& Color = FLinearColor::Zero(), int32 Priority = 0)
+	{   // 씬(0) → 검은 화면(1)
+		StartFade(Duration, 0.f, 1.f, Color, Priority);
+	}
 
 public:
 	void Destroy() override;
@@ -69,6 +76,10 @@ private:
 	UCameraComponent* PendingViewTarget{};
 
 	float LastDeltaSeconds = 0.f;
+
+	// TODO : 감싸기 or 배열로 관리, 현재 vignette 1개만 Update 가능
+	// Vignette 연속 효과를 위한 IDX
+	int LastVignetteIdx = 0;
 
 	FMinimalViewInfo SceneView{};
 	FMinimalViewInfo BlendStartView{};

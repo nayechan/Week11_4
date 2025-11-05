@@ -95,7 +95,9 @@ void ULuaScriptComponent::BeginPlay()
 
 	// GWorld->GetFirstPlayerCameraManager()->FadeIn(1.0, FLinearColor(0.0, 1.0, 1.0, 1.0));
 	// GWorld->GetFirstPlayerCameraManager()->StartCameraShake(/*Duration*/0.7f, /*AmpLoc*/0.4f, /*AmpRotDeg*/0.2f, /*Freq*/9.0f);
-	GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
+	// GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
+	// GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
+	GWorld->GetFirstPlayerCameraManager()->StartVignette(4, 0.5, 0.5, 1, 3, FLinearColor(0.3, 0.7, 0.2, 0.0));
 }
 
 void ULuaScriptComponent::OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)

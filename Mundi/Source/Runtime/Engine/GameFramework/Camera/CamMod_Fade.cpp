@@ -3,5 +3,3 @@
 
 IMPLEMENT_CLASS(UCamMod_Fade)
 
-UCamMod_Fade::UCamMod_Fade() = default;
-
