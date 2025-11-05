@@ -83,8 +83,11 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	}
 	else
 	{
-		SceneView.ViewLocation = CurrentViewTarget->GetWorldLocation();
-		SceneView.ViewRotation = CurrentViewTarget->GetWorldRotation();
+		if (CurrentViewTarget)
+		{
+			SceneView.ViewLocation = CurrentViewTarget->GetWorldLocation();
+			SceneView.ViewRotation = CurrentViewTarget->GetWorldRotation();
+		}
 	}
 			
 	// 모든 Modifier tick Update
