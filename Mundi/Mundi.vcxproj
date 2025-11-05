@@ -148,6 +148,7 @@
     <ClCompile Include="Source\Runtime\Engine\Components\BoxComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\ShapeComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\TileMapActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.cpp" />
@@ -386,6 +387,7 @@
     <ClInclude Include="Source\Runtime\Engine\Components\ShapeComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SphereComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\TileMapActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\DirectionalLightActor.h" />

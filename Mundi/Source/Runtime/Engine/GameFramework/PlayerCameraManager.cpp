@@ -1,5 +1,7 @@
 ﻿#include "pch.h"
 #include "PlayerCameraManager.h"
+#include "Camera/CameraModifierBase.h"
+#include "SceneView.h"
 #include "CameraActor.h"
 #include "World.h"
 
@@ -12,6 +14,33 @@ END_PROPERTIES()
 APlayerCameraManager::APlayerCameraManager()
 {
 	Name = "Player Camera Manager";
+}
+
+void APlayerCameraManager::BuildForFrame(float DeltaTime, FSceneView& InOutView)
+{
+	// 1) 전처리: ViewMatrix/Projection/ViewRect 수정 (Priority 순)
+	for (UCameraModifierBase* M : ActiveModifiers)
+	{
+		if (!M || !M->bEnabled || M->Weight <= 0.f) continue;
+		M->ApplyToView(DeltaTime, InOutView);
+	}
+
+	// 2) 후처리: PP 모디파이어 수집
+	InOutView.PostProcessInput.Modifiers.Reset();
+	for (UCameraModifierBase* M : ActiveModifiers)
+	{
+		if (!M || !M->bEnabled || M->Weight <= 0.f) continue;
+		M->CollectPostProcess(InOutView.PostProcessInput.Modifiers, InOutView);
+	}
+
+	// 3) 수명 정리
+	for (int32 i=ActiveModifiers.Num()-1; i>=0; --i)
+	{
+		if (!ActiveModifiers[i]) { ActiveModifiers.RemoveAtSwap(i); continue; }
+		ActiveModifiers[i]->TickLifetime(DeltaTime);
+		if (!ActiveModifiers[i]->bEnabled && ActiveModifiers[i]->Duration >= 0.f)
+			ActiveModifiers.RemoveAtSwap(i);
+	}
 }
 
 APlayerCameraManager::~APlayerCameraManager()
@@ -73,69 +102,69 @@ UCameraComponent* APlayerCameraManager::GetMainCamera()
 }
 
 //
-//void APlayerCameraManager::UpdateCamera(float DeltaTime)
-//{
-//	//FMinimalViewInfo ResultView;
+// void APlayerCameraManager::UpdateCamera(float DeltaTime)
+// {
+// 	FMinimalViewInfo ResultView;
 //
-//	//// --- 1. 뷰 타겟 블렌딩(Blending) 처리 ---
-//	//if (BlendTimeRemaining > 0.0f)
-//	//{
-//	//    // 블렌딩 진행도 (Alpha) 계산
-//	//    float BlendAlpha = 1.0f - (BlendTimeRemaining / BlendTimeTotal);
-//	//    BlendAlpha = std.clamp(BlendAlpha, 0.0f, 1.0f);
+// 	// --- 1. 뷰 타겟 블렌딩(Blending) 처리 ---
+// 	if (BlendTimeRemaining > 0.0f)
+// 	{
+// 	    // 블렌딩 진행도 (Alpha) 계산
+// 	    float BlendAlpha = 1.0f - (BlendTimeRemaining / BlendTimeTotal);
+// 	    BlendAlpha = std.clamp(BlendAlpha, 0.0f, 1.0f);
 //
-//	//    // 새 타겟의 현재 뷰 정보 가져오기
-//	//    FMinimalViewInfo NewViewInfo = GetBaseViewInfo(PendingViewTarget);
+// 	    // 새 타겟의 현재 뷰 정보 가져오기
+// 	    FMinimalViewInfo NewViewInfo = GetBaseViewInfo(PendingViewTarget);
 //
-//	//    // 이전 뷰(BlendStartViewInfo)와 새 뷰(NewViewInfo)를 보간
-//	//    ResultView = BlendViews(BlendStartViewInfo, NewViewInfo, BlendAlpha);
+// 	    // 이전 뷰(BlendStartViewInfo)와 새 뷰(NewViewInfo)를 보간
+// 	    ResultView = BlendViews(BlendStartViewInfo, NewViewInfo, BlendAlpha);
 //
-//	//    // 시간 업데이트
-//	//    BlendTimeRemaining -= DeltaTime;
-//	//    if (BlendTimeRemaining <= 0.0f)
-//	//    {
-//	//        // 블렌딩 종료
-//	//        CurrentViewTarget = PendingViewTarget;
-//	//        PendingViewTarget.Actor = nullptr;
-//	//    }
-//	//}
-//	//else
-//	//{
-//	//    // --- 2. 기본 뷰(Base View) 가져오기 ---
-//	//    // 블렌딩 중이 아니면 현재 뷰 타겟의 정보만 사용
-//	//    ResultView = GetBaseViewInfo(CurrentViewTarget);
-//	//}
+// 	    // 시간 업데이트
+// 	    BlendTimeRemaining -= DeltaTime;
+// 	    if (BlendTimeRemaining <= 0.0f)
+// 	    {
+// 	        // 블렌딩 종료
+// 	        CurrentViewTarget = PendingViewTarget;
+// 	        PendingViewTarget.Actor = nullptr;
+// 	    }
+// 	}
+// 	else
+// 	{
+// 	    // --- 2. 기본 뷰(Base View) 가져오기 ---
+// 	    // 블렌딩 중이 아니면 현재 뷰 타겟의 정보만 사용
+// 	    ResultView = GetBaseViewInfo(CurrentViewTarget);
+// 	}
 //
-//	//// --- 3. 카메라 모디파이어(Shakes) 적용 ---
-//	//// (블렌딩 결과물 위에 셰이크 효과 등을 덧입힘)
-//	//UpdateModifiers(DeltaTime, ResultView);
+// 	// --- 3. 카메라 모디파이어(Shakes) 적용 ---
+// 	/ (블렌딩 결과물 위에 셰이크 효과 등을 덧입힘)
+// 	UpdateModifiers(DeltaTime, ResultView);
 //
-//	//// --- 4. 전역 효과(Fade) 처리 ---
-//	//if (FadeTimeRemaining > 0.0f)
-//	//{
-//	//    float FadeAlpha = 1.0f - (FadeTimeRemaining / FadeTimeTotal);
-//	//    // (FadeStartAmount 같은 변수가 필요하지만, 예시를 위해 단순화)
-//	//    FadeAmount = FMath::Lerp(0.0f, FadeTargetAmount, FadeAlpha);
+// 	// --- 4. 전역 효과(Fade) 처리 ---
+// 	if (FadeTimeRemaining > 0.0f)
+// 	{
+// 	    float FadeAlpha = 1.0f - (FadeTimeRemaining / FadeTimeTotal);
+// 	    // (FadeStartAmount 같은 변수가 필요하지만, 예시를 위해 단순화)
+// 	    FadeAmount = FMath::Lerp(0.0f, FadeTargetAmount, FadeAlpha);
 //
-//	//    FadeTimeRemaining -= DeltaTime;
-//	//}
+// 	    FadeTimeRemaining -= DeltaTime;
+// 	}
 //
-//	//// --- 5. 레터박스(Letterbox) 처리 ---
-//	//// (만약 시네마틱 모드라면 여기서 ResultView.ViewRect와 ResultView.AspectRatio를 수정)
-//	//// 예: if (bIsCinematicMode) { ... }
+// 	// --- 5. 레터박스(Letterbox) 처리 ---
+// 	/ (만약 시네마틱 모드라면 여기서 ResultView.ViewRect와 ResultView.AspectRatio를 수정)
+// 	/ 예: if (bIsCinematicMode) { ... }
 //
-//	//// --- 6. 최종 결과를 캐시 변수에 저장 ---
-//	//// (Fade 값 등도 FMinimalViewInfo에 복사)
-//	//ResultView.FadeAmount = this->FadeAmount;
-//	//ResultView.FadeColor = this->FadeColor;
+// 	// --- 6. 최종 결과를 캐시 변수에 저장 ---
+// 	/ (Fade 값 등도 FMinimalViewInfo에 복사)
+// 	ResultView.FadeAmount = this->FadeAmount;
+// 	ResultView.FadeColor = this->FadeColor;
 //
-//	//this->CachedViewInfo = ResultView;
-//}
-
-//FMinimalViewInfo APlayerCameraManager::GetFinalViewInfo() const
-//{
-//	return FMinimalViewInfo();
-//}
+// 	this->CachedViewInfo = ResultView;
+// }
+//
+// FMinimalViewInfo APlayerCameraManager::GetFinalViewInfo() const
+// {
+// 	return FMinimalViewInfo();
+// }
 
 //void APlayerCameraManager::DuplicateSubObjects()
 //{

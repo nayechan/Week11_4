@@ -2,7 +2,8 @@
 #include "Actor.h"
 
 class UCameraComponent;
-
+class UCameraModifierBase;
+class FSceneView;
 class APlayerCameraManager : public AActor
 {
 	DECLARE_CLASS(APlayerCameraManager, AActor)
@@ -11,6 +12,18 @@ class APlayerCameraManager : public AActor
 public:
 	APlayerCameraManager();
 
+	TArray<UCameraModifierBase*> ActiveModifiers;
+	
+	template<typename T> T* AddModifier(int32 InPriority = 0)
+	{
+		T* M = NewObject<T>(this);
+		M->Priority = InPriority;
+		ActiveModifiers.Add(M);
+		ActiveModifiers.Sort([](auto A, auto B){ return *A < *B; });
+		return M;
+	}
+	void BuildForFrame(float DeltaTime, FSceneView& InOutView);
+	
 protected:
 	~APlayerCameraManager() override;
 
@@ -26,6 +39,8 @@ public:
 	void SetMainCamera(UCameraComponent* InCamera) { MainCamera = InCamera; };
 	UCameraComponent* GetMainCamera();
 
+	
+	
 	DECLARE_DUPLICATE(APlayerCameraManager)
 
 private:

@@ -2,12 +2,18 @@
 #include "Vector.h" // FMatrix
 #include "Enums.h"
 #include "CameraComponent.h"
+#include "PostProcessing/PostProcessing.h"
 
 #include "Frustum.h"
 // 전방 선언
 class ACameraActor;
 class UCameraComponent;
 class FViewport;
+
+struct FPostProcessInput
+{
+    TArray<FPostProcessModifier> Modifiers; // PCM이 채워 넣음
+};
 
 /**
  * @struct FViewportRect
@@ -50,4 +56,7 @@ public:
     ECameraProjectionMode ProjectionMode = ECameraProjectionMode::Perspective;
     TArray<FShaderMacro> ViewShaderMacros;
     float ZNear{}, ZFar{};
+
+    // 이번 프레임 Postprocess
+    FPostProcessInput PostProcessInput;
 };
