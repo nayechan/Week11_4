@@ -40,7 +40,8 @@ UStaticMeshComponent::~UStaticMeshComponent()
 
 void UStaticMeshComponent::OnStaticMeshReleased(UStaticMesh* ReleasedMesh)
 {
-	if (StaticMesh != ReleasedMesh)
+	// TODO : 왜 this가 없는지 추적 필요!
+	if (!this || !StaticMesh || StaticMesh != ReleasedMesh)
 	{
 		return;
 	}
