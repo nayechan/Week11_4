@@ -119,10 +119,13 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 				AspectRatio = (float)CachedViewport->GetSizeX() / (float)CachedViewport->GetSizeY();
 			}
 
-			SceneView.ViewMatrix = CurrentViewTarget->GetViewMatrix();
-			SceneView.ProjectionMatrix = CurrentViewTarget->GetProjectionMatrix(AspectRatio, CachedViewport);
 			SceneView.ViewLocation = CurrentViewTarget->GetWorldLocation();
 			SceneView.ViewRotation = CurrentViewTarget->GetWorldRotation();
+			
+			FMatrix WorldMatrix = SceneView.ViewRotation.ToMatrix() * FMatrix::MakeTranslation(SceneView.ViewLocation);
+			SceneView.ViewMatrix = (FMatrix::YUpToZUp * WorldMatrix).InverseAffine();
+			SceneView.ProjectionMatrix = CurrentViewTarget->GetProjectionMatrix(AspectRatio, CachedViewport);
+
 			SceneView.NearClip = CurrentViewTarget->GetNearClip();
 			SceneView.FarClip = CurrentViewTarget->GetFarClip();
 			SceneView.FieldOfView = CurrentViewTarget->GetFOV();
