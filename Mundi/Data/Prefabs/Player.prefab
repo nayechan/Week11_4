@@ -6,7 +6,7 @@
       "bIsActive" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 1670,
+      "Id" : 6220,
       "MaterialSlots" : [{
           "AssetPath" : "Pantaln",
           "Type" : "UMaterial"
@@ -51,9 +51,27 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }, {
-      "BoxExtent" : [1.107728, 1.839137, 1.661384],
-      "Id" : 1673,
-      "ParentId" : 1670,
+      "Id" : 6223,
+      "MaterialSlots" : [{
+          "AssetPath" : "GatlingGun_Turret_Mat",
+          "Type" : "UMaterial"
+        }],
+      "ParentId" : 6220,
+      "RelativeLocation" : [0.046674, -0.031837, 3.014768],
+      "RelativeRotationEuler" : [8.360693, -0.166903, -90.098228],
+      "RelativeScale" : [0.500000, 0.700000, 0.500000],
+      "StaticMesh" : "Data/Model/Gun.obj",
+      "Type" : "UStaticMeshComponent",
+      "bBlockComponent" : false,
+      "bGenerateOverlapEvents" : true,
+      "bHiddenInGame" : false,
+      "bIsActive" : true,
+      "bIsVisible" : true,
+      "bTickEnabled" : true
+    }, {
+      "BoxExtent" : [1.107728, 1.839137, 1.661383],
+      "Id" : 6221,
+      "ParentId" : 6220,
       "RelativeLocation" : [0.000008, 0.000793, 1.522545],
       "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
@@ -67,8 +85,8 @@
       "bShapeIsVisible" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 1671,
-      "ParentId" : 1670,
+      "Id" : 6222,
+      "ParentId" : 6220,
       "Pitch" : 1.000000,
       "RelativeLocation" : [0.000000, 0.000000, 0.000000],
       "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
@@ -76,32 +94,14 @@
       "Sounds" : ["Data/Audio/Die.wav"],
       "Type" : "UAudioComponent",
       "Volume" : 1.000000,
-      "bAutoPlay" : true,
+      "bAutoPlay" : false,
       "bHiddenInGame" : false,
       "bIsActive" : true,
       "bIsLooping" : false,
       "bIsVisible" : true,
       "bTickEnabled" : true
-    }, {
-      "Id" : 1672,
-      "MaterialSlots" : [{
-          "AssetPath" : "GatlingGun_Turret_Mat",
-          "Type" : "UMaterial"
-        }],
-      "ParentId" : 1670,
-      "RelativeLocation" : [0.046674, -0.031837, 3.014768],
-      "RelativeRotationEuler" : [8.360693, -0.166903, -90.098228],
-      "RelativeScale" : [0.500000, 0.700000, 0.500000],
-      "StaticMesh" : "Data/Model/Gun.obj",
-      "Type" : "UStaticMeshComponent",
-      "bBlockComponent" : false,
-      "bGenerateOverlapEvents" : true,
-      "bHiddenInGame" : false,
-      "bIsActive" : true,
-      "bIsVisible" : true,
-      "bTickEnabled" : true
     }],
-  "RootComponentId" : 1670,
+  "RootComponentId" : 6220,
   "Tag" : "player",
   "Type" : "AStaticMeshActor",
   "bActorHiddenInGame" : false,
