@@ -1,0 +1,34 @@
+{
+  "Name" : "AEmptyActor_0",
+  "OwnedComponents" : [{
+      "Id" : 5155,
+      "ParentId" : 0,
+      "RelativeLocation" : [0.000000, 0.000000, 0.000000],
+      "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
+      "RelativeScale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "USceneComponent",
+      "bHiddenInGame" : false,
+      "bIsActive" : true,
+      "bIsVisible" : true,
+      "bTickEnabled" : true
+    }, {
+      "Id" : 5156,
+      "ParentId" : 5155,
+      "RelativeLocation" : [0.000000, 0.000000, 0.000000],
+      "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
+      "RelativeScale" : [5.000000, 5.000000, 5.000000],
+      "Texture" : "Data/Textures/Boom.png",
+      "Type" : "UBillboardComponent",
+      "bBlockComponent" : false,
+      "bGenerateOverlapEvents" : true,
+      "bHiddenInGame" : true,
+      "bIsActive" : true,
+      "bIsVisible" : true,
+      "bTickEnabled" : true
+    }],
+  "RootComponentId" : 5155,
+  "Tag" : "",
+  "Type" : "AEmptyActor",
+  "bActorHiddenInGame" : false,
+  "bActorIsActive" : true
+}
