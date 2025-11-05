@@ -96,16 +96,15 @@ function BeginPlay()
         PushFireball(InactiveFireball)       
     end
 
-    GlobalConfig.DestroyAll = function()
+    GlobalConfig.DestroyAllFireball = function()
         
         for i = 1, #AllFireballs do
             local fb = AllFireballs[i]
             if fb and fb.bIsActive == true then
-                PushFireball(fb)
-
+                PushFireball(fb) 
             end
         end
-        
+
     end 
 
 
@@ -118,7 +117,7 @@ function EndPlay()
     GlobalConfig.SpawnFireballAt = nil
     GlobalConfig.IsCanSpawnFireball = nil
     GlobalConfig.ResetFireballs = nil
-    GlobalConfig.DestroyAll = nil
+    GlobalConfig.DestroyAllFireball = nil
 end
 
 function Tick(dt)

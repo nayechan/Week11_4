@@ -126,6 +126,11 @@ struct FVector2D
 		return FVector2D(0.0f, 0.0f);
 	}
 
+	static FVector2D One()
+	{
+		return FVector2D(1.0f, 1.0f);
+	}
+
 	bool operator==(const FVector2D& V) const
 	{
 		return std::fabs(X - V.X) < KINDA_SMALL_NUMBER &&
@@ -151,6 +156,11 @@ struct FVector2D
 	float Length() const
 	{
 		return std::sqrt(X * X + Y * Y);
+	}
+
+	static FVector2D Lerp(const FVector2D& A, const FVector2D& B, float T)
+	{
+		return A + (B - A) * T;
 	}
 
 	FVector2D GetNormalized() const

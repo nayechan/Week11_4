@@ -977,29 +977,10 @@ void FSceneRenderer::RenderPostProcessingPasses()
 			FogPostProc.Type = EPostProcessEffectType::HeightFog;
 			FogPostProc.bEnabled = FogComponent->IsActive() && FogComponent->IsVisible();
 			FogPostProc.SourceObject = FogComponent;
+			FogPostProc.Priority = -1;
 			PostProcessModifiers.Add(FogPostProc);
 		}
 	}
-
-	// TEST Session
-	/*FPostProcessModifier FadeInOut;
-	FadeInOut.Type = EPostProcessEffectType::Fade;
-	FadeInOut.bEnabled = true;
-	FadeInOut.Weight = 1.0;
-	FadeInOut.SourceObject = nullptr;
-	FFadeInOutBufferType FadeCB{ FLinearColor(1,0,0,1), 0.5f, FadeInOut.Weight, {0,0} };
-	FadeInOut.JustForTest = &FadeCB;*/
-	// PostProcessModifiers.Add(FadeInOut);
-
-	/*FPostProcessModifier Vignette;
-	Vignette.Type = EPostProcessEffectType::Vignette;
-	Vignette.bEnabled = true;
-	Vignette.Weight = 1.0;
-	Vignette.SourceObject = nullptr;
-	FVinetteBufferType VinetteCB{ FLinearColor(0.0, 1.0, 0.0, 1.0),
-		0.35f, 0.25f, 1.0f, 2.0f, FadeInOut.Weight, {0,0,0}};
-	Vignette.JustForTest = &VinetteCB;*/
-	// PostProcessModifiers.Add(Vignette);
 	
 	PostProcessModifiers.Sort([](const FPostProcessModifier& LHS, const FPostProcessModifier& RHS)
 	{

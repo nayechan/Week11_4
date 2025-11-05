@@ -15,10 +15,27 @@
 IMPLEMENT_CLASS(APlayerCameraManager)
 
 BEGIN_PROPERTIES(APlayerCameraManager)
-MARK_AS_SPAWNABLE("플레이어 카메라 매니저", "최종적으로 카메라 화면을 관리하는 액터입니다. (씬에 1개만 존재 필요)")
-ADD_PROPERTY_CURVE(MyCurve, "Light", true, "원뿔 내부 각도입니다. 이 각도 안에서는 빛이 최대 밝기로 표시됩니다.")
+	MARK_AS_SPAWNABLE("플레이어 카메라 매니저", "최종적으로 카메라 화면을 관리하는 액터입니다. (씬에 1개만 존재 필요)")
+	ADD_PROPERTY_CURVE(TransitionCurve, "트랜지션", true, "카메라 전환에 사용할 이징 곡선입니다. X축:시간, Y축:강도")
 END_PROPERTIES()
 
+namespace
+{
+	float GetBezierValueY(float Curve[4], float T)
+	{
+		const float P1_y = Curve[1];
+		const float P2_y = Curve[3];
+
+		const float OneMinusT = 1.0f - T;
+		const float TSquared = T * T;
+		const float OneMinusTSquared = OneMinusT * OneMinusT;
+
+		// y(t) = 3(1-t)^2 * t * P1_y  +  3(1-t) * t^2 * P2_y  +  t^3
+		return (3.0f * OneMinusTSquared * T * P1_y) +
+			(3.0f * OneMinusT * TSquared * P2_y) +
+			(TSquared * T);
+	}
+}
 
 APlayerCameraManager::~APlayerCameraManager()
 {
@@ -266,7 +283,6 @@ void APlayerCameraManager::StartGamma(float Gamma)
 	ActiveModifiers.Add(GammaModifier);
 }
 
-
 void APlayerCameraManager::UpdateViewTarget(float DeltaTime)
 {
 	UCameraComponent* TargetCam = CurrentViewTarget ? CurrentViewTarget : GetMainCamera();
@@ -288,6 +304,8 @@ void APlayerCameraManager::UpdateViewTarget(float DeltaTime)
 			V = 1.0f - (BlendTimeRemaining / BlendTimeTotal);
 		}
 		V = FMath::Clamp(V, 0.0f, 1.0f);
+
+		V = GetBezierValueY(TransitionCurve, V);
 
 		// --- 시작 값 ---
 		FVector StartLocation = BlendStartView.ViewLocation;

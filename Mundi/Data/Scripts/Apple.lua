@@ -45,6 +45,18 @@ function OnBeginOverlap(OtherActor)
             
             if AudioComp ~= nil then
                 AudioComp:PlayOneShot(0)
+                local logo = SpawnPrefab("Data/Prefabs/BoomLogo.prefab") 
+                logo.Location = Obj.Location
+                logo.bIsActive = true
+                --print("Try LOGO")
+                if logo ~= nil then
+                    --print("Make LOGO!!")
+                     StartCoroutine(function()
+                            coroutine.yield("wait_time", 0.5)
+                            DeleteObject(logo) 
+                        end)
+                end
+
             end 
             
         end
