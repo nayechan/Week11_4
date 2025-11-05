@@ -690,6 +690,16 @@ void FLuaManager::ExposeGlobalFunctions()
                 auto* CameraComp = static_cast<UCameraComponent*>(Proxy.Instance);
                 self->SetViewTargetWithBlend(CameraComp, InBlendTime);
             }
+        },
+
+        // --- Gamma Correction ---
+         // (Gamma Correction 기본값 사용) 1개 인수
+        "StartGamma", [](APlayerCameraManager* Self, float Gamma)
+        {
+            if (Self)
+            {
+                Self->StartGamma(Gamma);
+            }
         }
     );
 

@@ -5,6 +5,7 @@
 #include "Camera/CamMod_Shake.h"
 #include "Camera/CamMod_LetterBox.h"
 #include "Camera/CamMod_Vignette.h"
+#include "Camera/CamMod_Gamma.h"
 #include "SceneView.h"
 #include "CameraActor.h"
 #include "World.h"
@@ -78,6 +79,7 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 			SceneView.AspectRatio = 1.7777f; // 16:9 폴백
 		}
 	}
+
 	else
 	{
 		// 폴백 (뷰포트가 아직 캐시 안됨)
@@ -254,6 +256,15 @@ void APlayerCameraManager::DeleteVignette()
 		return;
 	ActiveModifiers[LastVignetteIdx]->bEnabled = false;
 }
+
+void APlayerCameraManager::StartGamma(float Gamma)
+{
+	UCamMod_Gamma* GammaModifier = new UCamMod_Gamma();
+	GammaModifier->Gamma = Gamma;
+
+	ActiveModifiers.Add(GammaModifier);
+}
+
 
 void APlayerCameraManager::UpdateViewTarget(float DeltaTime)
 {

@@ -98,6 +98,7 @@ void ULuaScriptComponent::BeginPlay()
 	// GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
 	// GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
 	//GWorld->GetFirstPlayerCameraManager()->StartVignette(4, 0.5, 0.5, 1, 3, FLinearColor(0.3, 0.7, 0.2, 0.0));
+	GWorld->GetFirstPlayerCameraManager()->StartGamma(2.2f);
 }
 
 void ULuaScriptComponent::OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
