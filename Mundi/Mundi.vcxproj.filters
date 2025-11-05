@@ -59,6 +59,9 @@
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Fade.cpp">
+      <Filter>Source\Runtime\Engine\GameFramework\Camera</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Clipboard\ClipboardManager.cpp">
       <Filter>Source\Editor\Clipboard</Filter>
     </ClCompile>
@@ -71,7 +74,13 @@
     <ClCompile Include="Source\Runtime\Core\Object\FireballActor.cpp">
       <Filter>Source\Runtime\Core\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Audio\Sound.cpp">
+      <Filter>Source\Runtime\Engine\Audio</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Components\AmbientLightComponent.cpp">
+      <Filter>Source\Runtime\Engine\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Components\AudioComponent.cpp">
       <Filter>Source\Runtime\Engine\Components</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\Components\CapsuleComponent.cpp">
@@ -118,6 +127,15 @@
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.cpp">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\FAudioDevice.cpp">
+      <Filter>Source\Runtime\Engine\GameFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.cpp">
+      <Filter>Source\Runtime\Engine\GameFramework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Shake.cpp">
+      <Filter>Source\Runtime\Engine\GameFramework\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.cpp">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
@@ -479,52 +497,6 @@
     <ClCompile Include="Source\Slate\Windows\UIWindow.cpp">
       <Filter>Source\Slate\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Slate\Factory\UIWindowFactory.cpp">
-      <Filter>Source\Slate\Factory</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Slate\ImGui\ImGuiHelper.cpp">
-      <Filter>Source\Slate\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui_impl_dx11.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui_impl_win32.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Renderer\PostProcessing\HeightFogPass.cpp" />
-    <ClCompile Include="Source\Runtime\Renderer\PostProcessing\PostProcessing.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.cpp">
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\GameEngine.cpp">
-      <Filter>Source\Runtime\Engine\GameFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\Components\AudioComponent.cpp">
-      <Filter>Source\Runtime\Engine\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\FAudioDevice.cpp">
-      <Filter>Source\Runtime\Engine\GameFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\Audio\Sound.cpp">
-      <Filter>Source\Runtime\Engine\Audio</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.cpp" />
-    <ClCompile Include="Source\Runtime\Renderer\PostProcessing\FadeInOutPass.cpp" />
-    <ClCompile Include="Source\Runtime\Renderer\PostProcessing\VignettePass.cpp" />
-    <ClCompile Include="UCamMod_Fade.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -548,6 +520,12 @@
     </ClInclude>
     <ClInclude Include="Source\Runtime\Core\Object\Property.h">
       <Filter>Source\Runtime\Core\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h">
+      <Filter>Source\Runtime\Engine\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h">
+      <Filter>Source\Runtime\Engine\Components</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h">
       <Filter>Source\Runtime\Engine\Components</Filter>
@@ -575,6 +553,18 @@
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\FAudioDevice.h">
+      <Filter>Source\Runtime\Engine\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.h">
+      <Filter>Source\Runtime\Engine\GameFramework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Fade.h">
+      <Filter>Source\Runtime\Engine\GameFramework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Shake.h">
+      <Filter>Source\Runtime\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Engine\GameFramework\GameEngine.h">
       <Filter>Source\Runtime\Engine\GameFramework</Filter>
@@ -1092,244 +1082,139 @@
     <ClInclude Include="ThirdParty\Lua\include\lualib.h">
       <Filter>ThirdParty\Lua\include</Filter>
     </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\Audio.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\BufferHelpers.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\CommonStates.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\DDSTextureLoader.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\DirectXHelpers.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\Effects.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\GamePad.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\GeometricPrimitive.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\GraphicsMemory.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\Keyboard.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\Model.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\Mouse.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\PostProcess.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\PrimitiveBatch.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\ScreenGrab.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\SimpleMath.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\SpriteBatch.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\SpriteFont.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\VertexTypes.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\WICTextureLoader.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\DirectXTK\include\XboxDDSTextureLoader.h">
-      <Filter>ThirdParty\DirectXTK\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imconfig.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imgui.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imgui_impl_win32.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imgui_internal.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imstb_rectpack.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imstb_textedit.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h">
-      <Filter>ThirdParty\ImGui</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h">
-      <Filter>Source\Runtime\Engine\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\FAudioDevice.h">
-      <Filter>Source\Runtime\Engine\GameFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h">
-      <Filter>Source\Runtime\Engine\Audio</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Renderer\PostProcessing\HeightFogPass.h" />
-    <ClInclude Include="Source\Runtime\Renderer\PostProcessing\PostProcessing.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerCameraManager.h">
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\GameEngine.h">
-      <Filter>Source\Runtime\Engine\GameFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\Camera\CameraModifierBase.h" />
-    <ClInclude Include="Source\Runtime\Renderer\PostProcessing\FadeInOutPass.h" />
-    <ClInclude Include="Source\Runtime\Renderer\PostProcessing\VignettePass.h" />
-    <ClInclude Include="UCamMod_Fade.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
-      <UniqueIdentifier>{32a9041e-1b3c-4550-9146-3257b7ce21d3}</UniqueIdentifier>
+      <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\Materials">
-      <UniqueIdentifier>{6ce21efd-baac-45a1-9c8b-193f7371d5d2}</UniqueIdentifier>
+      <UniqueIdentifier>{2a49279f-fcc9-403a-8ba3-7f93cb800bc7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\Shadows">
-      <UniqueIdentifier>{c56c1d89-102c-40c3-9527-e05508ccd5ca}</UniqueIdentifier>
+      <UniqueIdentifier>{ae86513d-34ae-4c6a-a27c-ff26ab352ec9}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\Common">
-      <UniqueIdentifier>{edf55992-39d0-49ce-9a15-4404a803db4e}</UniqueIdentifier>
+      <UniqueIdentifier>{8a2607ee-3068-426c-87b2-6d7c88b0cc4a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\PostProcess">
-      <UniqueIdentifier>{15a790aa-488e-4b46-a739-f8e499264c42}</UniqueIdentifier>
+      <UniqueIdentifier>{9e790943-ef3f-4e7e-9817-f67d3dbc0d41}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\UI">
-      <UniqueIdentifier>{0c1314b1-61b9-4ca6-945b-c8257f977382}</UniqueIdentifier>
+      <UniqueIdentifier>{dd0ad4a0-2039-48fe-92cc-eb05b1a5067f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\Effects">
-      <UniqueIdentifier>{931c9d41-02de-464e-ae83-b01d02f46275}</UniqueIdentifier>
+      <UniqueIdentifier>{cddc96b6-cf7f-4e83-a6bd-6666a9e600c3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\Utility">
-      <UniqueIdentifier>{fcbe201f-3d74-43c2-9476-cec8a3ec4dd4}</UniqueIdentifier>
+      <UniqueIdentifier>{a82d78a2-2f4b-4a36-913b-7e1ff9fccfbd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source">
-      <UniqueIdentifier>{0f337929-422b-4b53-8324-2d279bc5f73c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Editor">
-      <UniqueIdentifier>{73bd0437-6e43-47a5-b4dd-e99ab0cbd569}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Editor\Clipboard">
-      <UniqueIdentifier>{0bc0aceb-cc3e-48d2-9225-cd001bf45b43}</UniqueIdentifier>
+      <UniqueIdentifier>{480fcbc1-8265-4dc8-b8fb-cb11a4d9b97b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Runtime">
-      <UniqueIdentifier>{365022ff-dc8a-4e39-a2a9-32ccefac3f02}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Core">
-      <UniqueIdentifier>{3aee9f93-e40b-47a8-89b9-fc940ba1e4c6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Core\Math">
-      <UniqueIdentifier>{2b26d693-6647-45e9-b78c-6be93734045e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Core\Object">
-      <UniqueIdentifier>{5649d9c4-50f4-47e1-bb5a-401c2da8cb58}</UniqueIdentifier>
+      <UniqueIdentifier>{2a20723f-8af6-419b-9ad5-c5c037f357a8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Runtime\Engine">
-      <UniqueIdentifier>{d7ddefa6-9643-46f2-ae18-ac12897a05d5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Engine\Components">
-      <UniqueIdentifier>{d5532f7e-4737-4e52-91c0-5bb7af5b167f}</UniqueIdentifier>
+      <UniqueIdentifier>{8b1fd361-3781-41c0-b669-5ee455590a2c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Runtime\Engine\GameFramework">
-      <UniqueIdentifier>{07d623f4-6602-4d44-a71a-319445929dab}</UniqueIdentifier>
+      <UniqueIdentifier>{0914129d-6cee-4b71-bdb9-a7f74dfad0ea}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Runtime\Engine\Scripting">
-      <UniqueIdentifier>{2a7a4d48-187e-4342-afe6-8699767d8e67}</UniqueIdentifier>
+    <Filter Include="Source\Runtime\Engine\GameFramework\Camera">
+      <UniqueIdentifier>{dd480de6-26e5-4184-b27a-919464d62c7f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Runtime\Renderer">
-      <UniqueIdentifier>{0d530474-e855-47be-9412-c2c3a9f1cb26}</UniqueIdentifier>
+    <Filter Include="Source\Editor">
+      <UniqueIdentifier>{c90e4f1b-2c0a-4a41-873c-183223168d3c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Runtime\Renderer\PostProcessing">
-      <UniqueIdentifier>{da1fd44b-96ff-43b5-b022-4dae66c4a652}</UniqueIdentifier>
+    <Filter Include="Source\Editor\Clipboard">
+      <UniqueIdentifier>{460923fe-a278-4551-8c2f-779702131eaf}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Slate">
-      <UniqueIdentifier>{79f65e85-caf1-400f-b86c-e34f655e70f6}</UniqueIdentifier>
+    <Filter Include="Source\Runtime\Core">
+      <UniqueIdentifier>{2a13a014-4864-4505-af74-9469e04a7608}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Slate\Widgets">
-      <UniqueIdentifier>{5490e63b-b9e6-4e34-8f62-3d0b75672775}</UniqueIdentifier>
+    <Filter Include="Source\Runtime\Core\Math">
+      <UniqueIdentifier>{5b5d5bf5-4b3b-4846-b21f-b10ea2c56352}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ThirdParty">
-      <UniqueIdentifier>{843550c0-5853-44b9-9847-29197f4707e2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\ImGui">
-      <UniqueIdentifier>{1845ef64-09e4-407d-b72e-54b873a0a8d7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Editor\Gizmo">
-      <UniqueIdentifier>{b03bdea5-367a-40e2-9e56-fa26a2bfd09a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Editor\Grid">
-      <UniqueIdentifier>{53c16364-90d3-40a5-ada8-df14c1eb49af}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\AssetManagement">
-      <UniqueIdentifier>{812840a4-1a1c-4228-a0c7-210b87044433}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Core\Containers">
-      <UniqueIdentifier>{40f47af4-686d-4929-bc7b-87536235a1ea}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Core\Memory">
-      <UniqueIdentifier>{463aa1b9-4c39-4f6c-a4d0-29e2cc543ba9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Core\Misc">
-      <UniqueIdentifier>{6194000c-c37f-48d8-b3d7-80acf29adc0e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Engine\Collision">
-      <UniqueIdentifier>{70a0ba1c-b81b-4dbd-aea2-3508ae976a56}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\Engine\Spatial">
-      <UniqueIdentifier>{1529f28f-1c5b-4560-bab6-28e20a6c4ec9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\InputCore">
-      <UniqueIdentifier>{12ec0889-c2d0-45de-a0df-05bc8911c86b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Runtime\RHI">
-      <UniqueIdentifier>{b0f3ae1f-9ced-4121-a836-099db917001e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Slate\Factory">
-      <UniqueIdentifier>{79bdd82d-0966-453a-b924-e78f74b6776d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Slate\ImGui">
-      <UniqueIdentifier>{a122337a-948b-4e5b-a667-87b5f20c19ef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Slate\Windows">
-      <UniqueIdentifier>{969e9a81-3cb8-455d-9eab-7d67b8b7d521}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\DirectXTK">
-      <UniqueIdentifier>{51cbde69-75de-4187-9c53-4b93197fe769}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\DirectXTK\include">
-      <UniqueIdentifier>{b1ac8840-5586-4532-b980-4d3d85589ea3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ThirdParty\Lua">
-      <UniqueIdentifier>{62188e64-0b7d-4374-bff8-56e10f190397}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shaders\Shadows">
-      <UniqueIdentifier>{a7b363cd-171e-40ec-a87b-f23e1f8d3c87}</UniqueIdentifier>
+    <Filter Include="Source\Runtime\Core\Object">
+      <UniqueIdentifier>{d9a97ed3-052a-4355-b423-e1732b923f78}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Runtime\Engine\Audio">
-      <UniqueIdentifier>{231caf79-436b-43a0-baf6-994e8bab275a}</UniqueIdentifier>
+      <UniqueIdentifier>{5f6cda2f-089a-4006-a27c-944e651f459f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Engine\Components">
+      <UniqueIdentifier>{46a57a69-915c-47af-bbbf-0af1fa926203}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Engine\Scripting">
+      <UniqueIdentifier>{66fe3de0-94e2-45b4-b687-1a99d691293f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Renderer">
+      <UniqueIdentifier>{95147201-c880-4bca-822c-e373ce24632a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Renderer\PostProcessing">
+      <UniqueIdentifier>{b92a33a8-11a7-4649-9444-6583d180d468}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Slate">
+      <UniqueIdentifier>{3f189e0b-9814-47e3-b5cd-9e9f1c6c4fd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Slate\Widgets">
+      <UniqueIdentifier>{767bbcb7-c586-4bf8-9e54-87c31afaa601}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{f9489f66-534b-4a3e-a8ea-10222bc73d57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\ImGui">
+      <UniqueIdentifier>{5c53ec5e-123f-4dac-8ef3-3163403c0606}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Editor\Gizmo">
+      <UniqueIdentifier>{e5ea01f8-b01b-434a-9629-9cd9225de596}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Editor\Grid">
+      <UniqueIdentifier>{2279a0b4-eb1e-4013-aaca-29d30f4e6944}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\AssetManagement">
+      <UniqueIdentifier>{ec2daece-51e3-4f48-a6c8-7c20575a29e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Core\Containers">
+      <UniqueIdentifier>{56c2e241-d6fc-454a-95e2-185e32852970}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Core\Memory">
+      <UniqueIdentifier>{25a92bd6-047c-4dd5-a2ce-53b9988ff249}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Core\Misc">
+      <UniqueIdentifier>{19f0ae78-5441-4437-9e72-a96a99bae839}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Engine\Collision">
+      <UniqueIdentifier>{3b259ccd-4ed8-4ae8-b1f8-6993f3fd5cb6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\Engine\Spatial">
+      <UniqueIdentifier>{619c555b-afd1-4678-abd2-b32b40a0b9bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\InputCore">
+      <UniqueIdentifier>{426553d5-4498-4b4c-9442-e8d104b4edda}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Runtime\RHI">
+      <UniqueIdentifier>{8928bd12-d3f3-4ca3-91f8-e1763596c016}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Slate\Factory">
+      <UniqueIdentifier>{e80343c9-fb8c-4e23-9e47-878ba1fe21ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Slate\ImGui">
+      <UniqueIdentifier>{c496384b-5663-484d-8cbd-693d272f53af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Slate\Windows">
+      <UniqueIdentifier>{5261d5fc-ef33-467c-84aa-ae802eb0791c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\DirectXTK">
+      <UniqueIdentifier>{00a3a77f-5cee-4f4e-aef1-082bab2c1be1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\DirectXTK\include">
+      <UniqueIdentifier>{b6f32757-9bc9-4abc-acdd-9e415b17359a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ThirdParty\Lua">
+      <UniqueIdentifier>{8a12db01-52ea-41ea-a9c1-073173d71126}</UniqueIdentifier>
+    </Filter>
     <Filter Include="ThirdParty\Lua\include">
-      <UniqueIdentifier>{d3486e3a-6221-4c03-a2b4-5f731c6e43a4}</UniqueIdentifier>
+      <UniqueIdentifier>{3ad57ef5-b375-4262-abe5-b3a5f8f9a886}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
