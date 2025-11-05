@@ -13,6 +13,7 @@
 #include "PrimitiveComponent.h"
 #include "Clipboard/ClipboardManager.h"
 #include "InputManager.h"
+#include "PlayerCameraManager.h"
 
 FVector FViewportClient::CameraAddPosition{};
 
@@ -83,20 +84,37 @@ void FViewportClient::Draw(FViewport* Viewport)
 {
 	if (!Viewport || !World) return;
 
-	// 1. 뷰 타입에 따라 카메라 설정 등 사전 작업을 먼저 수행
-	switch (ViewportType)
+	UCameraComponent* RenderCamera = nullptr;
+
+	if (World->bPie)
 	{
-	case EViewportType::Perspective:
-	{
-		Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Perspective);
-		break;
+		// 0번 PCM을 가져옴
+		APlayerCameraManager* PCM = World->GetFirstPlayerCameraManager();
+		if (PCM)
+		{
+			RenderCamera = PCM->GetMainCamera();
+		}
 	}
-	default: // 모든 Orthographic 케이스
+
+	if (!RenderCamera)
 	{
-		Camera->GetCameraComponent()->SetProjectionMode(ECameraProjectionMode::Orthographic);
-		SetupCameraMode();
-		break;
-	}
+		RenderCamera = Camera->GetCameraComponent();
+
+		// 1. 뷰 타입에 따라 카메라 설정 등 사전 작업을 먼저 수행
+		switch (ViewportType)
+		{
+		case EViewportType::Perspective:
+		{
+			RenderCamera->SetProjectionMode(ECameraProjectionMode::Perspective);
+			break;
+		}
+		default: // 모든 Orthographic 케이스
+		{
+			RenderCamera->SetProjectionMode(ECameraProjectionMode::Orthographic);
+			SetupCameraMode();
+			break;
+		}
+		}
 	}
 
 	// 2. 렌더링 호출은 뷰 타입 설정이 모두 끝난 후 마지막에 한 번만 수행
@@ -106,7 +124,7 @@ void FViewportClient::Draw(FViewport* Viewport)
 		World->GetRenderSettings().SetViewMode(ViewMode);
 
 		// 더 명확한 이름의 함수를 호출
-		Renderer->RenderSceneForView(World, Camera, Viewport);
+		Renderer->RenderSceneForView(World, RenderCamera, Viewport);
 	}
 }
 
@@ -119,46 +137,46 @@ void FViewportClient::SetupCameraMode()
 		Camera->SetActorLocation(PerspectiveCameraPosition);
 		Camera->SetRotationFromEulerAngles(PerspectiveCameraRotation);
 		Camera->GetCameraComponent()->SetFOV(PerspectiveCameraFov);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 	case EViewportType::Orthographic_Top:
 
 		Camera->SetActorLocation({ CameraAddPosition.X, CameraAddPosition.Y, 1000 });
 		Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 90, 0 }));
 		Camera->GetCameraComponent()->SetFOV(100);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 	case EViewportType::Orthographic_Bottom:
 
 		Camera->SetActorLocation({ CameraAddPosition.X, CameraAddPosition.Y, -1000 });
 		Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, -90, 0 }));
 		Camera->GetCameraComponent()->SetFOV(100);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 	case EViewportType::Orthographic_Left:
 		Camera->SetActorLocation({ CameraAddPosition.X, 1000 , CameraAddPosition.Z });
 		Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, -90 }));
 		Camera->GetCameraComponent()->SetFOV(100);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 	case EViewportType::Orthographic_Right:
 		Camera->SetActorLocation({ CameraAddPosition.X, -1000, CameraAddPosition.Z });
 		Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, 90 }));
 		Camera->GetCameraComponent()->SetFOV(100);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 
 	case EViewportType::Orthographic_Front:
 		Camera->SetActorLocation({ -1000 , CameraAddPosition.Y, CameraAddPosition.Z });
 		Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, 0 }));
 		Camera->GetCameraComponent()->SetFOV(100);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 	case EViewportType::Orthographic_Back:
 		Camera->SetActorLocation({ 1000 , CameraAddPosition.Y, CameraAddPosition.Z });
 		Camera->SetActorRotation(FQuat::MakeFromEulerZYX({ 0, 0, 180 }));
 		Camera->GetCameraComponent()->SetFOV(100);
-		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 1000.0f);
+		Camera->GetCameraComponent()->SetClipPlanes(0.1f, 2000.0f);
 		break;
 	}
 }

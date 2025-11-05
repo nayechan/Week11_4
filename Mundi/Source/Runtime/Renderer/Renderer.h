@@ -10,6 +10,8 @@ class UShader;
 class UStaticMesh;
 class UBillboardComponent;
 class UPrimitiveComponent;
+class UCameraComponent;
+
 struct FMaterialSlot;
 
 class URenderer
@@ -20,7 +22,7 @@ public:
 	~URenderer();
 
 public:
-	void RenderSceneForView(UWorld* InWorld, ACameraActor* InCamera, FViewport* InViewport);
+	void RenderSceneForView(UWorld* InWorld, UCameraComponent* InCamera, FViewport* InViewport);
 
 	void BeginFrame();
 	void EndFrame();
