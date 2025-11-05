@@ -226,6 +226,36 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			}
 			break;
 		}
+		case EPropertyType::Curve:
+		{
+			// Curve 프로퍼티는 float[4] 배열입니다. 따라서 FVector4로 처리
+			if (bInIsLoading)
+			{
+				FVector4 TempVec4;
+
+				// 1. FJsonSerializer::ReadVector4를 사용해 JSON에서 4개 요소를 읽어옵니다.
+				if (FJsonSerializer::ReadVector4(InOutHandle, Prop.Name, TempVec4))
+				{
+					// 2. 프로퍼티(float[4])의 실제 주소를 가져옵니다.
+					float* PropData = Prop.GetValuePtr<float>(this);
+
+					// 3. 읽어온 FVector4의 내용을 float[4] 메모리 위치에 복사합니다.
+					memcpy(PropData, &TempVec4, sizeof(float) * 4);
+				}
+			}
+			else // Saving
+			{
+				// 1. 프로퍼티(float[4])의 실제 주소를 가져옵니다.
+				float* PropData = Prop.GetValuePtr<float>(this);
+
+				// 2. float[4] 배열의 값으로 임시 FVector4 객체를 생성합니다.
+				FVector4 TempVec4(PropData[0], PropData[1], PropData[2], PropData[3]);
+
+				// 3. FJsonSerializer::Vector4ToJson을 사용해 JSON 배열로 변환하고 씁니다.
+				InOutHandle[Prop.Name] = FJsonSerializer::Vector4ToJson(TempVec4);
+			}
+			break;
+		}
 		case EPropertyType::Array:
 		{
 			// Array 직렬화는 InnerType에 따라 처리

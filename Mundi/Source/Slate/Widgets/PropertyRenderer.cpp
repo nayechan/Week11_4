@@ -815,24 +815,57 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 
 bool UPropertyRenderer::RenderCurveProperty(const FProperty& Prop, void* Instance)
 {
-	// 베지어 곡선 데이터를 저장할 static 배열
-	// C++11 이상에서는 static constexpr을 사용하거나 초기값을 명확히 지정하는 것이 좋습니다.
-	// 예: "In Expo" 프리셋 (0.950f, 0.050f, 0.795f, 0.035f), 인덱스 6
-	static float myCurve[5] = { 0.950f, 0.050f, 0.795f, 0.035f, 6.0f };
-
-	// Bezier 위젯 호출
-	// "Ease In Out"이라는 레이블로 위젯을 그립니다.
-	// myCurve 배열의 값이 위젯에 의해 읽히고 수정됩니다.
-	bool bCurveChanged = ImGui::Bezier("Ease In Out", myCurve);
-
-	// 값이 변경되었는지 확인할 수 있습니다.
-	if (bCurveChanged)
+	// 1. 프로퍼티에서 실제 데이터(float[4])에 대한 포인터를 가져옵니다.
+    //    GetValuePtr<float>는 배열의 첫 번째 요소(float*)를 반환합니다.
+	float* PropertyData = Prop.GetValuePtr<float>(Instance);
+	if (!PropertyData)
 	{
-		// 곡선 값이 변경되었을 때 수행할 작업
-		// 예: myCurve[0] ~ myCurve[3] 값을 어딘가에 저장
+		ImGui::Text("%s: [Invalid Data]", Prop.Name);
+		return false;
 	}
 
-	return false;
+	// 2. ImGui::Bezier 위젯은 float[5] 배열을 필요로 합니다 (P[4] = 프리셋 인덱스).
+	//    이 위젯을 위한 임시 배열을 스택에 생성합니다.
+	float EditorData[5];
+
+	//    실제 데이터(float[4])를 임시 배열의 앞부분(EditorData[0]~[3])으로 복사합니다.
+	memcpy(EditorData, PropertyData, sizeof(float) * 4);
+
+	// 3. 프리셋 인덱스(EditorData[4])는 UI 상태이므로, 객체 데이터에 저장되지 않습니다.
+	//    ImGui의 내부 상태 저장소를 사용하여 이 UI 상태를 프레임 간에 유지합니다.
+
+	//    이 프로퍼티 위젯 전체에 대한 고유 ID를 설정합니다.
+	ImGui::PushID(Prop.Name);
+	ImGui::PushID(Instance); // 동일한 객체라도 다른 인스턴스일 수 있으므로 포인터로 ID 추가
+
+	ImGuiStorage* storage = ImGui::GetStateStorage();
+	// 이 프로퍼티의 "PresetIndex" 상태를 위한 고유 ID 생성
+	ImGuiID presetId = ImGui::GetID("PresetIndex");
+
+	// 4. 저장된 프리셋 인덱스 로드, 없으면 0.0f (일반적으로 "Linear" 또는 "Custom")
+	EditorData[4] = storage->GetFloat(presetId, 0.0f);
+
+	// 5. Bezier 위젯을 호출합니다. 
+	//    Prop.Name을 레이블로 사용합니다. (PushID로 고유성 보장됨)
+	bool bCurveChanged = ImGui::Bezier(Prop.Name, EditorData);
+
+	// 6. 값이 변경되었는지 확인합니다.
+	if (bCurveChanged)
+	{
+		// 7. 변경된 곡선 값(EditorData[0]~[3])을 
+		//    실제 프로퍼티(PropertyData)에 다시 복사합니다.
+		memcpy(PropertyData, EditorData, sizeof(float) * 4);
+
+		// 8. 변경된 프리셋 인덱스(EditorData[4])를 ImGui 저장소에 다시 저장합니다.
+		storage->SetFloat(presetId, EditorData[4]);
+	}
+
+	ImGui::PopID(); // Instance ID
+	ImGui::PopID(); // Prop.Name ID
+
+	// 툴팁 렌더링은 부모 함수인 RenderProperty에서 이미 처리하고 있습니다.
+
+	return bCurveChanged;
 }
 
 bool UPropertyRenderer::RenderPointLightCubeShadowMap(FLightManager* LightManager, ULightComponent* LightComp, int32 CubeSliceIndex)

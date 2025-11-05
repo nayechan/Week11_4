@@ -106,12 +106,20 @@ namespace ImGui
 
 
         // preset selector
-
+        int changed = 0;
         bool reload = 0;
         ImGui::PushID(label);
         if (ImGui::ArrowButton("##lt", ImGuiDir_Left))
         { // ImGui::ArrowButton(ImGui::GetCurrentWindow()->GetID("##lt"), ImGuiDir_Left, ImVec2(0, 0), 0)
-            if (--P[4] >= 0) reload = 1; else ++P[4];
+            if (--P[4] >= 0)
+            {
+                reload = 1;
+                changed = 1;
+            }
+            else
+            {
+                ++P[4];
+            }
         }
         ImGui::SameLine();
 
@@ -128,6 +136,7 @@ namespace ImGui
                 {
                     P[4] = i;
                     reload = 1;
+                    changed = 1;
                 }
             }
             ImGui::EndPopup();
@@ -136,7 +145,15 @@ namespace ImGui
 
         if (ImGui::ArrowButton("##rt", ImGuiDir_Right))
         { // ImGui::ArrowButton(ImGui::GetCurrentWindow()->GetID("##rt"), ImGuiDir_Right, ImVec2(0, 0), 0)
-            if (++P[4] < IM_ARRAYSIZE(presets)) reload = 1; else --P[4];
+            if (++P[4] < IM_ARRAYSIZE(presets))
+            {
+                reload = 1; 
+                changed = 1;
+            }
+            else
+            {
+                --P[4];
+            }
         }
         ImGui::SameLine();
         ImGui::PopID();
@@ -156,7 +173,7 @@ namespace ImGui
             return false;
 
         // header and spacing
-        int changed = SliderFloat4(label, P, 0, 1, "%.3f", 1.0f);
+        changed |= SliderFloat4(label, P, 0, 1, "%.3f", 1.0f);
         int hovered = IsItemActive() || IsItemHovered(); // IsItemDragged() ?
         Dummy(ImVec2(0, 3));
 

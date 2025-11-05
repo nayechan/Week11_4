@@ -95,5 +95,5 @@ private:
 	float BlendTimeTotal;
 	float BlendTimeRemaining;
 
-	float MyCurve[5] = { 0.950f, 0.050f, 0.795f, 0.035f, 6.0f };
+	float TransitionCurve[4] = { 0.47f, 0.0f, 0.745f, 0.715f };
 };
