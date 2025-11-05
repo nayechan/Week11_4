@@ -277,6 +277,8 @@ void APlayerCameraManager::DeleteVignette()
 
 void APlayerCameraManager::StartGamma(float Gamma)
 {
+	//if (ActiveModifiers.size() > 0) return;
+
 	UCamMod_Gamma* GammaModifier = new UCamMod_Gamma();
 	GammaModifier->Gamma = Gamma;
 

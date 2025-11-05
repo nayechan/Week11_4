@@ -181,7 +181,10 @@ function Die()
     end
  
     AudioComp = GetComponent(Obj, "UAudioComponent")
-    AudioComp:PlayOneShot(0)   
+    AudioComp:PlayOneShot(0)
+    
+    GetCameraManager():StartCameraShake(0.3, 0.3, 0.3, 40)   
+
     --TargetHitStop(Obj, 0.2, 0)
     SetSlomo(1.0, 0.3)
      

@@ -25,7 +25,7 @@ public:
 	float Frequency = 8.0f;  // 기본 주파수(Hz)
 
 	// 노이즈 모드
-	EShakeNoise NoiseMode = EShakeNoise::Sine;
+	EShakeNoise NoiseMode = EShakeNoise::Perlin;
 	float MixRatio = 0.5f; // Mixed일 때: 0=Sine, 1=Perlin
 
 	// API

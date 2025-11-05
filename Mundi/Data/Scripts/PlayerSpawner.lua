@@ -4,6 +4,7 @@
 -- End
 
 function BeginPlay()
+    GetCameraManager():StartGamma(1.0 /2.2)
     GlobalConfig.GameState = "Intro"
     GlobalConfig.UIManager = SpawnPrefab("Data/Prefabs/UIManager.prefab")
     InputManager:SetCursorVisible(true)
@@ -37,19 +38,21 @@ function BeginPlay()
 end
 
 function MoveCameras()
-    GetCameraManager():SetViewTarget(GetComponent(GlobalConfig.Camera1, "UCameraComponent"))
-    coroutine.yield("wait_time", 5)
-    GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera2, "UCameraComponent"), 5)
-    coroutine.yield("wait_time", 5)
-    GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera3, "UCameraComponent"), 5)
-    coroutine.yield("wait_time", 5)
-    GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera4, "UCameraComponent"), 5)
-    coroutine.yield("wait_time", 5)
-    GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera5, "UCameraComponent"), 5)
-    coroutine.yield("wait_time", 5)
-    GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera1, "UCameraComponent"), 5)
-    coroutine.yield("wait_time", 5)
+    -- GetCameraManager():SetViewTarget(GetComponent(GlobalConfig.Camera1, "UCameraComponent"))
+    -- coroutine.yield("wait_time", 4)
+    -- GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera2, "UCameraComponent"), 4)
+    -- coroutine.yield("wait_time", 4)
+    -- GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera3, "UCameraComponent"), 4)
+    -- coroutine.yield("wait_time", 4)
+    -- GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera4, "UCameraComponent"), 4)
+    -- coroutine.yield("wait_time", 2.5)
+    -- GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera5, "UCameraComponent"), 2.5)
+    -- coroutine.yield("wait_time", 4)
+    -- GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera1, "UCameraComponent"), 4)
+    -- coroutine.yield("wait_time", 4)
     GlobalConfig.GameState = "Init"
+    
+    GetCameraManager():StartGamma(3.0 /2.2)
 end
 
 function EndPlay()
