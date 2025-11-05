@@ -114,7 +114,6 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\UCamMod_Fade.cpp" />
-    <ClCompile Include="UCamMod_Fade.cpp" />
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -564,7 +563,6 @@
     <ClInclude Include="ThirdParty\Lua\include\lua.hpp" />
     <ClInclude Include="ThirdParty\Lua\include\luaconf.h" />
     <ClInclude Include="ThirdParty\Lua\include\lualib.h" />
-    <ClInclude Include="UCamMod_Fade.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -5,34 +5,30 @@ class UCamMod_Fade : public UCameraModifierBase
 {
 public:
     FLinearColor FadeColor = FLinearColor::Zero();
-    float        TargetAmount = 1.0f; // 0~1
-    float        CurrentOpacity = 0.0f;
-    float        Speed = 1.0f; // 초당 변화량
+    float StartAlpha = 0.f;   // 시작 불투명도 [0..1]
+    float EndAlpha   = 1.f;   // 종료 불투명도 [0..1]
+    float Duration   = 1.f;   // 총 소요 시간(초)
+    float Elapsed    = 0.f;   // 진행 시간(초)
 
+    float CurrentAlpha = 0.f; // 이번 프레임 출력 알파
+    
     virtual void ApplyToView(float DeltaTime, FSceneView& InOutView) override
     {
-        // 전처리에서 타임라인 업데이트만 (뷰 행렬 수정 없음)
-        //if (FMath::IsNearlyZero(DeltaTime) || FMath::IsNearlyZero(Speed))
-        //{
-        //    return;
-        //}
+        if (!bEnabled) return;
 
-        const float ClampedTarget = FMath::Clamp(TargetAmount, 0.f, 1.f);
-        TargetAmount = ClampedTarget;
+        Elapsed += DeltaTime;
+        const float T = (Duration <= 0.f) ? 1.f : FMath::Clamp(Elapsed / Duration, 0.f, 1.f);
 
-        CurrentOpacity = FMath::Clamp(CurrentOpacity + Speed * DeltaTime, 0.f, 1.f);
+        CurrentAlpha = FMath::Lerp(StartAlpha, EndAlpha, T);
 
-        const bool bReachedTarget = (Speed >= 0.f && CurrentOpacity >= TargetAmount) ||
-                                    (Speed < 0.f && CurrentOpacity <= TargetAmount);
-        if (bReachedTarget)
-        {
-            CurrentOpacity = TargetAmount;
-        }
+        // 완료 처리
+        if (T >= 1.f) bEnabled = false;
     }
 
     virtual void CollectPostProcess(TArray<FPostProcessModifier>& Out, const FSceneView&) override
     {
-        if (!bEnabled || Weight <= 0.f || CurrentOpacity <= 0.f) return;
+        if (!bEnabled && CurrentAlpha <= 0.f) return;
+        if (CurrentAlpha <= 0.f) return; 
 
         FPostProcessModifier M;
         M.Type = EPostProcessEffectType::Fade;
@@ -42,7 +38,7 @@ public:
         M.SourceObject = this;
 
         M.Payload.Color = FadeColor;
-        M.Payload.Params0 = FVector4(CurrentOpacity, 0, 0, 0); // Params0.x = FadeAmount
+        M.Payload.Params0 = FVector4(CurrentAlpha, 0, 0, 0);
 
         Out.Add(M);
     }

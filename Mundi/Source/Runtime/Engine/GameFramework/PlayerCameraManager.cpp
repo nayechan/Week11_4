@@ -17,11 +17,7 @@ END_PROPERTIES()
 APlayerCameraManager::APlayerCameraManager()
 {
 	Name = "Player Camera Manager";
-	FadeModifier = AddModifier<UCamMod_Fade>();
-	if (FadeModifier)
-	{
-		FadeModifier->Priority = 0;
-	}
+	
 	SceneView = new FSceneView();
 }
 
@@ -70,10 +66,15 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	// 3) 수명 정리
 	for (int32 i=ActiveModifiers.Num()-1; i>=0; --i)
 	{
-		if (!ActiveModifiers[i]) { ActiveModifiers.RemoveAtSwap(i); continue; }
+		UCameraModifierBase* M = ActiveModifiers[i];
+		if (!M) { ActiveModifiers.RemoveAtSwap(i); continue; }
+		
 		ActiveModifiers[i]->TickLifetime(DeltaTime);
-		if (!ActiveModifiers[i]->bEnabled && ActiveModifiers[i]->Duration >= 0.f)
-			ActiveModifiers.RemoveAtSwap(i);
+
+		if (M->Duration >= 0.f && !M->bEnabled)
+		{ ActiveModifiers.RemoveAtSwap(i); continue; }
+
+		++i;
 	}
 }
 
