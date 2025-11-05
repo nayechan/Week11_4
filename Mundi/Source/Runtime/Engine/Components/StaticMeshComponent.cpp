@@ -56,7 +56,7 @@ void UStaticMeshComponent::ClearDynamicMaterials()
 	for (UMaterialInstanceDynamic* MID : DynamicMaterialInstances)
 	{
 		delete MID;
-	}
+	}	
 	DynamicMaterialInstances.Empty();
 
 	// 2. 머티리얼 슬롯 배열도 비웁니다.
