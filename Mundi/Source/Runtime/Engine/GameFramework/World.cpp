@@ -158,10 +158,38 @@ void UWorld::Tick(float DeltaSeconds)
 		} 
 	}  
 
-	// Delta Time Update
-	UnscaledDelta = UnscaledDeltaSeconds;
-	SlomoOnlyDelta = UnscaledDeltaSeconds * TimeDilation;
-	GameDelta = UnscaledDeltaSeconds * TimeDilation * TimeStopDilation;
+    // Delta Time Update
+    UnscaledDelta = UnscaledDeltaSeconds;
+    SlomoOnlyDelta = UnscaledDeltaSeconds * TimeDilation;
+    GameDelta = UnscaledDeltaSeconds * TimeDilation * TimeStopDilation;
+
+	// Actor 별로 Dilation의 Duration을 처리하는 부분
+	if (!ActorTimingMap.IsEmpty())
+	{
+		TArray<TWeakObjectPtr<AActor>> ToRemove;
+
+		for (auto& Pair : ActorTimingMap)
+		{
+			TWeakObjectPtr<AActor> Key = Pair.first;
+			FActorTimeState& State = Pair.second;
+
+			State.Durtaion -= GetDeltaTime(EDeltaTime::Unscaled);
+		
+			if (State.Durtaion <= 0.0f || !Key.IsValid())
+			{
+				/*if (AActor * Actor =  Key.Get())
+				{
+					Actor->SetCustomTimeDillation(0.0, 1.0f);
+				}*/
+				ToRemove.Add(Key);
+			}
+		} 
+		
+        for (auto& Key : ToRemove)
+        {
+            ActorTimingMap.Remove(Key);
+        }
+	} 
 	 
 	// 중복충돌 방지 pair clear 
     FrameOverlapPairs.clear();
@@ -179,7 +207,7 @@ void UWorld::Tick(float DeltaSeconds)
 				{
 					if (Actor->CanTickInEditor() || bPie)
 					{
-						Actor->Tick(GetDeltaTime(EDeltaTime::Game));
+						Actor->Tick(GetDeltaTime(EDeltaTime::Game) * Actor->GetCustomTimeDillation());
 					}
 				}
 			}

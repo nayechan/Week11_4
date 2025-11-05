@@ -165,8 +165,9 @@ function Die()
         return
     end
 
-    HitStop(2, 0.01)
-    
+    -- 전역 슬로모: 0.8초 동안 0.25배 속도
+    -- (주: TargetHitStop은 Actor 포인터가 필요하며, 현재는 Obj(FGameObject)만 있으므로 전역으로 처리)
+    TargetHitStop(Obj, 0.5, 0)
     print("Die")
     bDie = true
     CurGravity = GravityConst

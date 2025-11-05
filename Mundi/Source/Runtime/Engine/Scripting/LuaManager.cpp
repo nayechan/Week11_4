@@ -211,6 +211,14 @@ FLuaManager::FLuaManager()
 
     SharedLib.set_function("HitStop", [](float Duration, sol::optional<float> Scale) { GWorld->RequestHitStop(Duration, Scale.value_or(0.0f)); });
     
+    SharedLib.set_function("TargetHitStop", [](FGameObject& Obj, float Duration, sol::optional<float> Scale) 
+        {
+            if (AActor* Owner = Obj.GetOwner())
+            {
+                Owner->SetCustomTimeDillation(Duration, Scale.value_or(0.0f));
+            }
+        });
+    
     // FVector usertype 등록 (메서드와 프로퍼티)
     SharedLib.new_usertype<FVector>("FVector",
         sol::no_constructor,  // 생성자는 위에서 Vector 함수로 등록했음

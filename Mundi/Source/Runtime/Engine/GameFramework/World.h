@@ -32,7 +32,12 @@ struct Frustum;
 struct FCandidateDrawable;
 
 enum EDeltaTime { Unscaled, SlomoOnly, Game };
-
+struct FActorTimeState
+{
+    float Durtaion;
+    float Dilation;
+};
+    
 class UWorld final : public UObject
 {
 public:
@@ -84,6 +89,8 @@ public:
     virtual void Tick(float DeltaSeconds);
     // Overlap pair de-duplication (per-frame)
     bool TryMarkOverlapPair(const AActor* A, const AActor* B);
+
+    TMap<TWeakObjectPtr<AActor>, FActorTimeState> ActorTimingMap;
 
 
     /** === 필요한 엑터 게터 === */

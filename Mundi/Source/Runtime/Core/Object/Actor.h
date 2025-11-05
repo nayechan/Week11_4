@@ -127,6 +127,9 @@ public:
     // 틱 플래그
     void SetTickInEditor(bool b) { bTickInEditor = b; }
     bool GetTickInEditor() const { return bTickInEditor; }
+    
+    float GetCustomTimeDillation();
+    void  SetCustomTimeDillation(float Duration, float Dillation);
 
     // 바운드 및 피킹
     virtual FAABB GetBounds() const { return FAABB(); }
@@ -202,6 +205,8 @@ protected:
     bool bIsPicked = false;
     bool bCanEverTick = true;   // Tick을 허용하는 Actor 라는 뜻 (생성자 시점에만 변경해야 됨)
     bool bIsCulled = false;
+
+    float CustomTimeDillation;
 
 private:
     FGameObject* LuaGameObject;
