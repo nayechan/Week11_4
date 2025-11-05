@@ -15,7 +15,8 @@ struct FPostProcessModifier
     int32      Priority = 0;
     bool       bEnabled = true;
     float      Weight = 1.0f;
-    UObject*      SourceObject = nullptr; // (디버그용) player camera manager나, fog component...
+    UObject*   SourceObject = nullptr; // (디버그용) player camera manager나, fog component...
+    void*      JustForTest = nullptr; //  PCM쪽 API 뚫리면 위쪽으로 옮겨갈 예정
 };
 
 class IPostProcessPass

@@ -2,6 +2,7 @@
 #include "Frustum.h"
 
 // TODO : Post Processing 떼어내기, 전방선언으로라든지...
+#include "PostProcessing/FadeInOutPass.h"
 #include "PostProcessing/HeightFogPass.h"
 
 // 전방 선언 (헤더 파일 의존성 최소화)
@@ -149,4 +150,5 @@ private:
 	// TODO : 자동으로 등록되게 바꾸기!, bloom 빼고 다 stateless해서 걔네는 static(etc..) 등 하이브리도 구조로 바꾸기
 	// PostProcessing 
 	FHeightFogPass HeightFogPass;
+	FFadeInOutPass FadeInOutPass;
 };

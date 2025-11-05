@@ -976,12 +976,26 @@ void FSceneRenderer::RenderPostProcessingPasses()
 		}
 	}
 
+	// TEST Session
+	FPostProcessModifier FadeInOut;
+	FadeInOut.Type = EPostProcessEffectType::Fade;
+	FadeInOut.bEnabled = true;
+	FadeInOut.Weight = 1.0;
+	FadeInOut.SourceObject = nullptr;
+	FFadeInOutBufferType FadeCB{ FLinearColor(1,0,0,1), /*Opacity*/0.5f, /*Weight*/FadeInOut.Weight, {0,0} };
+	FadeInOut.JustForTest = &FadeCB;
+	PostProcessModifiers.Add(FadeInOut);
+	
 	for (auto& Modifier : PostProcessModifiers)
 	{
 		switch (Modifier.Type)
 		{
 		case EPostProcessEffectType::HeightFog:
-			HeightFogPass.Execute(Modifier, View, RHIDevice);			
+			HeightFogPass.Execute(Modifier, View, RHIDevice);
+			break;
+		case EPostProcessEffectType::Fade:
+			FadeInOutPass.Execute(Modifier, View, RHIDevice);
+			break;
 		}
 	}
 }

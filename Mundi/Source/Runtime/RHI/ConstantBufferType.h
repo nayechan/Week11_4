@@ -64,6 +64,16 @@ struct FogBufferType // b2
     float Padding[2]; // 16바이트 정렬을 위한 패딩
 };
 
+struct alignas(16) FFadeInOutBufferType // b2
+{
+    FLinearColor FadeColor = FLinearColor(0, 0, 0, 1);  //보통 (0, 0, 0, 1)
+    
+    float Opacity = 0.0f;   // 0~1
+    float Weight  = 1.0f;
+    float _Pad[2] = {0,0};
+};
+static_assert(sizeof(FFadeInOutBufferType) % 16 == 0, "CB must be 16-byte aligned");
+
 struct FXAABufferType // b2
 {
     FVector2D ScreenSize; // 화면 해상도 (e.g., float2(1920.0f, 1080.0f))
@@ -191,6 +201,7 @@ MACRO(DecalBufferType)              \
 MACRO(FireballBufferType)           \
 MACRO(PostProcessBufferType)        \
 MACRO(FogBufferType)                \
+MACRO(FFadeInOutBufferType)         \
 MACRO(FXAABufferType)               \
 MACRO(FPixelConstBufferType)        \
 MACRO(ViewProjBufferType)           \
@@ -212,6 +223,7 @@ CONSTANT_BUFFER_INFO(ModelBufferType, 0, true, false)
 CONSTANT_BUFFER_INFO(PostProcessBufferType, 0, false, true)
 CONSTANT_BUFFER_INFO(ViewProjBufferType, 1, true, true) // b1 카메라 행렬 고정
 CONSTANT_BUFFER_INFO(FogBufferType, 2, false, true)
+CONSTANT_BUFFER_INFO(FFadeInOutBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color
 CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
