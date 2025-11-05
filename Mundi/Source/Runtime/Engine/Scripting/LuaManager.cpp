@@ -210,12 +210,23 @@ FLuaManager::FLuaManager()
         [](FGameObject& GameObject, FVector Direction)
         {
             AActor* Player = GameObject.GetOwner();
-            
-            USceneComponent* PlayerSceneComp = static_cast<USceneComponent*>(Player->GetComponent(USceneComponent::StaticClass()));
-            if (PlayerSceneComp)
+            if (!Player)
             {
-                PlayerSceneComp->SetForward(Direction);
+                return;
             }
+
+            USceneComponent* SceneComponent = Player->GetRootComponent();
+            if (!SceneComponent)
+            {
+                SceneComponent = static_cast<USceneComponent*>(Player->GetComponent(USceneComponent::StaticClass()));
+            }
+
+            if (!SceneComponent)
+            {
+                return;
+            }
+
+            SceneComponent->SetForward(Direction);
         }
    );
     SharedLib.set_function("Vector", sol::overload(
@@ -794,4 +805,6 @@ sol::protected_function FLuaManager::GetFunc(sol::environment& Env, const char* 
     
     return Func;
 }
+
+
 
