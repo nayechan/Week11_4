@@ -24,7 +24,7 @@
 #include "Frustum.h"
 #include "Level.h"
 #include "LightManager.h"
-#include "../Scripting/LuaManager.h"
+#include "LuaManager.h"
 #include "ShapeComponent.h"
 #include "PlayerCameraManager.h"
 #include "Hash.h"

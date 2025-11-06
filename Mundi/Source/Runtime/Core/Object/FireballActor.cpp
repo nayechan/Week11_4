@@ -16,7 +16,7 @@ END_PROPERTIES()
 
 AFireBallActor::AFireBallActor()
 {
-	Name = "Fire Ball Actor";
+	ObjectName = "Fire Ball Actor";
 	PointLightComponent = CreateDefaultSubobject<UPointLightComponent>("PointLightComponent");
 	PointLightComponent->SetupAttachment(RootComponent);
 	 

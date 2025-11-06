@@ -10,7 +10,7 @@ END_PROPERTIES()
 
 ADirectionalLightActor::ADirectionalLightActor()
 {
-	Name = "Directional Light Actor";
+	ObjectName = "Directional Light Actor";
 	LightComponent = CreateDefaultSubobject<UDirectionalLightComponent>("DirectionalLightComponent");
 
 	RootComponent = LightComponent;

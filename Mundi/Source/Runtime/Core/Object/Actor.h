@@ -36,10 +36,6 @@ public:
     virtual void EndPlay();   // Override 시 Super::EndPlay() 권장
     virtual void Destroy();
 
-    // 이름
-    void SetName(const FString& InName) { Name = InName; }
-    const FName& GetName() { return Name; }
-    
     void SetTag(const FString& InTag) { Tag = InTag; }
     const FString& GetTag() const { return Tag; }
 
@@ -178,7 +174,6 @@ public:
     }
 
 public:
-    FName Name;
     UWorld* World = nullptr;
     USceneComponent* RootComponent = nullptr;
     UTextRenderComponent* TextComp = nullptr;
@@ -208,5 +203,5 @@ protected:
     float CustomTimeDillation;
 
 private:
-    FGameObject* LuaGameObject;
+    FGameObject* LuaGameObject = nullptr;
 };

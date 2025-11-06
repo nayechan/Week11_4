@@ -10,7 +10,7 @@ END_PROPERTIES()
 
 AAmbientLightActor::AAmbientLightActor()
 {
-	Name = "Ambient Light Actor";
+	ObjectName = "Ambient Light Actor";
 	LightComponent = CreateDefaultSubobject<UAmbientLightComponent>("AmbientLightComponent");
 
 	RootComponent = LightComponent;

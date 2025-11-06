@@ -10,7 +10,7 @@ END_PROPERTIES()
 
 AHeightFogActor::AHeightFogActor()
 {
-	Name = "Height Fog Actor";
+	ObjectName = "Height Fog Actor";
 	RootComponent = CreateDefaultSubobject<UHeightFogComponent>("HeightFogComponent");
 
 }

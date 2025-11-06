@@ -10,18 +10,19 @@
 #include "JsonSerializer.h"
 #include "World.h"
 #include "PrimitiveComponent.h"
-#include "../Scripting/GameObject.h"
+#include "GameObject.h"
 
 IMPLEMENT_CLASS(AActor)
 	BEGIN_PROPERTIES(AActor)
-	ADD_PROPERTY(bool, bActorIsActive, "Actor", true, "액터를 활성 여부를 설정합니다")
-	ADD_PROPERTY(bool, bActorHiddenInGame, "Actor", true, "액터를 게임에서 숨깁니다")
-	ADD_PROPERTY(FString, Tag, "Actor", true, "액터의 태그를 지정합니다.")
+	ADD_PROPERTY(FName, ObjectName, "[액터]", true, "액터의 이름입니다")
+	ADD_PROPERTY(bool, bActorIsActive, "[액터]", true, "액터를 활성 여부를 설정합니다")
+	ADD_PROPERTY(bool, bActorHiddenInGame, "[액터]", true, "액터를 게임에서 숨깁니다")
+	ADD_PROPERTY(FString, Tag, "[액터]", true, "액터의 태그를 지정합니다.")
 END_PROPERTIES()
 
 AActor::AActor()
 {
-	Name = "DefaultActor";
+	ObjectName = "DefaultActor";
 	CustomTimeDillation = 1.0f;
 }
 
@@ -682,10 +683,6 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		uint32 RootUUID;
 		FJsonSerializer::ReadUint32(InOutHandle, "RootComponentId", RootUUID);
 	
-		FString NameStrTemp;
-		FJsonSerializer::ReadString(InOutHandle, "Name", NameStrTemp);
-		SetName(NameStrTemp);
-	
 		JSON ComponentsJson;
 		if (FJsonSerializer::ReadArray(InOutHandle, "OwnedComponents", ComponentsJson))
 		{
@@ -758,7 +755,6 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			Components.append(ComponentJson);
 		}
 		InOutHandle["OwnedComponents"] = Components;
-		InOutHandle["Name"] = GetName().ToString();
 	}
 }
 

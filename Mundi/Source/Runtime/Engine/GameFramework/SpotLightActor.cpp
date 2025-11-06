@@ -10,7 +10,7 @@ END_PROPERTIES()
 
 ASpotLightActor::ASpotLightActor()
 {
-	Name = "Spot Light Actor";
+	ObjectName = "Spot Light Actor";
 	LightComponent = CreateDefaultSubobject<USpotLightComponent>("SpotLightComponent");
 
 	RootComponent = LightComponent;

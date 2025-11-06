@@ -183,7 +183,8 @@ public:
 
     // 팩토리 함수에 의해 자동 발급
     uint32_t InternalIndex;
-    FName    ObjectName;   // ← 객체 개별 이름 추가
+
+    FName    ObjectName;   // 이 프로젝트에서는 고유하지 않는 라벨로 사용
 
     // 정적: 타입 메타 반환 (이름을 StaticClass로!)
     static UClass* StaticClass()

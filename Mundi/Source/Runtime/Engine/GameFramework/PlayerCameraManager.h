@@ -15,7 +15,7 @@ class APlayerCameraManager : public AActor
 	DECLARE_DUPLICATE(APlayerCameraManager)
 
 public:
-	APlayerCameraManager() { Name = "Player Camera Manager";  };
+	APlayerCameraManager() { ObjectName = "Player Camera Manager";  };
 
 protected:
 	~APlayerCameraManager() override;

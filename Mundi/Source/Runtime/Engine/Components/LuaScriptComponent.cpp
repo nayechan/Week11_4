@@ -5,8 +5,8 @@
 #include <sol/coroutine.hpp>
 
 #include "CameraActor.h"
-#include "../Scripting/LuaManager.h"
-#include "../Scripting/GameObject.h"
+#include "LuaManager.h"
+#include "GameObject.h"
 
 // for test
 #include "PlayerCameraManager.h"

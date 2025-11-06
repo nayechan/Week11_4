@@ -17,7 +17,7 @@ IMPLEMENT_CLASS(AGizmoActor)
 
 AGizmoActor::AGizmoActor()
 {
-	Name = "Gizmo Actor";
+	ObjectName = "Gizmo Actor";
 
 	const float GizmoTotalSize = 1.5f;
 	const float STGizmoTotalSize = 7.0f;    // Scale, Translation Gizmo
@@ -475,7 +475,7 @@ void AGizmoActor::ProcessGizmoDragging(ACameraActor* Camera, FViewport* Viewport
 					// 고유한 이름 생성
 					FString ActorTypeName = SelectedActor->GetClass()->Name;
 					FString UniqueName = World->GenerateUniqueActorName(ActorTypeName);
-					DuplicatedActor->SetName(UniqueName);
+					DuplicatedActor->ObjectName = FName(UniqueName);
 
 					// World에 등록
 					World->AddActorToLevel(DuplicatedActor);

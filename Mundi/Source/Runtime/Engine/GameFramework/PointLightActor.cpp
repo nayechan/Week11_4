@@ -10,7 +10,7 @@ END_PROPERTIES()
 
 APointLightActor::APointLightActor()
 {
-	Name = "Point Light Actor";
+	ObjectName = "Point Light Actor";
 	LightComponent = CreateDefaultSubobject<UPointLightComponent>("PointLightComponent");
 
 	RootComponent = LightComponent;

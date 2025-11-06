@@ -200,23 +200,43 @@ void UPropertyRenderer::RenderProperties(const TArray<FProperty>& Properties, UO
 	if (Properties.IsEmpty())
 		return;
 
-	// 카테고리별로 그룹화
-	TMap<FString, TArray<const FProperty*>> CategorizedProps;
+	// 1. 카테고리 (삽입 순서 보장용 TArray)
+	TArray<TPair<FString, TArray<const FProperty*>>> CategorizedProps;
+
+	// 2. 카테고리 인덱스 (빠른 검색용 TMap)
+	TMap<FString, int32> CategoryIndexMap;
 
 	for (const FProperty& Prop : Properties)
 	{
 		if (Prop.bIsEditAnywhere)
 		{
 			FString CategoryName = Prop.Category ? Prop.Category : "Default";
-			if (!CategorizedProps.Contains(CategoryName))
+
+			// 3. 맵에서 이미 카테고리가 있는지 빠르게 검색
+			int32* IndexPtr = CategoryIndexMap.Find(CategoryName);
+
+			if (IndexPtr)
 			{
-				CategorizedProps.Add(CategoryName, TArray<const FProperty*>());
+				// 4-A. 이미 존재하는 카테고리면, TArray의 해당 인덱스에 프로퍼티만 추가
+				CategorizedProps[*IndexPtr].second.Add(&Prop);
 			}
-			CategorizedProps[CategoryName].Add(&Prop);
+			else
+			{
+				// 4-B. 새 카테고리면, TArray에 새 항목을 추가
+				TArray<const FProperty*> NewPropArray;
+				NewPropArray.Add(&Prop);
+
+				// TArray에 실제 데이터 추가 (MakePair는 std::make_pair와 동일)
+				int32 NewIndex = CategorizedProps.Add(TPair<FString, TArray<const FProperty*>>(CategoryName, NewPropArray));
+
+				// TMap에 "이 카테고리는 TArray의 NewIndex에 있다"고 기록
+				CategoryIndexMap.Add(CategoryName, NewIndex);
+			}
 		}
 	}
 
-	// 카테고리별로 렌더링
+	// 5. TArray를 순회하면 '삽입 순서'가 완벽하게 보장됩니다.
+	// (순서를 뒤집고 싶다면 여기서 CategorizedProps.rbegin() / rend() 사용)
 	for (auto& Pair : CategorizedProps)
 	{
 		const FString& Category = Pair.first;
@@ -227,7 +247,9 @@ void UPropertyRenderer::RenderProperties(const TArray<FProperty>& Properties, UO
 
 		for (const FProperty* Prop : Props)
 		{
+			ImGui::PushID(Prop); // 프로퍼티 포인터로 고유 ID 푸시
 			RenderProperty(*Prop, Object);
+			ImGui::PopID();
 		}
 	}
 }
@@ -475,13 +497,48 @@ bool UPropertyRenderer::RenderStringProperty(const FProperty& Prop, void* Instan
 
 bool UPropertyRenderer::RenderNameProperty(const FProperty& Prop, void* Instance)
 {
-	FName* Value = Prop.GetValuePtr<FName>(Instance);
+	FName* ValuePtr = Prop.GetValuePtr<FName>(Instance);
+	if (!ValuePtr)
+	{
+		return false;
+	}
 
-	// FName은 읽기 전용으로 표시
-	FString NameStr = Value->ToString();
-	ImGui::Text("%s: %s", Prop.Name, NameStr.c_str());
+	ImGuiID WidgetID = ImGui::GetID(ValuePtr);
 
-	return false;
+	// 2. 위젯 ID별로 편집용 'char' 버퍼를 저장할 static 맵
+	//    TArray<char>를 사용하여 버퍼 메모리를 관리합니다.
+	static TMap<ImGuiID, TArray<char>> EditBuffers;
+
+	// 3. 이 위젯 ID에 해당하는 버퍼를 가져옵니다.
+	TArray<char>& EditBuffer = EditBuffers[WidgetID];
+
+	const SIZE_T BufferSize = 256; // FName에 충분한 버퍼 크기
+
+	// 4. 버퍼가 비어있거나 활성 상태가 아니면 FName 값으로 채웁니다.
+	if (EditBuffer.empty() || !ImGui::IsItemActive())
+	{
+		FString CurrentNameStr = ValuePtr->ToString();
+		EditBuffer.assign(BufferSize, '\0'); // 버퍼를 0으로 초기화
+		// FString의 내용을 버퍼로 복사 (strncpy_s 또는 유사 함수 사용 권장)
+		strncpy_s(EditBuffer.data(), EditBuffer.size(), CurrentNameStr.c_str(), CurrentNameStr.length());
+	}
+
+	// 5. InputText 렌더링
+	//    이제 EditBuffer.data() (char* 타입)를 전달합니다.
+	bool bValueWasChanged = false;
+	if (ImGui::InputText(Prop.Name, EditBuffer.data(), BufferSize, ImGuiInputTextFlags_EnterReturnsTrue))
+	{
+		// 6. 엔터/포커스 해제 시, 버퍼의 텍스트(char*)로 FName을 생성
+		FString BufferText(EditBuffer.data());
+
+		if (BufferText != ValuePtr->ToString())
+		{
+			*ValuePtr = FName(BufferText);
+			bValueWasChanged = true;
+		}
+	}
+
+	return bValueWasChanged;
 }
 
 bool UPropertyRenderer::RenderObjectPtrProperty(const FProperty& Prop, void* Instance)

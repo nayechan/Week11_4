@@ -70,7 +70,7 @@ AActor* UClipboardManager::PasteActorToWorld(UWorld* World, const FVector& Offse
     // 고유한 이름 생성
     FString ActorTypeName = CopiedActor->GetClass()->Name;
     FString UniqueName = World->GenerateUniqueActorName(ActorTypeName);
-    NewActor->SetName(UniqueName);
+    NewActor->ObjectName = FName(UniqueName);
 
     // World에 등록
     World->AddActorToLevel(NewActor);

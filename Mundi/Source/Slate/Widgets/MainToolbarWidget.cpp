@@ -815,7 +815,7 @@ void UMainToolbarWidget::ProcessPendingCommands()
                     {
                         // 고유 이름 생성
                         FString ActorName = GWorld->GenerateUniqueActorName(PendingActorClass->DisplayName);
-                        NewActor->SetName(ActorName);
+                        NewActor->ObjectName = FName(ActorName);
 
                         // 랜덤 위치 설정
                         FVector randomPos = GetRandomPositionInRange();
@@ -837,7 +837,7 @@ void UMainToolbarWidget::ProcessPendingCommands()
                 {
                     // 고유 이름 생성
                     FString ActorName = GWorld->GenerateUniqueActorName(PendingActorClass->DisplayName);
-                    NewActor->SetName(ActorName);
+                    NewActor->ObjectName = FName(ActorName);
 
                     // 카메라 앞쪽에 배치
                     ACameraActor* Camera = GWorld->GetEditorCameraActor();

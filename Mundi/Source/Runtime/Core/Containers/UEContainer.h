@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /** UE5 스타일 기본 타입 정의 */
 typedef int int32;
@@ -422,6 +422,97 @@ public:
     }
 
     /** 키/값 배열 반환 */
+    TArray<KeyType> GetKeys() const
+    {
+        TArray<KeyType> Keys;
+        Keys.Reserve(this->size());
+        for (const auto& Pair : *this)
+        {
+            Keys.Add(Pair.first);
+        }
+        return Keys;
+    }
+
+    TArray<ValueType> GetValues() const
+    {
+        TArray<ValueType> Values;
+        Values.Reserve(this->size());
+        for (const auto& Pair : *this)
+        {
+            Values.Add(Pair.second);
+        }
+        return Values;
+    }
+};
+
+/** TOrderedMap - 키(Key) 기준 정렬 맵 (std::map 래퍼) */
+template<typename KeyType, typename ValueType, typename Compare = std::less<KeyType>>
+class TOrderedMap : public std::map<KeyType, ValueType, Compare>
+{
+public:
+    using std::map<KeyType, ValueType, Compare>::map;
+
+    /** 요소 추가/수정 */
+    void Add(const KeyType& Key, const ValueType& Value)
+    {
+        (*this)[Key] = Value;
+    }
+
+    template<typename... Args>
+    void Emplace(const KeyType& Key, Args&&... args)
+    {
+        // std::pair<const KeyType, ValueType>를 생성하여 삽입
+        this->emplace(Key, ValueType(std::forward<Args>(args)...));
+    }
+
+    /** 제거 */
+    bool Remove(const KeyType& Key)
+    {
+        return this->erase(Key) > 0;
+    }
+
+    /** 크기 관련 */
+    int32 Num() const
+    {
+        return static_cast<int32>(this->size());
+    }
+
+    bool IsEmpty() const
+    {
+        return this->empty();
+    }
+
+    void Empty()
+    {
+        this->clear();
+    }
+
+    /** 검색 */
+    bool Contains(const KeyType& Key) const
+    {
+        return this->find(Key) != this->end();
+    }
+
+    ValueType* Find(const KeyType& Key)
+    {
+        auto it = this->find(Key);
+        return (it != this->end()) ? &it->second : nullptr;
+    }
+
+    const ValueType* Find(const KeyType& Key) const
+    {
+        auto it = this->find(Key);
+        return (it != this->end()) ? &it->second : nullptr;
+    }
+
+    /** 찾거나 기본값 반환 */
+    ValueType FindRef(const KeyType& Key) const
+    {
+        auto it = this->find(Key);
+        return (it != this->end()) ? it->second : ValueType{};
+    }
+
+    /** 키/값 배열 반환 (키 순서대로 정렬됨) */
     TArray<KeyType> GetKeys() const
     {
         TArray<KeyType> Keys;

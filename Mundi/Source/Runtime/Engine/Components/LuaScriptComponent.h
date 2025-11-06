@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "ActorComponent.h"
 #include "Vector.h"
-#include "../Scripting/LuaCoroutineScheduler.h"
+#include "LuaCoroutineScheduler.h"
 
 namespace sol { class state; }
 using state = sol::state;

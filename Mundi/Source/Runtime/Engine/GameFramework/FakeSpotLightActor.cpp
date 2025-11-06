@@ -11,7 +11,7 @@ END_PROPERTIES()
 
 AFakeSpotLightActor::AFakeSpotLightActor()
 {
-	Name = "Fake Spot Light Actor";
+	ObjectName = "Fake Spot Light Actor";
 	BillboardComponent = CreateDefaultSubobject<UBillboardComponent>("BillboardComponent");
 	BillboardComponent->SetEditability(false);
 	DecalComponent = CreateDefaultSubobject<UPerspectiveDecalComponent>("DecalComponent");

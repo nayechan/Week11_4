@@ -5,7 +5,7 @@
 #include "World.h"
 #include "WorldPartitionManager.h"
 #include "BVHierarchy.h"
-#include "../Scripting/GameObject.h"
+#include "GameObject.h"
 
 IMPLEMENT_CLASS(UShapeComponent)
 

@@ -9,7 +9,7 @@ END_PROPERTIES()
 
 AEmptyActor::AEmptyActor()
 {
-	Name = "Actor";
+	ObjectName = "Actor";
 	// RootComponent는 AActor 생성자에서 이미 기본 USceneComponent로 생성됨
 	// 별도로 컴포넌트를 추가하지 않음
 }

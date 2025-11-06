@@ -10,7 +10,7 @@ END_PROPERTIES()
 
 ADecalActor::ADecalActor()
 {
-	Name = "Static Mesh Actor";
+	ObjectName = "Static Mesh Actor";
 	DecalComponent = CreateDefaultSubobject<UDecalComponent>("DecalComponent");
 
 	RootComponent = DecalComponent;

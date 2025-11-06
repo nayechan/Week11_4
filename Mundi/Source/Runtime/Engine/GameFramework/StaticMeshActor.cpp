@@ -13,7 +13,7 @@ END_PROPERTIES()
 
 AStaticMeshActor::AStaticMeshActor()
 {
-    Name = "Static Mesh Actor";
+    ObjectName = "Static Mesh Actor";
     StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>("StaticMeshComponent");
     
     // 루트 교체

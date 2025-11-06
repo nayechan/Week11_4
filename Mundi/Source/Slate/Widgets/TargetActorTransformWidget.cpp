@@ -332,7 +332,7 @@ void UTargetActorTransformWidget::RenderWidget()
 
 void UTargetActorTransformWidget::RenderHeader(AActor* SelectedActor, UActorComponent* SelectedComponent)
 {
-	ImGui::Text(SelectedActor->GetName().ToString().c_str());
+	ImGui::Text(SelectedActor->GetName().c_str());
 	ImGui::SameLine();
 
 	if (ImGui::Button("to Prefab", ImVec2(80, 25)))
@@ -402,7 +402,7 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.85f, 0.3f, 1.0f));
 
 	const bool bActorSelected = GWorld->GetSelectionManager()->IsActorMode();
-	if (ImGui::Selectable(SelectedActor->GetName().ToString().c_str(), bActorSelected, ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_SpanAvailWidth))
+	if (ImGui::Selectable(SelectedActor->GetName().c_str(), bActorSelected, ImGuiSelectableFlags_SelectOnClick | ImGuiSelectableFlags_SpanAvailWidth))
 	{
 		GWorld->GetSelectionManager()->SelectActor(SelectedActor);
 	}
@@ -482,41 +482,39 @@ void UTargetActorTransformWidget::RenderComponentHierarchy(AActor* SelectedActor
 	ImGui::Spacing();
 }
 
+// 액터 와 루트 컴포넌트 프로퍼티 출력
 void UTargetActorTransformWidget::RenderSelectedActorDetails(AActor* SelectedActor)
 {
 	if (!SelectedActor)
 	{
 		return;
 	}
-	// 리플렉션이 적용된 컴포넌트는 자동으로 UI 생성
-	ImGui::Separator();
-	ImGui::Text("[Reflected Properties]");
+
+	// 액터 프로퍼티 표시
 	UPropertyRenderer::RenderAllPropertiesWithInheritance(SelectedActor);
 
+	ImGui::Spacing();
+	ImGui::Separator();
 
+	// 루트 컴포넌트의 프로퍼티를 이어서 표시
 	USceneComponent* RootComponent = SelectedActor->GetRootComponent();
 	if (RootComponent)
 	{
-		RenderSelectedComponentDetails(RootComponent);
+		UPropertyRenderer::RenderAllPropertiesWithInheritance(RootComponent);
 	}
 
 	ImGui::Spacing();
 	ImGui::Separator();
-
 }
 
+// 컴포넌트의 프로퍼티 출력
 void UTargetActorTransformWidget::RenderSelectedComponentDetails(UActorComponent* SelectedComponent)
 {
-	ImGui::Spacing();
-	ImGui::Separator();
-
 	if (!SelectedComponent) return;
 
 	// 리플렉션이 적용된 컴포넌트는 자동으로 UI 생성
 	if (SelectedComponent)
 	{
-		ImGui::Separator();
-		ImGui::Text("[Reflected Properties]");
 		UPropertyRenderer::RenderAllPropertiesWithInheritance(SelectedComponent);
 	}
 }

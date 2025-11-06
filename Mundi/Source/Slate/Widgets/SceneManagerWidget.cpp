@@ -180,7 +180,7 @@ void USceneManagerWidget::RenderWidget()
 		// 액터 이름을 가져오기 전에 안전성 확인
 		try
 		{
-			ImGui::Text("(%s 선택됨)", SelectedActor->GetName().ToString().c_str());
+			ImGui::Text("(%s 선택됨)", SelectedActor->GetName().c_str());
 		}
 		catch (...)
 		{
@@ -308,7 +308,7 @@ void USceneManagerWidget::RenderActorNode(FActorTreeNode* Node, int32 Depth)
 	ImGui::SameLine(0, 1.0f);
 
 	// Actor name and tree node
-	bool bNodeOpen = ImGui::TreeNodeEx(Actor->GetName().ToString().c_str(), NodeFlags);
+	bool bNodeOpen = ImGui::TreeNodeEx(Actor->GetName().c_str(), NodeFlags);
 
 	// Handle selection
 	if (ImGui::IsItemClicked())
@@ -341,7 +341,7 @@ void USceneManagerWidget::RenderActorNode(FActorTreeNode* Node, int32 Depth)
 	if (ImGui::BeginDragDropSource())
 	{
 		ImGui::SetDragDropPayload("ACTOR_DRAG", &Actor, sizeof(AActor*));
-		ImGui::Text("Move %s", Actor->GetName().ToString().c_str());
+		ImGui::Text("Move %s", Actor->GetName().c_str());
 		DragSource = Actor;
 		ImGui::EndDragDropSource();
 	}
@@ -355,7 +355,7 @@ void USceneManagerWidget::RenderActorNode(FActorTreeNode* Node, int32 Depth)
 			if (DroppedActor != Actor)
 			{
 				// TODO: Implement hierarchy reparenting
-				UE_LOG("Would reparent %s to %s", DroppedActor->GetName().ToString().c_str(), Actor->GetName().ToString().c_str());
+				UE_LOG("Would reparent %s to %s", DroppedActor->GetName().c_str(), Actor->GetName().c_str());
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -403,7 +403,7 @@ void USceneManagerWidget::HandleActorSelection(AActor* Actor)
 	}
 
 
-	UE_LOG("SceneManager: Selected actor %s", Actor->GetName().ToString().c_str());
+	UE_LOG("SceneManager: Selected actor %s", Actor->GetName().c_str());
 }
 
 void USceneManagerWidget::HandleActorVisibilityToggle(AActor* Actor)
@@ -421,7 +421,7 @@ void USceneManagerWidget::HandleActorVisibilityToggle(AActor* Actor)
 	{
 		Node->bIsVisible = Actor->IsActorVisible();
 		UE_LOG("SceneManager: Toggled visibility for %s: %s",
-			Actor->GetName().ToString().c_str(), Node->bIsVisible ? "Visible" : "Hidden");
+			Actor->GetName().c_str(), Node->bIsVisible ? "Visible" : "Hidden");
 	}
 }
 
@@ -437,7 +437,7 @@ void USceneManagerWidget::HandleActorDelete(AActor* Actor)
 		return;
 
 	Actor->Destroy();
-	UE_LOG("SceneManager: Deleted actor %s", Actor->GetName().ToString().c_str());
+	UE_LOG("SceneManager: Deleted actor %s", Actor->GetName().c_str());
 }
 
 void USceneManagerWidget::HandleActorDuplicate(AActor* Actor)
@@ -448,7 +448,7 @@ void USceneManagerWidget::HandleActorDuplicate(AActor* Actor)
 
 void USceneManagerWidget::RenderContextMenu(AActor* TargetActor)
 {
-	ImGui::Text("%s", TargetActor->GetName().ToString().c_str()); // %s개 액터 -> %s
+	ImGui::Text("%s", TargetActor->GetName().c_str()); // %s개 액터 -> %s
 	const char* ClassName = "Unknown";
 	if (TargetActor->GetClass())
 	{
@@ -579,7 +579,7 @@ FString USceneManagerWidget::GetActorCategory(AActor* Actor) const
 	if (!Actor)
 		return "Unknown";
 
-	FString ActorName = Actor->GetName().ToString();
+	FString ActorName = Actor->GetName();
 
 	// Extract category from actor name (assumes format: "Type_Number")
 	size_t UnderscorePos = ActorName.find('_');
@@ -793,6 +793,6 @@ void USceneManagerWidget::CollapseAllCategories()
 FString USceneManagerWidget::FActorTreeNode::GetDisplayName() const
 {
 	if (IsCategory()) return CategoryName;
-	if (IsActor() && Actor) return Actor->GetName().ToString();
+	if (IsActor() && Actor) return Actor->GetName();
 	return "Unknown";
 }
