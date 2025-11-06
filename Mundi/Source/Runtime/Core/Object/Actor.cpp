@@ -27,33 +27,32 @@ AActor::AActor()
 
 AActor::~AActor()
 {
-	// UE처럼 역순/안전 소멸: 모든 컴포넌트 DestroyComponent
-	for (UActorComponent* Comp : OwnedComponents)
-		if (Comp) Comp->DestroyComponent();  // 안에서 Unregister/Detach 처리한다고 가정
-	OwnedComponents.clear();
-	SceneComponents.Empty();
-	RootComponent = nullptr;
-
-	if (LuaGameObject)
-	{
-		delete LuaGameObject;
-		LuaGameObject = nullptr;
-	}
+	DestroyAllComponents();
 }
 
 void AActor::BeginPlay()
 {
-	// TODO : 초기화 다듬기
 	// Lua Game Object 초기화
 	LuaGameObject = new FGameObject();
 	LuaGameObject ->SetOwner(this); /*순서 보장 필수!*/
 	LuaGameObject->UUID = this->UUID;
 	
+	// NOTE: 아직 InitializeComponent/BeginPlay 순서가 완벽히 보장되지 않음 (PIE 시작 순간에는 지연 생성 처리 필요)
 	// 컴포넌트들 Initialize/BeginPlay 순회
 	for (UActorComponent* Comp : OwnedComponents)
-		if (Comp) Comp->InitializeComponent();
+	{
+		if (Comp)
+		{
+			Comp->InitializeComponent();
+		}
+	}
 	for (UActorComponent* Comp : OwnedComponents)
-		if (Comp) Comp->BeginPlay();
+	{
+		if (Comp)
+		{
+			Comp->BeginPlay();
+		}
+	}
 }
 
 void AActor::Tick(float DeltaSeconds)
@@ -69,11 +68,25 @@ void AActor::Tick(float DeltaSeconds)
 		}
 	}
 }
+
 void AActor::EndPlay()
 {
 	for (UActorComponent* Comp : OwnedComponents)
-		if (Comp) Comp->EndPlay();
+	{
+		if (Comp)
+		{
+			Comp->EndPlay();
+		}
+	}
+
+	if (LuaGameObject)
+	{
+		delete LuaGameObject;
+		LuaGameObject = nullptr;
+	}
 }
+
+// 지연 삭제 (이후 월드에서 Tick이 끝나면 실제로 삭제됨)
 void AActor::Destroy()
 {
 	// 재진입/중복 방지
@@ -185,6 +198,7 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 	}
 }
 
+// 소유 중인 Component 개별 삭제
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
 	if (!Component)
@@ -264,6 +278,7 @@ void AActor::UnregisterAllComponents(bool bCallEndPlayOnBegun)
 	}
 }
 
+// 소유 중인 Component 전체 삭제
 void AActor::DestroyAllComponents()
 {
 	// Unregister 이후 최종 파괴
@@ -276,7 +291,7 @@ void AActor::DestroyAllComponents()
 		if (!C) continue;
 		C->DestroyComponent(); // 내부에서 Owner=nullptr 등도 처리
 	}
-	OwnedComponents.clear();
+	OwnedComponents.Empty();
 
 	SceneComponents.Empty();
 	RootComponent = nullptr;
@@ -577,7 +592,7 @@ void AActor::DuplicateSubObjects()
 	bIsCulled = false;
 	World = nullptr; // PIE World는 복제 프로세스의 상위 레벨에서 설정해 주어야 합니다.
 
-	if (OwnedComponents.empty())
+	if (OwnedComponents.IsEmpty())
 	{
 		return; // 복제할 컴포넌트가 없으면 종료
 	}
@@ -631,7 +646,7 @@ void AActor::DuplicateSubObjects()
 	}
 
 	// 2-2. 모든 씬 컴포넌트의 부모-자식 관계 재연결
-	SceneComponents.clear(); // 새 컴포넌트로 목록을 다시 채웁니다.
+	SceneComponents.Empty(); // 새 컴포넌트로 목록을 다시 채웁니다.
 	if (RootComponent)
 	{
 		SceneComponents.push_back(RootComponent);

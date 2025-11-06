@@ -63,14 +63,17 @@ void UActorComponent::OnUnregister()
     // 리소스/핸들 반납
 }
 
+// 외부에서 호출되는 컴포넌트 삭제 요청 (= 너 월드에서 지워짐 ㅅㄱ)
 void UActorComponent::DestroyComponent()
 {
+    // NOTE: 액터는 bPendingDestroy 적용되었는데 컴포넌트는 아직 적용되지 않고 바로 삭제됨
     if (bPendingDestroy) return;
     bPendingDestroy = true;
 
     // 등록 중이면 우선 해제(EndPlay 포함)
     if (bRegistered) UnregisterComponent();
 
+    // UObject 메모리 해제
     DeleteObject(this);
     // Owner 참조 끊기
     //Owner = nullptr;
