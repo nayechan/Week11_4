@@ -17,58 +17,64 @@ public:
 private:
     bool          bInitialized = false;
     float         ElapsedTime = 0.f;
-    FViewportRect BaseRect;
+    FViewportRect FullRect;
 
 public:
+    void ResetBase(const FViewportRect& NewFullRect)
+    {
+        FullRect     = NewFullRect;
+        bInitialized = true;
+        ElapsedTime  = 0.f;
+    }
+
+    virtual void TickLifetime(float DeltaTime) override
+    {
+        // if (Duration >= 0.f) { Elapsed += DeltaTime; if (Elapsed >= Duration) bEnabled = false; }
+    }
+    
     virtual void ApplyToView(float DeltaTime, FMinimalViewInfo* ViewInfo) override
     {
         if (!bEnabled || !ViewInfo) return;
 
-        const FViewportRect Curr = ViewInfo->ViewRect;
-        const uint32 VW = Curr.Width();
-        const uint32 VH = Curr.Height();
-
-        // 초기화 및 리사이즈 대응: 기준 사각형을 현재 뷰로 고정
-        if (!bInitialized || VW != BaseRect.Width() || VH != BaseRect.Height())
+        if (!bInitialized)
         {
+            FullRect = ViewInfo->ViewRect; // 파이프라인에서 '수정 전' 뷰를 받을 수 있으면 그걸 쓰면 더 좋다
+            ElapsedTime = 0.f;
             bInitialized = true;
-            BaseRect = Curr;
-            ElapsedTime = 0.f; // 리사이즈 때 애니메이션 처음부터
         }
 
-        // 진행도(애니메이션). Duration<0 이면 즉시 적용.
+        // 2) 진행도(애니메이션)
         ElapsedTime += DeltaTime;
         const float t = (Duration > 0.f) ? FMath::Clamp(ElapsedTime / Duration, 0.f, 1.f) : 1.f;
         const float s = t * t * (3.f - 2.f * t); // smoothstep
 
-        const float W = float(BaseRect.Width());
-        const float H = float(BaseRect.Height());
+        const float W = float(FullRect.Width());
+        const float H = float(FullRect.Height());
 
-        // 목표 상/하 바 두께(한쪽 기준) 계산: 오직 위/아래만
+        // 3) 목표 바(한쪽) 두께 계산 — 오직 상/하만
         float targetBar = 0.f;
         if (HeightBarSize > 0.f)
         {
-            // 고정 비율로 바 두께
-            targetBar = FMath::Clamp(HeightBarSize, 0.f, 0.5f) * H;
+            targetBar = FMath::Clamp(HeightBarSize, 0.f, 0.5f) * H; // 고정 비율
         }
         else if (AspectRatio > 0.f)
         {
-            // AR 기반 자동: 좌/우 바는 금지. 필요한 경우에만 상/하 바 생성.
-            const float contentH = FMath::Min(H, W / AspectRatio); // 더 넓은 AR일 때만 줄어듦
+            const float contentH = FMath::Min(H, W / AspectRatio);
             targetBar = 0.5f * FMath::Max(0.f, H - contentH);
         }
 
-        const uint32 top = (uint32)(targetBar * s);
-        const uint32 bottom = (uint32)(targetBar * s);
+        // 4) 픽셀 스냅(반올림)
+        const float oneSide = targetBar * s;
+        const uint32 total  = (uint32)std::lroundf(2.f * oneSide); // 위+아래 합
+        const uint32 top    = total / 2;
+        const uint32 bottom = total - top;
 
-        FViewportRect R;
-        R.MinX = BaseRect.MinX;            // 좌/우는 그대로!
-        R.MaxX = BaseRect.MaxX;
-        R.MinY = BaseRect.MinY + top;      // 위로만 내림
-        R.MaxY = BaseRect.MaxY - bottom;   // 아래로만 올림
+        // 5) 좌/우 고정, 위/아래만 조정
+        FViewportRect R = FullRect;
+        R.MinY = FullRect.MinY + top;
+        R.MaxY = FullRect.MaxY - bottom;
         ViewInfo->ViewRect = R;
 
-        // 콘텐츠 영역 AR을 카메라 행렬 빌드에 반영(왜곡 방지)
         const uint32 CW = R.Width();
         const uint32 CH = R.Height();
         ViewInfo->AspectRatio = float(CW) / float(FMath::Max(1u, CH));

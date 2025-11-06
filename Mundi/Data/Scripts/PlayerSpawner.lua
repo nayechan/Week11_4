@@ -37,7 +37,7 @@ function BeginPlay()
     -- GetCameraManager():StartVignette(4.0, 0.2, 0.5, 10.0, 2.0, Color(0.9, 0.0, 0.2, 0.0), 0)
 end
 
-function MoveCameras()
+function MoveCameras()    
     GetCameraManager():SetViewTarget(GetComponent(GlobalConfig.Camera1, "UCameraComponent"))
     coroutine.yield("wait_time", 4)
     DeleteObject(GlobalConfig.teamName)
