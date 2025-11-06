@@ -97,7 +97,6 @@ void AActor::SetRootComponent(USceneComponent* InRoot)
 	// 루트 교체
 	USceneComponent* TempRootComponent = RootComponent;
 	RootComponent = InRoot;
-	RemoveOwnedComponent(TempRootComponent);
 
 	if (RootComponent)
 	{
