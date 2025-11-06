@@ -25,10 +25,9 @@ ULuaScriptComponent::ULuaScriptComponent()
 
 ULuaScriptComponent::~ULuaScriptComponent()
 {
-	Owner->OnComponentBeginOverlap.Remove(BeginHandleLua);
-	Owner->OnComponentEndOverlap.Remove(EndHandleLua);
-	
-	Lua = nullptr;
+	// 소멸자는 EndPlay가 호출되지 않았을 경우를 대비한
+	// 최후의 안전 장치 역할을 해야 합니다.
+	CleanupLuaResources();
 }
 
 void ULuaScriptComponent::BeginPlay()
@@ -93,12 +92,7 @@ void ULuaScriptComponent::BeginPlay()
 		}
 	}
 
-	// GWorld->GetFirstPlayerCameraManager()->FadeIn(1.0, FLinearColor(0.0, 1.0, 1.0, 1.0));
-	// GWorld->GetFirstPlayerCameraManager()->StartCameraShake(/*Duration*/0.7f, /*AmpLoc*/0.4f, /*AmpRotDeg*/0.2f, /*Freq*/9.0f);
-	// GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
-	// GWorld->GetFirstPlayerCameraManager()->StartLetterBox(1, 0.5, 0.5, FLinearColor(0.3, 0.0, 0.2, 0.0));
-	// GWorld->GetFirstPlayerCameraManager()->StartVignette(4, 0.5, 0.5, 1, 3, FLinearColor(0.3, 0.7, 0.2, 0.0));
-	//GWorld->GetFirstPlayerCameraManager()->StartGamma( 1.0f);
+	bIsLuaCleanedUp = false;
 }
 
 void ULuaScriptComponent::OnBeginOverlap(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp)
@@ -193,7 +187,8 @@ void ULuaScriptComponent::TickComponent(float DeltaTime)
 
 void ULuaScriptComponent::EndPlay()
 {
-	if (FuncEndPlay.valid()) {
+	if (FuncEndPlay.valid())
+	{
 		auto Result = FuncEndPlay();
 		if (!Result.valid())
 		{
@@ -203,13 +198,46 @@ void ULuaScriptComponent::EndPlay()
 #endif
 		}
 	}
-	
-	auto* LuaVM = GetWorld()->GetLuaManager();
-	LuaVM->GetScheduler().CancelByOwner(this);  // Coroutine 일괄 종료
 
+	// BeginPlay에서 등록한 델리게이트를 대칭적으로 해제
+	if (AActor* Owner = GetOwner())
+	{
+		Owner->OnComponentBeginOverlap.Remove(BeginHandleLua);
+		Owner->OnComponentEndOverlap.Remove(EndHandleLua);
+		// Owner->OnComponentHit.Remove(HitHandleLua);
+	}
+
+	// 모든 Lua 관련 리소스 정리
+	CleanupLuaResources();
+}
+
+void ULuaScriptComponent::CleanupLuaResources()
+{
+	// 이미 정리되었다면 중복 실행 방지
+	if (bIsLuaCleanedUp)
+	{
+		return;
+	}
+
+	// GetWorld()나 LuaManager가 유효한지 확인 (소멸 시점에는 이미 없을 수 있음)
+	if (UWorld* World = GetWorld())
+	{
+		if (FLuaManager* LuaVM = World->GetLuaManager())
+		{
+			// 1. 코루틴 정리 (가장 중요. Use-After-Free 방지)
+			LuaVM->GetScheduler().CancelByOwner(this);
+		}
+	}
+
+	// 2. Lua 참조 해제
 	FuncBeginPlay = sol::nil;
-	FuncTick      = sol::nil;
+	FuncTick = sol::nil;
 	FuncOnBeginOverlap = sol::nil;
-	Env           = sol::nil;
-	Lua				 = nullptr;	
+	FuncOnEndOverlap = sol::nil;
+	FuncOnHit = sol::nil;
+	FuncEndPlay = sol::nil;
+	Env = sol::nil;
+	Lua = nullptr;
+
+	bIsLuaCleanedUp = true;
 }

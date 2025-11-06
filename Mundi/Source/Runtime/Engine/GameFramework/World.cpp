@@ -366,8 +366,11 @@ bool UWorld::DestroyActor(AActor* Actor)
 	// 선택/UI 해제
 	if (SelectionMgr) SelectionMgr->DeselectActor(Actor);
 
-	// 게임 수명 종료
-	Actor->EndPlay();
+	if (this->bPie)
+	{
+		// 게임 수명 종료
+		Actor->EndPlay();
+	}
 
 	// 컴포넌트 정리 (등록 해제 → 파괴)
 	TArray<USceneComponent*> Components = Actor->GetSceneComponents();

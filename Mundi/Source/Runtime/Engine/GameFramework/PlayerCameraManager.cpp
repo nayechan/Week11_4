@@ -39,6 +39,16 @@ namespace
 
 APlayerCameraManager::~APlayerCameraManager()
 {
+	// 남아있는 모든 모디파이어 객체를 삭제합니다.
+	for (UCameraModifierBase* Modifier : ActiveModifiers)
+	{
+		if (Modifier)
+		{
+			delete Modifier;
+		}
+	}
+	ActiveModifiers.Empty();
+
 	CurrentViewTarget = nullptr;
 	PendingViewTarget = nullptr;
 
@@ -77,12 +87,20 @@ void APlayerCameraManager::BuildForFrame(float DeltaTime)
 	for (int32 i= ActiveModifiers.Num()-1; i>=0; i--)
 	{
 		UCameraModifierBase* M = ActiveModifiers[i];
-		if (!M) { ActiveModifiers.RemoveAtSwap(i); continue; }
+		if (!M) 
+		{ 
+			ActiveModifiers.RemoveAtSwap(i); 
+			continue; 
+		}
 		
 		ActiveModifiers[i]->TickLifetime(DeltaTime);
 
 		if (M->Duration >= 0.f && !M->bEnabled)
-		{ ActiveModifiers.RemoveAtSwap(i); continue; }
+		{
+			delete M;
+			ActiveModifiers.RemoveAtSwap(i); 
+			continue; 
+		}
 	}
 
 	if (CachedViewport)

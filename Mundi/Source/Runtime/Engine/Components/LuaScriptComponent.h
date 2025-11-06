@@ -28,6 +28,8 @@ public:
 	void OnHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp);
 
 	bool Call(const char* FuncName, sol::variadic_args VarArgs); // 다른 클래스가 날 호출할 때 씀
+
+	void CleanupLuaResources();
 protected:
 	// 이 컴포넌트가 실행할 .lua 스크립트 파일의 경로 (에디터에서 설정)
 	FString ScriptFilePath{};
@@ -43,6 +45,8 @@ protected:
 	sol::protected_function FuncOnHit{};
 	sol::protected_function FuncEndPlay{};
 
-	FDelegateHandle BeginHandleLua; 
-	FDelegateHandle EndHandleLua;
+	FDelegateHandle BeginHandleLua{};
+	FDelegateHandle EndHandleLua{};
+	
+	bool bIsLuaCleanedUp = false;
 };

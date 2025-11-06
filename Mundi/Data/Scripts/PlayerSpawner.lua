@@ -40,7 +40,7 @@ end
 function MoveCameras()    
     GetCameraManager():SetViewTarget(GetComponent(GlobalConfig.Camera1, "UCameraComponent"))
     coroutine.yield("wait_time", 4)
-    -- DeleteObject(GlobalConfig.teamName)
+    DeleteObject(GlobalConfig.teamName)
     GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera2, "UCameraComponent"), 4)
     coroutine.yield("wait_time", 4)
     GetCameraManager():SetViewTargetWithBlend(GetComponent(GlobalConfig.Camera3, "UCameraComponent"), 4)
