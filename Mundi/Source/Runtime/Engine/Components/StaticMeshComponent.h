@@ -38,7 +38,6 @@ public:
 
 protected:
 	void OnTransformUpdated() override;
-	void MarkWorldPartitionDirty();
 
 protected:
 	UStaticMesh* StaticMesh = nullptr;

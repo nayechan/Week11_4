@@ -20,6 +20,9 @@ public:
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(UMeshComponent)
 
+protected:
+    void MarkWorldPartitionDirty();
+
 // Material Section
 public:
     UMaterialInterface* GetMaterial(uint32 InSectionIndex) const override;

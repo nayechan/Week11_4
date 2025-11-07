@@ -2,11 +2,8 @@
 #include "StaticMeshComponent.h"
 #include "StaticMesh.h"
 #include "Shader.h"
-#include "Texture.h"
 #include "ResourceManager.h"
 #include "ObjManager.h"
-#include "World.h"
-#include "WorldPartitionManager.h"
 #include "JsonSerializer.h"
 #include "CameraComponent.h"
 #include "MeshBatchElement.h"
@@ -215,17 +212,6 @@ void UStaticMeshComponent::OnTransformUpdated()
 {
 	Super::OnTransformUpdated();
 	MarkWorldPartitionDirty();
-}
-
-void UStaticMeshComponent::MarkWorldPartitionDirty()
-{
-	if (UWorld* World = GetWorld())
-	{
-		if (UWorldPartitionManager* Partition = World->GetPartitionManager())
-		{
-			Partition->MarkDirty(this);
-		}
-	}
 }
 
 void UStaticMeshComponent::DuplicateSubObjects()

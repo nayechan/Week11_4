@@ -4,6 +4,7 @@
 #include "ObjManager.h"
 #include "Material.h"
 #include "ResourceManager.h"
+#include "WorldPartitionManager.h"
 
 IMPLEMENT_CLASS(UMeshComponent)
 
@@ -176,6 +177,17 @@ void UMeshComponent::DuplicateSubObjects()
 		}
 		// else (원본 UMaterial 애셋인 경우)
 		// 얕은 복사된 포인터(애셋 경로)를 그대로 사용해도 안전합니다.
+	}
+}
+
+void UMeshComponent::MarkWorldPartitionDirty()
+{
+	if (UWorld* World = GetWorld())
+	{
+		if (UWorldPartitionManager* Partition = World->GetPartitionManager())
+		{
+			Partition->MarkDirty(this);
+		}
 	}
 }
 
