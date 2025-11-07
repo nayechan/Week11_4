@@ -81,6 +81,7 @@ protected:
     bool bCanEverTick = false;   // 컴포넌트 설계상 틱 지원 여부
 
     // 설정 가능한 데이터
+    UPROPERTY(EditAnywhere, Category = "렌더링")
     bool bIsActive = true;       // 활성 상태(사용자 on/off), 물리 적용
 
     UPROPERTY(EditAnywhere, Category="렌더링")

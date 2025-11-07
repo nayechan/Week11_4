@@ -9,7 +9,7 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ADecalActor)
-    MARK_AS_COMPONENT("ADecalActor", "Auto-generated component")
+    MARK_AS_SPAWNABLE("ADecalActor", "Auto-generated actor")
 END_PROPERTIES()
 
 

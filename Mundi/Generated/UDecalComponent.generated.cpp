@@ -12,6 +12,7 @@ BEGIN_PROPERTIES(UDecalComponent)
     MARK_AS_COMPONENT("UDecalComponent", "Auto-generated UDecalComponent")
     ADD_PROPERTY_TEXTURE(UTexture*, DecalTexture, "Decal", true, "데칼 텍스처입니다")
     ADD_PROPERTY_RANGE(float, DecalOpacity, "Decal", 0.0f, 1.0f, true, "데칼 불투명도입니다.")
+    ADD_PROPERTY_RANGE(float, FadeSpeed, "Decal", 0.0f, 10.0f, true, "페이드 속도입니다 (초당 변화량).")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

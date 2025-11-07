@@ -9,7 +9,7 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AEmptyActor)
-    MARK_AS_COMPONENT("AEmptyActor", "Auto-generated component")
+    MARK_AS_SPAWNABLE("AEmptyActor", "Auto-generated actor")
 END_PROPERTIES()
 
 

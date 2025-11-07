@@ -9,9 +9,9 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UPerspectiveDecalComponent)
-    MARK_AS_COMPONENT("UPerspectiveDecalComponent", "Auto-generated component")
+    MARK_AS_COMPONENT("UPerspectiveDecalComponent", "Auto-generated UPerspectiveDecalComponent")
+    ADD_PROPERTY_RANGE(float, FovY, "Decal", 1.0f, 179.0f, true, "수직 시야각 (FOV, Degrees)입니다.")
 END_PROPERTIES()
-
 
 // ===== Lua Binding =====
 

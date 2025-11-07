@@ -11,7 +11,7 @@
 BEGIN_PROPERTIES(UPointLightComponent)
     MARK_AS_COMPONENT("UPointLightComponent", "Auto-generated UPointLightComponent")
     ADD_PROPERTY_RANGE(float, SourceRadius, "Light", 0.0f, 1000.0f, true)
-    ADD_PROPERTY(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
+    ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
     ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true)
     ADD_PROPERTY_RANGE(uint32, OverrideCameraLightNum, "ShadowMap", 0.0f, 5.0f, true)
 END_PROPERTIES()

@@ -10,8 +10,8 @@
 
 BEGIN_PROPERTIES(UStaticMeshComponent)
     MARK_AS_COMPONENT("UStaticMeshComponent", "Auto-generated UStaticMeshComponent")
-    ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Mesh", true, "Static mesh asset to render")
-    ADD_PROPERTY_MATERIAL(TArray<UMaterialInterface*>, MaterialSlots, "Materials", true, "Material slots for the mesh")
+    ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Static Mesh", true, "Static mesh asset to render")
+    ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "Material slots for the mesh")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

@@ -10,7 +10,7 @@
 
 BEGIN_PROPERTIES(UDirectionalLightComponent)
     MARK_AS_COMPONENT("UDirectionalLightComponent", "Auto-generated UDirectionalLightComponent")
-    ADD_PROPERTY(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
+    ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
     ADD_PROPERTY(bool, bCascaded, "ShadowMap", true)
     ADD_PROPERTY_RANGE(int, CascadedCount, "ShadowMap", 1.0f, 8.0f, true)
     ADD_PROPERTY_RANGE(float, CascadedLinearBlendingValue, "ShadowMap", 0.0f, 1.0f, true)

@@ -9,7 +9,7 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AAmbientLightActor)
-    MARK_AS_COMPONENT("AAmbientLightActor", "Auto-generated component")
+    MARK_AS_SPAWNABLE("AAmbientLightActor", "Auto-generated actor")
 END_PROPERTIES()
 
 

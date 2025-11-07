@@ -9,7 +9,7 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AFakeSpotLightActor)
-    MARK_AS_COMPONENT("AFakeSpotLightActor", "Auto-generated component")
+    MARK_AS_SPAWNABLE("AFakeSpotLightActor", "Auto-generated actor")
 END_PROPERTIES()
 
 

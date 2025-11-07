@@ -437,6 +437,13 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
+	// 방어 코드: 유효성 검사
+	if (IsPendingDestroy())
+	{
+		UE_LOG("[warning] Serialize called on pending-destroy StaticMeshComponent");
+		return;
+	}
+
 	const FString MaterialSlotsKey = "MaterialSlots";
 
 	if (bInIsLoading) // --- 로드 ---
@@ -503,9 +510,13 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	else // --- 저장 ---
 	{
 		JSON SlotsArrayJson = JSON::Make(JSON::Class::Array);
-		for (UMaterialInterface* Mtl : MaterialSlots)
+
+		// 방어 코드: MaterialSlots의 유효성 검사
+		if (MaterialSlots.Num() > 0)
 		{
-			JSON SlotJson = JSON::Make(JSON::Class::Object);
+			for (UMaterialInterface* Mtl : MaterialSlots)
+			{
+				JSON SlotJson = JSON::Make(JSON::Class::Object);
 
 			if (Mtl == nullptr)
 			{
@@ -520,7 +531,8 @@ void UStaticMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 				Mtl->Serialize(false, SlotJson);
 			}
 
-			SlotsArrayJson.append(SlotJson);
+				SlotsArrayJson.append(SlotJson);
+			}
 		}
 		InOutHandle[MaterialSlotsKey] = SlotsArrayJson;
 	}

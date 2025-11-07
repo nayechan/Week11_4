@@ -10,7 +10,9 @@
 
 BEGIN_PROPERTIES(UAudioComponent)
     MARK_AS_COMPONENT("UAudioComponent", "Auto-generated UAudioComponent")
-    ADD_PROPERTY_AUDIO(TArray<USound*>, Sounds, "Sound", true, "Array of sound assets to play")
+    ADD_PROPERTY_ARRAY(EPropertyType::Sound, Sounds, "Sound", true, "Array of sound assets to play")
+    ADD_PROPERTY(float, Volume, "Audio", true, "Volume (0..1)")
+    ADD_PROPERTY(float, Pitch, "Audio", true, "Pitch (frequency ratio)")
     ADD_PROPERTY(bool, bIsLooping, "Audio", true, "Loop playback")
     ADD_PROPERTY(bool, bAutoPlay, "Audio", true, "Auto play on BeginPlay")
 END_PROPERTIES()

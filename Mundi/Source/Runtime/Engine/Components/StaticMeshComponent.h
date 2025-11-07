@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "MeshComponent.h"
 #include "Enums.h"
 #include "AABB.h"
@@ -58,7 +58,7 @@ protected:
 	void MarkWorldPartitionDirty();
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Mesh", Tooltip="Static mesh asset to render")
+	UPROPERTY(EditAnywhere, Category="Static Mesh", Tooltip="Static mesh asset to render")
 	UStaticMesh* StaticMesh = nullptr;
 
 	UPROPERTY(EditAnywhere, Category="Materials", Tooltip="Material slots for the mesh")

@@ -26,20 +26,7 @@ class Property:
         """타입에 맞는 ADD_PROPERTY 매크로 결정"""
         type_lower = self.type.lower()
 
-        # 포인터 타입 체크
-        if '*' in self.type:
-            if 'utexture' in type_lower:
-                return 'ADD_PROPERTY_TEXTURE'
-            elif 'ustaticmesh' in type_lower:
-                return 'ADD_PROPERTY_STATICMESH'
-            elif 'umaterial' in type_lower:
-                return 'ADD_PROPERTY_MATERIAL'
-            elif 'usound' in type_lower:
-                return 'ADD_PROPERTY_AUDIO'
-            else:
-                return 'ADD_PROPERTY'
-
-        # TArray 타입 체크
+        # TArray 타입 체크 (포인터 체크보다 먼저)
         if 'tarray' in type_lower:
             # TArray<UMaterialInterface*> 같은 형태에서 내부 타입 추출
             match = re.search(r'tarray\s*<\s*(\w+)', self.type, re.IGNORECASE)
@@ -56,6 +43,27 @@ class Property:
                 else:
                     self.metadata['inner_type'] = 'EPropertyType::ObjectPtr'
             return 'ADD_PROPERTY_ARRAY'
+
+        # 특수 타입 체크 (포인터보다 먼저)
+        if 'ucurve' in type_lower or 'fcurve' in type_lower:
+            return 'ADD_PROPERTY_CURVE'
+
+        # SRV (Shader Resource View) 타입 체크
+        if 'srv' in type_lower or 'shaderresourceview' in type_lower:
+            return 'ADD_PROPERTY_SRV'
+
+        # 포인터 타입 체크
+        if '*' in self.type:
+            if 'utexture' in type_lower:
+                return 'ADD_PROPERTY_TEXTURE'
+            elif 'ustaticmesh' in type_lower:
+                return 'ADD_PROPERTY_STATICMESH'
+            elif 'umaterial' in type_lower:
+                return 'ADD_PROPERTY_MATERIAL'
+            elif 'usound' in type_lower:
+                return 'ADD_PROPERTY_AUDIO'
+            else:
+                return 'ADD_PROPERTY'
 
         # 범위가 있는 프로퍼티
         if self.has_range:
@@ -106,14 +114,10 @@ class ClassInfo:
 class HeaderParser:
     """C++ 헤더 파일 파서"""
 
-    # 정규식 패턴
-    # UPROPERTY는 한 줄에 있다고 가정 (여러 줄 매칭 방지)
-    UPROPERTY_PATTERN = re.compile(
-        r'UPROPERTY\s*\(([^)]*)\)\s*'  # 괄호 안은 ) 전까지
-        r'([^\n;=]+?)\s+(\w+)\s*[;=]',  # 타입과 이름 (한 줄 안에서만)
-        re.MULTILINE
-    )
+    # UPROPERTY 시작 패턴 (괄호는 별도 파싱)
+    UPROPERTY_START = re.compile(r'UPROPERTY\s*\(')
 
+    # 기존 패턴들
     UFUNCTION_PATTERN = re.compile(
         r'UFUNCTION\s*\((.*?)\)\s*'
         r'(.*?)\s+(\w+)\s*\((.*?)\)\s*(const)?\s*[;{]',
@@ -127,6 +131,48 @@ class HeaderParser:
     GENERATED_REFLECTION_PATTERN = re.compile(
         r'GENERATED_REFLECTION_BODY\(\)'
     )
+
+    @staticmethod
+    def _extract_balanced_parens(text: str, start_pos: int) -> tuple[str, int]:
+        """괄호 매칭하여 내용 추출. Returns (content, end_position)"""
+        depth = 1
+        i = start_pos
+        while i < len(text) and depth > 0:
+            if text[i] == '(':
+                depth += 1
+            elif text[i] == ')':
+                depth -= 1
+            i += 1
+        return text[start_pos:i-1], i
+
+    @staticmethod
+    def _parse_uproperty_declarations(content: str):
+        """UPROPERTY 선언 찾기 (괄호 매칭 지원)"""
+        results = []
+        pos = 0
+
+        while True:
+            match = HeaderParser.UPROPERTY_START.search(content, pos)
+            if not match:
+                break
+
+            # 괄호 안 메타데이터 추출
+            metadata_start = match.end()
+            metadata, metadata_end = HeaderParser._extract_balanced_parens(content, metadata_start)
+
+            # 메타데이터 다음에 타입과 변수명 찾기
+            remaining = content[metadata_end:metadata_end+200]  # 적당한 범위만
+            # 타입과 변수명을 매칭 (초기화 부분은 무시: =...; 또는 {...}; 또는 ;)
+            var_match = re.match(r'\s*([\w<>*:,\s]+?)\s+(\w+)\s*(?:[;=]|{[^}]*};?)', remaining)
+
+            if var_match:
+                var_type = var_match.group(1).strip()
+                var_name = var_match.group(2)
+                results.append((metadata, var_type, var_name))
+
+            pos = metadata_end
+
+        return results
 
     def parse_header(self, header_path: Path) -> Optional[ClassInfo]:
         """헤더 파일 파싱"""
@@ -150,12 +196,9 @@ class HeaderParser:
             header_file=header_path
         )
 
-        # UPROPERTY 파싱
-        for match in self.UPROPERTY_PATTERN.finditer(content):
-            metadata_str = match.group(1)
-            prop_type = match.group(2).strip()
-            prop_name = match.group(3)
-
+        # UPROPERTY 파싱 (괄호 매칭 지원)
+        uproperty_decls = self._parse_uproperty_declarations(content)
+        for metadata_str, prop_type, prop_name in uproperty_decls:
             prop = self._parse_property(prop_name, prop_type, metadata_str)
             class_info.properties.append(prop)
 
@@ -172,6 +215,30 @@ class HeaderParser:
                 metadata_str, is_const
             )
             class_info.functions.append(func)
+
+        # AActor 클래스에 기본 프로퍼티 추가
+        if class_name == 'AActor':
+            object_name_prop = Property(
+                name='ObjectName',
+                type='FName',
+                category='[액터]',
+                editable=True,
+                tooltip='액터의 이름입니다'
+            )
+            # 맨 앞에 추가
+            class_info.properties.insert(0, object_name_prop)
+
+        # UActorComponent 클래스에 기본 프로퍼티 추가
+        elif class_name == 'UActorComponent':
+            object_name_prop = Property(
+                name='ObjectName',
+                type='FName',
+                category='[컴포넌트]',
+                editable=True,
+                tooltip='컴포넌트의 이름입니다'
+            )
+            # 맨 앞에 추가
+            class_info.properties.insert(0, object_name_prop)
 
         return class_info
 

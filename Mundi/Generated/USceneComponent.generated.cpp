@@ -11,6 +11,9 @@
 BEGIN_PROPERTIES(USceneComponent)
     MARK_AS_COMPONENT("USceneComponent", "Auto-generated USceneComponent")
     ADD_PROPERTY(bool, bIsVisible, "렌더링", true)
+    ADD_PROPERTY(FVector, RelativeLocation, "Transform", true)
+    ADD_PROPERTY(FVector, RelativeScale, "Transform", true)
+    ADD_PROPERTY(FVector, RelativeRotationEuler, "Transform", true)
 END_PROPERTIES()
 
 // ===== Lua Binding =====

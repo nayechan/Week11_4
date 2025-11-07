@@ -9,9 +9,9 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ULuaScriptComponent)
-    MARK_AS_COMPONENT("ULuaScriptComponent", "Auto-generated component")
+    MARK_AS_COMPONENT("ULuaScriptComponent", "Auto-generated ULuaScriptComponent")
+    ADD_PROPERTY(FString, ScriptFilePath, "Script", true, "Lua Script 파일 경로입니다")
 END_PROPERTIES()
-
 
 // ===== Lua Binding =====
 

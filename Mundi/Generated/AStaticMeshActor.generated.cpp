@@ -9,7 +9,7 @@
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AStaticMeshActor)
-    MARK_AS_COMPONENT("AStaticMeshActor", "Auto-generated component")
+    MARK_AS_SPAWNABLE("AStaticMeshActor", "Auto-generated actor")
 END_PROPERTIES()
 
 

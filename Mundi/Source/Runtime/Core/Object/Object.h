@@ -73,7 +73,29 @@ struct UClass
     void AddProperty(const FProperty& Property)
     {
         Properties.Add(Property);
+        // 프로퍼티가 추가되면 이 클래스와 모든 자식 클래스의 캐시를 무효화
+        InvalidateAllPropertiesCache();
     }
+
+private:
+    // 이 클래스와 모든 자식 클래스의 프로퍼티 캐시를 무효화
+    void InvalidateAllPropertiesCache()
+    {
+        bAllPropertiesCached = false;
+        CachedAllProperties.clear();
+
+        // 모든 자식 클래스의 캐시도 무효화
+        for (UClass* DerivedClass : GetAllClasses())
+        {
+            if (DerivedClass && DerivedClass->IsChildOf(this))
+            {
+                DerivedClass->bAllPropertiesCached = false;
+                DerivedClass->CachedAllProperties.clear();
+            }
+        }
+    }
+
+public:
 
     const TArray<FProperty>& GetProperties() const
     {

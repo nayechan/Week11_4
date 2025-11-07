@@ -10,9 +10,11 @@
 
 BEGIN_PROPERTIES(ULightComponent)
     MARK_AS_COMPONENT("ULightComponent", "Auto-generated ULightComponent")
+    ADD_PROPERTY_RANGE(float, Temperature, "Light", 1000.0f, 15000.0f, true, "조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)")
     ADD_PROPERTY_RANGE(int, ShadowResolutionScale, "Light", 512.0f, 8192.0f, true, "Shadow Resolution Scale")
     ADD_PROPERTY_RANGE(float, ShadowBias, "Light", 0.0f, 0.01f, true, "Shadow Bias")
     ADD_PROPERTY_RANGE(float, ShadowSlopeBias, "Light", 0.0f, 0.01f, true, "Shadow Slope Bias")
+    ADD_PROPERTY_RANGE(float, ShadowSharpen, "Light", 0.0f, 1.0f, true, "Shadow Sharpen - 0.0f(Soft) ~ 1.0f(Sharp)")
 END_PROPERTIES()
 
 // ===== Lua Binding =====
