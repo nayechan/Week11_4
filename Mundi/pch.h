@@ -57,6 +57,7 @@
 #include "ObjectFactory.h"
 #include "ObjectMacros.h"
 #include "Enums.h"
+#include "ResourceData.h"
 #include "GlobalConsole.h"
 #include "D3D11RHI.h"
 #include "World.h"

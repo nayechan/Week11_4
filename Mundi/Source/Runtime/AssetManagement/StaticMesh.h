@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "ResourceBase.h"
-#include "Enums.h"
 #include "MeshBVH.h"
 #include <d3d11.h>
 

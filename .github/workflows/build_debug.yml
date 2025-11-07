@@ -19,6 +19,8 @@ jobs:
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
+              with:
+                lfs: true
 
             - name: Setup MSBuild
               uses: microsoft/setup-msbuild@v2
