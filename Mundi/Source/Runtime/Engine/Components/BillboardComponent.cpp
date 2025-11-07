@@ -11,6 +11,14 @@
 #include "JsonSerializer.h"
 #include "LightComponentBase.h"
 #include "MeshBatchElement.h"
+#include "LuaBindHelpers.h"
+
+extern "C" void LuaBind_Anchor_UBillboardComponent() {}
+LUA_BIND_BEGIN(UBillboardComponent)
+{
+	AddAlias<UBillboardComponent, FString>(T, "SetTexture", &UBillboardComponent::SetTexture);
+}
+LUA_BIND_END()
 
 IMPLEMENT_CLASS(UBillboardComponent)
 

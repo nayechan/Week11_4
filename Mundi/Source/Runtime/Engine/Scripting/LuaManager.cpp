@@ -1,19 +1,28 @@
 ﻿#include "pch.h"
 #include "LuaManager.h"
+#include "LuaComponentProxy.h"
 #include "GameObject.h"
 #include "ObjectIterator.h"
 #include "CameraActor.h"
 #include "CameraComponent.h"
-#include "StaticMeshComponent.h"
 #include "BillboardComponent.h"
 #include "PlayerCameraManager.h"
 #include "AudioComponent.h"
 #include <tuple>
 
+sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class) {
+    BuildBoundClass(Class);
+    LuaComponentProxy Proxy;
+    Proxy.Instance = Instance;
+    Proxy.Class = Class;
+    return sol::make_object(SolState, std::move(Proxy));
+}
+
 FLuaManager::FLuaManager()
 {
     Lua = new sol::state();
-
+    
+    
     // Open essential standard libraries for gameplay scripts
     Lua->open_libraries(
         sol::lib::base,
@@ -363,144 +372,11 @@ sol::environment FLuaManager::CreateEnvironment()
     return Env;
 }
 
-struct FBoundProp {
-    const FProperty* Property = nullptr;
-    // TODO : 추후 세부 설정(editable, readonly...)
-};
-
-struct FBoundClassDesc { // 해당 Class에 있는 Property 목록
-    UClass* Class = nullptr;
-    TMap<FString, FBoundProp> PropsByName;  
-};
-
-static TMap<UClass*, FBoundClassDesc> GBoundClasses;
-static TMap<UClass*, sol::table> GComponentFunctionTables;
-
-struct LuaTypeIO {
-    // C++ to Lua
-    std::function<sol::object(sol::state_view, const void* Base, const FProperty&)> Read;
-    // Lua to C++
-    std::function<void(sol::object, void* Base, const FProperty&)> Write;
-};
-
-static void BuildBoundClass(UClass* Class) {
-    if (!Class) return;
-    if (GBoundClasses.count(Class)) return;
-    
-    FBoundClassDesc Desc;
-    Desc.Class = Class;
-
-    for (auto& Property : Class->GetAllProperties()) {
-        if (!Property.bIsEditAnywhere) continue;
-
-        FBoundProp BoundProp;
-        BoundProp.Property = &Property;
-        FString LuaName =Property.Name;
-
-        Desc.PropsByName.emplace(LuaName, BoundProp);
-    }
-    GBoundClasses.emplace(Class, std::move(Desc));
-}
-
-struct LuaComponentProxy {
-    void*   Instance = nullptr; /* 객체 주소 */
-    UClass* Class    = nullptr; /* 메타 정보 */
-
-    // __index : lua가 읽을 때
-    static sol::object Index(sol::this_state Lua, LuaComponentProxy& Self, const char* Key) {
-        if (!Self.Instance) return sol::nil;
-        
-        // 1. 수동으로 바인딩된 함수가 있는지 GComponentFunctionTables에서 먼저 확인합니다.
-        auto ItFuncTable = GComponentFunctionTables.find(Self.Class);
-        if (ItFuncTable != GComponentFunctionTables.end())
-        {
-            sol::table FuncTable = ItFuncTable->second;
-            sol::object Func = FuncTable.get<sol::object>(Key); // 키로 함수를 조회
-
-            if (Func.valid() && Func.get_type() == sol::type::function)
-            {
-                // 함수가 존재하면 즉시 반환합니다.
-                return Func;
-            }
-        }
-
-        auto It = GBoundClasses.find(Self.Class);
-        if (It == GBoundClasses.end()) return sol::nil;
-
-        // 이름(Key)으로 해당 Property 찾음
-        auto Iterate = It->second.PropsByName.find(Key);
-        if (Iterate == It->second.PropsByName.end()) return sol::nil;
-
-        const FBoundProp& BoundProp = Iterate->second;
-        const FProperty* Property = BoundProp.Property;
-        
-        sol::state_view State(Lua);
-
-        switch (Property->Type) {
-        /* TODO : 호환 자료형 더 늘리기*/
-        case EPropertyType::Float:  return sol::make_object(State, *Property->GetValuePtr<float>(Self.Instance));
-        case EPropertyType::Int32:  return sol::make_object(State, *Property->GetValuePtr<int>(Self.Instance));
-        case EPropertyType::FString: return sol::make_object(State, *Property->GetValuePtr<FString>(Self.Instance));
-        case EPropertyType::FVector: return sol::make_object(State, *Property->GetValuePtr<FVector>(Self.Instance));
-        default: return sol::nil;
-        }
-    }
-
-    // __newindex : lua가 쓸 때
-    static void NewIndex(LuaComponentProxy& Self, const char* Key, sol::object Obj) {
-        auto IterateClass = GBoundClasses.find(Self.Class);
-        if (IterateClass == GBoundClasses.end()) return;
-
-        auto It = IterateClass->second.PropsByName.find(Key);
-        if (It == IterateClass->second.PropsByName.end()) return;
-
-        const FBoundProp& BoundProp = It->second;
-        const FProperty* Property = BoundProp.Property;
-        
-        switch (Property->Type) {
-        case EPropertyType::Float:
-            if (Obj.get_type() == sol::type::number)
-                *Property->GetValuePtr<float>(Self.Instance) = (float)Obj.as<double>();
-            break;
-        case EPropertyType::Int32:
-            if (Obj.get_type() == sol::type::number)
-                *Property->GetValuePtr<int>(Self.Instance) = (int)Obj.as<double>();
-            break;
-        case EPropertyType::FString:
-            if (Obj.get_type() == sol::type::string)
-                *Property->GetValuePtr<FString>(Self.Instance) = Obj.as<FString>();
-            break;
-        case EPropertyType::FVector:
-            if (Obj.is<FVector>()) {
-                *Property->GetValuePtr<FVector>(Self.Instance) = Obj.as<FVector>();
-            } else if (Obj.get_type() == sol::type::table) {
-                sol::table t = Obj.as<sol::table>();
-                FVector tmp{
-                    (float)t.get_or("X", 0.0),
-                    (float)t.get_or("Y", 0.0),
-                    (float)t.get_or("Z", 0.0)
-                };
-                *Property->GetValuePtr<FVector>(Self.Instance) = tmp;
-            }
-            break;
-        default: break;
-        }
-    }
-};
-
 void FLuaManager::RegisterComponentProxy(sol::state& Lua) {
     Lua.new_usertype<LuaComponentProxy>("Component",
         sol::meta_function::index,     &LuaComponentProxy::Index,
         sol::meta_function::new_index, &LuaComponentProxy::NewIndex
     );
-}
-
-static sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class) {
-    BuildBoundClass(Class);
-    LuaComponentProxy Proxy;
-    Proxy.Instance = Instance;
-    Proxy.Class = Class;
-    return sol::make_object(SolState, std::move(Proxy));
 }
 
 void FLuaManager::ExposeAllComponentsToLua()
@@ -550,70 +426,33 @@ void FLuaManager::ExposeAllComponentsToLua()
 // 특정 컴포넌트의 함수 추가 바인딩
 void FLuaManager::ExposeComponentFunctions()
 {
-    UClass* StaticMeshCompClass = UStaticMeshComponent::StaticClass();
-    if (StaticMeshCompClass)
-    {
-        // UStaticMeshComponent용 함수 테이블을 가져오거나 생성합니다.
-        sol::table FuncTable = GComponentFunctionTables.count(StaticMeshCompClass)
-            ? GComponentFunctionTables[StaticMeshCompClass] // 이미 있다면 가져오기
-            : Lua->create_table();                          // 없다면 새로 생성
+    //// --- UBillboardComponent 바인딩 추가 ---
+    //UClass* BillboardCompClass = UBillboardComponent::StaticClass();
+    //if (BillboardCompClass)
+    //{
+    //    // UBillboardComponent용 함수 테이블을 가져오거나 생성합니다.
+    //    sol::table FuncTable = GComponentFunctionTables.count(BillboardCompClass)
+    //        ? GComponentFunctionTables[BillboardCompClass] // 이미 있다면 가져오기
+    //        : Lua->create_table();                         // 없다면 새로 생성
 
-        // SetMaterialColorByUser 바인딩
-        FuncTable.set_function("SetColor",
-            [](LuaComponentProxy& Proxy, uint32 SlotIndex, const FString& ParamName, const FLinearColor& Value)
-            {
-                if (Proxy.Instance && Proxy.Class == UStaticMeshComponent::StaticClass())
-                {
-                    auto* Comp = static_cast<UStaticMeshComponent*>(Proxy.Instance);
-                    Comp->SetMaterialColorByUser(SlotIndex, ParamName, Value);
-                }
-            }
-        );
+    //    // SetTextureName 바인딩
+    //    // (Lua에서는 더 간단하게 SetTexture로 노출)
+    //    FuncTable.set_function("SetTexture",
+    //        [](LuaComponentProxy& Proxy, const FString& TexturePath)
+    //        {
+    //            // 타입 안정성 확인
+    //            if (Proxy.Instance && Proxy.Class == UBillboardComponent::StaticClass())
+    //            {
+    //                // 실제 인스턴스로 캐스팅 후 C++ 함수 호출
+    //                auto* Comp = static_cast<UBillboardComponent*>(Proxy.Instance);
+    //                Comp->SetTexture(TexturePath);
+    //            }
+    //        }
+    //    );
 
-        // SetMaterialScalarByUser 바인딩
-        FuncTable.set_function("SetScalar",
-            [](LuaComponentProxy& Proxy, uint32 SlotIndex, const FString& ParamName, float Value)
-            {
-                if (Proxy.Instance && Proxy.Class == UStaticMeshComponent::StaticClass())
-                {
-                    auto* Comp = static_cast<UStaticMeshComponent*>(Proxy.Instance);
-                    Comp->SetMaterialScalarByUser(SlotIndex, ParamName, Value);
-                }
-            }
-        );
-
-
-        // 전역 맵에 테이블 등록 (필수)
-        GComponentFunctionTables[StaticMeshCompClass] = FuncTable;
-    }
-
-    // --- UBillboardComponent 바인딩 추가 ---
-    UClass* BillboardCompClass = UBillboardComponent::StaticClass();
-    if (BillboardCompClass)
-    {
-        // UBillboardComponent용 함수 테이블을 가져오거나 생성합니다.
-        sol::table FuncTable = GComponentFunctionTables.count(BillboardCompClass)
-            ? GComponentFunctionTables[BillboardCompClass] // 이미 있다면 가져오기
-            : Lua->create_table();                         // 없다면 새로 생성
-
-        // SetTextureName 바인딩
-        // (Lua에서는 더 간단하게 SetTexture로 노출)
-        FuncTable.set_function("SetTexture",
-            [](LuaComponentProxy& Proxy, const FString& TexturePath)
-            {
-                // 타입 안정성 확인
-                if (Proxy.Instance && Proxy.Class == UBillboardComponent::StaticClass())
-                {
-                    // 실제 인스턴스로 캐스팅 후 C++ 함수 호출
-                    auto* Comp = static_cast<UBillboardComponent*>(Proxy.Instance);
-                    Comp->SetTexture(TexturePath);
-                }
-            }
-        );
-
-        // 전역 맵에 테이블 등록 (필수)
-        GComponentFunctionTables[BillboardCompClass] = FuncTable;
-    }
+    //    // 전역 맵에 테이블 등록 (필수)
+    //    GComponentFunctionTables[BillboardCompClass] = FuncTable;
+    //}
 }
 
 void FLuaManager::ExposeGlobalFunctions()
@@ -771,27 +610,27 @@ void FLuaManager::ExposeGlobalFunctions()
     );
 
     // --- UAudioComponent bindings ---
-    UClass* AudioCompClass = UAudioComponent::StaticClass();
-    if (AudioCompClass)
-    {
-        sol::table FuncTable = GComponentFunctionTables.count(AudioCompClass)
-            ? GComponentFunctionTables[AudioCompClass]
-            : Lua->create_table();
+    //UClass* AudioCompClass = UAudioComponent::StaticClass();
+    //if (AudioCompClass)
+    //{
+    //    sol::table FuncTable = GComponentFunctionTables.count(AudioCompClass)
+    //        ? GComponentFunctionTables[AudioCompClass]
+    //        : Lua->create_table();
 
-        FuncTable.set_function("PlayOneShot",
-            [](LuaComponentProxy& Proxy, uint32 SlotIndex)
-            {
-                if (Proxy.Instance && Proxy.Class == UAudioComponent::StaticClass())
-                {
-                    auto* Comp = static_cast<UAudioComponent*>(Proxy.Instance);
-                    Comp->PlaySlot(SlotIndex);
-                    // UE_LOG("Sound Slot Index : %d", SlotIndex);
-                }
-            }
-        );
+    //    FuncTable.set_function("PlayOneShot",
+    //        [](LuaComponentProxy& Proxy, uint32 SlotIndex)
+    //        {
+    //            if (Proxy.Instance && Proxy.Class == UAudioComponent::StaticClass())
+    //            {
+    //                auto* Comp = static_cast<UAudioComponent*>(Proxy.Instance);
+    //                Comp->PlaySlot(SlotIndex);
+    //                // UE_LOG("Sound Slot Index : %d", SlotIndex);
+    //            }
+    //        }
+    //    );
 
-        GComponentFunctionTables[AudioCompClass] = FuncTable;
-    }
+    //    GComponentFunctionTables[AudioCompClass] = FuncTable;
+    //}
 }
 
 bool FLuaManager::LoadScriptInto(sol::environment& Env, const FString& Path) {
@@ -813,9 +652,10 @@ void FLuaManager::Tick(double DeltaSeconds)
 void FLuaManager::ShutdownBeforeLuaClose()
 {
     CoroutineSchedular.ShutdownBeforeLuaClose();
+    
+    FLuaBindRegistry::Get().Reset();
+    
     SharedLib = sol::nil;
-
-    GComponentFunctionTables.Empty();
 }
 
 // Lua 함수 캐시 함수
@@ -835,6 +675,3 @@ sol::protected_function FLuaManager::GetFunc(sol::environment& Env, const char* 
     
     return Func;
 }
-
-
-

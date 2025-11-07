@@ -1,11 +1,12 @@
 {
-  "Name" : "AStaticMeshActor_0",
+  "ObjectName" : "Tile",
   "OwnedComponents" : [{
-      "Id" : 836,
+      "Id" : 873,
       "MaterialSlots" : [{
           "AssetPath" : "UV_Checker",
           "Type" : "UMaterial"
         }],
+      "ObjectName" : "UStaticMeshComponent_15",
       "ParentId" : 0,
       "RelativeLocation" : [0.000000, -0.010918, 0.000000],
       "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
@@ -19,9 +20,10 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }, {
-      "BoxExtent" : [0.000000, 0.000000, 0.000000],
-      "Id" : 840,
-      "ParentId" : 836,
+      "BoxExtent" : [1.000000, 1.000000, 1.000000],
+      "Id" : 874,
+      "ObjectName" : "UBoxComponent_1",
+      "ParentId" : 873,
       "RelativeLocation" : [0.000000, 0.000000, 0.000000],
       "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
@@ -35,12 +37,13 @@
       "bShapeIsVisible" : true,
       "bTickEnabled" : true
     }, {
+      "ObjectName" : "ULuaScriptComponent_9",
       "ScriptFilePath" : "Data/Scripts/Tile.lua",
       "Type" : "ULuaScriptComponent",
       "bIsActive" : true,
       "bTickEnabled" : true
     }],
-  "RootComponentId" : 836,
+  "RootComponentId" : 873,
   "Tag" : "tile",
   "Type" : "AStaticMeshActor",
   "bActorHiddenInGame" : false,

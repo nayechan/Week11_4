@@ -23,8 +23,7 @@ public:
     
     // Env 테이블에서 Name(함수 이름) 키를 조회해서 함수로 캐스팅
     static sol::protected_function GetFunc(sol::environment& Env, const char* Name);
-
-    void BindEngineAPI();                      // FindActor, Log, Time, etc.
+    
     void Tick(double DeltaSeconds);            // 내부에서 누적 TotalTime 관리
     void ShutdownBeforeLuaClose();             // 코루틴 abandon -> Tasks 비우기
     

@@ -30,7 +30,7 @@ function BeginPlay()
 
     meshComp = GetComponent(Obj, "UStaticMeshComponent")
     if meshComp then
-        meshComp:SetColor(0, "DiffuseColor", Color(1.0, 1.0, 1.0)) -- 초기 하얀색
+        meshComp:SetColor(0, "DiffuseColor", Color(1.0, 1.0, 1.0, 1.0)) -- 초기 하얀색
     end
 
     -- Expose audio component globally for other scripts
@@ -77,9 +77,10 @@ function Tick(dt)
     local newColor = LerpColorByTime(ratio)
     meshComp:SetColor(0, "DiffuseColor", newColor)
  
-    -- if firstCall then
-    --     AudioComp:PlayOneShot(0)
-    --     firstCall = false
+    if firstCall then
+        AudioComp:PlayOneShot(0)
+        firstCall = false
+    end
     if ratio >= 0.0 and ratio < 0.33 and GlobalConfig.CoachLevel < 2 then
         if AudioComp ~= nil then 
             AudioComp:PlayOneShot(1);

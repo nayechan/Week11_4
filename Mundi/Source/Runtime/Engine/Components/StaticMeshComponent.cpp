@@ -8,11 +8,22 @@
 #include "World.h"
 #include "WorldPartitionManager.h"
 #include "JsonSerializer.h"
-#include "CameraActor.h"
 #include "CameraComponent.h"
 #include "MeshBatchElement.h"
 #include "Material.h"
 #include "SceneView.h"
+#include "LuaBindHelpers.h"
+
+extern "C" void LuaBind_Anchor_UStaticMeshComponent() {}
+LUA_BIND_BEGIN(UStaticMeshComponent)
+{
+	AddAlias<UStaticMeshComponent, uint32, const FString&, const FLinearColor&>(
+		T, "SetColor",  &UStaticMeshComponent::SetMaterialColorByUser);
+
+	AddAlias<UStaticMeshComponent, uint32, const FString&, float>(
+		T, "SetScalar", &UStaticMeshComponent::SetMaterialScalarByUser);
+}
+LUA_BIND_END()
 
 IMPLEMENT_CLASS(UStaticMeshComponent)
 

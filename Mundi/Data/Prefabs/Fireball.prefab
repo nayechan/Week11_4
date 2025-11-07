@@ -1,6 +1,7 @@
 {
-  "Name" : "AFireBallActor_0",
+  "ObjectName" : "Fireball",
   "OwnedComponents" : [{
+      "ObjectName" : "URotatingMovementComponent_43",
       "PivotTranslation" : [0.000000, 0.000000, 0.000000],
       "RotationRate" : [0.000000, 0.000000, 400.000000],
       "Type" : "URotatingMovementComponent",
@@ -8,7 +9,7 @@
       "bRotationInLocalSpace" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 1160,
+      "Id" : 1226,
       "MaterialSlots" : [{
           "Overrides" : {
             "Scalars" : {
@@ -24,6 +25,7 @@
           "ParentPath" : "Shaders/Materials/Fireball.hlsl",
           "Type" : "UMaterialInstanceDynamic"
         }],
+      "ObjectName" : "UStaticMeshComponent_99",
       "ParentId" : 0,
       "RelativeLocation" : [1.532815, -1.532816, 100.000000],
       "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
@@ -37,13 +39,15 @@
       "bIsVisible" : true,
       "bTickEnabled" : true
     }, {
+      "ObjectName" : "ULuaScriptComponent_53",
       "ScriptFilePath" : "Data/Scripts/Fireball.lua",
       "Type" : "ULuaScriptComponent",
       "bIsActive" : true,
       "bTickEnabled" : true
     }, {
-      "Id" : 1162,
-      "ParentId" : 1160,
+      "Id" : 1229,
+      "ObjectName" : "USphereComponent_41",
+      "ParentId" : 1226,
       "RelativeLocation" : [0.000000, 0.000000, 0.000000],
       "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
       "RelativeScale" : [1.000000, 1.000000, 1.000000],
@@ -58,7 +62,7 @@
       "bShapeIsVisible" : true,
       "bTickEnabled" : true
     }],
-  "RootComponentId" : 1160,
+  "RootComponentId" : 1226,
   "Tag" : "fireball",
   "Type" : "AStaticMeshActor",
   "bActorHiddenInGame" : false,

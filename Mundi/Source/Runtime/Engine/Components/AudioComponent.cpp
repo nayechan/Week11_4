@@ -7,7 +7,15 @@
 #include "../../Core/Misc/PathUtils.h"
 #include <xaudio2.h>
 #include "ResourceManager.h"
+#include "LuaBindHelpers.h"
 
+extern "C" void LuaBind_Anchor_UAudioComponent() {}
+
+LUA_BIND_BEGIN(UAudioComponent)
+{
+    AddAlias<UAudioComponent, uint32>(T, "PlayOneShot", &UAudioComponent::PlaySlot);
+}
+LUA_BIND_END()
 
 IMPLEMENT_CLASS(UAudioComponent)
 
