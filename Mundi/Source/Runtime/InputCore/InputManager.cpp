@@ -126,8 +126,24 @@ void UInputManager::ProcessMessage(HWND hWnd, UINT message, WPARAM wParam, LPARA
         if (!once) { io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; once = true; }
         
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-        IsUIHover = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered();
+        bool bAnyItemHovered = ImGui::IsAnyItemHovered();
+        IsUIHover = bAnyItemHovered;
         IsKeyBoardCapture = io.WantTextInput;
+        
+        if (IsUIHover && !bAnyItemHovered)
+        {
+            #include "ImGui/imgui_internal.h"
+            ImGuiContext* Ctx = ImGui::GetCurrentContext();
+            ImGuiWindow* Hovered = Ctx ? Ctx->HoveredWindow : nullptr;
+            if (Hovered && Hovered->Name)
+            {
+                const char* Name = Hovered->Name;
+                if (strcmp(Name, "SkeletalMeshViewport") == 0)
+                {
+                    IsUIHover = false;
+                }
+            }
+        }
         
         // 디버그 출력 (마우스 클릭 시만)
         if (bEnableDebugLogging && message == WM_LBUTTONDOWN)
