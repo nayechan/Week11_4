@@ -34,7 +34,7 @@ UResourceManager& UResourceManager::GetInstance()
 void UResourceManager::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InContext)
 {
     Device = InDevice;
-    Resources.SetNum(static_cast<uint8>(ResourceType::End));
+    Resources.SetNum(static_cast<uint8>(EResourceType::End));
 
     Context = InContext;
     //CreateGridMesh(GRIDNUM,"Grid");
@@ -558,7 +558,7 @@ void UResourceManager::CheckAndReloadShaders(float DeltaTime)
     ShaderCheckTimer = 0.0f;
 
     // Get all shader resources
-    uint8 ShaderTypeIndex = static_cast<uint8>(ResourceType::Shader);
+    uint8 ShaderTypeIndex = static_cast<uint8>(EResourceType::Shader);
     if (ShaderTypeIndex >= Resources.size())
     {
         return;

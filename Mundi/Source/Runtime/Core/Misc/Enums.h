@@ -301,12 +301,6 @@ struct FTextureData
     ID3D11BlendState* BlendState = nullptr;
 };
 
-enum class EResourceType
-{
-    VertexBuffer,
-    IndexBuffer
-};
-
 enum class EGizmoMode : uint8
 {
     Translate,
@@ -336,8 +330,7 @@ enum class EKeyInput : uint8
     Unknown
 };
 
-//TODO EResourceType으로 재정의
-enum class ResourceType : uint8
+enum class EResourceType : uint8
 {
     None,
 

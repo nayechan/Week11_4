@@ -57,7 +57,7 @@ public:
 	TArray<FString> GetAllFilePaths();
 
 	template<typename T>
-	ResourceType GetResourceType();
+	EResourceType GetResourceType();
 
 	// --- 헬퍼 및 유틸리티 ---
 	ID3D11Device* GetDevice() { return Device; }
@@ -212,7 +212,7 @@ inline UShader* UResourceManager::Load(const FString& InFilePath, TArray<FShader
 	FString NormalizedPath = NormalizePath(InFilePath);
 
 	// 2. 경로 리소스 맵 검색
-	uint8 typeIndex = static_cast<uint8>(ResourceType::Shader);
+	uint8 typeIndex = static_cast<uint8>(EResourceType::Shader);
 	auto iter = Resources[typeIndex].find(NormalizedPath);
 	if (iter != Resources[typeIndex].end())
 	{
@@ -236,26 +236,26 @@ inline UShader* UResourceManager::Load(const FString& InFilePath, TArray<FShader
 }
 
 template<typename T>
-ResourceType UResourceManager::GetResourceType()
+EResourceType UResourceManager::GetResourceType()
 {
     if (T::StaticClass() == UStaticMesh::StaticClass())
-        return ResourceType::StaticMesh;
+        return EResourceType::StaticMesh;
 	if (T::StaticClass() == UQuad::StaticClass())
-		return ResourceType::Quad;
+		return EResourceType::Quad;
 	if (T::StaticClass() == UDynamicMesh::StaticClass())
-		return ResourceType::DynamicMesh;
+		return EResourceType::DynamicMesh;
 	if (T::StaticClass() == ULineDynamicMesh::StaticClass())
-		return ResourceType::DynamicMesh; // share bucket with DynamicMesh
+		return EResourceType::DynamicMesh; // share bucket with DynamicMesh
 	if (T::StaticClass() == UShader::StaticClass())
-		return ResourceType::Shader;
+		return EResourceType::Shader;
 	if (T::StaticClass() == UTexture::StaticClass())
-		return ResourceType::Texture;
+		return EResourceType::Texture;
     if (T::StaticClass() == UMaterial::StaticClass())
-        return ResourceType::Material;
+        return EResourceType::Material;
     if (T::StaticClass() == USound::StaticClass())
-        return ResourceType::Sound;
+        return EResourceType::Sound;
 
-    return ResourceType::None;
+    return EResourceType::None;
 }
 
 // Enumerate all resources of a type T
