@@ -4,6 +4,9 @@
 #include "FViewport.h"
 #include "FViewportClient.h"
 #include "FSkeletalViewerViewportClient.h"
+#include <algorithm>
+#include "Source/Runtime/Engine/SkeletalViewer/SkeletalViewerBootstrap.h"
+#include "Source/Runtime/Engine/SkeletalViewer/ViewerState.h"
 
 SSkeletalMeshViewerWindow::SSkeletalMeshViewerWindow()
 {
@@ -12,16 +15,14 @@ SSkeletalMeshViewerWindow::SSkeletalMeshViewerWindow()
 
 SSkeletalMeshViewerWindow::~SSkeletalMeshViewerWindow()
 {
-    if (Viewport)
+    // Clean up tabs if any
+    for (int i = 0; i < Tabs.Num(); ++i)
     {
-        delete Viewport;
-        Viewport = nullptr;
+        ViewerState* State = Tabs[i];
+        SkeletalViewerBootstrap::DestroyViewerState(State);
     }
-    if (ViewportClient)
-    {
-        delete ViewportClient;
-        ViewportClient = nullptr;
-    }
+    Tabs.Empty();
+    ActiveState = nullptr;
 }
 
 bool SSkeletalMeshViewerWindow::Initialize(float StartX, float StartY, float Width, float Height, UWorld* InWorld, ID3D11Device* InDevice)
@@ -31,20 +32,12 @@ bool SSkeletalMeshViewerWindow::Initialize(float StartX, float StartY, float Wid
 
     SetRect(StartX, StartY, StartX + Width, StartY + Height);
 
-    // Create center viewport now; actual size is updated in OnUpdate via UpdatePanelLayout
-    Viewport = new FViewport();
-    if (!Viewport->Initialize(StartX, StartY, Width, Height, Device))
+    // Create first tab/state
+    OpenNewTab("Viewer 1");
+    if (ActiveState && ActiveState->Viewport)
     {
-        delete Viewport;
-        Viewport = nullptr;
-        return false;
+        ActiveState->Viewport->Resize((uint32)StartX, (uint32)StartY, (uint32)Width, (uint32)Height);
     }
-
-    ViewportClient = new FSkeletalViewerViewportClient();
-    ViewportClient->SetWorld(World);
-    ViewportClient->SetViewportType(EViewportType::Perspective);
-    ViewportClient->SetViewMode(EViewMode::VMI_Lit_Phong);
-    Viewport->SetViewportClient(ViewportClient);
 
     bRequestFocus = true;
     return true;
@@ -68,6 +61,32 @@ void SSkeletalMeshViewerWindow::OnRender()
     }
     if (ImGui::Begin("Skeletal Mesh Viewer", nullptr, flags))
     {
+        // Render tab bar and switch active state
+        if (ImGui::BeginTabBar("SkeletalViewerTabs", ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable))
+        {
+            for (int i = 0; i < Tabs.Num(); ++i)
+            {
+                ViewerState* State = Tabs[i];
+                bool open = true;
+                if (ImGui::BeginTabItem(State->Name.c_str(), &open))
+                {
+                    ActiveTabIndex = i;
+                    ActiveState = State;
+                    ImGui::EndTabItem();
+                }
+                if (!open)
+                {
+                    CloseTab(i);
+                    break;
+                }
+            }
+            if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing))
+            {
+                char label[32]; sprintf_s(label, "Viewer %d", Tabs.Num() + 1);
+                OpenNewTab(label);
+            }
+            ImGui::EndTabBar();
+        }
         ImVec2 pos = ImGui::GetWindowPos();
         ImVec2 size = ImGui::GetWindowSize();
         Rect.Left = pos.x; Rect.Top = pos.y; Rect.Right = pos.x + size.x; Rect.Bottom = pos.y + size.y; Rect.UpdateMinMax();
@@ -110,22 +129,21 @@ void SSkeletalMeshViewerWindow::OnRender()
 
     bRequestFocus = false;
 
-    if (Viewport)
+    if (ActiveState && ActiveState->Viewport)
     {
         // Ensure viewport matches current center rect before rendering
         const uint32 NewStartX = static_cast<uint32>(CenterRect.Left);
         const uint32 NewStartY = static_cast<uint32>(CenterRect.Top);
         const uint32 NewWidth  = static_cast<uint32>(CenterRect.Right - CenterRect.Left);
         const uint32 NewHeight = static_cast<uint32>(CenterRect.Bottom - CenterRect.Top);
-        Viewport->Resize(NewStartX, NewStartY, NewWidth, NewHeight);
-
-        Viewport->Render();
+        ActiveState->Viewport->Resize(NewStartX, NewStartY, NewWidth, NewHeight);
+        ActiveState->Viewport->Render();
     }
 }
 
 void SSkeletalMeshViewerWindow::OnUpdate(float DeltaSeconds)
 {
-    if (!Viewport)
+    if (!ActiveState || !ActiveState->Viewport)
         return;
 
     // Resize the internal viewport to match the center region
@@ -133,43 +151,60 @@ void SSkeletalMeshViewerWindow::OnUpdate(float DeltaSeconds)
     const uint32 NewStartY = static_cast<uint32>(CenterRect.Top);
     const uint32 NewWidth  = static_cast<uint32>(CenterRect.Right - CenterRect.Left);
     const uint32 NewHeight = static_cast<uint32>(CenterRect.Bottom - CenterRect.Top);
-    Viewport->Resize(NewStartX, NewStartY, NewWidth, NewHeight);
-
-    if (ViewportClient)
+    if (ActiveState && ActiveState->Client)
     {
-        ViewportClient->Tick(DeltaSeconds);
+        ActiveState->Client->Tick(DeltaSeconds);
     }
 }
 
 void SSkeletalMeshViewerWindow::OnMouseMove(FVector2D MousePos)
 {
-    if (!Viewport) return;
+    if (!ActiveState || !ActiveState->Viewport) return;
 
     if (CenterRect.Contains(MousePos))
     {
         FVector2D LocalPos = MousePos - FVector2D(CenterRect.Left, CenterRect.Top);
-        Viewport->ProcessMouseMove((int32)LocalPos.X, (int32)LocalPos.Y);
+        ActiveState->Viewport->ProcessMouseMove((int32)LocalPos.X, (int32)LocalPos.Y);
     }
 }
 
 void SSkeletalMeshViewerWindow::OnMouseDown(FVector2D MousePos, uint32 Button)
 {
-    if (!Viewport) return;
+    if (!ActiveState || !ActiveState->Viewport) return;
 
     if (CenterRect.Contains(MousePos))
     {
         FVector2D LocalPos = MousePos - FVector2D(CenterRect.Left, CenterRect.Top);
-        Viewport->ProcessMouseButtonDown((int32)LocalPos.X, (int32)LocalPos.Y, (int32)Button);
+        ActiveState->Viewport->ProcessMouseButtonDown((int32)LocalPos.X, (int32)LocalPos.Y, (int32)Button);
     }
 }
 
 void SSkeletalMeshViewerWindow::OnMouseUp(FVector2D MousePos, uint32 Button)
 {
-    if (!Viewport) return;
+    if (!ActiveState || !ActiveState->Viewport) return;
 
     if (CenterRect.Contains(MousePos))
     {
         FVector2D LocalPos = MousePos - FVector2D(CenterRect.Left, CenterRect.Top);
-        Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, (int32)Button);
+        ActiveState->Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, (int32)Button);
     }
+}
+
+void SSkeletalMeshViewerWindow::OpenNewTab(const char* Name)
+{
+    ViewerState* State = SkeletalViewerBootstrap::CreateViewerState(Name, World, Device);
+    if (!State) return;
+    Tabs.Add(State);
+    ActiveTabIndex = Tabs.Num() - 1;
+    ActiveState = State;
+}
+
+void SSkeletalMeshViewerWindow::CloseTab(int Index)
+{
+    if (Index < 0 || Index >= Tabs.Num()) return;
+    ViewerState* State = Tabs[Index];
+    SkeletalViewerBootstrap::DestroyViewerState(State);
+    Tabs.RemoveAt(Index);
+    if (Tabs.Num() == 0) { ActiveTabIndex = -1; ActiveState = nullptr; }
+    else { ActiveTabIndex = std::min(Index, Tabs.Num() - 1); ActiveState = Tabs[ActiveTabIndex]; }
 }

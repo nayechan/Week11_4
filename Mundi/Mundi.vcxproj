@@ -290,6 +290,8 @@
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaComponentProxy.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaManager.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\ViewerState.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\FSkeletalViewerViewportClient.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\LightManager.cpp" />
     <ClCompile Include="Source\Runtime\Renderer\PostProcessing\GammaPass.cpp" />
@@ -593,6 +595,8 @@
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaComponentProxy.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaManager.h" />
+    <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.h" />
+    <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\ViewerState.h" />
     <ClInclude Include="Source\Runtime\Renderer\FSkeletalViewerViewportClient.h" />
     <ClInclude Include="Source\Runtime\Renderer\LightManager.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AmbientLightComponent.h" />

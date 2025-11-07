@@ -1,5 +1,6 @@
 #pragma once
 #include "SWindow.h"
+#include "Source/Runtime/Engine/SkeletalViewer/ViewerState.h"
 
 class FViewport;
 class FViewportClient;
@@ -21,15 +22,22 @@ public:
     virtual void OnMouseDown(FVector2D MousePos, uint32 Button) override;
     virtual void OnMouseUp(FVector2D MousePos, uint32 Button) override;
 
-    // Accessors
-    FViewport* GetViewport() const { return Viewport; }
-    FViewportClient* GetViewportClient() const { return ViewportClient; }
+    // Accessors (active tab)
+    FViewport* GetViewport() const { return ActiveState ? ActiveState->Viewport : nullptr; }
+    FViewportClient* GetViewportClient() const { return ActiveState ? ActiveState->Client : nullptr; }
 
 private:
-    // Internal viewport + client
-    FViewport* Viewport = nullptr;
-    FViewportClient* ViewportClient = nullptr; // Will be replaced by FSkeletalViewerViewportClient
+    // Tabs
+    void OpenNewTab(const char* Name = "Viewer");
+    void CloseTab(int Index);
 
+private:
+    // Per-tab state
+    class ViewerState* ActiveState = nullptr;
+    TArray<ViewerState*> Tabs;
+    int ActiveTabIndex = -1;
+
+    // For legacy single-state flows; removed once tabs are stable
     UWorld* World = nullptr;
     ID3D11Device* Device = nullptr;
 

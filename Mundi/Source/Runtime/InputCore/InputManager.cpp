@@ -129,7 +129,8 @@ void UInputManager::ProcessMessage(HWND hWnd, UINT message, WPARAM wParam, LPARA
         bool bAnyItemHovered = ImGui::IsAnyItemHovered();
         IsUIHover = bAnyItemHovered;
         IsKeyBoardCapture = io.WantTextInput;
-        
+
+        // skeletal mesh 뷰어도 ImGui로 만들어져서 뷰포트에 인풋이 안먹히는 현상이 일어남. 일단은 이렇게 박아놓음.
         if (IsUIHover && !bAnyItemHovered)
         {
             #include "ImGui/imgui_internal.h"
