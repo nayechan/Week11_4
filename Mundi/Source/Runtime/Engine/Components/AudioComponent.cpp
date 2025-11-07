@@ -11,7 +11,7 @@
 
 //extern "C" void LuaBind_Anchor_UAudioComponent() {}
 
-
+IMPLEMENT_CLASS(UAudioComponent)
 
 UAudioComponent::UAudioComponent()
     : Volume(1.0f)
