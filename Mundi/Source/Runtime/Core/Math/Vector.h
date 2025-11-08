@@ -371,6 +371,17 @@ struct alignas(16) FVector4
 	FVector4& operator*=(float S) { SimdData = _mm_mul_ps(SimdData, _mm_set1_ps(S)); return *this; }
 	FVector4& operator/=(float S) { SimdData = _mm_div_ps(SimdData, _mm_set1_ps(S)); return *this; }
 
+	bool operator==(const FVector4& V) const
+	{
+		return std::fabs(X - V.X) < KINDA_SMALL_NUMBER &&
+			std::fabs(Y - V.Y) < KINDA_SMALL_NUMBER &&
+			std::fabs(Z - V.Z) < KINDA_SMALL_NUMBER &&
+			std::fabs(W - V.W) < KINDA_SMALL_NUMBER;
+
+	}
+
+	bool operator!=(const FVector4& Other) const { return !((*this) == Other); }
+
 	FVector4 ComponentMin(const FVector4& B) const
 	{
 		return FVector4(_mm_min_ps(this->SimdData, B.SimdData));
@@ -391,6 +402,7 @@ struct alignas(16) FVector4
 	{
 		return FVector4(D.X, D.Y, D.Z, 0.0f);
 	}
+
 };
 
 // Quaternion 정규화(+w 기준 캐논화)
