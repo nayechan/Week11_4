@@ -2,6 +2,7 @@
 #include "ObjectFactory.h"
 #include "FBXLoader.h"
 #include "fbxsdk/fileio/fbxiosettings.h"
+#include "fbxsdk/scene/geometry/fbxcluster.h"
 
 IMPLEMENT_CLASS(UFbxLoader)
 
@@ -197,7 +198,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<Fbx
 	// 2개 이상의 스킨이 들어가면 뼈 인덱스가 16개까지도 늘어남. 
 	if (InMesh->GetDeformerCount(FbxDeformer::eSkin) > 0)
 	{
-		// 클러스터: 뼈라고 봐도 됨(뼈와 그 뼈가 영향을 주는 정점과의 관계)
+		// 클러스터: 뼈라고 봐도 됨(뼈 정보와(Bind Pose 행렬) 그 뼈가 영향을 주는 정점, 가중치 저장)
 		for (int Index = 0; Index < ((FbxSkin*)InMesh->GetDeformer(0, FbxDeformer::eSkin))->GetClusterCount(); Index++)
 		{
 			FbxCluster* Cluster = ((FbxSkin*)InMesh->GetDeformer(0, FbxDeformer::eSkin))->GetCluster(Index);
@@ -206,6 +207,14 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<Fbx
 			// 클러스터가 영향을 주는 ControlPointIndex를 구함.
 			int* Indices = Cluster->GetControlPointIndices();
 			double* Weights = Cluster->GetControlPointWeights();
+
+			// Bind Pose, Inverse Bind Pose 저장.
+			FbxAMatrix BindPoseMatrix;
+			Cluster->GetTransformLinkMatrix(BindPoseMatrix);
+			FbxAMatrix BindPoseInverseMatrix = BindPoseMatrix.Inverse();
+			std::memcpy(&MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].BindPose, BindPoseMatrix, sizeof(FbxMatrix));
+			std::memcpy(&MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].InverseBindPose, BindPoseInverseMatrix, sizeof(FbxMatrix));
+			
 
 			for (int ControlPointIndex = 0; ControlPointIndex < IndexCount; ControlPointIndex++)
 			{

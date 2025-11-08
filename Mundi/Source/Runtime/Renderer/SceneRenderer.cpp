@@ -76,12 +76,12 @@ void FSceneRenderer::Render()
 {
     if (!IsValid()) return;
 
-	//static bool Loaded = false;
-	//if (!Loaded)
-	//{
-	//	UFbxLoader::GetInstance().LoadFbxMesh("C:\\Program Files\\Autodesk\\FBX\\FBX SDK\\2020.3.7\\build\\vc143_x64_dll\\Debug\\humanoid.fbx");
-	//	Loaded = true;
-	//}
+	static bool Loaded = false;
+	if (!Loaded)
+	{
+		UFbxLoader::GetInstance().LoadFbxMesh("C:\\Users\\Jungle\\Downloads\\Test3.fbx");
+		Loaded = true;
+	}
     // 뷰(View) 준비: 행렬, 절두체 등 프레임에 필요한 기본 데이터 계산
     PrepareView();
     // (Background is cleared per-path when binding scene color)
