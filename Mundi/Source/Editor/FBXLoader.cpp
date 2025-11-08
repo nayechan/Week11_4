@@ -44,7 +44,7 @@ FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
 	{
 		UE_LOG("Call to FbxImporter::Initialize() Falied\n");
 		UE_LOG("[FbxImporter::Initialize()] Error Reports: %s\n\n", Importer->GetStatus().GetErrorString());
-		return;
+		return FSkeletalMeshData();
 	}
 
 	// 임포터가 씬에 데이터를 채워줄 것임. 이름은 IoSetting과 마찬가지로 매니저가 이름으로 관리하고 Export될 때 표시할 씬 이름.
@@ -72,17 +72,28 @@ FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
 	// 루트 노드 얻어옴
 	FbxNode* RootNode = Scene->GetRootNode();
 
+	// 뼈의 인덱스를 부여, 기본적으로 FBX는 정점이 아니라 뼈 중심으로 데이터가 저장되어 있음(뼈가 몇번 ControlPoint에 영향을 주는지)
+	// 정점이 몇번 뼈의 영향을 받는지 표현하려면 직접 뼈 인덱스를 만들어야함.
+	TMap<FbxNode*, int32> BoneToIndex;
+
 	if (RootNode)
 	{
+		// 2번의 패스로 나눠서 처음엔 뼈의 인덱스를 결정하고 2번째 패스에서 뼈가 영향을 미치는 정점들을 구하고 정점마다 뼈 인덱스를 할당해 줄 것임(동시에 TPose 역행렬도 구함)
 		for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
 		{
-			LoadMeshFromNode(RootNode->GetChild(Index), MeshData);
+			LoadSkeletonFromNode(RootNode->GetChild(Index), MeshData, -1, BoneToIndex);
+		}
+		for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
+		{
+			LoadMeshFromNode(RootNode->GetChild(Index), MeshData, BoneToIndex);
 		}
 	}
+
+	return MeshData;
 }
 
 
-void UFbxLoader::LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData)
+void UFbxLoader::LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex)
 {
 
 	// 부모노드로부터 상대좌표 리턴
@@ -93,37 +104,119 @@ void UFbxLoader::LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData)
 	// Attribute 참조 함수
 	for (int Index = 0; Index < InNode->GetNodeAttributeCount(); Index++)
 	{
-		LoadMeshFromAttribute(InNode->GetNodeAttributeByIndex(Index), MeshData);
+		FbxNodeAttribute* Attribute = InNode->GetNodeAttributeByIndex(Index);
+		if (!Attribute)
+		{
+			continue;
+		}
+		
+		if (Attribute->GetAttributeType() == FbxNodeAttribute::eMesh)
+		{
+			LoadMesh((FbxMesh*)Attribute, MeshData, BoneToIndex);
+		}
+	}
+
+	for (int Index = 0; Index < InNode->GetChildCount(); Index++)
+	{
+		LoadMeshFromNode(InNode->GetChild(Index), MeshData, BoneToIndex);
 	}
 }
 
+// Skeleton은 계층구조까지 표현해야하므로 깊이 우선 탐색, ParentNodeIndex 명시.
+void UFbxLoader::LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, int32 ParentNodeIndex, TMap<FbxNode*, int32>& BoneToIndex)
+{
+	for (int Index = 0; Index < InNode->GetNodeAttributeCount(); Index++)
+	{
+		int32 BoneIndex = ParentNodeIndex;
+		FbxNodeAttribute* Attribute = InNode->GetNodeAttributeByIndex(Index);
+		if (!Attribute)
+		{
+			continue;
+		}
+
+		if (Attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton)
+		{
+			FBone BoneInfo;
+
+			BoneInfo.Name = InNode->GetName();
+			
+			BoneInfo.ParentIndex = ParentNodeIndex;
+
+			// 뼈 리스트에 추가
+			MeshData.Skeleton.Bones.Add(BoneInfo);
+			
+			// 뼈 인덱스 우리가 정해줌(방금 추가한 마지막 원소)
+			BoneIndex = MeshData.Skeleton.Bones.Num() - 1;
+			
+			// 뼈 이름으로 인덱스 서치 가능하게 함.
+			MeshData.Skeleton.BoneNameToIndex.Add(BoneInfo.Name, BoneIndex);
+
+			// 매시 로드할때 써야되서 맵에 인덱스 저장
+			BoneToIndex.Add(InNode, BoneIndex);
+		}
+
+		for (int Index = 0; Index < InNode->GetChildCount(); Index++)
+		{
+			// 깊이 우선 탐색 부모 인덱스 설정(InNOde가 eSkeleton이 아니면 기존 부모 인덱스가 넘어감(BoneIndex = ParentNodeIndex)
+			LoadSkeletonFromNode(InNode->GetChild(Index), MeshData, BoneIndex, BoneToIndex);
+		}
+	}
+}
+
+// 예시 코드
 void UFbxLoader::LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalMeshData& MeshData)
 {
 
-	if (!InAttribute)
+	/*if (!InAttribute)
 	{
 		return;
-	}
-
+	}*/
 	//FbxString TypeName = GetAttributeTypeName(InAttribute);
 	// 타입과 별개로 Element 자체의 이름도 있음
 	//FbxString AttributeName = InAttribute->GetName();
 
 	// Buffer함수로 FbxString->char* 변환
 	//UE_LOG("<Attribute Type = %s, Name = %s\n", TypeName.Buffer(), AttributeName.Buffer());
-
-	switch (InAttribute->GetAttributeType())
-	{
-	case FbxNodeAttribute::eMesh:
-	{
-		FbxMesh* Mesh = (FbxMesh*)InAttribute;
-		LoadMesh(Mesh, MeshData);
-	}
-	}
 }
 
-void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData) 
+void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex)
 {
+
+	// 위에서 뼈 인덱스를 구했으므로 일단 ControlPoint에 대응되는 뼈 인덱스와 가중치부터 할당할 것임(이후 MeshData를 채우면서 ControlPoint를 순회할 것이므로)
+	struct IndexWeight
+	{
+		uint32 BoneIndex;
+		float BoneWeight;
+	};
+	// ControlPoint에 대응하는 뼈 인덱스, 가중치를 저장하는 맵
+	// ControlPoint에 대응하는 뼈가 여러개일 수 있으므로 TArray로 저장
+	TMap<int32, TArray<IndexWeight>> ControlPointToBoneWeight;
+
+	// Deformer: 매시의 모양을 변형시키는 모든 기능, ex) skin, blendShape(모프 타겟, 두 표정 미리 만들고 블랜딩해서 서서히 변화시킴)
+	// 99.9퍼센트는 스킨이 하나만 있고 완전 복잡한 얼굴 표정을 표현하기 위해서 2개 이상을 쓰기도 하는데 0번만 쓰도록 해도 문제 없음(AAA급 게임에서 2개 이상을 처리함)
+	// 2개 이상의 스킨이 들어가면 뼈 인덱스가 16개까지도 늘어남. 
+	if (InMesh->GetDeformerCount(FbxDeformer::eSkin) > 0)
+	{
+		// 클러스터: 뼈라고 봐도 됨(뼈와 그 뼈가 영향을 주는 정점과의 관계)
+		for (int Index = 0; Index < ((FbxSkin*)InMesh->GetDeformer(0, FbxDeformer::eSkin))->GetClusterCount(); Index++)
+		{
+			FbxCluster* Cluster = ((FbxSkin*)InMesh->GetDeformer(0, FbxDeformer::eSkin))->GetCluster(Index);
+
+			int IndexCount = Cluster->GetControlPointIndicesCount();
+			// 클러스터가 영향을 주는 ControlPointIndex를 구함.
+			int* Indices = Cluster->GetControlPointIndices();
+			double* Weights = Cluster->GetControlPointWeights();
+
+			for (int ControlPointIndex = 0; ControlPointIndex < IndexCount; ControlPointIndex++)
+			{
+				// GetLink -> 아까 저장한 노드 To Index맵의 노드 (Cluster에 대응되는 뼈 인덱스를 ControlPointIndex에 대응시키는 과정)
+				// ControlPointIndex = 클러스터가 저장하는 ControlPointIndex 배열에 대한 Index
+				TArray<IndexWeight>& IndexWeightArray = ControlPointToBoneWeight[Indices[ControlPointIndex]];
+				IndexWeightArray.Add(IndexWeight(BoneToIndex[Cluster->GetLink()], Weights[ControlPointIndex]));
+			}
+		}
+	}
+
 
 	// 로드는 TriangleList를 가정하고 할 것임. 
 	// TriangleStrip은 한번 만들면 편집이 사실상 불가능함, FBX같은 호환성이 중요한 모델링 포멧이 유연성 부족한 모델을 저장할 이유도 없고
@@ -149,17 +242,25 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData)
 		// 하나의 Polygon 내에서의 VertexIndex, PolygonSize가 다를 수 있지만 위에서 삼각화를 해줬기 때문에 무조건 3임
 		for (int VertexIndex = 0; VertexIndex < InMesh->GetPolygonSize(PolygonIndex); VertexIndex++)
 		{
-			////////////////////////////////////////////// Vertex Position ////////////////////////////////////////////////
 			// 폴리곤 인덱스와 폴리곤 내에서의 vertexIndex로 ControlPointIndex 얻어냄
 			int ControlPointIndex = InMesh->GetPolygonVertex(PolygonIndex, VertexIndex);
 
 			const FbxVector4& Position = ControlPoints[ControlPointIndex];
 			SkinnedVertex.Position = FVector(Position.mData[0], Position.mData[1], Position.mData[2]);
 
-			////////////////////////////////////////////// Vertex Position ////////////////////////////////////////////////
+			
+			if (ControlPointToBoneWeight.Contains(ControlPointIndex))
+			{
+				const TArray<IndexWeight>& WeightArray = ControlPointToBoneWeight[ControlPointIndex];
+				// 5개 이상이 있어도 4개만 처리할 것임.
+				for (int BoneIndex = 0; BoneIndex < WeightArray.Num() && BoneIndex < 4; BoneIndex++)
+				{
+					// ControlPoint에 대응하는 뼈 인덱스, 가중치를 모두 저장
+					SkinnedVertex.BoneIndices[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneIndex;
+					SkinnedVertex.BoneWeights[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight;
+				}
+			}
 
-
-			////////////////////////////////////////////// Vertex Color //////////////////////////////////////////////////
 
 			// 함수명과 다르게 매시가 가진 버텍스 컬러 레이어 개수를 리턴함.( 0번 : Diffuse, 1번 : 블랜딩 마스크 , 기타..)
 			// 엔진에서는 항상 0번만 사용하거나 Count가 0임. 그래서 하나라도 있으면 그냥 0번 쓰게 함.
@@ -286,6 +387,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData)
 						const FbxVector4& Normal = Normals->GetDirectArray().GetAt(MappingIndex);
 						SkinnedVertex.Normal = FVector(Normal.mData[0], Normal.mData[1], Normal.mData[2]);
 					}
+					break;
 				default:
 					break;
 				}
@@ -305,18 +407,21 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData)
 				case FbxGeometryElement::eByControlPoint:
 					switch (UVs->GetReferenceMode())
 					{
-						case FbxGeometryElement::eDirect:
+					case FbxGeometryElement::eDirect:
 						{
 							const FbxVector2& UV = UVs->GetDirectArray().GetAt(ControlPointIndex);
 							SkinnedVertex.UV = FVector2D(UV.mData[0], UV.mData[1]);
 						}
 						break;
-						case FbxGeometryElement::eIndexToDirect:
+					case FbxGeometryElement::eIndexToDirect:
 						{
 							int Id = UVs->GetIndexArray().GetAt(ControlPointIndex);
 							const FbxVector2& UV = UVs->GetDirectArray().GetAt(ControlPointIndex);
 							SkinnedVertex.UV = FVector2D(UV.mData[0], UV.mData[1]);
 						}
+						break;
+					default:
+						break;
 					}
 					break;
 				case FbxGeometryElement::eByPolygonVertex:
@@ -357,8 +462,10 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData)
 				// 인덱스 맵에 추가
 				IndexMap.Add(SkinnedVertex, IndexOfVertex);
 			}
-			// 인덱스 리스트에 최종 인덱스 추가(Vertex 리스트와 1:1대응)
+			// 인덱스 리스트에 최종 인덱스 추가(Vertex 리스트와 대응)
 			MeshData.Indices.Add(IndexOfVertex);
+
+			
 
 			// Vertex 하나 저장했고 Vertex마다 Id를 사용하므로 +1
 			VertexId++;

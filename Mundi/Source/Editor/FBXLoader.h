@@ -12,11 +12,13 @@ public:
 
 	FSkeletalMeshData LoadFbxMesh(const FString& FilePath);
 
-	void LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData);
+	void LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex);
+
+	void LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, int32 ParentNodeIndex, TMap<FbxNode*, int32>& BoneToIndex);
 
 	void LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalMeshData& MeshData);
 
-	void LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData);
+	void LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex);
 
 	FbxString GetAttributeTypeName(FbxNodeAttribute* InAttribute);
 

@@ -69,13 +69,13 @@ struct FSkinnedVertex
 
 // 같은 Position인데 Normal이나 UV가 다른 vertex가 존재할 수 있음, 그래서 SkinnedVertex를 키로 구별해야해서 hash함수 정의함
 template <class T>
-inline void CombineHash(size_t& InSeed, T& Vertex)
+inline void CombineHash(size_t& InSeed, const T& Vertex)
 {
     std::hash<T> Hasher;
 
     InSeed ^= Hasher(Vertex) + 0x9e3779b9 + (InSeed << 6) + (InSeed >> 2);
 }
-bool operator==(const FSkinnedVertex& Vertex1, const FSkinnedVertex& Vertex2)
+inline bool operator==(const FSkinnedVertex& Vertex1, const FSkinnedVertex& Vertex2)
 {
     return std::memcmp(&Vertex1, &Vertex2, sizeof(FSkinnedVertex)) == 0;
 }
