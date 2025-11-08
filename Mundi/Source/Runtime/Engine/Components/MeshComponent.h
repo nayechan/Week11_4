@@ -1,12 +1,12 @@
 ﻿#pragma once
 #include "PrimitiveComponent.h"
+#include "UMeshComponent.generated.h"
 
 class UShader;
 
 class UMeshComponent : public UPrimitiveComponent
 {
 public:
-    DECLARE_CLASS(UMeshComponent, UPrimitiveComponent)
     GENERATED_REFLECTION_BODY()
 
     UMeshComponent();
@@ -18,7 +18,6 @@ public:
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
     
     void DuplicateSubObjects() override;
-    DECLARE_DUPLICATE(UMeshComponent)
 
 protected:
     void MarkWorldPartitionDirty();

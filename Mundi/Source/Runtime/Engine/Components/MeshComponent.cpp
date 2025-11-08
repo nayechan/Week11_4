@@ -6,24 +6,6 @@
 #include "ResourceManager.h"
 #include "WorldPartitionManager.h"
 
-IMPLEMENT_CLASS(UMeshComponent)
-
-BEGIN_PROPERTIES(UMeshComponent)
-    ADD_PROPERTY(bool, bCastShadows, "[메쉬]", true, "메쉬의 그림자 생성 여부를 설정합니다")
-	ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true)
-END_PROPERTIES()
-
-extern "C" void LuaBind_Anchor_UMeshComponent() {}
-LUA_BIND_BEGIN(UMeshComponent)
-{
-	AddAlias<UMeshComponent, uint32, const FString&, const FLinearColor&>(
-		T, "SetColor",  &UMeshComponent::SetMaterialColorByUser);
-
-	AddAlias<UMeshComponent, uint32, const FString&, float>(
-		T, "SetScalar", &UMeshComponent::SetMaterialScalarByUser);
-}
-LUA_BIND_END()
-
 UMeshComponent::UMeshComponent() = default;
 
 UMeshComponent::~UMeshComponent()
