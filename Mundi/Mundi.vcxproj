@@ -112,11 +112,7 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
-      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
-  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-) else (
-  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-)</Command>
+      <Command>"$(ProjectDir)Tools\CodeGenerator\RunCodeGen.bat" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -144,11 +140,7 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
-      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
-  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-) else (
-  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-)</Command>
+      <Command>"$(ProjectDir)Tools\CodeGenerator\RunCodeGen.bat" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -179,11 +171,7 @@
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
-  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-) else (
-  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-)</Command>
+      <Command>"$(ProjectDir)Tools\CodeGenerator\RunCodeGen.bat" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -214,11 +202,7 @@
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
-  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-) else (
-  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
-)</Command>
+      <Command>"$(ProjectDir)Tools\CodeGenerator\RunCodeGen.bat" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
