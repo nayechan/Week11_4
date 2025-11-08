@@ -5,6 +5,7 @@
 #include "AStaticMeshActor.generated.h"
 
 class UStaticMeshComponent;
+UCLASS(DisplayName="스태틱 메시", Description="정적 메시를 배치하는 액터입니다")
 class AStaticMeshActor : public AActor
 {
 public:

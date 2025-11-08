@@ -34,7 +34,7 @@ const bool AAmbientLightActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AAmbientLightActor)
-    MARK_AS_SPAWNABLE("AAmbientLightActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("앰비언트 라이트", "전역 조명을 생성하는 액터입니다")
 END_PROPERTIES()
 
 

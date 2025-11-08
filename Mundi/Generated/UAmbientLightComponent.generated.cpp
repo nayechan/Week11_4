@@ -34,7 +34,7 @@ const bool UAmbientLightComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAmbientLightComponent)
-    MARK_AS_COMPONENT("UAmbientLightComponent", "Auto-generated component")
+    MARK_AS_COMPONENT("앰비언트 라이트 컴포넌트", "전역 조명 컴포넌트입니다")
 END_PROPERTIES()
 
 

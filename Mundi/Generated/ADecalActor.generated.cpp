@@ -34,7 +34,7 @@ const bool ADecalActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ADecalActor)
-    MARK_AS_SPAWNABLE("ADecalActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("데칼", "표면에 데칼을 투영하는 액터입니다")
 END_PROPERTIES()
 
 

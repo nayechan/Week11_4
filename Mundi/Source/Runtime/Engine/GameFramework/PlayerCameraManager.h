@@ -10,6 +10,7 @@ class FViewport;
 class URenderSettings;
 class UCamMod_Fade;
 
+UCLASS(DisplayName="APlayerCameraManager", Description="APlayerCameraManager 액터")
 class APlayerCameraManager : public AActor
 {
 

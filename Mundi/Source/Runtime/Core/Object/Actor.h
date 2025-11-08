@@ -15,6 +15,7 @@ class UTextRenderComponent;
 class UBillboardComponent;
 class FGameObject;
 
+UCLASS(DisplayName="AActor", Description="AActor 액터")
 class AActor : public UObject
 {
 public:

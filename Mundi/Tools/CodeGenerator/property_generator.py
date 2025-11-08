@@ -48,12 +48,16 @@ class PropertyGenerator:
         else:
             mark_type = 'COMPONENT'  # 그 외 (컴포넌트 등)
 
+        # DisplayName과 Description 결정
+        display_name = class_info.display_name or class_info.name
+        description = class_info.description or f"Auto-generated {class_info.name}"
+
         if not class_info.properties:
             # 프로퍼티가 없어도 기본 블록은 생성
             if mark_type == 'SPAWNABLE':
-                mark_line = f'    MARK_AS_SPAWNABLE("{class_info.name}", "Auto-generated actor")'
+                mark_line = f'    MARK_AS_SPAWNABLE("{display_name}", "{description}")'
             elif mark_type == 'COMPONENT':
-                mark_line = f'    MARK_AS_COMPONENT("{class_info.name}", "Auto-generated component")'
+                mark_line = f'    MARK_AS_COMPONENT("{display_name}", "{description}")'
             else:
                 mark_line = ''
 

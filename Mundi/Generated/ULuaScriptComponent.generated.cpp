@@ -34,7 +34,7 @@ const bool ULuaScriptComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ULuaScriptComponent)
-    MARK_AS_COMPONENT("ULuaScriptComponent", "Auto-generated ULuaScriptComponent")
+    MARK_AS_COMPONENT("Lua 스크립트 컴포넌트", "Lua 스크립트를 실행하는 컴포넌트입니다")
     ADD_PROPERTY(FString, ScriptFilePath, "Script", true, "Lua Script 파일 경로입니다")
 END_PROPERTIES()
 

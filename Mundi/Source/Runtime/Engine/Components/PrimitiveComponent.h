@@ -17,6 +17,7 @@ struct FOverlapInfo
     UPrimitiveComponent* Other = nullptr;
 };
 
+UCLASS(DisplayName="프리미티브 컴포넌트", Description="렌더링 가능한 기본 컴포넌트입니다")
 class UPrimitiveComponent :public USceneComponent
 {
 public:

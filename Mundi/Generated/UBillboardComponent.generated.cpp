@@ -34,7 +34,7 @@ const bool UBillboardComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UBillboardComponent)
-    MARK_AS_COMPONENT("UBillboardComponent", "Auto-generated UBillboardComponent")
+    MARK_AS_COMPONENT("빌보드 컴포넌트", "항상 카메라를 향하는 스프라이트 컴포넌트입니다")
     ADD_PROPERTY_TEXTURE(UTexture*, Texture, "Billboard", true)
 END_PROPERTIES()
 

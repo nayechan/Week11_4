@@ -34,7 +34,7 @@ const bool USpotLightComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(USpotLightComponent)
-    MARK_AS_COMPONENT("USpotLightComponent", "Auto-generated USpotLightComponent")
+    MARK_AS_COMPONENT("스포트 라이트 컴포넌트", "원뿔 조명 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, InnerConeAngle, "Light", 0.0f, 90.0f, true)
     ADD_PROPERTY_RANGE(float, OuterConeAngle, "Light", 0.0f, 90.0f, true)
 END_PROPERTIES()

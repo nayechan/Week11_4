@@ -5,6 +5,7 @@
 
 class UAmbientLightComponent;
 
+UCLASS(DisplayName="앰비언트 라이트", Description="전역 조명을 생성하는 액터입니다")
 class AAmbientLightActor : public AActor
 {
 public:

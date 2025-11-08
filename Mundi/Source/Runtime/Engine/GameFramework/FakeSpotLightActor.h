@@ -6,6 +6,7 @@
 class UBillboardComponent;
 class UPerspectiveDecalComponent;
 
+UCLASS(DisplayName="가짜 스포트 라이트", Description="테스트용 스포트 라이트 액터입니다")
 class AFakeSpotLightActor : public AActor
 {
 public:

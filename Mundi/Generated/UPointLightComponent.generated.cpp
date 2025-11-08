@@ -34,7 +34,7 @@ const bool UPointLightComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UPointLightComponent)
-    MARK_AS_COMPONENT("UPointLightComponent", "Auto-generated UPointLightComponent")
+    MARK_AS_COMPONENT("포인트 라이트 컴포넌트", "점광원 조명 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, SourceRadius, "Light", 0.0f, 1000.0f, true)
     ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
     ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true)

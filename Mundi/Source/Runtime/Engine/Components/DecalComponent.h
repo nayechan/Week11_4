@@ -18,6 +18,7 @@ struct FDecalProjectionData;
  * - Rotation: Decal의 투영 방향 (Forward = -Z 방향으로 투영)
  * - Scale: Decal volume의 크기 (X=Width, Y=Height, Z=Depth)
  */
+UCLASS(DisplayName = "데칼 컴포넌트", Description = "2D텍스쳐를 덧 씌워그리는 데칼 컴포넌트입니다.")
 class UDecalComponent : public UPrimitiveComponent
 {
 public:
@@ -33,6 +34,7 @@ public:
 	virtual void RenderDebugVolume(URenderer* Renderer) const override;
 
 	// Decal Resource API
+	
 	void SetDecalTexture(UTexture* InTexture);
 	void SetDecalTexture(const FString& TexturePath);
 	UTexture* GetDecalTexture() const { return DecalTexture; }
@@ -62,7 +64,7 @@ public:
 	void OnRegister(UWorld* InWorld) override;
 
 private:
-	UPROPERTY(EditAnywhere, Category="Decal", Tooltip="데칼 텍스처입니다")
+	//UPROPERTY(EditAnywhere, Category="Decal", Tooltip="데칼 텍스처입니다")
 	UTexture* DecalTexture = nullptr;
 
 	UGizmoArrowComponent* DirectionGizmo = nullptr;

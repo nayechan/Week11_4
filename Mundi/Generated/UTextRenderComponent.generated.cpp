@@ -34,7 +34,7 @@ const bool UTextRenderComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UTextRenderComponent)
-    MARK_AS_COMPONENT("UTextRenderComponent", "Auto-generated component")
+    MARK_AS_COMPONENT("텍스트 렌더 컴포넌트", "3D 공간에 텍스트를 렌더링하는 컴포넌트입니다")
 END_PROPERTIES()
 
 

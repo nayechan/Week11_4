@@ -53,6 +53,10 @@ struct TPropertyTypeTraits
 // 사용법: UFUNCTION(LuaBind, DisplayName="SetColor")
 #define UFUNCTION(...)
 
+// 클래스 메타데이터 마커
+// 사용법: UCLASS(DisplayName="방향성 라이트", Description="태양광과 같은 평행광 액터")
+#define UCLASS(...)
+
 // ===== 리플렉션 매크로 (수동 등록 방식) =====
 
 // 헤더 파일에서 사용: 클래스 선언 + 리플렉션 등록 함수 선언 + 자동 호출

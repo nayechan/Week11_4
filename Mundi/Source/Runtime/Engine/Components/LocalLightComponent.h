@@ -4,6 +4,7 @@
 #include "ULocalLightComponent.generated.h"
 
 // 위치 기반 로컬 라이트의 공통 베이스 (Point, Spot)
+UCLASS(DisplayName="로컬 라이트 컴포넌트", Description="국소 조명 컴포넌트입니다")
 class ULocalLightComponent : public ULightComponent
 {
 public:

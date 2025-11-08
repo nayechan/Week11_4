@@ -34,7 +34,7 @@ const bool UTestAutoBindComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UTestAutoBindComponent)
-    MARK_AS_COMPONENT("UTestAutoBindComponent", "Auto-generated UTestAutoBindComponent")
+    MARK_AS_COMPONENT("테스트 자동 바인딩 컴포넌트", "자동 바인딩 테스트용 컴포넌트입니다")
     ADD_PROPERTY(float, Intensity, "Test", true, "Test intensity value")
     ADD_PROPERTY_RANGE(float, Percentage, "Test", 0.0f, 100.0f, true, "Test percentage")
     ADD_PROPERTY(bool, bEnabled, "Test", true)

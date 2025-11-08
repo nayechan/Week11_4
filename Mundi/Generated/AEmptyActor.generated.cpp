@@ -34,7 +34,7 @@ const bool AEmptyActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AEmptyActor)
-    MARK_AS_SPAWNABLE("AEmptyActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("빈 액터", "기본 빈 액터입니다")
 END_PROPERTIES()
 
 

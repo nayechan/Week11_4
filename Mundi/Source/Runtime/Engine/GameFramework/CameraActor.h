@@ -6,6 +6,7 @@ class UCameraComponent;
 class UUIManager;
 class UInputManager;
 
+UCLASS(DisplayName="카메라", Description="씬을 렌더링할 카메라 액터입니다")
 class ACameraActor : public AActor
 {
 public:

@@ -34,7 +34,7 @@ const bool APlayerCameraManager::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(APlayerCameraManager)
-    MARK_AS_SPAWNABLE("APlayerCameraManager", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("APlayerCameraManager", "APlayerCameraManager 액터")
 END_PROPERTIES()
 
 

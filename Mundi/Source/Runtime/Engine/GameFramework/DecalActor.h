@@ -5,6 +5,7 @@
 
 class UDecalComponent;
 
+UCLASS(DisplayName="데칼", Description="표면에 데칼을 투영하는 액터입니다")
 class ADecalActor : public AActor
 {
 public:

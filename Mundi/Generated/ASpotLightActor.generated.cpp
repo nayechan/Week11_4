@@ -34,7 +34,7 @@ const bool ASpotLightActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ASpotLightActor)
-    MARK_AS_SPAWNABLE("ASpotLightActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("스포트 라이트", "원뿔 모양의 조명을 생성하는 액터입니다")
 END_PROPERTIES()
 
 

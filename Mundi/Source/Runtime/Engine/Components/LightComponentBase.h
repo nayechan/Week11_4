@@ -6,6 +6,7 @@
 #include "ULightComponentBase.generated.h"
 
 // 모든 라이트 컴포넌트의 베이스 클래스
+UCLASS(DisplayName="라이트 베이스 컴포넌트", Description="모든 조명의 기본 컴포넌트입니다")
 class ULightComponentBase : public USceneComponent
 {
 public:

@@ -7,6 +7,7 @@
 
 struct FLinearColor;
 
+UCLASS(DisplayName="높이 안개 컴포넌트", Description="높이 기반 안개 컴포넌트입니다")
 class UHeightFogComponent : public USceneComponent
 {
 public:

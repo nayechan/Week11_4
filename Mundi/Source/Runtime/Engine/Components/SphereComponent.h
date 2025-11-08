@@ -3,6 +3,7 @@
 #include "ShapeComponent.h"
 #include "USphereComponent.generated.h"
 
+UCLASS(DisplayName="구체 컴포넌트", Description="구체 모양 충돌 컴포넌트입니다")
 class USphereComponent : public UShapeComponent
 {
 public:

@@ -34,7 +34,7 @@ const bool ADirectionalLightActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ADirectionalLightActor)
-    MARK_AS_SPAWNABLE("ADirectionalLightActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("방향성 라이트", "태양광과 같은 평행광을 생성하는 액터입니다")
 END_PROPERTIES()
 
 

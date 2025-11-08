@@ -34,7 +34,7 @@ const bool USphereComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(USphereComponent)
-    MARK_AS_COMPONENT("USphereComponent", "Auto-generated USphereComponent")
+    MARK_AS_COMPONENT("구체 컴포넌트", "구체 모양 충돌 컴포넌트입니다")
     ADD_PROPERTY(float, SphereRadius, "SphereRaidus", true)
 END_PROPERTIES()
 

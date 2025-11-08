@@ -34,7 +34,7 @@ const bool AFakeSpotLightActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AFakeSpotLightActor)
-    MARK_AS_SPAWNABLE("AFakeSpotLightActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("가짜 스포트 라이트", "테스트용 스포트 라이트 액터입니다")
 END_PROPERTIES()
 
 

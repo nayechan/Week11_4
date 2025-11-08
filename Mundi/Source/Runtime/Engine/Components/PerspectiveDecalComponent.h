@@ -10,6 +10,7 @@ struct FOBB;
 class UTexture;
 struct FDecalProjectionData;
 
+UCLASS(DisplayName="원근 데칼 컴포넌트", Description="원근 투영 데칼 컴포넌트입니다")
 class UPerspectiveDecalComponent : public UDecalComponent
 {
 public:

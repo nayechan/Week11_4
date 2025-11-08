@@ -34,7 +34,7 @@ const bool AStaticMeshActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AStaticMeshActor)
-    MARK_AS_SPAWNABLE("AStaticMeshActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("스태틱 메시", "정적 메시를 배치하는 액터입니다")
 END_PROPERTIES()
 
 

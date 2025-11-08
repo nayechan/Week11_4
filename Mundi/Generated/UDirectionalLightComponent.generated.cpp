@@ -34,7 +34,7 @@ const bool UDirectionalLightComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UDirectionalLightComponent)
-    MARK_AS_COMPONENT("UDirectionalLightComponent", "Auto-generated UDirectionalLightComponent")
+    MARK_AS_COMPONENT("방향성 라이트 컴포넌트", "평행광 조명 컴포넌트입니다")
     ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
     ADD_PROPERTY(bool, bCascaded, "ShadowMap", true)
     ADD_PROPERTY_RANGE(int, CascadedCount, "ShadowMap", 1.0f, 8.0f, true)

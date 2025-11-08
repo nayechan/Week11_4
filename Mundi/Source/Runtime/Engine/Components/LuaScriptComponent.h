@@ -10,6 +10,7 @@ using state = sol::state;
 
 class USceneComponent;
 
+UCLASS(DisplayName="Lua 스크립트 컴포넌트", Description="Lua 스크립트를 실행하는 컴포넌트입니다")
 class ULuaScriptComponent : public UActorComponent
 {
 public:

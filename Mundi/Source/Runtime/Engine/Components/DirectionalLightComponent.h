@@ -5,6 +5,7 @@
 #include "UDirectionalLightComponent.generated.h"
 
 // 방향성 라이트 (태양광 같은 평행광)
+UCLASS(DisplayName="방향성 라이트 컴포넌트", Description="평행광 조명 컴포넌트입니다")
 class UDirectionalLightComponent : public ULightComponent
 {
 public:

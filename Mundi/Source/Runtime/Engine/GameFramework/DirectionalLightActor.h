@@ -5,10 +5,9 @@
 
 class UDirectionalLightComponent;
 
+UCLASS(DisplayName="방향성 라이트", Description="태양광과 같은 평행광을 생성하는 액터입니다")
 class ADirectionalLightActor : public AActor
 {
-public:
-
 	GENERATED_REFLECTION_BODY()
 
 	ADirectionalLightActor();

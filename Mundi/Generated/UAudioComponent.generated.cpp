@@ -34,7 +34,7 @@ const bool UAudioComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UAudioComponent)
-    MARK_AS_COMPONENT("UAudioComponent", "Auto-generated UAudioComponent")
+    MARK_AS_COMPONENT("오디오 컴포넌트", "사운드를 재생하는 컴포넌트입니다")
     ADD_PROPERTY_ARRAY(EPropertyType::Sound, Sounds, "Sound", true, "Array of sound assets to play")
     ADD_PROPERTY(float, Volume, "Audio", true, "Volume (0..1)")
     ADD_PROPERTY(float, Pitch, "Audio", true, "Pitch (frequency ratio)")

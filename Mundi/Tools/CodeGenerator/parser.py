@@ -109,6 +109,7 @@ class ClassInfo:
     is_spawnable: bool = False
     display_name: str = ""
     description: str = ""
+    uclass_metadata: Dict[str, str] = field(default_factory=dict)
 
 
 class HeaderParser:
@@ -116,6 +117,9 @@ class HeaderParser:
 
     # UPROPERTY 시작 패턴 (괄호는 별도 파싱)
     UPROPERTY_START = re.compile(r'UPROPERTY\s*\(')
+
+    # UCLASS 시작 패턴
+    UCLASS_START = re.compile(r'UCLASS\s*\(')
 
     # 기존 패턴들
     UFUNCTION_PATTERN = re.compile(
@@ -214,6 +218,19 @@ class HeaderParser:
             header_file=header_path
         )
 
+        # UCLASS 메타데이터 파싱
+        uclass_match = self.UCLASS_START.search(content)
+        if uclass_match:
+            metadata_start = uclass_match.end()
+            metadata, _ = self._extract_balanced_parens(content, metadata_start)
+            class_info.uclass_metadata = self._parse_metadata(metadata)
+
+            # DisplayName과 Description 추출
+            if 'DisplayName' in class_info.uclass_metadata:
+                class_info.display_name = class_info.uclass_metadata['DisplayName']
+            if 'Description' in class_info.uclass_metadata:
+                class_info.description = class_info.uclass_metadata['Description']
+
         # UPROPERTY 파싱 (괄호 매칭 지원)
         uproperty_decls = self._parse_uproperty_declarations(content)
         for metadata_str, prop_type, prop_name in uproperty_decls:
@@ -259,6 +276,18 @@ class HeaderParser:
             class_info.properties.insert(0, object_name_prop)
 
         return class_info
+
+    def _parse_metadata(self, metadata: str) -> Dict[str, str]:
+        """메타데이터 문자열을 파싱하여 딕셔너리로 반환"""
+        result = {}
+
+        # Key="Value" 패턴 찾기
+        for match in re.finditer(r'(\w+)\s*=\s*"([^"]+)"', metadata):
+            key = match.group(1)
+            value = match.group(2)
+            result[key] = value
+
+        return result
 
     def _parse_property(self, name: str, type_str: str, metadata: str) -> Property:
         """프로퍼티 메타데이터 파싱"""

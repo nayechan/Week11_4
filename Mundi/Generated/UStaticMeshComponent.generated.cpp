@@ -34,7 +34,7 @@ const bool UStaticMeshComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UStaticMeshComponent)
-    MARK_AS_COMPONENT("UStaticMeshComponent", "Auto-generated UStaticMeshComponent")
+    MARK_AS_COMPONENT("스태틱 메시 컴포넌트", "정적 메시를 렌더링하는 컴포넌트입니다")
     ADD_PROPERTY_STATICMESH(UStaticMesh*, StaticMesh, "Static Mesh", true, "Static mesh asset to render")
     ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "Material slots for the mesh")
 END_PROPERTIES()

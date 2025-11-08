@@ -26,6 +26,7 @@ struct FShape
 	};
 }; 
 
+UCLASS(DisplayName="셰이프 컴포넌트", Description="충돌 모양 기본 컴포넌트입니다")
 class UShapeComponent : public UPrimitiveComponent
 { 
 public:  

@@ -5,6 +5,7 @@
 class AActor;
 class UWorld;
 
+UCLASS(DisplayName="UActorComponent", Description="UActorComponent 컴포넌트")
 class UActorComponent : public UObject
 {
 public:

@@ -9,6 +9,7 @@
  * 지정된 속도로 UpdatedComponent를 회전시키는 컴포넌트
  * 로컬 공간과 월드 공간 회전을 모두 지원
  */
+UCLASS(DisplayName="회전 이동 컴포넌트", Description="자동 회전 컴포넌트입니다")
 class URotatingMovementComponent : public UMovementComponent
 {
 public:

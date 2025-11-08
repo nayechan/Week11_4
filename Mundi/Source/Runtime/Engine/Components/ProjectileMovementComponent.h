@@ -12,6 +12,7 @@ class USceneComponent;
  * 발사체(Projectile)의 움직임을 시뮬레이션하는 컴포넌트
  * 중력, 바운스, 호밍 등의 기능을 지원
  */
+UCLASS(DisplayName="발사체 이동 컴포넌트", Description="발사체 물리 이동 컴포넌트입니다")
 class UProjectileMovementComponent : public UMovementComponent
 {
 public:

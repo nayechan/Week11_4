@@ -34,7 +34,7 @@ const bool UMyComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UMyComponent)
-    MARK_AS_COMPONENT("UMyComponent", "Auto-generated component")
+    MARK_AS_COMPONENT("방향성 라이트", "태양광과 같은 평행광 액터")
 END_PROPERTIES()
 
 
@@ -45,6 +45,10 @@ extern "C" void LuaBind_Anchor_UMyComponent() {}
 LUA_BIND_BEGIN(UMyComponent)
 {
     AddMethodR<#define, UMyComponent, ...)
+
+// 클래스 메타데이터 마커
+// 사용법: UCLASS(DisplayName="방향성, Description="태양광과 같은 평행광 액터")
+#define UCLASS(...)
 
 // ===== 리플렉션 매크로 (수동 등록 방식) =====
 

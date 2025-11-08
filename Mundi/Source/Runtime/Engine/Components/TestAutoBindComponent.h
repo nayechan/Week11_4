@@ -8,6 +8,7 @@
  * 자동 바인딩 테스트용 컴포넌트
  * UPROPERTY와 UFUNCTION 매크로 테스트
  */
+UCLASS(DisplayName="테스트 자동 바인딩 컴포넌트", Description="자동 바인딩 테스트용 컴포넌트입니다")
 class UTestAutoBindComponent : public USceneComponent
 {
 

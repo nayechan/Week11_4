@@ -5,6 +5,7 @@
 #include "UAmbientLightComponent.generated.h"
 
 // 환경광 (전역 조명)
+UCLASS(DisplayName="앰비언트 라이트 컴포넌트", Description="전역 조명 컴포넌트입니다")
 class UAmbientLightComponent : public ULightComponent
 {
 public:

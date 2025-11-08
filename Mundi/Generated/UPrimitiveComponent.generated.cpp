@@ -34,7 +34,7 @@ const bool UPrimitiveComponent::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(UPrimitiveComponent)
-    MARK_AS_COMPONENT("UPrimitiveComponent", "Auto-generated UPrimitiveComponent")
+    MARK_AS_COMPONENT("프리미티브 컴포넌트", "렌더링 가능한 기본 컴포넌트입니다")
     ADD_PROPERTY(bool, bGenerateOverlapEvents, "Shape", true)
     ADD_PROPERTY(bool, bBlockComponent, "Shape", true)
 END_PROPERTIES()

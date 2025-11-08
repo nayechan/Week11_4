@@ -8,6 +8,7 @@ class FSceneView;
 struct FShadowRenderRequest;
 
 // 실제 조명 효과를 가진 라이트들의 공통 베이스
+UCLASS(DisplayName="라이트 컴포넌트", Description="기본 조명 컴포넌트입니다")
 class ULightComponent : public ULightComponentBase
 {
 public:

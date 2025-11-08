@@ -2,6 +2,7 @@
 
 #include "MeshComponent.h"
 #include "UTextRenderComponent.generated.h"
+UCLASS(DisplayName="텍스트 렌더 컴포넌트", Description="3D 공간에 텍스트를 렌더링하는 컴포넌트입니다")
 class UTextRenderComponent : public UPrimitiveComponent
 {
 public:

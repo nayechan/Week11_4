@@ -5,6 +5,7 @@
 #include "UPointLightComponent.generated.h"
 
 // 점광원 (모든 방향으로 균등하게 빛 방출)
+UCLASS(DisplayName="포인트 라이트 컴포넌트", Description="점광원 조명 컴포넌트입니다")
 class UPointLightComponent : public ULocalLightComponent
 {
 public:

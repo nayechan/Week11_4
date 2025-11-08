@@ -3,6 +3,7 @@
 #include "SceneComponent.h"
 #include "UCameraComponent.generated.h"
 
+UCLASS(DisplayName="카메라 컴포넌트", Description="카메라 뷰포트 컴포넌트입니다")
 class UCameraComponent : public USceneComponent
 {
 public:

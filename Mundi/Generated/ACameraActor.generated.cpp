@@ -34,7 +34,7 @@ const bool ACameraActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(ACameraActor)
-    MARK_AS_SPAWNABLE("ACameraActor", "Auto-generated actor")
+    MARK_AS_SPAWNABLE("카메라", "씬을 렌더링할 카메라 액터입니다")
 END_PROPERTIES()
 
 

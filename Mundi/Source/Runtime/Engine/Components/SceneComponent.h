@@ -12,6 +12,7 @@ enum class EAttachmentRule
 };
 
 class URenderer;
+UCLASS(DisplayName="씬 컴포넌트", Description="트랜스폼을 가진 기본 컴포넌트입니다")
 class USceneComponent : public UActorComponent
 {
 public:

@@ -7,6 +7,7 @@
 class UCameraComponent;
 
 // 스포트라이트 (원뿔 형태로 빛 방출)
+UCLASS(DisplayName="스포트 라이트 컴포넌트", Description="원뿔 조명 컴포넌트입니다")
 class USpotLightComponent : public UPointLightComponent
 {
 public:
