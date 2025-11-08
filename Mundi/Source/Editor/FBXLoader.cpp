@@ -126,9 +126,10 @@ void UFbxLoader::LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, 
 // Skeleton은 계층구조까지 표현해야하므로 깊이 우선 탐색, ParentNodeIndex 명시.
 void UFbxLoader::LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, int32 ParentNodeIndex, TMap<FbxNode*, int32>& BoneToIndex)
 {
+	int32 BoneIndex = ParentNodeIndex;
 	for (int Index = 0; Index < InNode->GetNodeAttributeCount(); Index++)
 	{
-		int32 BoneIndex = ParentNodeIndex;
+		
 		FbxNodeAttribute* Attribute = InNode->GetNodeAttributeByIndex(Index);
 		if (!Attribute)
 		{
@@ -137,9 +138,9 @@ void UFbxLoader::LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshDa
 
 		if (Attribute->GetAttributeType() == FbxNodeAttribute::eSkeleton)
 		{
-			FBone BoneInfo;
+			FBone BoneInfo{};
 
-			BoneInfo.Name = InNode->GetName();
+			BoneInfo.Name = FString(InNode->GetName());
 			
 			BoneInfo.ParentIndex = ParentNodeIndex;
 
@@ -154,13 +155,14 @@ void UFbxLoader::LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshDa
 
 			// 매시 로드할때 써야되서 맵에 인덱스 저장
 			BoneToIndex.Add(InNode, BoneIndex);
+			// 뼈가 노드 하나에 여러개 있는 경우는 없음. 말이 안되는 상황임.
+			break;
 		}
-
-		for (int Index = 0; Index < InNode->GetChildCount(); Index++)
-		{
-			// 깊이 우선 탐색 부모 인덱스 설정(InNOde가 eSkeleton이 아니면 기존 부모 인덱스가 넘어감(BoneIndex = ParentNodeIndex)
-			LoadSkeletonFromNode(InNode->GetChild(Index), MeshData, BoneIndex, BoneToIndex);
-		}
+	}
+	for (int Index = 0; Index < InNode->GetChildCount(); Index++)
+	{
+		// 깊이 우선 탐색 부모 인덱스 설정(InNOde가 eSkeleton이 아니면 기존 부모 인덱스가 넘어감(BoneIndex = ParentNodeIndex)
+		LoadSkeletonFromNode(InNode->GetChild(Index), MeshData, BoneIndex, BoneToIndex);
 	}
 }
 
@@ -212,8 +214,13 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<Fbx
 			FbxAMatrix BindPoseMatrix;
 			Cluster->GetTransformLinkMatrix(BindPoseMatrix);
 			FbxAMatrix BindPoseInverseMatrix = BindPoseMatrix.Inverse();
-			std::memcpy(&MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].BindPose, BindPoseMatrix, sizeof(FbxMatrix));
-			std::memcpy(&MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].InverseBindPose, BindPoseInverseMatrix, sizeof(FbxMatrix));
+			// FbxMatrix는 128바이트, FMatrix는 64바이트라서 memcpy쓰면 망함
+			for(int Row = 0 ; Row < 4 ; Row++)
+				for (int Col = 0 ; Col < 4 ; Col++)
+				{
+					MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].InverseBindPose.M[Row][Col] = BindPoseInverseMatrix[Row][Col];
+					MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].BindPose.M[Row][Col] = BindPoseMatrix[Row][Col];
+				}
 			
 
 			for (int ControlPointIndex = 0; ControlPointIndex < IndexCount; ControlPointIndex++)
@@ -245,12 +252,14 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<Fbx
 	// 위의 이유로 ControlPoint를 인덱스 버퍼로 쓸 수가 없어서 Vertex마다 대응되는 Index Map을 따로 만들어서 계산할 것임.
 	TMap<FSkinnedVertex, uint32> IndexMap;
 	
-	FSkinnedVertex SkinnedVertex;
+	
 	for (int PolygonIndex = 0; PolygonIndex < PolygonCount; PolygonIndex++)
 	{
+		
 		// 하나의 Polygon 내에서의 VertexIndex, PolygonSize가 다를 수 있지만 위에서 삼각화를 해줬기 때문에 무조건 3임
 		for (int VertexIndex = 0; VertexIndex < InMesh->GetPolygonSize(PolygonIndex); VertexIndex++)
 		{
+			FSkinnedVertex SkinnedVertex{};
 			// 폴리곤 인덱스와 폴리곤 내에서의 vertexIndex로 ControlPointIndex 얻어냄
 			int ControlPointIndex = InMesh->GetPolygonVertex(PolygonIndex, VertexIndex);
 
@@ -393,7 +402,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<Fbx
 				case FbxGeometryElement::eIndexToDirect:
 					{
 						int Id = Normals->GetIndexArray().GetAt(MappingIndex);
-						const FbxVector4& Normal = Normals->GetDirectArray().GetAt(MappingIndex);
+						const FbxVector4& Normal = Normals->GetDirectArray().GetAt(Id);
 						SkinnedVertex.Normal = FVector(Normal.mData[0], Normal.mData[1], Normal.mData[2]);
 					}
 					break;
@@ -425,7 +434,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<Fbx
 					case FbxGeometryElement::eIndexToDirect:
 						{
 							int Id = UVs->GetIndexArray().GetAt(ControlPointIndex);
-							const FbxVector2& UV = UVs->GetDirectArray().GetAt(ControlPointIndex);
+							const FbxVector2& UV = UVs->GetDirectArray().GetAt(Id);
 							SkinnedVertex.UV = FVector2D(UV.mData[0], UV.mData[1]);
 						}
 						break;

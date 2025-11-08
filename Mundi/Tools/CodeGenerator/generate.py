@@ -179,10 +179,10 @@ def main():
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     print("=" * 60)
-    print("🔨 Mundi Engine - Code Generator")
+    print(" Mundi Engine - Code Generator")
     print("=" * 60)
-    print(f"📁 Source: {args.source_dir}")
-    print(f"📁 Output: {args.output_dir}")
+    print(f" Source: {args.source_dir}")
+    print(f" Output: {args.output_dir}")
     print()
 
     # 파서 초기화
@@ -191,14 +191,14 @@ def main():
     lua_gen = LuaBindingGenerator()
 
     # 헤더 파일 스캔
-    print("🔍 Scanning for reflection classes...")
+    print(" Scanning for reflection classes...")
     classes = header_parser.find_reflection_classes(args.source_dir)
 
     if not classes:
         print("⚠️  No classes with GENERATED_REFLECTION_BODY() found.")
         return
 
-    print(f"\n✅ Found {len(classes)} reflection class(es)\n")
+    print(f"\n Found {len(classes)} reflection class(es)\n")
 
     # 각 클래스에 대해 .generated.h와 .generated.cpp 생성
     generated_files = []
@@ -224,9 +224,9 @@ def main():
 
         # 상태 표시
         if header_updated or cpp_updated:
-            status = "✓ Updated"
+            status = " Updated"
         else:
-            status = "⏭️  Skipped (no changes)"
+            status = "  Skipped (no changes)"
             skipped_count += 1
 
         print(f"{status}: {class_info.name}")
@@ -239,7 +239,7 @@ def main():
 
     print()
     print("=" * 60)
-    print(f"✅ Code generation complete!")
+    print(f" Code generation complete!")
     print(f"   Total files: {len(generated_files)}")
     print(f"   Updated: {updated_count}")
     print(f"   Skipped: {skipped_count * 2} (unchanged)")

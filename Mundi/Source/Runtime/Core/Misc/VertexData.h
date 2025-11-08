@@ -58,13 +58,13 @@ struct FVertexDynamic
 */
 struct FSkinnedVertex
 {
-    FVector Position; // 정점 위치
-    FVector Normal; // 법선 벡터
-    FVector2D UV; // 텍스처 좌표
-    FVector4 Tangent; // 탄젠트 (w는 binormal 방향)
-    FVector4 Color; // 정점 컬러
-    uint32 BoneIndices[4]; // 영향을 주는 본 인덱스 (최대 4개)
-    float BoneWeights[4]; // 각 본의 가중치 (합이 1.0)
+    FVector Position{}; // 정점 위치
+    FVector Normal{}; // 법선 벡터
+    FVector2D UV{}; // 텍스처 좌표
+    FVector4 Tangent{}; // 탄젠트 (w는 binormal 방향)
+    FVector4 Color{}; // 정점 컬러
+    uint32 BoneIndices[4]{}; // 영향을 주는 본 인덱스 (최대 4개)
+    float BoneWeights[4]{}; // 각 본의 가중치 (합이 1.0)
 };
 
 // 같은 Position인데 Normal이나 UV가 다른 vertex가 존재할 수 있음, 그래서 SkinnedVertex를 키로 구별해야해서 hash함수 정의함
@@ -77,7 +77,27 @@ inline void CombineHash(size_t& InSeed, const T& Vertex)
 }
 inline bool operator==(const FSkinnedVertex& Vertex1, const FSkinnedVertex& Vertex2)
 {
-    return std::memcmp(&Vertex1, &Vertex2, sizeof(FSkinnedVertex)) == 0;
+    if (Vertex1.Position != Vertex2.Position ||
+        Vertex1.Normal != Vertex2.Normal ||
+        Vertex1.UV != Vertex2.UV ||
+        Vertex1.Tangent != Vertex2.Tangent ||
+        Vertex1.Color != Vertex2.Color)
+    {
+        return false;
+    }
+
+    if (std::memcmp(Vertex1.BoneIndices, Vertex2.BoneIndices, sizeof(Vertex1.BoneIndices)) != 0)
+    {
+        return false;
+    }
+
+    if (std::memcmp(Vertex1.BoneWeights, Vertex2.BoneWeights, sizeof(Vertex1.BoneWeights)) != 0)
+    {
+        return false;
+    }
+
+    // 모든 게 같음
+    return true;
 }
 namespace std
 {
@@ -217,7 +237,7 @@ struct FVertexWeight
 struct FSkeletalMeshData
 {
     TArray<FSkinnedVertex> Vertices; // 정점 배열
-    TArray <uint32> Indices; // 인덱스 배열
+    TArray<uint32> Indices; // 인덱스 배열
     FSkeleton Skeleton; // 스켈레톤 정보
     TArray<FGroupInfo> GroupInfos; // 머티리얼 그룹 (기존 시스템 재사용)
     bool bHasMaterial;
