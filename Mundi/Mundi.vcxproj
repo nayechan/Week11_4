@@ -112,7 +112,7 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
-      <Command>python "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
+      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>🔨 Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -140,7 +140,7 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
-      <Command>python "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
+      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>🔨 Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -171,7 +171,7 @@
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>python "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
+      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>🔨 Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
@@ -202,7 +202,7 @@
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>python "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
+      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
       <Message>🔨 Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>

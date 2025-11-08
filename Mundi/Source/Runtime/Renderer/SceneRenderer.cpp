@@ -79,7 +79,7 @@ void FSceneRenderer::Render()
 	static bool Loaded = false;
 	if (!Loaded)
 	{
-		UFbxLoader::GetInstance().LoadFbxMesh("C:\\Users\\Jungle\\Downloads\\Test3.fbx");
+		FSkeletalMeshData Skeletal = UFbxLoader::GetInstance().LoadFbxMesh("C:\\Users\\Jungle\\Downloads\\Test3.fbx");
 		Loaded = true;
 	}
     // 뷰(View) 준비: 행렬, 절두체 등 프레임에 필요한 기본 데이터 계산

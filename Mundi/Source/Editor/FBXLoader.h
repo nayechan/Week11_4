@@ -12,6 +12,13 @@ public:
 
 	FSkeletalMeshData LoadFbxMesh(const FString& FilePath);
 
+protected:
+	~UFbxLoader() override;
+private:
+	UFbxLoader(const UFbxLoader&) = delete;
+	UFbxLoader& operator=(const UFbxLoader&) = delete;
+
+
 	void LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex);
 
 	void LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, int32 ParentNodeIndex, TMap<FbxNode*, int32>& BoneToIndex);
@@ -22,16 +29,8 @@ public:
 
 	FbxString GetAttributeTypeName(FbxNodeAttribute* InAttribute);
 
-protected:
-	~UFbxLoader() override;
-private:
 	
-	
-
-	UFbxLoader(const UFbxLoader&) = delete;
-	UFbxLoader& operator=(const UFbxLoader&) = delete;
 
 	FbxManager* SdkManager = nullptr;
-
 	
 };

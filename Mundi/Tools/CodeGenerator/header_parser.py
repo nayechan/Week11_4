@@ -362,6 +362,6 @@ class HeaderParser:
                     classes.append(class_info)
                     print(f"✓ Found reflection class: {class_info.name} in {header.name}")
             except Exception as e:
-                print(f"✗ Error parsing {header}: {e}")
+                print(f" Error parsing {header}: {e}")
 
         return classes
