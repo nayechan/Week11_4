@@ -1,12 +1,15 @@
 ﻿#pragma once
+
 #include "Actor.h"
 #include "Enums.h"
+#include "AStaticMeshActor.generated.h"
 
 class UStaticMeshComponent;
+UCLASS(DisplayName="스태틱 메시", Description="정적 메시를 배치하는 액터입니다")
 class AStaticMeshActor : public AActor
 {
 public:
-	DECLARE_CLASS(AStaticMeshActor, AActor)
+
 	GENERATED_REFLECTION_BODY()
 
 	AStaticMeshActor(); 
@@ -21,7 +24,6 @@ public:
 
 	// ───── 복사 관련 ────────────────────────────
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(AStaticMeshActor)
 
 	// Serialize
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;

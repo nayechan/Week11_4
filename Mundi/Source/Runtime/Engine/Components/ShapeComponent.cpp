@@ -6,14 +6,7 @@
 #include "WorldPartitionManager.h"
 #include "BVHierarchy.h"
 #include "GameObject.h"
-
-IMPLEMENT_CLASS(UShapeComponent)
-
-BEGIN_PROPERTIES(UShapeComponent)
-    ADD_PROPERTY(bool, bShapeIsVisible, "Shape", true, "Shape�� ����ȭ �����Դϴ�.")
-    ADD_PROPERTY(bool, bShapeHiddenInGame, "Shape", true, "Shape�� PIE ��忡���� ����ȭ �����Դϴ�.")
- END_PROPERTIES()
-
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
 UShapeComponent::UShapeComponent() : bShapeIsVisible(true), bShapeHiddenInGame(true)
 {
     ShapeColor = FVector4(0.2f, 0.8f, 1.0f, 1.0f); 

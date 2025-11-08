@@ -2,20 +2,35 @@
 #include "Object.h"
 #include "fbxsdk.h"
 
-class UFBXLoader : public UObject
+class UFbxLoader : public UObject
 {
 public:
 
-	static UFBXLoader& GetInstance();
+	DECLARE_CLASS(UFbxLoader, UObject)
+	static UFbxLoader& GetInstance();
+	UFbxLoader();
 
+	FSkeletalMeshData LoadFbxMesh(const FString& FilePath);
+
+protected:
+	~UFbxLoader() override;
 private:
-	UFBXLoader();
-	~UFBXLoader();
+	UFbxLoader(const UFbxLoader&) = delete;
+	UFbxLoader& operator=(const UFbxLoader&) = delete;
 
-	UFBXLoader(const UFBXLoader&) = delete;
-	UFBXLoader& operator=(const UFBXLoader&) = delete;
 
-	FbxManager* Manager = nullptr;
+	void LoadMeshFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex);
 
+	void LoadSkeletonFromNode(FbxNode* InNode, FSkeletalMeshData& MeshData, int32 ParentNodeIndex, TMap<FbxNode*, int32>& BoneToIndex);
+
+	void LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalMeshData& MeshData);
+
+	void LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<FbxNode*, int32>& BoneToIndex);
+
+	FbxString GetAttributeTypeName(FbxNodeAttribute* InAttribute);
+
+	
+
+	FbxManager* SdkManager = nullptr;
 	
 };

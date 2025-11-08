@@ -5,6 +5,7 @@
 #include "AABB.h"
 #include "LightManager.h"
 #include "Delegates.h"
+#include "AActor.generated.h"
 
 class UWorld;
 class USceneComponent;
@@ -14,10 +15,10 @@ class UTextRenderComponent;
 class UBillboardComponent;
 class FGameObject;
 
+UCLASS(DisplayName="AActor", Description="AActor 액터")
 class AActor : public UObject
 {
 public:
-    DECLARE_CLASS(AActor, UObject)
     GENERATED_REFLECTION_BODY()
 
     DECLARE_DELEGATE(OnComponentBeginOverlap, UPrimitiveComponent*, UPrimitiveComponent*);
@@ -102,7 +103,6 @@ public:
     void SetActorActive(bool bIsActive) { bActorIsActive = bIsActive; };
     bool IsActorActive() { return bActorIsActive; };
 
-
     FMatrix GetWorldMatrix() const;
 
     FVector GetActorForward() const { return GetActorRotation().RotateVector(FVector(0, 1, 0)); }
@@ -157,11 +157,10 @@ public:
      
     bool IsOverlappingActor(const AActor* Other) const;
 
-
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     void PostDuplicate() override;
-    DECLARE_DUPLICATE(AActor)
+    
 
     // Serialize
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
@@ -178,6 +177,7 @@ public:
     USceneComponent* RootComponent = nullptr;
     UTextRenderComponent* TextComp = nullptr;
 
+    UPROPERTY(EditAnywhere, Category="[액터]", Tooltip="액터의 태그를 지정합니다.")
     FString Tag;  // for collision check
 
 protected:
@@ -187,8 +187,11 @@ protected:
     TArray<USceneComponent*> SceneComponents; // 씬 컴포넌트들만 별도 캐시(트리/렌더/ImGui용)
     
     bool bTickInEditor = false; // 에디터에서도 틱 허용
+
+    UPROPERTY(EditAnywhere, Category="[액터]")
     bool bActorHiddenInGame = false;
 
+    UPROPERTY(EditAnywhere, Category="[액터]")
     bool bActorIsActive = true;       // 활성 상태(사용자 on/off), tick 적용
 
     // Actor의 Visibility는 루트 컴포넌트로 설정

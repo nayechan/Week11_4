@@ -1,14 +1,17 @@
 ﻿#pragma once
+
 #include "Object.h"
 
 #include "SceneComponent.h"
+#include "UHeightFogComponent.generated.h"
 
 struct FLinearColor;
 
+UCLASS(DisplayName="높이 안개 컴포넌트", Description="높이 기반 안개 컴포넌트입니다")
 class UHeightFogComponent : public USceneComponent
 {
 public:
-    DECLARE_CLASS(UHeightFogComponent, USceneComponent)
+
     GENERATED_REFLECTION_BODY()
 
     UHeightFogComponent();
@@ -38,22 +41,30 @@ public:
     // Rendering
     void RenderHeightFog(URenderer* Renderer);
 
-
     void OnRegister(UWorld* InWorld) override;
 	// Serialize
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 	// ───── 복사 관련 ────────────────────────────
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UHeightFogComponent)
-    
+
 private:
+    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 10.0")
     float FogDensity = 0.2f;
+
+    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 10.0")
     float FogHeightFalloff = 0.2f;
+
+    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 10000.0")
     float StartDistance = 0.0f;
+
+    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 100000.0")
     float FogCutoffDistance = 6000.0f;
+
+    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 1.0")
     float FogMaxOpacity = 1.0f;
 
+    UPROPERTY(EditAnywhere, Category="Fog")
     FLinearColor FogInscatteringColor;
 
     // Full Screen Quad Resources

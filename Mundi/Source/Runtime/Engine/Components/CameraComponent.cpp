@@ -6,17 +6,16 @@
 
 extern float CLIENTWIDTH;
 extern float CLIENTHEIGHT;
-
-IMPLEMENT_CLASS(UCameraComponent)
-
-BEGIN_PROPERTIES(UCameraComponent)
-	MARK_AS_COMPONENT("카메라 컴포넌트", "카메라를 렌더링하는 컴포넌트입니다.")
-	ADD_PROPERTY_RANGE(float, FieldOfView, "Camera", 1.0f, 179.0f, true, "시야각 (FOV, Degrees)입니다.")
-	ADD_PROPERTY_RANGE(float, AspectRatio, "Camera", 0.1f, 10.0f, true, "화면 비율입니다.")
-	ADD_PROPERTY_RANGE(float, NearClip, "Camera", 0.01f, 1000.0f, true, "근거리 클리핑 평면입니다.")
-	ADD_PROPERTY_RANGE(float, FarClip, "Camera", 1.0f, 100000.0f, true, "원거리 클리핑 평면입니다.")
-	ADD_PROPERTY_RANGE(float, ZoomFactor, "Camera", 0.1f, 10.0f, true, "줌 배율입니다.")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//
+//BEGIN_PROPERTIES(UCameraComponent)
+//	MARK_AS_COMPONENT("카메라 컴포넌트", "카메라를 렌더링하는 컴포넌트입니다.")
+//	ADD_PROPERTY_RANGE(float, FieldOfView, "Camera", 1.0f, 179.0f, true, "시야각 (FOV, Degrees)입니다.")
+//	ADD_PROPERTY_RANGE(float, AspectRatio, "Camera", 0.1f, 10.0f, true, "화면 비율입니다.")
+//	ADD_PROPERTY_RANGE(float, NearClip, "Camera", 0.01f, 1000.0f, true, "근거리 클리핑 평면입니다.")
+//	ADD_PROPERTY_RANGE(float, FarClip, "Camera", 1.0f, 100000.0f, true, "원거리 클리핑 평면입니다.")
+//	ADD_PROPERTY_RANGE(float, ZoomFactor, "Camera", 0.1f, 10.0f, true, "줌 배율입니다.")
+//END_PROPERTIES()
 
 UCameraComponent::UCameraComponent()
     : FieldOfView(60.0f)

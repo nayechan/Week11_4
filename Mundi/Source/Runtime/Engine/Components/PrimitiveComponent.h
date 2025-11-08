@@ -1,6 +1,8 @@
 ﻿#pragma once
+
 #include "SceneComponent.h"
 #include "Material.h"
+#include "UPrimitiveComponent.generated.h"
 
 // 전방 선언
 struct FSceneCompData;
@@ -15,10 +17,11 @@ struct FOverlapInfo
     UPrimitiveComponent* Other = nullptr;
 };
 
+UCLASS(DisplayName="프리미티브 컴포넌트", Description="렌더링 가능한 기본 컴포넌트입니다")
 class UPrimitiveComponent :public USceneComponent
 {
 public:
-    DECLARE_CLASS(UPrimitiveComponent, USceneComponent)
+
     GENERATED_REFLECTION_BODY();
 
     UPrimitiveComponent();
@@ -45,7 +48,6 @@ public:
     // 내부적으로 ResourceManager를 통해 UMaterial*를 찾아 SetMaterial을 호출합니다.
     void SetMaterialByName(uint32 InElementIndex, const FString& MaterialName);
 
-
     void SetCulled(bool InCulled)
     {
         bIsCulled = InCulled;
@@ -64,7 +66,6 @@ public:
     
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
-    DECLARE_DUPLICATE(UPrimitiveComponent)
 
     // Overlap event generation toggle API
     void SetGenerateOverlapEvents(bool bEnable) { bGenerateOverlapEvents = bEnable; }
@@ -76,7 +77,10 @@ public:
 protected:
     bool bIsCulled = false;
      
-    // ───── 충돌 관련 ──────────────────────────── 
+    // ───── 충돌 관련 ────────────────────────────
+    UPROPERTY(EditAnywhere, Category="Shape")
     bool bGenerateOverlapEvents;
+
+    UPROPERTY(EditAnywhere, Category="Shape")
     bool bBlockComponent;
 };

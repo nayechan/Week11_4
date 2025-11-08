@@ -6,18 +6,7 @@
 #include "PrimitiveComponent.h"
 #include "WorldPartitionManager.h"
 #include "BillboardComponent.h"
-
-IMPLEMENT_CLASS(USceneComponent)
-
-BEGIN_PROPERTIES(USceneComponent)
-	MARK_AS_COMPONENT("씬 컴포넌트", "트랜스폼을 가진 씬 컴포넌트입니다.")
-	ADD_PROPERTY(FVector, RelativeLocation, "Transform", true, "로컬 위치입니다.")
-	ADD_PROPERTY(FVector, RelativeRotationEuler, "Transform", true, "로컬 회전입니다 (Degrees, ZYX Euler).")
-	ADD_PROPERTY(FVector, RelativeScale, "Transform", true, "로컬 스케일입니다.")
-    ADD_PROPERTY(bool, bIsVisible, "렌더링", true, "프리미티브를 씬에 표시합니다")
-    ADD_PROPERTY(bool, bHiddenInGame, "렌더링", true, "게임에서 숨깁니다")    
-END_PROPERTIES()
-
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
 // USceneComponent.cpp
 TMap<uint32, USceneComponent*> USceneComponent::SceneIdMap;
 

@@ -4,18 +4,16 @@
 #include "Color.h"
 #include "ResourceManager.h"
 #include "BillboardComponent.h"
-
-IMPLEMENT_CLASS(UHeightFogComponent)
-
-BEGIN_PROPERTIES(UHeightFogComponent)
-	MARK_AS_COMPONENT("하이트 포그 컴포넌트", "하이트 기반 포그 효과를 생성합니다.")
-	ADD_PROPERTY(FLinearColor, FogInscatteringColor, "Fog", "안개 산란 색상입니다.")
-	ADD_PROPERTY_RANGE(float, FogDensity, "Fog", 0.0f, 10.0f, true, "안개 밀도입니다.")
-	ADD_PROPERTY_RANGE(float, FogHeightFalloff, "Fog", 0.0f, 10.0f, true, "높이에 따른 안개 감쇠 정도입니다.")
-	ADD_PROPERTY_RANGE(float, StartDistance, "Fog", 0.0f, 10000.0f, true, "안개가 시작되는 거리입니다.")
-	ADD_PROPERTY_RANGE(float, FogCutoffDistance, "Fog", 0.0f, 100000.0f, true, "안개가 최대가 되는 거리입니다.")
-	ADD_PROPERTY_RANGE(float, FogMaxOpacity, "Fog", 0.0f, 1.0f, true, "안개 최대 불투명도입니다.")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//BEGIN_PROPERTIES(UHeightFogComponent)
+//	MARK_AS_COMPONENT("하이트 포그 컴포넌트", "하이트 기반 포그 효과를 생성합니다.")
+//	ADD_PROPERTY(FLinearColor, FogInscatteringColor, "Fog", "안개 산란 색상입니다.")
+//	ADD_PROPERTY_RANGE(float, FogDensity, "Fog", 0.0f, 10.0f, true, "안개 밀도입니다.")
+//	ADD_PROPERTY_RANGE(float, FogHeightFalloff, "Fog", 0.0f, 10.0f, true, "높이에 따른 안개 감쇠 정도입니다.")
+//	ADD_PROPERTY_RANGE(float, StartDistance, "Fog", 0.0f, 10000.0f, true, "안개가 시작되는 거리입니다.")
+//	ADD_PROPERTY_RANGE(float, FogCutoffDistance, "Fog", 0.0f, 100000.0f, true, "안개가 최대가 되는 거리입니다.")
+//	ADD_PROPERTY_RANGE(float, FogMaxOpacity, "Fog", 0.0f, 1.0f, true, "안개 최대 불투명도입니다.")
+//END_PROPERTIES()
 
 UHeightFogComponent::UHeightFogComponent()
 {

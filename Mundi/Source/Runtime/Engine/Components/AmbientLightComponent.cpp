@@ -1,13 +1,7 @@
 ﻿#include "pch.h"
 #include "AmbientLightComponent.h"
 #include "BillboardComponent.h"
-
-IMPLEMENT_CLASS(UAmbientLightComponent)
-
-BEGIN_PROPERTIES(UAmbientLightComponent)
-	MARK_AS_COMPONENT("앰비언트 라이트", "환경광 (전역 조명) 컴포넌트입니다.")
-END_PROPERTIES()
-
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
 UAmbientLightComponent::UAmbientLightComponent()
 {
 }

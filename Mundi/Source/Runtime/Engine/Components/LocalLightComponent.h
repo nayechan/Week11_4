@@ -1,11 +1,14 @@
 ﻿#pragma once
+
 #include "LightComponent.h"
+#include "ULocalLightComponent.generated.h"
 
 // 위치 기반 로컬 라이트의 공통 베이스 (Point, Spot)
+UCLASS(DisplayName="로컬 라이트 컴포넌트", Description="국소 조명 컴포넌트입니다")
 class ULocalLightComponent : public ULightComponent
 {
 public:
-	DECLARE_CLASS(ULocalLightComponent, ULightComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 	ULocalLightComponent();
@@ -35,10 +38,14 @@ public:
 	// Serialization & Duplication
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(ULocalLightComponent)
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 100.0")
 	float AttenuationRadius = 5.0f;			// 감쇠 반경
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.1, 10.0")
 	float FalloffExponent = 2.0f;			// 감쇠 지수 (bUseInverseSquareFalloff = false일 때 사용)
+
+	UPROPERTY(EditAnywhere, Category="Light")
 	bool bUseInverseSquareFalloff = true;	// true: Inverse Square Falloff (물리 법칙), false: Exponent Falloff (예술적 제어)
 };

@@ -1,10 +1,13 @@
 ﻿#pragma once
-#include "SceneComponent.h"
 
+#include "SceneComponent.h"
+#include "UCameraComponent.generated.h"
+
+UCLASS(DisplayName="카메라 컴포넌트", Description="카메라 뷰포트 컴포넌트입니다")
 class UCameraComponent : public USceneComponent
 {
 public:
-    DECLARE_CLASS(UCameraComponent, USceneComponent)
+
     GENERATED_REFLECTION_BODY()
 
     UCameraComponent();
@@ -53,17 +56,24 @@ public:
 
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
-    DECLARE_DUPLICATE(UCameraComponent)
 
     // Serialization
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 private:
+    UPROPERTY(EditAnywhere, Category="Camera", Range="1.0, 179.0")
     float FieldOfView;   // degrees
+
+    UPROPERTY(EditAnywhere, Category="Camera", Range="0.1, 10.0")
     float AspectRatio;  //사용x
+
+    UPROPERTY(EditAnywhere, Category="Camera", Range="0.01, 1000.0")
     float NearClip;
+
+    UPROPERTY(EditAnywhere, Category="Camera", Range="1.0, 100000.0")
     float FarClip;
 
+    UPROPERTY(EditAnywhere, Category="Camera", Range="0.1, 10.0")
     float ZoomFactor;
 
     ECameraProjectionMode ProjectionMode;

@@ -1,13 +1,14 @@
 ﻿#pragma once
 #include "Object.h"
+#include "UActorComponent.generated.h"
 
 class AActor;
 class UWorld;
 
+UCLASS(DisplayName="UActorComponent", Description="UActorComponent 컴포넌트")
 class UActorComponent : public UObject
 {
 public:
-    DECLARE_CLASS(UActorComponent, UObject)
     GENERATED_REFLECTION_BODY()
     UActorComponent();
 
@@ -67,7 +68,7 @@ public:
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     void PostDuplicate() override;
-    DECLARE_DUPLICATE(UActorComponent)
+    
 
     // ───── 직렬화 ────────────────────────────
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
@@ -81,8 +82,13 @@ protected:
     bool bCanEverTick = false;   // 컴포넌트 설계상 틱 지원 여부
 
     // 설정 가능한 데이터
+    UPROPERTY(EditAnywhere, Category = "렌더링")
     bool bIsActive = true;       // 활성 상태(사용자 on/off), 물리 적용
+
+    UPROPERTY(EditAnywhere, Category="렌더링")
     bool bHiddenInGame = false; // 게임에서 숨김 여부
+
+    UPROPERTY(EditAnywhere, Category = "렌더링")
     bool bTickEnabled = true;   // 현재 틱 켜짐 여부
 
     // 저장되지 않는 실시간 상태 변수

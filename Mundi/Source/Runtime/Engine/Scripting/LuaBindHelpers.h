@@ -41,6 +41,20 @@ static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...))
     });
 }
 
+// const 멤버 함수용 오버로드
+template<typename R, typename C, typename... P>
+static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...) const)
+{
+    T.set_function(Name, [Method](LuaComponentProxy& Proxy, P... Args) -> R
+    {
+        if (!Proxy.Instance || Proxy.Class != C::StaticClass())
+        {
+            if constexpr (!std::is_void_v<R>) return R{};
+        }
+        return (static_cast<const C*>(Proxy.Instance)->*Method)(std::forward<P>(Args)...);
+    });
+}
+
 // 친절한 별칭 부여용
 template<typename C, typename... P>
 static void AddAlias(sol::table& T, const char* Alias, void(C::*Method)(P...))

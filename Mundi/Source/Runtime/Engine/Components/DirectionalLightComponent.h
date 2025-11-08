@@ -1,12 +1,15 @@
 ﻿#pragma once
+
 #include "LightComponent.h"
 #include "LightManager.h"
+#include "UDirectionalLightComponent.generated.h"
 
 // 방향성 라이트 (태양광 같은 평행광)
+UCLASS(DisplayName="방향성 라이트 컴포넌트", Description="평행광 조명 컴포넌트입니다")
 class UDirectionalLightComponent : public ULightComponent
 {
 public:
-	DECLARE_CLASS(UDirectionalLightComponent, ULightComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 		UDirectionalLightComponent();
@@ -30,7 +33,6 @@ public:
 	// Serialization & Duplication
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UDirectionalLightComponent)
 
 	// Update Gizmo to match light properties
 	void UpdateDirectionGizmo();
@@ -40,16 +42,30 @@ public:
 protected:
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap")
 	ID3D11ShaderResourceView* ShadowMapSRV = nullptr;
+
 private:
+	UPROPERTY(EditAnywhere, Category="ShadowMap")
 	bool bCascaded = true;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="1, 8")
 	int CascadedCount = 4;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 1")
 	float CascadedLinearBlendingValue = 0.5f;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 0.5")
 	float CascadedOverlapValue = 0.2f;
+
 	bool bOverrideCameraLightPerspective = false;
 	TArray<float> CascadedSliceDepth;
 
 	//로그용
+	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 1.0")
 	float CascadedAreaColorDebugValue = 0;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="-1, 8")
 	int CascadedAreaShadowDebugValue = -1;
 };

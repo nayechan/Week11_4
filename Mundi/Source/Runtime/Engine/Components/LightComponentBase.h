@@ -1,13 +1,16 @@
 ﻿#pragma once
+
 #include "SceneComponent.h"
 #include "Color.h"
 #include "ObjectMacros.h"
+#include "ULightComponentBase.generated.h"
 
 // 모든 라이트 컴포넌트의 베이스 클래스
+UCLASS(DisplayName="라이트 베이스 컴포넌트", Description="모든 조명의 기본 컴포넌트입니다")
 class ULightComponentBase : public USceneComponent
 {
 public:
-	DECLARE_CLASS(ULightComponentBase, USceneComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 	ULightComponentBase();
@@ -30,13 +33,18 @@ public:
 	// Serialization & Duplication
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(ULightComponentBase)
 
 	bool IsCastShadows() { return bCastShadows; }
 
 protected:
 	//bool bIsEnabled = true;
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 100.0")
 	float Intensity = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category="Light")
 	FLinearColor LightColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, Category="Light")
 	bool bCastShadows = true;
 };

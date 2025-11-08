@@ -1,16 +1,18 @@
 ﻿#pragma once
+
 #include "LightComponentBase.h"
+#include "ULightComponent.generated.h"
 
 class FSceneView;
 
 struct FShadowRenderRequest;
 
-
 // 실제 조명 효과를 가진 라이트들의 공통 베이스
+UCLASS(DisplayName="라이트 컴포넌트", Description="기본 조명 컴포넌트입니다")
 class ULightComponent : public ULightComponentBase
 {
 public:
-	DECLARE_CLASS(ULightComponent, ULightComponentBase)
+
 	GENERATED_REFLECTION_BODY()
 
 	ULightComponent();
@@ -30,7 +32,6 @@ public:
 	// Serialization & Duplication
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(ULightComponent)
 
 	float GetShadowResolutionScale() const { return ShadowResolutionScale; }
 	float GetShadowBias() const { return ShadowBias; }
@@ -38,10 +39,18 @@ public:
 	float GetShadowSharpen() const { return ShadowSharpen; }
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Light", Range="1000.0, 15000.0", Tooltip="조명의 색온도를 켈빈(K) 단위로 설정합니다\n(1000K: 주황색, 6500K: 주광색, 15000K: 푸른색)")
 	float Temperature = 6500.0f; // 색온도 (K)
 
+	UPROPERTY(EditAnywhere, Category="Light", Range="512, 8192", Tooltip="Shadow Resolution Scale")
 	int ShadowResolutionScale = 1024;
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 0.01", Tooltip="Shadow Bias")
 	float ShadowBias = 0.00001f;
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 0.01", Tooltip="Shadow Slope Bias")
 	float ShadowSlopeBias = 0.00001f;
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 1.0", Tooltip="Shadow Sharpen - 0.0f(Soft) ~ 1.0f(Sharp)")
 	float ShadowSharpen = 0.5f;	// 0.0f(Soft) ~ 1.0f(Sharp)
 };

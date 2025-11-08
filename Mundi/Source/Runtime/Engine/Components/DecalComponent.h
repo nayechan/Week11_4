@@ -1,7 +1,9 @@
 ﻿#pragma once
+
 #include "PrimitiveComponent.h"
 #include "AABB.h"
 #include "Vector.h"
+#include "UDecalComponent.generated.h"
 
 // Forward declarations
 struct FOBB;
@@ -16,10 +18,11 @@ struct FDecalProjectionData;
  * - Rotation: Decal의 투영 방향 (Forward = -Z 방향으로 투영)
  * - Scale: Decal volume의 크기 (X=Width, Y=Height, Z=Depth)
  */
+UCLASS(DisplayName = "데칼 컴포넌트", Description = "2D텍스쳐를 덧 씌워그리는 데칼 컴포넌트입니다.")
 class UDecalComponent : public UPrimitiveComponent
 {
 public:
-	DECLARE_CLASS(UDecalComponent, UPrimitiveComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 	UDecalComponent();
@@ -31,6 +34,7 @@ public:
 	virtual void RenderDebugVolume(URenderer* Renderer) const override;
 
 	// Decal Resource API
+	
 	void SetDecalTexture(UTexture* InTexture);
 	void SetDecalTexture(const FString& TexturePath);
 	UTexture* GetDecalTexture() const { return DecalTexture; }
@@ -53,7 +57,6 @@ public:
 
 	// ───── 복사 관련 ────────────────────────────
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UDecalComponent)
 
 	// Tick
 	virtual void TickComponent(float DeltaTime) override;
@@ -61,13 +64,19 @@ public:
 	void OnRegister(UWorld* InWorld) override;
 
 private:
+	//UPROPERTY(EditAnywhere, Category="Decal", Tooltip="데칼 텍스처입니다")
 	UTexture* DecalTexture = nullptr;
+
 	UGizmoArrowComponent* DirectionGizmo = nullptr;
 
 	bool bIsVisible = true;
+
+	UPROPERTY(EditAnywhere, Category="Decal", Range="0.0, 1.0", Tooltip="데칼 불투명도입니다.")
 	float DecalOpacity = 1.0f;
 
 	// for PIE Tick
+	UPROPERTY(EditAnywhere, Category="Decal", Range="0.0, 10.0", Tooltip="페이드 속도입니다 (초당 변화량).")
 	float FadeSpeed = 0.5f;   // 초당 변화 속도 (0.5 = 2초에 완전 페이드)
+
 	int FadeDirection = -1;   // -1 = 감소 중, +1 = 증가 중
 };

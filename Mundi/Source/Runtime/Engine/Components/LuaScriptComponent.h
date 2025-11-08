@@ -1,19 +1,21 @@
 ﻿#pragma once
+
 #include "ActorComponent.h"
 #include "Vector.h"
 #include "LuaCoroutineScheduler.h"
+#include "ULuaScriptComponent.generated.h"
 
 namespace sol { class state; }
 using state = sol::state;
 
 class USceneComponent;
 
+UCLASS(DisplayName="Lua 스크립트 컴포넌트", Description="Lua 스크립트를 실행하는 컴포넌트입니다")
 class ULuaScriptComponent : public UActorComponent
 {
 public:
-	DECLARE_CLASS(ULuaScriptComponent, UActorComponent)
+
 	GENERATED_REFLECTION_BODY()
-	DECLARE_DUPLICATE(ULuaScriptComponent)
 
 	ULuaScriptComponent();
 	~ULuaScriptComponent() override;
@@ -32,6 +34,7 @@ public:
 	void CleanupLuaResources();
 protected:
 	// 이 컴포넌트가 실행할 .lua 스크립트 파일의 경로 (에디터에서 설정)
+	UPROPERTY(EditAnywhere, Category="Script", Tooltip="Lua Script 파일 경로입니다")
 	FString ScriptFilePath{};
 
 	sol::state* Lua = nullptr;

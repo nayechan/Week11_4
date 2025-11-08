@@ -2,12 +2,10 @@
 #include "FakeSpotLightActor.h"
 #include "PerspectiveDecalComponent.h"
 #include "BillboardComponent.h"
-
-IMPLEMENT_CLASS(AFakeSpotLightActor)
-
-BEGIN_PROPERTIES(AFakeSpotLightActor)
-	MARK_AS_SPAWNABLE("가짜 스포트 라이트", "데칼을 사용한 가짜 스포트 라이트 액터입니다.")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//BEGIN_PROPERTIES(AFakeSpotLightActor)
+//	MARK_AS_SPAWNABLE("가짜 스포트 라이트", "데칼을 사용한 가짜 스포트 라이트 액터입니다.")
+//END_PROPERTIES()
 
 AFakeSpotLightActor::AFakeSpotLightActor()
 {

@@ -1,14 +1,17 @@
 ﻿#pragma once
+
 #include "PointLightComponent.h"
 #include "LightManager.h"
+#include "USpotLightComponent.generated.h"
 
 class UCameraComponent;
 
 // 스포트라이트 (원뿔 형태로 빛 방출)
+UCLASS(DisplayName="스포트 라이트 컴포넌트", Description="원뿔 조명 컴포넌트입니다")
 class USpotLightComponent : public UPointLightComponent
 {
 public:
-	DECLARE_CLASS(USpotLightComponent, UPointLightComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 	USpotLightComponent();
@@ -68,7 +71,6 @@ public:
 	// Serialization & Duplication
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(USpotLightComponent)
 
 	// Update Gizmo to match light properties
 	void UpdateDirectionGizmo();
@@ -80,7 +82,10 @@ public:
 	void CalculateWarpMatrix(URenderer* Renderer, UCameraComponent* Camera, FViewport* Viewport);
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 90.0")
 	float InnerConeAngle = 30.0f; // 내부 원뿔 각도
+
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 90.0")
 	float OuterConeAngle = 45.0f; // 외부 원뿔 각도
 
 	// 이전 값 추적 (UI 변경 감지용)

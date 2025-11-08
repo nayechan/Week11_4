@@ -1,13 +1,16 @@
 ﻿#pragma once
+
 #include "Actor.h"
+#include "AFakeSpotLightActor.generated.h"
 
 class UBillboardComponent;
 class UPerspectiveDecalComponent;
 
+UCLASS(DisplayName="가짜 스포트 라이트", Description="테스트용 스포트 라이트 액터입니다")
 class AFakeSpotLightActor : public AActor
 {
 public:
-	DECLARE_CLASS(AFakeSpotLightActor, AActor)
+
 	GENERATED_REFLECTION_BODY()
 
 	AFakeSpotLightActor();
@@ -19,7 +22,6 @@ public:
 	UPerspectiveDecalComponent* GetDecalComponent() const { return DecalComponent; }
 
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(AFakeSpotLightActor)
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 protected:

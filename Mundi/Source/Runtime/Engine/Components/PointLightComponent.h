@@ -1,12 +1,15 @@
 ﻿#pragma once
+
 #include "LocalLightComponent.h"
 #include "LightManager.h"
+#include "UPointLightComponent.generated.h"
 
 // 점광원 (모든 방향으로 균등하게 빛 방출)
+UCLASS(DisplayName="포인트 라이트 컴포넌트", Description="점광원 조명 컴포넌트입니다")
 class UPointLightComponent : public ULocalLightComponent
 {
 public:
-	DECLARE_CLASS(UPointLightComponent, ULocalLightComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 	UPointLightComponent();
@@ -34,16 +37,21 @@ public:
 	// Serialization & Duplication
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UPointLightComponent)
 
 	bool IsOverrideCameraLightPerspective() { return bOverrideCameraLightPerspective; }
 	uint32 GetOverrideCameraLightNum() { return OverrideCameraLightNum; }
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 1000.0")
 	float SourceRadius = 0.0f; // 광원 반경
 
 	// NOTE: 실제로는 사용하지 않지만 프로퍼티 양식 때문에 어쩔 수 없이 임시로 선언
+	UPROPERTY(EditAnywhere, Category="ShadowMap")
 	ID3D11ShaderResourceView* ShadowMapSRV = nullptr;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap")
 	bool bOverrideCameraLightPerspective = false;
+
+	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 5")
 	uint32 OverrideCameraLightNum = 0;
 };

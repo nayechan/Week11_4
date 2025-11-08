@@ -3,22 +3,7 @@
 #include "SceneComponent.h"
 #include "Actor.h"
 #include "ObjectFactory.h"
-
-IMPLEMENT_CLASS(UProjectileMovementComponent)
-
-BEGIN_PROPERTIES(UProjectileMovementComponent)
-    MARK_AS_COMPONENT("ProjectileComponent", "발사체 컴포넌트를 추가합니다")
-    ADD_PROPERTY(float, Gravity, "발사체", true, "발사체 중력 가속도입니다")
-    ADD_PROPERTY(FVector, Velocity, "속도", true, "초기 속도입니다")
-    ADD_PROPERTY(float, InitialSpeed, "발사체", true, "발사체 초기 속도입니다")
-    ADD_PROPERTY(float, MaxSpeed, "발사체", true, "발사체 최대 속도입니다")
-    ADD_PROPERTY(bool, bAutoDestroyWhenLifespanExceeded, "발사체", true, "생명 시간 초과시 발사체를 파괴합니다")
-    ADD_PROPERTY(float, ProjectileLifespan, "발사체", true, "발사체 생명 시간입니다")
-    ADD_PROPERTY(bool, bIsHomingProjectile, "호밍", true, "호밍 기능을 활성화합니다")
-    ADD_PROPERTY(float, HomingAccelerationMagnitude, "호밍", true, "호밍 가속도 크기입니다")
-    
-END_PROPERTIES()
-
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
 UProjectileMovementComponent::UProjectileMovementComponent()
     : Gravity(-9.80f)  // Z-Up 좌표계에서 중력은 Z방향으로 -980 cm/s^2
     , InitialSpeed(30.0f)

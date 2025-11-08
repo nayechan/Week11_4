@@ -1,6 +1,8 @@
 ﻿#pragma once
+
 #include "MovementComponent.h"
 #include "Vector.h"
+#include "UProjectileMovementComponent.generated.h"
 
 class AActor;
 class USceneComponent;
@@ -10,12 +12,13 @@ class USceneComponent;
  * 발사체(Projectile)의 움직임을 시뮬레이션하는 컴포넌트
  * 중력, 바운스, 호밍 등의 기능을 지원
  */
+UCLASS(DisplayName="발사체 이동 컴포넌트", Description="발사체 물리 이동 컴포넌트입니다")
 class UProjectileMovementComponent : public UMovementComponent
 {
 public:
-    DECLARE_CLASS(UProjectileMovementComponent, UMovementComponent)
+
     GENERATED_REFLECTION_BODY()
-    DECLARE_DUPLICATE(UProjectileMovementComponent)
+
     UProjectileMovementComponent();
 
 protected:
@@ -80,12 +83,18 @@ protected:
 
     // === 물리 속성 ===
     // 중력 가속도 (cm/s^2), Z-Up 좌표계에서 Z가 음수면 아래로 떨어짐
+    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 중력 가속도입니다")
     float Gravity;
 
+    UPROPERTY(EditAnywhere, Category="속도", Tooltip="초기 속도입니다")
+    FVector Velocity;
+
     // 발사 시 초기 속도 (cm/s)
+    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 초기 속도입니다")
     float InitialSpeed;
 
     // 최대 속도 제한 (cm/s), 0이면 제한 없음
+    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 최대 속도입니다")
     float MaxSpeed;
 
     // === 호밍 속성 ===
@@ -96,9 +105,11 @@ protected:
     USceneComponent* HomingTargetComponent;
 
     // 호밍 가속도 크기 (cm/s^2)
+    UPROPERTY(EditAnywhere, Category="호밍", Tooltip="호밍 가속도 크기입니다")
     float HomingAccelerationMagnitude;
 
     // 호밍 기능 활성화 여부
+    UPROPERTY(EditAnywhere, Category="호밍", Tooltip="호밍 기능을 활성화합니다")
     bool bIsHomingProjectile;
 
     // === 회전 속성 ===
@@ -107,12 +118,14 @@ protected:
 
     // === 생명주기 속성 ===
     // 발사체 생명 시간 (초), 0이면 무제한
+    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 생명 시간입니다")
     float ProjectileLifespan;
 
     // 현재 생존 시간 (초)
     float CurrentLifetime;
 
     // 생명 시간 초과 시 자동 파괴 여부
+    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="생명 시간 초과시 발사체를 파괴합니다")
     bool bAutoDestroyWhenLifespanExceeded;
 
     // === 상태 ===

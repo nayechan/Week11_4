@@ -4,13 +4,11 @@
 #include "World.h"
 #include "SelectionManager.h"
 
-IMPLEMENT_CLASS(UActorComponent)
-
-BEGIN_PROPERTIES(UActorComponent)
-    ADD_PROPERTY(FName, ObjectName, "[컴포넌트]", true, "컴포넌트의 이름입니다")
-    ADD_PROPERTY(bool, bIsActive, "[컴포넌트]", true, "컴포넌트를 활성화합니다")
-    ADD_PROPERTY(bool, bTickEnabled, "[컴포넌트]", true, "틱을 확성화합니다. 기본적으로 틱이 가능한 컴포넌트만 영향이 있습니다.")
-END_PROPERTIES()
+//BEGIN_PROPERTIES(UActorComponent)
+//    ADD_PROPERTY(FName, ObjectName, "[컴포넌트]", true, "컴포넌트의 이름입니다")
+//    ADD_PROPERTY(bool, bIsActive, "[컴포넌트]", true, "컴포넌트를 활성화합니다")
+//    ADD_PROPERTY(bool, bTickEnabled, "[컴포넌트]", true, "틱을 확성화합니다. 기본적으로 틱이 가능한 컴포넌트만 영향이 있습니다.")
+//END_PROPERTIES()
     
 UActorComponent::UActorComponent()
 {

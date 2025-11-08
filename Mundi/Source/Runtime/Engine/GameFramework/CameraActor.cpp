@@ -9,12 +9,10 @@
 
 // 예전 World에서 사용하던 전역 변수들 (임시)
 static float MouseSensitivity = 0.05f;  // 적당한 값으로 조정
-
-IMPLEMENT_CLASS(ACameraActor)
-
-BEGIN_PROPERTIES(ACameraActor)
-	MARK_AS_SPAWNABLE("카메라", "씬을 렌더링하는 카메라 액터입니다.")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//BEGIN_PROPERTIES(ACameraActor)
+//	MARK_AS_SPAWNABLE("카메라", "씬을 렌더링하는 카메라 액터입니다.")
+//END_PROPERTIES()
 
 ACameraActor::ACameraActor()
 {

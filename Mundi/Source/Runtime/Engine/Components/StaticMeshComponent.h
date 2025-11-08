@@ -1,6 +1,8 @@
-#pragma once
+﻿#pragma once
+
 #include "MeshComponent.h"
 #include "AABB.h"
+#include "UStaticMeshComponent.generated.h"
 
 class UStaticMesh;
 class UShader;
@@ -9,10 +11,11 @@ class UMaterialInterface;
 class UMaterialInstanceDynamic;
 struct FSceneCompData;
 
+UCLASS(DisplayName="스태틱 메시 컴포넌트", Description="정적 메시를 렌더링하는 컴포넌트입니다")
 class UStaticMeshComponent : public UMeshComponent
 {
 public:
-	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
+
 	GENERATED_REFLECTION_BODY()
 
 	UStaticMeshComponent();
@@ -34,11 +37,11 @@ public:
 	FAABB GetWorldAABB() const override;
 
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UStaticMeshComponent)
 
 protected:
 	void OnTransformUpdated() override;
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Static Mesh", Tooltip="Static mesh asset to render")
 	UStaticMesh* StaticMesh = nullptr;
 };

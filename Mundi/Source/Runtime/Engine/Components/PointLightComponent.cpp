@@ -1,17 +1,7 @@
 ﻿#include "pch.h"
 #include "PointLightComponent.h"
 #include "BillboardComponent.h"
-
-IMPLEMENT_CLASS(UPointLightComponent)
-
-BEGIN_PROPERTIES(UPointLightComponent)
-	MARK_AS_COMPONENT("포인트 라이트", "포인트 라이트 컴포넌트를 추가합니다.")
-	ADD_PROPERTY_RANGE(float, SourceRadius, "Light", 0.0f, 1000.0f, false, "광원의 반경입니다.")
-	ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "쉐도우 맵 Far Plane")
-	ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
-	ADD_PROPERTY_RANGE(int, OverrideCameraLightNum, "ShadowMap", 0, 5,true, "Override Camera Light Perspective Num")
-END_PROPERTIES()
-
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
 UPointLightComponent::UPointLightComponent()
 {
 	SourceRadius = 0.0f;

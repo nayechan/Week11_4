@@ -1,12 +1,15 @@
 ﻿#pragma once
+
 #include "Actor.h"
+#include "APointLightActor.generated.h"
 
 class UPointLightComponent;
 
+UCLASS(DisplayName="포인트 라이트", Description="점광원을 생성하는 액터입니다")
 class APointLightActor : public AActor
 {
 public:
-	DECLARE_CLASS(APointLightActor, AActor)
+
 	GENERATED_REFLECTION_BODY()
 
 	APointLightActor();
@@ -17,7 +20,6 @@ public:
 	UPointLightComponent* GetLightComponent() const { return LightComponent; }
 
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(APointLightActor)
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 

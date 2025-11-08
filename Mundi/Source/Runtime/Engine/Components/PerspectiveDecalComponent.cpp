@@ -2,13 +2,12 @@
 #include "OBB.h"
 #include "PerspectiveDecalComponent.h"
 #include "JsonSerializer.h"
-
-IMPLEMENT_CLASS(UPerspectiveDecalComponent)
-
-BEGIN_PROPERTIES(UPerspectiveDecalComponent)
-	MARK_AS_COMPONENT("원근 데칼 컴포넌트", "원근 투영을 사용하는 데칼 효과를 생성합니다.")
-	ADD_PROPERTY_RANGE(float, FovY, "Decal", 1.0f, 179.0f, true, "수직 시야각 (FOV, Degrees)입니다.")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//
+//BEGIN_PROPERTIES(UPerspectiveDecalComponent)
+//	MARK_AS_COMPONENT("원근 데칼 컴포넌트", "원근 투영을 사용하는 데칼 효과를 생성합니다.")
+//	ADD_PROPERTY_RANGE(float, FovY, "Decal", 1.0f, 179.0f, true, "수직 시야각 (FOV, Degrees)입니다.")
+//END_PROPERTIES()
 
 UPerspectiveDecalComponent::UPerspectiveDecalComponent()
 {

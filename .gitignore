@@ -449,3 +449,13 @@ GEMINI.md
 /Mundi/Data/untracked/**
 /Mundi/DerivedDataCache/**
 !/Mundi/ThirdParty/**
+
+# Python Embedded (임베디드 Python을 포함하여 팀원들이 바로 사용 가능)
+# Python 캐시 파일만 제외
+/Mundi/Tools/Python/__pycache__/
+/Mundi/Tools/Python/**/__pycache__/
+/Mundi/Tools/Python/**/*.pyc
+/Mundi/Tools/Python/**/*.pyo
+!/Mundi/Tools/Python/python.exe
+# pip 다운로드 파일 제외
+/Mundi/Tools/Python/get-pip.py

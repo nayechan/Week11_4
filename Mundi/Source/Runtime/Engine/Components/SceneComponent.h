@@ -1,6 +1,8 @@
 ﻿#pragma once
+
 #include "Vector.h"
 #include "ActorComponent.h"
+#include "USceneComponent.generated.h"
 
 // 부착 시 로컬을 유지할지, 월드를 유지할지
 enum class EAttachmentRule
@@ -10,17 +12,17 @@ enum class EAttachmentRule
 };
 
 class URenderer;
+UCLASS(DisplayName="씬 컴포넌트", Description="트랜스폼을 가진 기본 컴포넌트입니다")
 class USceneComponent : public UActorComponent
 {
 public:
-    DECLARE_CLASS(USceneComponent, UActorComponent)
+
     GENERATED_REFLECTION_BODY()
 
     USceneComponent();
 
 protected:
     ~USceneComponent() override;
-
 
 public:
     // ──────────────────────────────
@@ -84,7 +86,6 @@ public:
 
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
-    DECLARE_DUPLICATE(USceneComponent)
 
     // DuplicateSubObjects에서 쓰기 위함
     void SetParent(USceneComponent* InParent)
@@ -134,14 +135,21 @@ protected:
     UBillboardComponent* SpriteComponent = nullptr;
 
     bool bWantsOnUpdateTransform = false;
+
+    UPROPERTY(EditAnywhere, Category="렌더링")
     bool bIsVisible = true;
 
+    UPROPERTY(EditAnywhere, Category="Transform")
     FVector RelativeLocation{ 0,0,0 };
+
     FQuat   RelativeRotation;
+
+    UPROPERTY(EditAnywhere, Category="Transform")
     FVector RelativeScale{ 1,1,1 };
 
     // UI 편집용 Euler Angle (Degrees)
     // RelativeRotation과 항상 동기화됨
+    UPROPERTY(EditAnywhere, Category="Transform")
     FVector RelativeRotationEuler{ 0,0,0 };
 
     mutable FMatrix CachedWorldMatrix = FMatrix::Identity();

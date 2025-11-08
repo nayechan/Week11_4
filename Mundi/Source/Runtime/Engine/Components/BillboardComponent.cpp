@@ -13,19 +13,17 @@
 #include "MeshBatchElement.h"
 #include "LuaBindHelpers.h"
 
-extern "C" void LuaBind_Anchor_UBillboardComponent() {}
-LUA_BIND_BEGIN(UBillboardComponent)
-{
-	AddAlias<UBillboardComponent, FString>(T, "SetTexture", &UBillboardComponent::SetTexture);
-}
-LUA_BIND_END()
-
-IMPLEMENT_CLASS(UBillboardComponent)
-
-BEGIN_PROPERTIES(UBillboardComponent)
-	MARK_AS_COMPONENT("빌보드 컴포넌트", "항상 카메라를 향하는 2D 아이콘을 표시합니다.")
-	ADD_PROPERTY_TEXTURE(UTexture*, Texture, "Billboard", true)
-END_PROPERTIES()
+//extern "C" void LuaBind_Anchor_UBillboardComponent() {}
+//LUA_BIND_BEGIN(UBillboardComponent)
+//{
+//	AddAlias<UBillboardComponent, FString>(T, "SetTexture", &UBillboardComponent::SetTexture);
+//}
+//LUA_BIND_END()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//BEGIN_PROPERTIES(UBillboardComponent)
+//	MARK_AS_COMPONENT("빌보드 컴포넌트", "항상 카메라를 향하는 2D 아이콘을 표시합니다.")
+//	ADD_PROPERTY_TEXTURE(UTexture*, Texture, "Billboard", true)
+//END_PROPERTIES()
 
 UBillboardComponent::UBillboardComponent()
 {

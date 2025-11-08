@@ -6,13 +6,10 @@
 #include "ResourceManager.h"1
 #include "Texture.h"
 #include "RotatingMovementComponent.h"
-
-
-IMPLEMENT_CLASS(AFireBallActor)
-
-BEGIN_PROPERTIES(AFireBallActor)
-	MARK_AS_SPAWNABLE("파이어 볼", "파이어 볼을 렌더링하는 액터입니다.")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//BEGIN_PROPERTIES(AFireBallActor)
+//	MARK_AS_SPAWNABLE("파이어 볼", "파이어 볼을 렌더링하는 액터입니다.")
+//END_PROPERTIES()
 
 AFireBallActor::AFireBallActor()
 {

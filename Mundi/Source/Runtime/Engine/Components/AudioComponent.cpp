@@ -9,24 +9,9 @@
 #include "ResourceManager.h"
 #include "LuaBindHelpers.h"
 
-extern "C" void LuaBind_Anchor_UAudioComponent() {}
+//extern "C" void LuaBind_Anchor_UAudioComponent() {}
 
-LUA_BIND_BEGIN(UAudioComponent)
-{
-    AddAlias<UAudioComponent, uint32>(T, "PlayOneShot", &UAudioComponent::PlaySlot);
-}
-LUA_BIND_END()
-
-IMPLEMENT_CLASS(UAudioComponent)
-
-BEGIN_PROPERTIES(UAudioComponent)
-    MARK_AS_COMPONENT("Audio Component", "3D audio playback component")
-    ADD_PROPERTY_ARRAY(EPropertyType::Sound, Sounds, "Sound", true)
-    ADD_PROPERTY(float, Volume, "Audio", true, "Volume (0..1)")
-    ADD_PROPERTY(float, Pitch,  "Audio", true, "Pitch (frequency ratio)")
-    ADD_PROPERTY(bool,  bIsLooping, "Audio", true, "Loop playback")
-    ADD_PROPERTY(bool,  bAutoPlay,  "Audio", true, "Auto play on BeginPlay")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in UAudioComponent.generated.cpp
 
 UAudioComponent::UAudioComponent()
     : Volume(1.0f)

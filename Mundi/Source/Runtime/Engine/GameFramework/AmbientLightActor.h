@@ -1,12 +1,14 @@
 ﻿#pragma once
+
 #include "Actor.h"
+#include "AAmbientLightActor.generated.h"
 
 class UAmbientLightComponent;
 
+UCLASS(DisplayName="앰비언트 라이트", Description="전역 조명을 생성하는 액터입니다")
 class AAmbientLightActor : public AActor
 {
 public:
-	DECLARE_CLASS(AAmbientLightActor, AActor)
 	GENERATED_REFLECTION_BODY()
 
 	AAmbientLightActor();
@@ -17,7 +19,6 @@ public:
 	UAmbientLightComponent* GetLightComponent() const { return LightComponent; }
 
 	void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(AAmbientLightActor)
 
 	void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 

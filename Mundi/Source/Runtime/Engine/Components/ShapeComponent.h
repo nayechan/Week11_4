@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "PrimitiveComponent.h"
 
+#include "PrimitiveComponent.h"
+#include "UShapeComponent.generated.h"
 
 enum class EShapeKind : uint8
 {
@@ -25,11 +26,11 @@ struct FShape
 	};
 }; 
 
-
+UCLASS(DisplayName="셰이프 컴포넌트", Description="충돌 모양 기본 컴포넌트입니다")
 class UShapeComponent : public UPrimitiveComponent
 { 
 public:  
-    DECLARE_CLASS(UShapeComponent, UPrimitiveComponent) 
+
 	GENERATED_REFLECTION_BODY();
 
 	UShapeComponent();
@@ -48,7 +49,6 @@ public:
 
 	// Duplication
 	virtual void DuplicateSubObjects() override;
-	DECLARE_DUPLICATE(UShapeComponent)
 
 	// ㅡㅡㅡㅡㅡㅡㅡㅡㅡ디버깅용ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
  
@@ -58,9 +58,13 @@ protected:
 	TSet<UShapeComponent*> OverlapPrev; // 지난 프레임에서 overlap 됐으면 Cache
 	 
 
-	FVector4 ShapeColor ; 
-	bool bDrawOnlyIfSelected;  
+	FVector4 ShapeColor ;
+	bool bDrawOnlyIfSelected;
+
+	UPROPERTY(EditAnywhere, Category="Shape")
 	bool bShapeIsVisible;
+
+	UPROPERTY(EditAnywhere, Category="Shape")
 	bool bShapeHiddenInGame;
 	TArray<FOverlapInfo> OverlapInfos; 
 	//TODO: float LineThickness;

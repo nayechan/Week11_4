@@ -7,20 +7,18 @@
 
 #include "RenderManager.h"
 #include "D3D11RHI.h"
-
-IMPLEMENT_CLASS(UDirectionalLightComponent)
-
-BEGIN_PROPERTIES(UDirectionalLightComponent)
-	MARK_AS_COMPONENT("디렉셔널 라이트", "방향성 라이트 (태양광 같은 평행광) 컴포넌트입니다.")
-	ADD_PROPERTY(bool, bCascaded, "ShadowMap", true, "Cascaded 사용 여부")
-	ADD_PROPERTY_RANGE(int, CascadedCount, "ShadowMap", 1, 8, true, "Cascaded 갯수")
-	ADD_PROPERTY_RANGE(float, CascadedLinearBlendingValue, "ShadowMap", 0, 1, true, "Cascaded Log~Linear 가중치 : 0~1")
-	ADD_PROPERTY_RANGE(float, CascadedOverlapValue, "ShadowMap", 0, 0.5f, true, "Cascaded 확장 범위 크기")
-	ADD_PROPERTY_RANGE(float, CascadedAreaColorDebugValue, "ShadowMap", 0, 1.0f, true, "Cascaded 범위 시각화")
-	ADD_PROPERTY_RANGE(int, CascadedAreaShadowDebugValue, "ShadowMap", -1, 8, true, "Cascaded 쉐도우 구역 설정 (-1 : 전체 쉐도우)")
-	ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "쉐도우 맵 Far Plane")
-	ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
-END_PROPERTIES()
+// IMPLEMENT_CLASS is now auto-generated in .generated.cpp
+//BEGIN_PROPERTIES(UDirectionalLightComponent)
+//	MARK_AS_COMPONENT("디렉셔널 라이트", "방향성 라이트 (태양광 같은 평행광) 컴포넌트입니다.")
+//	ADD_PROPERTY(bool, bCascaded, "ShadowMap", true, "Cascaded 사용 여부")
+//	ADD_PROPERTY_RANGE(int, CascadedCount, "ShadowMap", 1, 8, true, "Cascaded 갯수")
+//	ADD_PROPERTY_RANGE(float, CascadedLinearBlendingValue, "ShadowMap", 0, 1, true, "Cascaded Log~Linear 가중치 : 0~1")
+//	ADD_PROPERTY_RANGE(float, CascadedOverlapValue, "ShadowMap", 0, 0.5f, true, "Cascaded 확장 범위 크기")
+//	ADD_PROPERTY_RANGE(float, CascadedAreaColorDebugValue, "ShadowMap", 0, 1.0f, true, "Cascaded 범위 시각화")
+//	ADD_PROPERTY_RANGE(int, CascadedAreaShadowDebugValue, "ShadowMap", -1, 8, true, "Cascaded 쉐도우 구역 설정 (-1 : 전체 쉐도우)")
+//	ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true, "쉐도우 맵 Far Plane")
+//	ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true, "Override Camera Light Perspective")
+//END_PROPERTIES()
 
 namespace
 {
