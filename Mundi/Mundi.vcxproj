@@ -107,7 +107,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);ThirdParty\Lua\lib\$(Configuration)\;ThirdParty\DirectXTex\lib\$(Configuration)\;ThirdParty\FBXSDK\lib\$(Configuration)\;ThirdParty\DirectXTK\lib\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk.lib</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk-md.lib;alembic-md.lib;libxml2-md.lib;zlib-md.lib</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
@@ -135,7 +135,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);ThirdParty\Lua\lib\Debug\;ThirdParty\DirectXTex\lib\Debug\;ThirdParty\DirectXTK\lib\Debug\;ThirdParty\FBXSDK\lib\Debug\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk.lib</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk-md.lib;alembic-md.lib;libxml2-md.lib;zlib-md.lib</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
@@ -167,7 +167,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);ThirdParty\Lua\lib\$(Configuration)\;ThirdParty\DirectXTex\lib\$(Configuration)\;ThirdParty\FBXSDK\lib\$(Configuration)\;ThirdParty\DirectXTK\lib\$(Configuration)\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk.lib</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk-md.lib;alembic-md.lib;libxml2-md.lib;zlib-md.lib</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
@@ -198,7 +198,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories);ThirdParty\Lua\lib\Release\;ThirdParty\DirectXTex\lib\Release\;ThirdParty\FBXSDK\lib\Release\;ThirdParty\DirectXTK\lib\Release\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk.lib</AdditionalDependencies>
+      <AdditionalDependencies>DirectXTK.lib;DirectXTex.lib;%(AdditionalDependencies);Lua.lib;libfbxsdk-md.lib;alembic-md.lib;libxml2-md.lib;zlib-md.lib</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>

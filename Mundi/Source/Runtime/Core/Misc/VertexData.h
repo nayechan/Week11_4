@@ -67,6 +67,44 @@ struct FSkinnedVertex
     float BoneWeights[4]; // 각 본의 가중치 (합이 1.0)
 };
 
+// 같은 Position인데 Normal이나 UV가 다른 vertex가 존재할 수 있음, 그래서 SkinnedVertex를 키로 구별해야해서 hash함수 정의함
+template <class T>
+inline void CombineHash(size_t& InSeed, const T& Vertex)
+{
+    std::hash<T> Hasher;
+
+    InSeed ^= Hasher(Vertex) + 0x9e3779b9 + (InSeed << 6) + (InSeed >> 2);
+}
+inline bool operator==(const FSkinnedVertex& Vertex1, const FSkinnedVertex& Vertex2)
+{
+    return std::memcmp(&Vertex1, &Vertex2, sizeof(FSkinnedVertex)) == 0;
+}
+namespace std
+{
+    template<>
+    struct hash<FSkinnedVertex>
+    {
+
+        size_t operator()(const FSkinnedVertex& Vertex) const
+        {
+            size_t Seed = 0;
+
+            CombineHash(Seed, Vertex.Position.X); CombineHash(Seed, Vertex.Position.Y); CombineHash(Seed, Vertex.Position.Z);
+            CombineHash(Seed, Vertex.Normal.X); CombineHash(Seed, Vertex.Normal.Y); CombineHash(Seed, Vertex.Normal.Z);
+            CombineHash(Seed, Vertex.Tangent.X); CombineHash(Seed, Vertex.Tangent.Y); CombineHash(Seed, Vertex.Tangent.Z); CombineHash(Seed, Vertex.Tangent.W);
+            CombineHash(Seed, Vertex.Color.X); CombineHash(Seed, Vertex.Color.Y); CombineHash(Seed, Vertex.Color.Z); CombineHash(Seed, Vertex.Color.W);
+            CombineHash(Seed, Vertex.UV.X); CombineHash(Seed, Vertex.UV.Y);
+
+            for (int Index = 0; Index < 4; Index++)
+            {
+                CombineHash(Seed, Vertex.BoneIndices[Index]);
+                CombineHash(Seed, Vertex.BoneWeights[Index]);
+            }
+            return Seed;
+        }
+    };
+}
+
 struct FBillboardVertexInfo {
     FVector WorldPosition;
     FVector2D CharSize;//char scale
