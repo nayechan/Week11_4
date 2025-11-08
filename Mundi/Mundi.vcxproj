@@ -112,8 +112,12 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
-      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
-      <Message>🔨 Generating Lua binding code...</Message>
+      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
+  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+) else (
+  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+)</Command>
+      <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\$(Configuration)\libfbxsdk.dll" "$(OutDir)"</Command>
@@ -140,8 +144,12 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PreBuildEvent>
-      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
-      <Message>🔨 Generating Lua binding code...</Message>
+      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
+  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+) else (
+  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+)</Command>
+      <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\Debug\libfbxsdk.dll" "$(OutDir)"</Command>
@@ -171,8 +179,12 @@
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
-      <Message>🔨 Generating Lua binding code...</Message>
+      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
+  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+) else (
+  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+)</Command>
+      <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\$(Configuration)\libfbxsdk.dll" "$(OutDir)"</Command>
@@ -202,8 +214,12 @@
       <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
-      <Command>py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"</Command>
-      <Message>🔨 Generating Lua binding code...</Message>
+      <Command>if exist "$(ProjectDir)Tools\Python\python.exe" (
+  "$(ProjectDir)Tools\Python\python.exe" "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+) else (
+  py "$(ProjectDir)Tools\CodeGenerator\generate.py" --source-dir "$(ProjectDir)Source\Runtime" --output-dir "$(ProjectDir)Generated"
+)</Command>
+      <Message>[CodeGen] Generating Lua binding code...</Message>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy /y /d "$(ProjectDir)ThirdParty\FBXSDK\lib\Release\libfbxsdk.dll" "$(OutDir)"</Command>
