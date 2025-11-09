@@ -45,7 +45,7 @@ enum class EResourceType : uint8
     None,
 
     StaticMesh,
-    SkeletaMesh,
+    SkeletalMesh,
     Quad,
     DynamicMesh,
     Shader,

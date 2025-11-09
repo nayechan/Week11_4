@@ -14,6 +14,7 @@
 #pragma once
 #include "ObjectFactory.h"
 #include "Object.h"
+#include "SkeletalMesh.h"
 // ... 기타 include ...
 
 // --- 전방 선언 ---
@@ -240,6 +241,8 @@ EResourceType UResourceManager::GetResourceType()
 {
     if (T::StaticClass() == UStaticMesh::StaticClass())
         return EResourceType::StaticMesh;
+    if (T::StaticClass() == USkeletalMesh::StaticClass())
+        return EResourceType::SkeletalMesh;
 	if (T::StaticClass() == UQuad::StaticClass())
 		return EResourceType::Quad;
 	if (T::StaticClass() == UDynamicMesh::StaticClass())

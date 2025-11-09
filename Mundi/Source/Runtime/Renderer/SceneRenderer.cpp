@@ -47,6 +47,7 @@
 #include "PlatformTime.h"
 #include "PostProcessing/VignettePass.h"
 #include "FBXLoader.h"
+#include "SkinnedMeshComponent.h"
 
 FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
 	: World(InWorld)
@@ -619,7 +620,7 @@ void FSceneRenderer::GatherVisibleProxies()
 	//PerformFrustumCulling();
 
 	const bool bDrawStaticMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_StaticMeshes);
-	const bool bDrowSkeletalMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_SkeletalMeshes);
+	const bool bDrawSkeletalMeshes = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_SkeletalMeshes);
 	const bool bDrawDecals = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Decals);
 	const bool bDrawFog = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Fog);
 	const bool bDrawLight = World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Lighting);
@@ -675,10 +676,10 @@ void FSceneRenderer::GatherVisibleProxies()
 						{
 							bShouldAdd = bDrawStaticMeshes;
 						}
-						// else if (MeshComponent->IsA(USkeletalMeshComponent::StaticClass()))
-						// {
-						//     bShouldAdd = bDrawSkeletalMeshes;
-						// }
+						else if (MeshComponent->IsA(USkinnedMeshComponent::StaticClass()))
+						{
+						    bShouldAdd = bDrawSkeletalMeshes;
+						}
 
 						if (bShouldAdd)
 						{

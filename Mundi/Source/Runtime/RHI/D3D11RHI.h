@@ -71,14 +71,19 @@ public:
 	static HRESULT CreateVertexBuffer(ID3D11Device* device, const FMeshData& mesh, ID3D11Buffer** outBuffer);
 
 	template<typename TVertex>
-	static HRESULT CreateVertexBufferImpl(ID3D11Device* device, const std::vector<FNormalVertex>& srcVertices, ID3D11Buffer** outBuffer, D3D11_USAGE usage, UINT cpuAccessFlags);
+	static HRESULT CreateVertexBufferImpl(ID3D11Device* Device, const std::vector<FNormalVertex>& SrcVertices, ID3D11Buffer** OutBuffer, D3D11_USAGE Usage, UINT CpuAccessFlags);
 
 	template<typename TVertex>
 	static HRESULT CreateVertexBuffer(ID3D11Device* device, const std::vector<FNormalVertex>& srcVertices, ID3D11Buffer** outBuffer);
+	
+	template<typename TVertex>
+	static HRESULT CreateVertexBuffer(ID3D11Device* device, const std::vector<FSkinnedVertex>& srcVertices, ID3D11Buffer** outBuffer);
 
 	static HRESULT CreateIndexBuffer(ID3D11Device* device, const FMeshData* meshData, ID3D11Buffer** outBuffer);
 
 	static HRESULT CreateIndexBuffer(ID3D11Device* device, const FStaticMesh* mesh, ID3D11Buffer** outBuffer);
+	
+	static HRESULT CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMeshData* Mesh, ID3D11Buffer** OutBuffer);
 
 	CONSTANT_BUFFER_LIST(DECLARE_UPDATE_CONSTANT_BUFFER_FUNC)
 	CONSTANT_BUFFER_LIST(DECLARE_SET_CONSTANT_BUFFER_FUNC)
@@ -323,30 +328,29 @@ inline HRESULT D3D11RHI::CreateVertexBuffer<FBillboardVertex>(ID3D11Device* devi
 		D3D11_CPU_ACCESS_WRITE);
 }
 
-
 template<typename TVertex>
-inline HRESULT D3D11RHI::CreateVertexBufferImpl(ID3D11Device* device, const std::vector<FNormalVertex>& srcVertices, ID3D11Buffer** outBuffer, D3D11_USAGE usage, UINT cpuAccessFlags)
+inline HRESULT D3D11RHI::CreateVertexBufferImpl(ID3D11Device* Device, const std::vector<FNormalVertex>& SrcVertices, ID3D11Buffer** OutBuffer, D3D11_USAGE Usage, UINT CpuAccessFlags)
 {
-	std::vector<TVertex> vertexArray;
-	vertexArray.reserve(srcVertices.size());
+	std::vector<TVertex> VertexArray;
+	VertexArray.reserve(SrcVertices.size());
 
-	for (size_t i = 0; i < srcVertices.size(); ++i)
+	for (size_t i = 0; i < SrcVertices.size(); ++i)
 	{
-		TVertex vtx{};
-		vtx.FillFrom(srcVertices[i]); // 각 TVertex에서 FillFrom 구현 필요
-		vertexArray.push_back(vtx);
+		TVertex Vertex{};
+		Vertex.FillFrom(SrcVertices[i]); // 각 TVertex에서 FillFrom 구현 필요
+		VertexArray.push_back(Vertex);
 	}
 
-	D3D11_BUFFER_DESC vbd = {};
-	vbd.Usage = usage;
-	vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vbd.CPUAccessFlags = cpuAccessFlags;
-	vbd.ByteWidth = static_cast<UINT>(sizeof(TVertex) * vertexArray.size());
+	D3D11_BUFFER_DESC BufferDesc = {};
+	BufferDesc.Usage = Usage;
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	BufferDesc.CPUAccessFlags = CpuAccessFlags;
+	BufferDesc.ByteWidth = static_cast<UINT>(sizeof(TVertex) * VertexArray.size());
 
-	D3D11_SUBRESOURCE_DATA vinitData = {};
-	vinitData.pSysMem = vertexArray.data();
+	D3D11_SUBRESOURCE_DATA InitData = {};
+	InitData.pSysMem = VertexArray.data();
 
-	return device->CreateBuffer(&vbd, &vinitData, outBuffer);
+	return Device->CreateBuffer(&BufferDesc, &InitData, OutBuffer);
 }
 
 template<>
@@ -367,4 +371,35 @@ template<>
 inline HRESULT D3D11RHI::CreateVertexBuffer<FBillboardVertexInfo_GPU>(ID3D11Device* device, const std::vector<FNormalVertex>& srcVertices, ID3D11Buffer** outBuffer)
 {
 	return CreateVertexBufferImpl<FBillboardVertexInfo_GPU>(device, srcVertices, outBuffer, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+}
+
+template<>
+inline HRESULT D3D11RHI::CreateVertexBuffer<FVertexDynamic>(ID3D11Device* Device, const std::vector<FSkinnedVertex>& SrcVertices, ID3D11Buffer** OutBuffer)
+{
+	std::vector<FVertexDynamic> VertexArray;
+	VertexArray.reserve(SrcVertices.size());
+
+	for (size_t Idx = 0; Idx < SrcVertices.size(); ++Idx)
+	{
+		const FSkinnedVertex& In = SrcVertices[Idx];
+		FVertexDynamic Vertex{};
+
+		Vertex.Position = In.Position;
+		Vertex.Normal = In.Normal;
+		Vertex.UV = In.UV;
+		Vertex.Tangent = In.Tangent;
+		Vertex.Color = In.Color;
+		VertexArray.push_back(Vertex);
+	}
+
+	D3D11_BUFFER_DESC BufferDesc = {};
+	BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	BufferDesc.ByteWidth = static_cast<UINT>(sizeof(FVertexDynamic) * VertexArray.size());
+
+	D3D11_SUBRESOURCE_DATA InitData = {};
+	InitData.pSysMem = VertexArray.data();
+
+	return Device->CreateBuffer(&BufferDesc, &InitData, OutBuffer);
 }

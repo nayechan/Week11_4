@@ -1,50 +1,47 @@
 ﻿#pragma once
 #include "MeshComponent.h"
+#include "SkeletalMesh.h"
+#include "USkinnedMeshComponent.generated.h"
 
+UCLASS(DisplayName="스킨드 메시 컴포넌트", Description="스켈레탈 메시를 렌더링하는 컴포넌트입니다")
 class USkinnedMeshComponent : public UMeshComponent
 {
 public:
-    DECLARE_CLASS(USkinnedMeshComponent, UMeshComponent)
+    GENERATED_REFLECTION_BODY()
 
-    USkinnedMeshComponent() = default;
+    USkinnedMeshComponent();
     ~USkinnedMeshComponent() override = default;
+
+    void BeginPlay() override;
 
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
     
 // Mesh Component Section
 public:
-    void CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View) override;
-    // virtual void UpdateDynamicVertexBuffer();
+    virtual void CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View) override;
+    
+    // UStaticMeshComponent에서 복사 (씬 관리에 필수)
+    virtual FAABB GetWorldAABB() const override;
+    virtual void OnTransformUpdated() override;
 
 // Skeletal Section
 public:
     /**
-     * @brief 렌더링할 스켈레탈 메시 에셋 설정
-     * @param InSkeletalMesh 새 스켈레탈 메시 에셋
+     * @brief 렌더링할 스켈레탈 메시 에셋 설정 (UStaticMeshComponent::SetStaticMesh와 동일한 역할)
+     * @param PathFileName 새 스켈레탈 메시 에셋 경로
      */
-    // virtual void SetSkeletalMesh(USkeletalMesh* InSkeletalMesh);
-
-    /**
-     * @brief 계산이 완료된 최종 정점을 반환 (정점 버퍼의 데이터로 사용)
-     */
-    // const TArray<FNormalVertex>& GetDynamicNormalVertices() const { return SkinnedVertices; }
-
-    /**
-     * @brief 원본 T-Pose 정점 버퍼를 반환합니다.
-     * 렌더러는 이 버퍼를 UV, Normal, Tangent 등 정적 데이터 소스로 사용합니다.
-     */
-    // const TArray<FSkinnedVertex>& GetReferenceVertices() const;
+    void SetSkeletalMesh(const FString& PathFileName);
 
     /**
      * @brief 이 컴포넌트의 USkeletalMesh 에셋을 반환
      */
-    // USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh; }
+    USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh; }
 
 protected:
-    // USkeletalMesh* SkeletalMesh;
+    USkeletalMesh* SkeletalMesh;
 
     /**
-    * CPU 스키닝 최종 결과물
+    * CPU 스키닝 최종 결과물 (TODO: 스키닝 계산 결과 버텍스들)
     */
     // TArray<FNormalVertex> SkinnedVertices;
 };
