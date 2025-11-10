@@ -145,7 +145,9 @@ void FSceneRenderer::Render()
 void FSceneRenderer::RenderLitPath()
 {
     RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
-    // Clear scene color for this view's rect to provide an opaque background
+
+	// 이 뷰의 rect 영역에 대해 Scene Color를 클리어하여 불투명한 배경을 제공함
+	// 이렇게 해야 에디터 뷰포트 여러 개를 동시에 겹치게 띄워도 서로의 렌더링이 섞이지 않는다
     {
         D3D11_VIEWPORT vp = {};
         vp.TopLeftX = (float)View->ViewRect.MinX;
@@ -175,19 +177,6 @@ void FSceneRenderer::RenderWireframePath()
     RHIDevice->ClearDepthBuffer(1.0f, 0);
     RHIDevice->RSSetState(ERasterizerMode::Wireframe);
     RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
-    // Provide background for wireframe path
-    {
-        D3D11_VIEWPORT vp = {};
-        vp.TopLeftX = (float)View->ViewRect.MinX;
-        vp.TopLeftY = (float)View->ViewRect.MinY;
-        vp.Width    = (float)View->ViewRect.Width();
-        vp.Height   = (float)View->ViewRect.Height();
-        vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
-        RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
-        const float bg[4] = { 0.12f, 0.13f, 0.15f, 1.0f };
-        RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetCurrentTargetRTV(), bg);
-        RHIDevice->ClearDepthBuffer(1.0f, 0);
-    }
     RenderOpaquePass(EViewMode::VMI_Unlit);
 
 	// 상태 복구
@@ -693,6 +682,10 @@ void FSceneRenderer::GatherVisibleProxies()
 					else if (UDecalComponent* DecalComponent = Cast<UDecalComponent>(PrimitiveComponent); DecalComponent && bDrawDecals)
 					{
 						Proxies.Decals.Add(DecalComponent);
+					}
+					else if (ULineComponent* LineComponent = Cast<ULineComponent>(PrimitiveComponent))
+					{
+						Proxies.EditorLines.Add(LineComponent);
 					}
 				}
 				else
