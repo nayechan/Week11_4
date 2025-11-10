@@ -13,6 +13,7 @@ import argparse
 import sys
 import os
 from pathlib import Path
+import subprocess
 
 # Add current script directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -167,6 +168,12 @@ def main():
         required=True,
         help='생성된 파일 출력 디렉토리 (예: Build/Generated)'
     )
+    parser.add_argument(
+        '--vcxproj',
+        type=Path,
+        default=None,
+        help='업데이트할 .vcxproj 파일 경로 (예: Mundi.vcxproj)'
+    )
 
     args = parser.parse_args()
 
@@ -244,6 +251,29 @@ def main():
     print(f"   Updated: {updated_count}")
     print(f"   Skipped: {skipped_count * 2} (unchanged)")
     print("=" * 60)
+
+    # vcxproj 업데이트
+    if args.vcxproj and args.vcxproj.exists():
+        print()
+        print("=" * 60)
+        print(" Updating Visual Studio Project...")
+        print("=" * 60)
+
+        # vcxproj_updater.py 실행
+        updater_script = Path(__file__).parent / "vcxproj_updater.py"
+        if updater_script.exists():
+            cmd = [sys.executable, str(updater_script), str(args.vcxproj)] + [str(f) for f in generated_files]
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8')
+                print(result.stdout)
+                if result.returncode != 0:
+                    print(f"[WARNING] vcxproj update failed: {result.stderr}")
+            except Exception as e:
+                print(f"[WARNING] Failed to run vcxproj updater: {e}")
+        else:
+            print(f"[WARNING] vcxproj_updater.py not found at {updater_script}")
+    elif args.vcxproj:
+        print(f"\n[WARNING] vcxproj file not found: {args.vcxproj}")
 
 
 if __name__ == '__main__':

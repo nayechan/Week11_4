@@ -196,16 +196,28 @@ class HeaderParser:
 
         return results
 
+    @staticmethod
+    def _remove_comments(content: str) -> str:
+        """C++ 주석 제거 (// 및 /* */ 주석)"""
+        # 여러 줄 주석 /* */ 제거
+        content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        # 한 줄 주석 // 제거
+        content = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+        return content
+
     def parse_header(self, header_path: Path) -> Optional[ClassInfo]:
         """헤더 파일 파싱"""
         content = header_path.read_text(encoding='utf-8')
 
+        # 주석을 제거한 버전으로 GENERATED_REFLECTION_BODY() 체크
+        content_no_comments = self._remove_comments(content)
+
         # GENERATED_REFLECTION_BODY() 체크
-        if not self.GENERATED_REFLECTION_PATTERN.search(content):
+        if not self.GENERATED_REFLECTION_PATTERN.search(content_no_comments):
             return None
 
-        # 클래스 정보 추출
-        class_match = self.CLASS_PATTERN.search(content)
+        # 클래스 정보 추출 (주석 제거된 버전에서)
+        class_match = self.CLASS_PATTERN.search(content_no_comments)
         if not class_match:
             return None
 
@@ -218,11 +230,11 @@ class HeaderParser:
             header_file=header_path
         )
 
-        # UCLASS 메타데이터 파싱
-        uclass_match = self.UCLASS_START.search(content)
+        # UCLASS 메타데이터 파싱 (주석 제거된 버전에서)
+        uclass_match = self.UCLASS_START.search(content_no_comments)
         if uclass_match:
             metadata_start = uclass_match.end()
-            metadata, _ = self._extract_balanced_parens(content, metadata_start)
+            metadata, _ = self._extract_balanced_parens(content_no_comments, metadata_start)
             class_info.uclass_metadata = self._parse_metadata(metadata)
 
             # DisplayName과 Description 추출
@@ -231,14 +243,14 @@ class HeaderParser:
             if 'Description' in class_info.uclass_metadata:
                 class_info.description = class_info.uclass_metadata['Description']
 
-        # UPROPERTY 파싱 (괄호 매칭 지원)
-        uproperty_decls = self._parse_uproperty_declarations(content)
+        # UPROPERTY 파싱 (주석 제거된 버전에서)
+        uproperty_decls = self._parse_uproperty_declarations(content_no_comments)
         for metadata_str, prop_type, prop_name in uproperty_decls:
             prop = self._parse_property(prop_name, prop_type, metadata_str)
             class_info.properties.append(prop)
 
-        # UFUNCTION 파싱
-        for match in self.UFUNCTION_PATTERN.finditer(content):
+        # UFUNCTION 파싱 (주석 제거된 버전에서)
+        for match in self.UFUNCTION_PATTERN.finditer(content_no_comments):
             metadata_str = match.group(1)
             return_type = match.group(2).strip()
             func_name = match.group(3)
