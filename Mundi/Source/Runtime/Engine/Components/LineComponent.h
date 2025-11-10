@@ -32,6 +32,10 @@ public:
     void GetWorldLineData(TArray<FVector>& OutStartPoints, TArray<FVector>& OutEndPoints, TArray<FVector4>& OutColors) const;
     bool HasVisibleLines() const { return bLinesVisible && !Lines.empty(); }
 
+    // Overlay behavior
+    void SetAlwaysOnTop(bool bInAlwaysOnTop) { bAlwaysOnTop = bInAlwaysOnTop; }
+    bool IsAlwaysOnTop() const { return bAlwaysOnTop; }
+
     // ───── 복사 관련 ────────────────────────────
     void DuplicateSubObjects() override;
     DECLARE_DUPLICATE(ULineComponent)
@@ -39,4 +43,5 @@ public:
 private:
     TArray<ULine*> Lines;
     bool bLinesVisible = true;
+    bool bAlwaysOnTop = false;
  };

@@ -34,7 +34,9 @@ void UImGuiHelper::Initialize(HWND InWindowHandle)
 
 	ImGui_ImplWin32_Init(InWindowHandle);
 
-	ImGuiIO& IO = ImGui::GetIO();
+    ImGuiIO& IO = ImGui::GetIO();
+    // Restrict window moving to title bar only to avoid dragging content moving entire windows
+    IO.ConfigWindowsMoveFromTitleBarOnly = true;
 	// Use default ImGui font
 	// IO.Fonts->AddFontDefault();
 
@@ -63,7 +65,9 @@ void UImGuiHelper::Initialize(HWND InWindowHandle, ID3D11Device* InDevice, ID3D1
 
 	// TODO (동민, 한글) utf-8 설정을 푼다면 그냥 한글을 넣지 마세요.
 	// ImGui는 utf-8을 기본으로 사용하기 때문에 그것에 맞춰 바꿔야 합니다.
-	ImGuiIO& IO = ImGui::GetIO();
+    ImGuiIO& IO = ImGui::GetIO();
+    // Restrict window moving to title bar only to avoid dragging content moving entire windows
+    IO.ConfigWindowsMoveFromTitleBarOnly = true;
 	ImFontConfig Cfg;
 	/*
 		오버 샘플은 폰트 비트맵을 만들 때 더 좋은 해상도로 래스터라이즈했다가

@@ -134,8 +134,11 @@ void FSceneRenderer::Render()
 	// FXAA 등 화면에서 최종 이미지 품질을 위해 적용되는 효과를 적용
 	ApplyScreenEffectsPass();
 
-	// 최종적으로 Scene에 그려진 텍스쳐를 Back 버퍼에 그힌다
-	CompositeToBackBuffer();
+    // 최종적으로 Scene에 그려진 텍스쳐를 Back 버퍼에 그힌다
+    CompositeToBackBuffer();
+
+    // BackBuffer 위에 라인 오버레이(항상 위)를 그린다
+    RenderFinalOverlayLines();
 }
 
 //====================================================================================
@@ -1168,11 +1171,26 @@ void FSceneRenderer::RenderDebugPass()
 	// 그리드 라인 수집
 	for (ULineComponent* LineComponent : Proxies.EditorLines)
 	{
+		if (!LineComponent || LineComponent->IsAlwaysOnTop())
+			continue;
+		
         if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
 		{
 			LineComponent->CollectLineBatches(OwnerRenderer);
 		}
 	}
+	OwnerRenderer->EndLineBatch(FMatrix::Identity());
+
+	// Always-on-top lines (e.g., skeleton bones), regardless of grid flag
+	OwnerRenderer->BeginLineBatch();
+	for (ULineComponent* LineComponent : Proxies.EditorLines)
+	{
+		if (!LineComponent || !LineComponent->IsAlwaysOnTop())
+			continue;
+		
+		LineComponent->CollectLineBatches(OwnerRenderer);
+	}
+	OwnerRenderer->EndLineBatchAlwaysOnTop(FMatrix::Identity());
 
 	// 선택된 액터의 디버그 볼륨 렌더링
 	for (AActor* SelectedActor : World->GetSelectionManager()->GetSelectedActors())
@@ -1214,6 +1232,30 @@ void FSceneRenderer::RenderOverayEditorPrimitivesPass()
 
 	// 수집된 배치를 그립니다.
 	DrawMeshBatches(MeshBatchElements, true);
+}
+
+void FSceneRenderer::RenderFinalOverlayLines()
+{
+    // Bind backbuffer for final overlay pass (no depth)
+    RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithoutDepth);
+
+    // Set viewport to current view rect to confine drawing to this viewport
+    D3D11_VIEWPORT vp = {};
+    vp.TopLeftX = (float)View->ViewRect.MinX;
+    vp.TopLeftY = (float)View->ViewRect.MinY;
+    vp.Width    = (float)View->ViewRect.Width();
+    vp.Height   = (float)View->ViewRect.Height();
+    vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
+    RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+
+    OwnerRenderer->BeginLineBatch();
+    for (ULineComponent* LineComponent : Proxies.EditorLines)
+    {
+        if (!LineComponent || !LineComponent->IsAlwaysOnTop())
+            continue;
+        LineComponent->CollectLineBatches(OwnerRenderer);
+    }
+    OwnerRenderer->EndLineBatchAlwaysOnTop(FMatrix::Identity());
 }
 
 // 수집한 Batch 그리기

@@ -116,8 +116,9 @@ private:
 	void RenderEditorPrimitivesPass();
 	void RenderOverayEditorPrimitivesPass();
 
-	/** @brief BVH 등 디버그 시각화 요소를 렌더링하는 패스입니다. */
-	void RenderDebugPass();
+    /** @brief BVH 등 디버그 시각화 요소를 렌더링하는 패스입니다. */
+    void RenderDebugPass();
+    void RenderFinalOverlayLines();
 	
 	/** @brief FXAA 등 화면에서 최종 이미지 품질을 위해 적용되는 효과를 적용하는 패스입니다. */
 	void ApplyScreenEffectsPass();
