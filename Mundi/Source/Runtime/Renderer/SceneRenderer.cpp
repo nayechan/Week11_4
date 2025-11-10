@@ -98,7 +98,7 @@ void FSceneRenderer::Render()
 		View->RenderSettings->GetViewMode() == EViewMode::VMI_Lit_Gouraud ||
 		View->RenderSettings->GetViewMode() == EViewMode::VMI_Lit_Lambert)
 	{
-		GWorld->GetLightManager()->UpdateLightBuffer(RHIDevice);	//라이트 구조체 버퍼 업데이트, 바인딩
+		World->GetLightManager()->UpdateLightBuffer(RHIDevice);
 		PerformTileLightCulling();	// 타일 기반 라이트 컬링 수행
 		RenderLitPath();
 		RenderPostProcessingPasses();	// 후처리 체인 실행
@@ -233,7 +233,7 @@ void FSceneRenderer::RenderSceneDepthPath()
 
 void FSceneRenderer::RenderShadowMaps()
 {
-	FLightManager* LightManager = GWorld->GetLightManager();
+    FLightManager* LightManager = World->GetLightManager();
 	if (!LightManager) return;
 
 	// 2. 그림자 캐스터(Caster) 메시 수집
@@ -338,7 +338,7 @@ void FSceneRenderer::RenderShadowMaps()
 			RHIDevice->GetDeviceContext()->PSSetShaderResources(9, 2, NullSRV);
 			
 			float ClearColor[] = {1.0f, 1.0f, 0.0f, 0.0f};
-			EShadowAATechnique ShadowAAType = GWorld->GetRenderSettings().GetShadowAATechnique();
+			EShadowAATechnique ShadowAAType = World->GetRenderSettings().GetShadowAATechnique();
 			switch (ShadowAAType)
 			{
 			case EShadowAATechnique::PCF:
@@ -465,7 +465,7 @@ void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, 
 	RHIDevice->GetDeviceContext()->IASetInputLayout(ShaderVariant->InputLayout);
 	RHIDevice->GetDeviceContext()->VSSetShader(ShaderVariant->VertexShader, nullptr, 0);
 	
-	EShadowAATechnique ShadowAAType = GWorld->GetRenderSettings().GetShadowAATechnique();
+    EShadowAATechnique ShadowAAType = World->GetRenderSettings().GetShadowAATechnique();
 	switch (ShadowAAType)
 	{
 	case EShadowAATechnique::PCF:
@@ -797,8 +797,8 @@ void FSceneRenderer::PerformTileLightCulling()
 	if (bTileCullingEnabled)
 	{
 		// PointLight와 SpotLight 정보 수집
-		TArray<FPointLightInfo>& PointLights = GWorld->GetLightManager()->GetPointLightInfoList();
-		TArray<FSpotLightInfo>& SpotLights = GWorld->GetLightManager()->GetSpotLightInfoList();
+		TArray<FPointLightInfo>& PointLights = World->GetLightManager()->GetPointLightInfoList();
+		TArray<FSpotLightInfo>& SpotLights = World->GetLightManager()->GetSpotLightInfoList();
 
 		// 타일 컬링 수행
 		TileLightCuller->CullLights(
@@ -1168,7 +1168,7 @@ void FSceneRenderer::RenderDebugPass()
 	// 그리드 라인 수집
 	for (ULineComponent* LineComponent : Proxies.EditorLines)
 	{
-		if (GWorld->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
+        if (World->GetRenderSettings().IsShowFlagEnabled(EEngineShowFlags::SF_Grid))
 		{
 			LineComponent->CollectLineBatches(OwnerRenderer);
 		}
