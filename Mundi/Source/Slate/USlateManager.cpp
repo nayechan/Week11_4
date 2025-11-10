@@ -652,6 +652,14 @@ void USlateManager::Shutdown()
         UE_LOG("USlateManager: ConsoleWindow destroyed");
     }
 
+    // Content Browser 윈도우 삭제
+    if (ContentBrowserWindow)
+    {
+        delete ContentBrowserWindow;
+        ContentBrowserWindow = nullptr;
+        UE_LOG("USlateManager: ContentBrowserWindow destroyed");
+    }
+
     // D3D 컨텍스트를 해제하기 위해 UI 패널과 뷰포트를 명시적으로 삭제
     if (TopPanel) { delete TopPanel; TopPanel = nullptr; }
     if (LeftTop) { delete LeftTop; LeftTop = nullptr; }

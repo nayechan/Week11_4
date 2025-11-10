@@ -306,15 +306,19 @@ void UContentBrowserWindow::RenderContentGrid()
 		FFileEntry& entry = DisplayedFiles[i];
 
 		ImGui::PushID(i);
+
+		// 같은 줄에 배치 (첫 번째 아이템이 아닌 경우)
+		if (i > 0)
+		{
+			int columnIndex = i % ColumnsCount;
+			if (columnIndex != 0)
+			{
+				ImGui::SameLine();
+			}
+		}
+
 		RenderFileItem(entry, i);
 		ImGui::PopID();
-
-		// 같은 줄에 다음 아이템 배치 (마지막 컬럼이 아닌 경우)
-		int columnIndex = (i + 1) % ColumnsCount;
-		if (columnIndex != 0 && i < DisplayedFiles.size() - 1)
-		{
-			ImGui::SameLine();
-		}
 	}
 
 	ImGui::EndChild();
@@ -324,6 +328,9 @@ void UContentBrowserWindow::RenderFileItem(FFileEntry& Entry, int Index)
 {
 	ImGuiStyle& style = ImGui::GetStyle();
 	ImVec2 buttonSize(ThumbnailSize, ThumbnailSize);
+
+	// 그룹 시작 - 버튼과 텍스트를 하나의 단위로 묶음
+	ImGui::BeginGroup();
 
 	// 선택 상태에 따라 색상 변경
 	bool isSelected = (Index == SelectedIndex);
@@ -359,13 +366,16 @@ void UContentBrowserWindow::RenderFileItem(FFileEntry& Entry, int Index)
 		ImGui::PopStyleColor();
 	}
 
-	// 드래그 소스 처리
-	HandleDragSource(Entry);
-
 	// 파일 이름 표시 (텍스트 줄바꿈)
 	ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + ThumbnailSize);
 	ImGui::TextWrapped("%s", Entry.FileName.c_str());
 	ImGui::PopTextWrapPos();
+
+	// 그룹 종료
+	ImGui::EndGroup();
+
+	// 그룹 전체를 드래그 소스로 처리 (EndGroup 이후에 호출)
+	HandleDragSource(Entry);
 }
 
 void UContentBrowserWindow::HandleDragSource(FFileEntry& Entry)
@@ -430,7 +440,11 @@ const char* UContentBrowserWindow::GetIconForFile(const FFileEntry& Entry) const
 	std::string ext = Entry.Extension.c_str();
 	std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-	if (ext == ".fbx" || ext == ".obj")
+	if (ext == ".prefab")
+	{
+		return "[PREFAB]";
+	}
+	else if (ext == ".fbx" || ext == ".obj")
 	{
 		return "[MESH]";
 	}

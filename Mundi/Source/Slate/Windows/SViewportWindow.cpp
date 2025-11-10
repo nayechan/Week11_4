@@ -1947,61 +1947,93 @@ void SViewportWindow::RenderViewportLayoutSwitchButton()
 
 void SViewportWindow::HandleDropTarget()
 {
-	// 뷰포트 영역에 Invisible Button을 만들어 드롭 타겟으로 사용
-	ImVec2 ViewportPos(Rect.Left, Rect.Top + 35.0f); // 툴바 높이(35) 제외
-	ImVec2 ViewportSize(Rect.GetWidth(), Rect.GetHeight() - 35.0f);
+	// 드래그 중일 때만 드롭 타겟 윈도우를 표시
+	const ImGuiPayload* dragPayload = ImGui::GetDragDropPayload();
+	bool isDragging = (dragPayload != nullptr && dragPayload->IsDataType("ASSET_FILE"));
 
-	ImGui::SetNextWindowPos(ViewportPos);
-	ImGui::SetNextWindowSize(ViewportSize);
-
-	// Invisible overlay window for drop target
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
-		| ImGuiWindowFlags_NoMove
-		| ImGuiWindowFlags_NoSavedSettings
-		| ImGuiWindowFlags_NoBringToFrontOnFocus
-		| ImGuiWindowFlags_NoBackground
-		| ImGuiWindowFlags_NoInputs; // 마우스 입력은 받지 않음 (드롭만 받음)
-
-	char WindowId[64];
-	sprintf_s(WindowId, "ViewportDropTarget_%p", this);
-
-	ImGui::Begin(WindowId, nullptr, flags);
-
-	// 드롭 타겟 처리
-	if (ImGui::BeginDragDropTarget())
+	if (isDragging)
 	{
-		if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILE"))
+		// 뷰포트 영역에 Invisible Button을 만들어 드롭 타겟으로 사용
+		ImVec2 ViewportPos(Rect.Left, Rect.Top + 35.0f); // 툴바 높이(35) 제외
+		ImVec2 ViewportSize(Rect.GetWidth(), Rect.GetHeight() - 35.0f);
+
+		ImGui::SetNextWindowPos(ViewportPos);
+		ImGui::SetNextWindowSize(ViewportSize);
+
+		// Invisible overlay window for drop target
+		ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
+			| ImGuiWindowFlags_NoMove
+			| ImGuiWindowFlags_NoSavedSettings
+			| ImGuiWindowFlags_NoBringToFrontOnFocus
+			| ImGuiWindowFlags_NoBackground;
+
+		char WindowId[64];
+		sprintf_s(WindowId, "ViewportDropTarget_%p", this);
+
+		ImGui::Begin(WindowId, nullptr, flags);
+
+		// Invisible button을 전체 영역에 만들어서 드롭 타겟으로 사용
+		ImGui::InvisibleButton("ViewportDropArea", ViewportSize);
+
+		// 드롭 타겟 처리
+		if (ImGui::BeginDragDropTarget())
 		{
-			const char* filePath = (const char*)payload->Data;
-
-			// 마우스 위치를 월드 좌표로 변환
-			ImVec2 mousePos = ImGui::GetMousePos();
-			FVector2D screenPos(mousePos.x - Rect.Left, mousePos.y - (Rect.Top + 35.0f));
-
-			// 간단한 월드 좌표 계산 (카메라 앞 일정 거리에 배치)
-			// TODO: 레이캐스팅으로 정확한 위치 계산
-			FVector worldLocation = FVector(0, 0, 0);
-
-			if (ViewportClient && ViewportClient->GetCamera())
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_FILE"))
 			{
-				ACameraActor* camera = ViewportClient->GetCamera();
-				FVector cameraPos = camera->GetActorLocation();
-				FVector cameraForward = camera->GetActorForward();
+				const char* filePath = (const char*)payload->Data;
 
-				// 카메라 앞 500 유닛에 배치
-				worldLocation = cameraPos + cameraForward * 500.0f;
+				// 마우스 위치를 월드 좌표로 변환
+				ImVec2 mousePos = ImGui::GetMousePos();
+				FVector2D screenPos(mousePos.x - Rect.Left, mousePos.y - (Rect.Top + 35.0f));
+
+				// 카메라 방향 기반으로 월드 좌표 계산
+				FVector worldLocation = FVector(0, 0, 0);
+
+				if (ViewportClient && ViewportClient->GetCamera())
+				{
+					ACameraActor* camera = ViewportClient->GetCamera();
+
+					// 뷰포트 크기
+					float viewportWidth = ViewportSize.x;
+					float viewportHeight = ViewportSize.y;
+
+					// 스크린 좌표를 NDC(Normalized Device Coordinates)로 변환
+					float ndcX = (screenPos.X / viewportWidth) * 2.0f - 1.0f;
+					float ndcY = 1.0f - (screenPos.Y / viewportHeight) * 2.0f; // Y축 반전
+
+					// 카메라 정보
+					FVector cameraPos = camera->GetActorLocation();
+					FVector cameraForward = camera->GetActorForward();
+					FVector cameraRight = camera->GetActorRight();
+					FVector cameraUp = camera->GetActorUp();
+
+					// FOV를 고려한 레이 방향 계산
+					float fov = 60.0f; // ViewportClient에서 가져올 수 있다면 더 좋음
+					float aspectRatio = viewportWidth / viewportHeight;
+					float tanHalfFov = tan(fov * 0.5f * 3.14159f / 180.0f);
+
+					// 마우스 스크린 좌표에 해당하는 월드 방향 벡터 계산
+					FVector rayDir = cameraForward
+						+ cameraRight * (ndcX * tanHalfFov * aspectRatio)
+						+ cameraUp * (ndcY * tanHalfFov);
+					rayDir.Normalize();
+
+					// 카메라가 바라보는 방향(rayDir)으로 일정 거리(500 units) 앞에 소환
+					float spawnDistance = 10.0f;
+					worldLocation = cameraPos + rayDir * spawnDistance;
+				}
+
+				// 액터 생성
+				SpawnActorFromFile(filePath, worldLocation);
+
+				UE_LOG("Viewport: Dropped asset '%s' at world location (%f, %f, %f)",
+					filePath, worldLocation.X, worldLocation.Y, worldLocation.Z);
 			}
-
-			// 액터 생성
-			SpawnActorFromFile(filePath, worldLocation);
-
-			UE_LOG("Viewport: Dropped asset '%s' at world location (%f, %f, %f)",
-				filePath, worldLocation.X, worldLocation.Y, worldLocation.Z);
+			ImGui::EndDragDropTarget();
 		}
-		ImGui::EndDragDropTarget();
-	}
 
-	ImGui::End();
+		ImGui::End();
+	}
 }
 
 void SViewportWindow::SpawnActorFromFile(const char* FilePath, const FVector& WorldLocation)
@@ -2021,7 +2053,24 @@ void SViewportWindow::SpawnActorFromFile(const char* FilePath, const FVector& Wo
 
 	UE_LOG("Spawning actor from file: %s (extension: %s)", FilePath, extension.c_str());
 
-	//if (extension == ".fbx")
+	if (extension == ".prefab")
+	{
+		// Prefab 액터 생성
+		FWideString widePath = path.wstring();
+		AActor* actor = world->SpawnPrefabActor(widePath);
+		if (actor)
+		{
+			// 드롭한 위치로 액터 이동
+			actor->SetActorLocation(WorldLocation);
+			UE_LOG("Prefab actor spawned successfully at (%f, %f, %f)",
+				WorldLocation.X, WorldLocation.Y, WorldLocation.Z);
+		}
+		else
+		{
+			UE_LOG("ERROR: Failed to spawn prefab actor from %s", FilePath);
+		}
+	}
+	//else if (extension == ".fbx")
 	//{
 	//	// SkeletalMesh 액터 생성
 	//	ASkeletalMeshActor* actor = world->SpawnActor<ASkeletalMeshActor>(FTransform(WorldLocation));
@@ -2053,8 +2102,8 @@ void SViewportWindow::SpawnActorFromFile(const char* FilePath, const FVector& Wo
 	//		UE_LOG("ERROR: Failed to spawn StaticMeshActor");
 	//	}
 	//}
-	//else
-	//{
-	//	UE_LOG("WARNING: Unsupported file type: %s", extension.c_str());
-	//}
+	else
+	{
+		UE_LOG("WARNING: Unsupported file type: %s", extension.c_str());
+	}
 }
