@@ -18,6 +18,8 @@ ASkinnedMeshActor::ASkinnedMeshActor()
     {
         // 부모 트랜스폼을 유지하면서(=로컬 좌표 유지) 루트에 붙입니다.
         BoneLineComponent->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
+        // Render skeleton overlay always on top of geometry
+        BoneLineComponent->SetAlwaysOnTop(true);
     }
 }
 

@@ -307,6 +307,59 @@ void URenderer::EndLineBatch(const FMatrix& ModelMatrix)
 	bLineBatchActive = false;
 }
 
+void URenderer::EndLineBatchAlwaysOnTop(const FMatrix& ModelMatrix)
+{
+    if (!bLineBatchActive || !LineBatchData || !DynamicLineMesh || LineBatchData->Vertices.empty())
+    {
+        bLineBatchActive = false;
+        return;
+    }
+
+    const uint32 totalLines = static_cast<uint32>(LineBatchData->Indices.size() / 2);
+    if (totalLines > MAX_LINES)
+    {
+        const uint32 clampedLines = MAX_LINES;
+        const uint32 clampedVerts = clampedLines * 2;
+        const uint32 clampedIndices = clampedLines * 2;
+        LineBatchData->Vertices.resize(clampedVerts);
+        LineBatchData->Color.resize(clampedVerts);
+        LineBatchData->Indices.resize(clampedIndices);
+    }
+
+    if (!DynamicLineMesh->UpdateData(LineBatchData, RHIDevice->GetDeviceContext()))
+    {
+        bLineBatchActive = false;
+        return;
+    }
+
+    FMatrix ModelInvTranspose = ModelMatrix.InverseAffine().Transpose();
+    RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(ModelMatrix, ModelInvTranspose));
+    RHIDevice->PrepareShader(LineShader);
+
+    if (DynamicLineMesh->GetCurrentVertexCount() > 0 && DynamicLineMesh->GetCurrentIndexCount() > 0)
+    {
+        UINT stride = sizeof(FVertexSimple);
+        UINT offset = 0;
+        ID3D11Buffer* vertexBuffer = DynamicLineMesh->GetVertexBuffer();
+        ID3D11Buffer* indexBuffer = DynamicLineMesh->GetIndexBuffer();
+
+        RHIDevice->GetDeviceContext()->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+        RHIDevice->GetDeviceContext()->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+        RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+        // Disable depth test so lines render on top
+        RHIDevice->OMSetDepthStencilState(EComparisonFunc::Disable);
+        RHIDevice->OMSetBlendState(true);
+        RHIDevice->GetDeviceContext()->DrawIndexed(DynamicLineMesh->GetCurrentIndexCount(), 0, 0);
+        // Restore state
+        RHIDevice->OMSetBlendState(false);
+        RHIDevice->GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual);
+    }
+
+    bLineBatchActive = false;
+}
+
 void URenderer::ClearLineBatch()
 {
 	if (!LineBatchData) return;
