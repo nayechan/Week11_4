@@ -24,7 +24,7 @@ ViewerState* SkeletalViewerBootstrap::CreateViewerState(const char* Name, UWorld
     auto* Client = new FSkeletalViewerViewportClient();
     Client->SetWorld(State->World);
     Client->SetViewportType(EViewportType::Perspective);
-    Client->SetViewMode(EViewMode::VMI_Lit_Phong);
+    Client->SetViewMode(EViewMode::VMI_Unlit);
 
     State->Client = Client;
     State->Viewport->SetViewportClient(Client);
