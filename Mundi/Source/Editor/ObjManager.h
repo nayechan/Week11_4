@@ -66,4 +66,7 @@ public:
 	static void Clear();
 	static FStaticMesh* LoadObjStaticMeshAsset(const FString& PathFileName);
 	static UStaticMesh* LoadObjStaticMesh(const FString& PathFileName);
+
+	// FBX 등 외부에서 생성된 FStaticMesh를 캐시에 등록
+	static void RegisterStaticMeshAsset(const FString& PathFileName, FStaticMesh* InStaticMesh);
 };

@@ -521,6 +521,24 @@ FStaticMesh* FObjManager::LoadObjStaticMeshAsset(const FString& PathFileName)
 	return NewFStaticMesh;
 }
 
+void FObjManager::RegisterStaticMeshAsset(const FString& PathFileName, FStaticMesh* InStaticMesh)
+{
+	if (!InStaticMesh)
+	{
+		return;
+	}
+
+	FString NormalizedPathStr = NormalizePath(PathFileName);
+
+	// 이미 등록된 경우 기존 것을 삭제하고 새로 등록
+	if (FStaticMesh** Existing = ObjStaticMeshMap.Find(NormalizedPathStr))
+	{
+		delete *Existing;
+	}
+
+	ObjStaticMeshMap.Add(NormalizedPathStr, InStaticMesh);
+}
+
 // 여기서 BVH 정보 담아주기 작업을 해야 함 
 UStaticMesh* FObjManager::LoadObjStaticMesh(const FString& PathFileName)
 {

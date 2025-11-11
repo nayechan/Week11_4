@@ -310,11 +310,8 @@ void UPropertyRenderer::CacheResources()
 	if (CachedStaticMeshPaths.IsEmpty() && CachedStaticMeshItems.IsEmpty())
 	{
 		CachedStaticMeshPaths = ResMgr.GetAllFilePaths<UStaticMesh>();
-		int Index = 0;
 		for (const FString& path : CachedStaticMeshPaths)
 		{
-			if ((Index++) > 0)
-				break;
 			CachedStaticMeshItems.push_back(path.c_str());
 		}
 		CachedStaticMeshPaths.Insert("", 0);
