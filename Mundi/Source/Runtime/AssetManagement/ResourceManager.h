@@ -88,6 +88,7 @@ public:
 	FMeshBVH* GetMeshBVH(const FString& ObjPath);
 	FMeshBVH* GetOrBuildMeshBVH(const FString& ObjPath, const struct FStaticMesh* StaticMeshAsset);
 	void SetStaticMeshs();
+	void SetSkeletalMeshs();
 	const TArray<UStaticMesh*>& GetStaticMeshs() { return StaticMeshs; }
 
 	void SetAudioFiles();  
@@ -115,6 +116,7 @@ protected:
 	TMap<FString, FString> TextureToShaderMap;
 
 	TArray<UStaticMesh*> StaticMeshs;
+	TArray<USkeletalMesh*> SkeletalMeshs;
 
 	TArray<USound*> Sounds;
 

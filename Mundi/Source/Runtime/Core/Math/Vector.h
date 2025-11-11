@@ -5,6 +5,7 @@
 #include <limits>
 
 #include "UEContainer.h"
+#include "Archive.h"
 
 // 혹시 다른 헤더에서 새어 들어온 매크로 방지
 #ifdef min
@@ -169,6 +170,14 @@ struct FVector2D
 		if (Len > 0.0001f)
 			return FVector2D(X / Len, Y / Len);
 		return FVector2D(0.0f, 0.0f);
+	}
+
+	// 직렬화 연산자
+	friend FArchive& operator<<(FArchive& Ar, FVector2D& V)
+	{
+		Ar.Serialize(&V.X, sizeof(float));
+		Ar.Serialize(&V.Y, sizeof(float));
+		return Ar;
 	}
 };
 
@@ -341,6 +350,15 @@ struct FVector
 		return FVector(_X, _Y, _Z);
 	}
 	void Log();
+
+	// 직렬화 연산자
+	friend FArchive& operator<<(FArchive& Ar, FVector& V)
+	{
+		Ar.Serialize(&V.X, sizeof(float));
+		Ar.Serialize(&V.Y, sizeof(float));
+		Ar.Serialize(&V.Z, sizeof(float));
+		return Ar;
+	}
 };
 
 // ─────────────────────────────
@@ -403,6 +421,16 @@ struct alignas(16) FVector4
 		return FVector4(D.X, D.Y, D.Z, 0.0f);
 	}
 
+	// 직렬화 연산자
+	friend FArchive& operator<<(FArchive& Ar, FVector4& V)
+	{
+		Ar.Serialize(&V.X, sizeof(float));
+		Ar.Serialize(&V.Y, sizeof(float));
+		Ar.Serialize(&V.Z, sizeof(float));
+		Ar.Serialize(&V.W, sizeof(float));
+		return Ar;
+	}
+
 };
 
 // Quaternion 정규화(+w 기준 캐논화)
@@ -424,6 +452,7 @@ struct FQuat
 		: X(InX), Y(InY), Z(InZ), W(InW)
 	{
 	}
+	FQuat(const FMatrix& M);
 
 	static FQuat Identity() { return FQuat(0, 0, 0, 1); }
 
@@ -986,6 +1015,9 @@ struct alignas(16) FMatrix
 		return !(*this == Other);
 	}
 
+	FVector TransformPosition(const FVector& V) const;
+	FVector TransformVector(const FVector& V) const;
+	
 	// View/Proj (L H)
 	static FMatrix LookAtLH(const FVector& Eye, const FVector& At, const FVector& Up);
 	static FMatrix PerspectiveFovLH(float FovY, float Aspect, float Zn, float Zf);
@@ -1084,6 +1116,19 @@ struct alignas(16) FMatrix
 		float FarClip,
 		float ZoomFactor,
 		enum class ECameraProjectionMode ProjectionMode);
+
+	// 직렬화 연산자
+	friend FArchive& operator<<(FArchive& Ar, FMatrix& Matrix)
+	{
+		for (int i = 0; i < 4; ++i)
+		{
+			for (int j = 0; j < 4; ++j)
+			{
+				Ar.Serialize(&Matrix.M[i][j], sizeof(float));
+			}
+		}
+		return Ar;
+	}
 };
 
 // ─────────────────────────────
@@ -1180,6 +1225,7 @@ struct FTransform
 
 	FTransform() : Rotation(0, 0, 0, 1), Translation(0, 0, 0), Scale3D(1, 1, 1) {}
 	FTransform(const FVector& T, const FQuat& R, const FVector& S) : Rotation(R), Translation(T), Scale3D(S) {}
+	FTransform(const FMatrix& M);
 
 	FMatrix ToMatrix() const;
 

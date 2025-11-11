@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug_StandAlone|x64">
@@ -249,6 +249,7 @@
     <ClCompile Include="Generated\USpotLightComponent.generated.cpp" />
     <ClCompile Include="Generated\UStaticMeshComponent.generated.cpp" />
     <ClCompile Include="Generated\USkinnedMeshComponent.generated.cpp" />
+    <ClCompile Include="Generated\USkeletalMeshComponent.generated.cpp" />
     <ClCompile Include="Generated\UTestAutoBindComponent.generated.cpp" />
     <ClCompile Include="Generated\UTextRenderComponent.generated.cpp" />
     <ClCompile Include="pch.cpp">
@@ -258,9 +259,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_StandAlone|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Source\Editor\FBXLoader.cpp" />
+    <ClCompile Include="Source\Editor\FbxLoader.cpp" />
     <ClCompile Include="Source\Runtime\AssetManagement\SkeletalMesh.cpp" />
     <ClCompile Include="Source\Runtime\Core\Misc\VertexData.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkinnedMeshActor.cpp" />
       <ClCompile Include="Source\Runtime\Engine\Components\BoneAnchorComponent.cpp" />
@@ -640,11 +642,12 @@
     <ClInclude Include="Generated\USpotLightComponent.generated.h" />
     <ClInclude Include="Generated\UStaticMeshComponent.generated.h" />
     <ClInclude Include="Generated\USkinnedMeshComponent.generated.h" />
+    <ClInclude Include="Generated\USkeletalMeshComponent.generated.h" />
     <ClInclude Include="Generated\UTestAutoBindComponent.generated.h" />
     <ClInclude Include="Generated\UTextRenderComponent.generated.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h" />
-    <ClInclude Include="Source\Editor\FBXLoader.h" />
+    <ClInclude Include="Source\Editor\FbxLoader.h" />
     <ClInclude Include="Source\Editor\PlatformProcess.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\SkeletalMesh.h" />
     <ClInclude Include="Source\Runtime\Core\Misc\Delegates.h" />
@@ -662,6 +665,7 @@
     <ClInclude Include="Source\Runtime\Engine\Components\BoxComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\BoneAnchorComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\ShapeComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SphereComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\AmbientLightActor.h" />
@@ -858,7 +862,8 @@
     <ClInclude Include="ThirdParty\Lua\include\luaconf.h" />
     <ClInclude Include="ThirdParty\Lua\include\lualib.h" />
     <ClInclude Include="Generated\UMeshComponent.generated.h" />
-  <ClInclude Include="Generated\ASkinnedMeshActor.generated.h" /></ItemGroup>
+    <ClInclude Include="Generated\ASkinnedMeshActor.generated.h" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="Tools\CodeGenerator\generate.py" />
     <None Include="Tools\CodeGenerator\lua_generator.py" />

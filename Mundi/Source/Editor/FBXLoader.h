@@ -10,8 +10,11 @@ public:
 	static UFbxLoader& GetInstance();
 	UFbxLoader();
 
-	FSkeletalMeshData LoadFbxMesh(const FString& FilePath);
+	static void PreLoad();
 
+	USkeletalMesh* LoadFbxMesh(const FString& FilePath);
+
+	FSkeletalMeshData* LoadFbxMeshAsset(const FString& FilePath);
 	
 
 protected:
@@ -27,7 +30,7 @@ private:
 
 	void LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalMeshData& MeshData);
 
-	void LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 MaterialIndex = 0);
+	void LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 DefaultMaterialIndex = 0);
 
 	void ParseMaterial(FbxSurfaceMaterial* Material, FMaterialInfo& MaterialInfo);
 

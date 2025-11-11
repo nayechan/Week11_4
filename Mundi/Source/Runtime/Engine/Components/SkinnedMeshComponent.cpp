@@ -5,13 +5,36 @@
 
 USkinnedMeshComponent::USkinnedMeshComponent() : SkeletalMesh(nullptr)
 {
-    // 테스트용 기본 메시 설정 (경로는 실제 스켈레탈 메시 캐시 파일로 변경)
-   SetSkeletalMesh(GDataDir + "/Test.fbx"); 
+   bCanEverTick = true;
+}
+
+void USkinnedMeshComponent::BeginPlay()
+{
+   Super::BeginPlay();
+}
+
+void USkinnedMeshComponent::TickComponent(float DeltaTime)
+{
+   UMeshComponent::TickComponent(DeltaTime);
+   
+}
+
+void USkinnedMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+   Super::Serialize(bInIsLoading, InOutHandle);
+    
+   // @TODO - UStaticMeshComponent처럼 프로퍼티 기반 직렬화 로직 추가
 }
 
 void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View)
 {
     if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) { return; }
+
+   if (bSkinningMatricesDirty)
+   {
+      bSkinningMatricesDirty = false;
+      SkeletalMesh->UpdateVertexBuffer(SkinnedVertices);
+   }
 
     const TArray<FGroupInfo>& MeshGroupInfos = SkeletalMesh->GetMeshGroupInfo();
     auto DetermineMaterialAndShader = [&](uint32 SectionIndex) -> TPair<UMaterialInterface*, UShader*>
@@ -87,7 +110,7 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        }
        
        BatchElement.Material = MaterialToUse;
-
+       
        BatchElement.VertexBuffer = SkeletalMesh->GetVertexBuffer();
        BatchElement.IndexBuffer = SkeletalMesh->GetIndexBuffer();
        BatchElement.VertexStride = SkeletalMesh->GetVertexStride();
@@ -103,15 +126,67 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
     }
 }
 
+FAABB USkinnedMeshComponent::GetWorldAABB() const
+{
+   return {};
+   // const FTransform WorldTransform = GetWorldTransform();
+   // const FMatrix WorldMatrix = GetWorldMatrix();
+   //
+   // if (!SkeletalMesh)
+   // {
+   //    const FVector Origin = WorldTransform.TransformPosition(FVector());
+   //    return FAABB(Origin, Origin);
+   // }
+   //
+   // const FAABB LocalBound = SkeletalMesh->GetLocalBound(); // <-- 이 함수 구현 필요
+   // const FVector LocalMin = LocalBound.Min;
+   // const FVector LocalMax = LocalBound.Max;
+   //
+   // // ... (이하 AABB 계산 로직은 UStaticMeshComponent와 동일) ...
+   // const FVector LocalCorners[8] = {
+   //    FVector(LocalMin.X, LocalMin.Y, LocalMin.Z),
+   //    FVector(LocalMax.X, LocalMin.Y, LocalMin.Z),
+   //    // ... (나머지 6개 코너) ...
+   //    FVector(LocalMax.X, LocalMax.Y, LocalMax.Z)
+   // };
+   //
+   // FVector4 WorldMin4 = FVector4(LocalCorners[0].X, LocalCorners[0].Y, LocalCorners[0].Z, 1.0f) * WorldMatrix;
+   // FVector4 WorldMax4 = WorldMin4;
+   //
+   // for (int32 CornerIndex = 1; CornerIndex < 8; ++CornerIndex)
+   // {
+   //    const FVector4 WorldPos = FVector4(LocalCorners[CornerIndex].X
+   //       , LocalCorners[CornerIndex].Y
+   //       , LocalCorners[CornerIndex].Z
+   //       , 1.0f)
+   //       * WorldMatrix;
+   //    WorldMin4 = WorldMin4.ComponentMin(WorldPos);
+   //    WorldMax4 = WorldMax4.ComponentMax(WorldPos);
+   // }
+   //
+   // FVector WorldMin = FVector(WorldMin4.X, WorldMin4.Y, WorldMin4.Z);
+   // FVector WorldMax = FVector(WorldMax4.X, WorldMax4.Y, WorldMax4.Z);
+   // return FAABB(WorldMin, WorldMax);
+}
+
+void USkinnedMeshComponent::OnTransformUpdated()
+{
+   Super::OnTransformUpdated();
+   MarkWorldPartitionDirty();
+}
+
 void USkinnedMeshComponent::SetSkeletalMesh(const FString& PathFileName)
 {
     ClearDynamicMaterials();
 
     SkeletalMesh = UResourceManager::GetInstance().Load<USkeletalMesh>(PathFileName);
     
-    // [변경] SkeletalMesh 및 데이터 유효성 검사
     if (SkeletalMesh && SkeletalMesh->GetSkeletalMeshData())
     {
+       const TArray<FMatrix> IdentityMatrices(SkeletalMesh->GetBoneCount(), FMatrix::Identity());
+       UpdateSkinningMatrices(IdentityMatrices);
+       PerformSkinning();
+       
        const TArray<FGroupInfo>& GroupInfos = SkeletalMesh->GetMeshGroupInfo();
 
        MaterialSlots.resize(GroupInfos.size());
@@ -122,182 +197,102 @@ void USkinnedMeshComponent::SetSkeletalMesh(const FString& PathFileName)
           SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
        }
        MarkWorldPartitionDirty();
-
-       // Initialize editable pose from bind pose for gizmo editing
-       InitializeEditablePoseFromBindPose();
     }
     else
     {
        SkeletalMesh = nullptr;
+       UpdateSkinningMatrices(TArray<FMatrix>());
+       PerformSkinning();
     }
 }
 
-void USkinnedMeshComponent::InitializeEditablePoseFromBindPose()
+void USkinnedMeshComponent::PerformSkinning()
 {
-    EditableLocalBone.Empty();
-    if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) return;
-    const auto& Bones = SkeletalMesh->GetSkeletalMeshData()->Skeleton.Bones;
-    EditableLocalBone.resize(Bones.size());
-    // Convert absolute bind pose (object space) to local matrices per bone (row-major)
-    for (int32 i = 0; i < Bones.size(); ++i)
-    {
-        const int32 parent = Bones[i].ParentIndex;
-        if (parent >= 0)
-        {
-            const FMatrix& ParentAbs = Bones[parent].BindPose;
-            EditableLocalBone[i] = ParentAbs.InverseAffine() * Bones[i].BindPose; // local = ParentInv * Abs
-        }
-        else
-        {
-            // Root local equals its absolute bind pose
-            EditableLocalBone[i] = Bones[i].BindPose;
-        }
-    }
+   if (!SkeletalMesh || FinalSkinningMatrices.IsEmpty()) { return; }
+   if (!bSkinningMatricesDirty) { return; }
+   
+   const TArray<FSkinnedVertex>& SrcVertices = SkeletalMesh->GetSkeletalMeshData()->Vertices;
+   const int32 NumVertices = SrcVertices.Num();
+   SkinnedVertices.SetNum(NumVertices);
+
+   for (int32 Idx = 0; Idx < NumVertices; ++Idx)
+   {
+      const FSkinnedVertex& SrcVert = SrcVertices[Idx];
+      FNormalVertex& DstVert = SkinnedVertices[Idx];
+
+      DstVert.pos = SkinVertexPosition(SrcVert); 
+      DstVert.normal = SkinVertexNormal(SrcVert);
+      DstVert.Tangent = SkinVertexTangent(SrcVert);
+      DstVert.tex = SrcVert.UV;
+   }
 }
 
-FMatrix USkinnedMeshComponent::ComputeBoneWorldMatrix(int32 BoneIndex) const
+void USkinnedMeshComponent::UpdateSkinningMatrices(const TArray<FMatrix>& InSkinningMatrices)
 {
-    if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) return FMatrix::Identity();
-    const auto& Bones = SkeletalMesh->GetSkeletalMeshData()->Skeleton.Bones;
-    if (BoneIndex < 0 || BoneIndex >= (int32)Bones.size()) return FMatrix::Identity();
-
-    const bool bUseEditable = (EditableLocalBone.Num() == Bones.size());
-
-    FMatrix BoneObjectMatrix = FMatrix::Identity();
-    if (bUseEditable)
-    {
-        // Accumulate editable local transforms along the chain (row-major)
-        int32 idx = BoneIndex;
-        TArray<int32> Chain;
-        while (idx >= 0)
-        {
-            Chain.Add(idx);
-            idx = Bones[idx].ParentIndex;
-        }
-        for (int c = Chain.Num() - 1; c >= 0; --c)
-        {
-            const int32 b = Chain[c];
-            BoneObjectMatrix = BoneObjectMatrix * EditableLocalBone[b];
-        }
-    }
-    else
-    {
-        // BindPose is absolute (object space); do not accumulate
-        BoneObjectMatrix = Bones[BoneIndex].BindPose;
-    }
-
-    // Apply component/world transform
-    return BoneObjectMatrix * GetWorldMatrix();
+   FinalSkinningMatrices = InSkinningMatrices;
+   bSkinningMatricesDirty = true;
 }
 
-void USkinnedMeshComponent::SetBoneWorldMatrix(int32 BoneIndex, const FMatrix& WorldMatrix)
+FVector USkinnedMeshComponent::SkinVertexPosition(const FSkinnedVertex& InVertex) const
 {
-    if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) return;
-    const auto& Bones = SkeletalMesh->GetSkeletalMeshData()->Skeleton.Bones;
-    if (BoneIndex < 0 || BoneIndex >= (int32)Bones.size()) return;
+   FVector BlendedPosition(0.f, 0.f, 0.f);
 
-    if (EditableLocalBone.Num() != Bones.size())
-    {
-        // Initialize to local bind pose if not ready
-        EditableLocalBone.resize(Bones.size());
-        for (int32 i = 0; i < Bones.size(); ++i)
-        {
-            const int32 parent = Bones[i].ParentIndex;
-            if (parent >= 0)
-            {
-                const FMatrix& ParentAbs = Bones[parent].BindPose;
-                EditableLocalBone[i] = ParentAbs.InverseAffine() * Bones[i].BindPose;
-            }
-            else
-            {
-                EditableLocalBone[i] = Bones[i].BindPose;
-            }
-        }
-    }
+   for (int32 Idx = 0; Idx < 4; ++Idx)
+   {
+      const uint32 BoneIndex = InVertex.BoneIndices[Idx];
+      const float Weight = InVertex.BoneWeights[Idx];
 
-    // Convert world to component space
-    FMatrix ComponentInv = GetWorldMatrix().InverseAffine();
-    FMatrix DesiredCompWorld = ComponentInv * WorldMatrix;
+      if (Weight > 0.f)
+      {
+         const FMatrix& SkinMatrix = FinalSkinningMatrices[BoneIndex];
+         FVector TransformedPosition = SkinMatrix.TransformPosition(InVertex.Position);
+         BlendedPosition += TransformedPosition * Weight;
+      }
+   }
 
-    // Parent world (component space)
-    FMatrix ParentWorld = FMatrix::Identity();
-    int32 parent = Bones[BoneIndex].ParentIndex;
-    if (parent >= 0)
-    {
-        TArray<int32> Chain;
-        int32 idx = parent;
-        while (idx >= 0)
-        {
-            Chain.Add(idx);
-            idx = Bones[idx].ParentIndex;
-        }
-        for (int c = Chain.Num() - 1; c >= 0; --c)
-        {
-            int32 b = Chain[c];
-            ParentWorld = ParentWorld * EditableLocalBone[b];
-        }
-    }
-    FMatrix ParentInv = ParentWorld.InverseAffine();
-    EditableLocalBone[BoneIndex] = ParentInv * DesiredCompWorld;
+   return BlendedPosition;
 }
 
-FAABB USkinnedMeshComponent::GetWorldAABB() const
+FVector USkinnedMeshComponent::SkinVertexNormal(const FSkinnedVertex& InVertex) const
 {
-   return {};
-    // const FTransform WorldTransform = GetWorldTransform();
-    // const FMatrix WorldMatrix = GetWorldMatrix();
-    //
-    // if (!SkeletalMesh)
-    // {
-    //    const FVector Origin = WorldTransform.TransformPosition(FVector());
-    //    return FAABB(Origin, Origin);
-    // }
-    //
-    // const FAABB LocalBound = SkeletalMesh->GetLocalBound(); // <-- 이 함수 구현 필요
-    // const FVector LocalMin = LocalBound.Min;
-    // const FVector LocalMax = LocalBound.Max;
-    //
-    // // ... (이하 AABB 계산 로직은 UStaticMeshComponent와 동일) ...
-    // const FVector LocalCorners[8] = {
-    //    FVector(LocalMin.X, LocalMin.Y, LocalMin.Z),
-    //    FVector(LocalMax.X, LocalMin.Y, LocalMin.Z),
-    //    // ... (나머지 6개 코너) ...
-    //    FVector(LocalMax.X, LocalMax.Y, LocalMax.Z)
-    // };
-    //
-    // FVector4 WorldMin4 = FVector4(LocalCorners[0].X, LocalCorners[0].Y, LocalCorners[0].Z, 1.0f) * WorldMatrix;
-    // FVector4 WorldMax4 = WorldMin4;
-    //
-    // for (int32 CornerIndex = 1; CornerIndex < 8; ++CornerIndex)
-    // {
-    //    const FVector4 WorldPos = FVector4(LocalCorners[CornerIndex].X
-    //       , LocalCorners[CornerIndex].Y
-    //       , LocalCorners[CornerIndex].Z
-    //       , 1.0f)
-    //       * WorldMatrix;
-    //    WorldMin4 = WorldMin4.ComponentMin(WorldPos);
-    //    WorldMax4 = WorldMax4.ComponentMax(WorldPos);
-    // }
-    //
-    // FVector WorldMin = FVector(WorldMin4.X, WorldMin4.Y, WorldMin4.Z);
-    // FVector WorldMax = FVector(WorldMax4.X, WorldMax4.Y, WorldMax4.Z);
-    // return FAABB(WorldMin, WorldMax);
+   FVector BlendedNormal(0.f, 0.f, 0.f);
+
+   for (int32 Idx = 0; Idx < 4; ++Idx)
+   {
+      const uint32 BoneIndex = InVertex.BoneIndices[Idx];
+      const float Weight = InVertex.BoneWeights[Idx];
+
+      if (Weight > 0.f)
+      {
+         const FMatrix& SkinMatrix = FinalSkinningMatrices[BoneIndex];
+         FVector TransformedNormal = SkinMatrix.TransformVector(InVertex.Normal);
+         BlendedNormal += TransformedNormal * Weight;
+      }
+   }
+
+   return BlendedNormal.GetSafeNormal();
 }
 
-void USkinnedMeshComponent::OnTransformUpdated()
+FVector4 USkinnedMeshComponent::SkinVertexTangent(const FSkinnedVertex& InVertex) const
 {
-    Super::OnTransformUpdated();
-    MarkWorldPartitionDirty();
-}
+   const FVector OriginalTangentDir(InVertex.Tangent.X, InVertex.Tangent.Y, InVertex.Tangent.Z);
+   const float OriginalSignW = InVertex.Tangent.W;
 
-void USkinnedMeshComponent::BeginPlay()
-{
-   Super::BeginPlay();
-}
+   FVector BlendedTangentDir(0.f, 0.f, 0.f);
 
-void USkinnedMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
-{
-    Super::Serialize(bInIsLoading, InOutHandle);
-    
-    // @TODO - UStaticMeshComponent처럼 프로퍼티 기반 직렬화 로직 추가
+   for (int32 Idx = 0; Idx < 4; ++Idx)
+   {
+      const uint32 BoneIndex = InVertex.BoneIndices[Idx];
+      const float Weight = InVertex.BoneWeights[Idx];
+
+      if (Weight > 0.f)
+      {
+         const FMatrix& SkinMatrix = FinalSkinningMatrices[BoneIndex];
+         FVector TransformedTangentDir = SkinMatrix.TransformVector(OriginalTangentDir);
+         BlendedTangentDir += TransformedTangentDir * Weight;
+      }
+   }
+
+   const FVector FinalTangentDir = BlendedTangentDir.GetSafeNormal();
+   return { FinalTangentDir.X, FinalTangentDir.Y, FinalTangentDir.Z, OriginalSignW };
 }

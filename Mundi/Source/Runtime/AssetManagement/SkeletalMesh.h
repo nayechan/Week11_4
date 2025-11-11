@@ -11,9 +11,9 @@ public:
     
     void Load(const FString& InFilePath, ID3D11Device* InDevice);
     
-    const FSkeletalMeshData* GetSkeletalMeshData() const { return &Data; }
-    const FSkeleton* GetSkeleton() const { return &Data.Skeleton; }
-    const TArray<FGroupInfo>& GetGroupInfos() const { return Data.GroupInfos; }
+    const FSkeletalMeshData* GetSkeletalMeshData() const { return Data; }
+    const FSkeleton* GetSkeleton() const { return Data ? &Data->Skeleton : nullptr; }
+    uint32 GetBoneCount() const { return Data ? Data->Skeleton.Bones.Num() : 0; }
     
     ID3D11Buffer* GetVertexBuffer() const { return VertexBuffer; }
     ID3D11Buffer* GetIndexBuffer() const { return IndexBuffer; }
@@ -23,13 +23,14 @@ public:
 
     uint32 GetVertexStride() const { return VertexStride; }
 
-    void SetSkeletalMeshAsset(FSkeletalMeshData* InStaticMesh) { Data = *InStaticMesh; }
-    const FSkeletalMeshData* GetSkeletalMeshAsset() const { return &Data; }
+    void SetSkeletalMeshAsset(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice);
 
-    const TArray<FGroupInfo>& GetMeshGroupInfo() const { return Data.GroupInfos; }
-    bool HasMaterial() const { return Data.bHasMaterial; }
+    const TArray<FGroupInfo>& GetMeshGroupInfo() const { static TArray<FGroupInfo> EmptyGroup; return Data ? Data->GroupInfos : EmptyGroup; }
+    bool HasMaterial() const { return Data ? Data->bHasMaterial : false; }
 
-    uint64 GetMeshGroupCount() const { return Data.GroupInfos.size(); }
+    uint64 GetMeshGroupCount() const { return Data ? Data->GroupInfos.size() : 0; }
+
+    void UpdateVertexBuffer(const TArray<FNormalVertex>& SkinnedVertices);
     
 private:
     void CreateVertexBuffer(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice);
@@ -44,6 +45,7 @@ private:
     uint32 IndexCount = 0;     // 버텍스 점의 개수 
     uint32 VertexStride = 0;
     
+    
     // CPU 리소스
-    FSkeletalMeshData Data;
+    FSkeletalMeshData* Data;
 };

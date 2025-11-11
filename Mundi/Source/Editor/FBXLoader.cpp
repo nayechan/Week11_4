@@ -1,8 +1,9 @@
 ﻿#include "pch.h"
 #include "ObjectFactory.h"
-#include "FBXLoader.h"
+#include "FbxLoader.h"
 #include "fbxsdk/fileio/fbxiosettings.h"
 #include "fbxsdk/scene/geometry/fbxcluster.h"
+#include "ObjectIterator.h"
 
 IMPLEMENT_CLASS(UFbxLoader)
 
@@ -13,6 +14,52 @@ UFbxLoader::UFbxLoader()
 
 }
 
+void UFbxLoader::PreLoad()
+{
+	UFbxLoader& FbxLoader = GetInstance();
+
+	const fs::path DataDir(GDataDir);
+
+	if (!fs::exists(DataDir) || !fs::is_directory(DataDir))
+	{
+		UE_LOG("UFbxLoader::Preload: Data directory not found: %s", DataDir.string().c_str());
+		return;
+	}
+
+	size_t LoadedCount = 0;
+	std::unordered_set<FString> ProcessedFiles; // 중복 로딩 방지
+
+	for (const auto& Entry : fs::recursive_directory_iterator(DataDir))
+	{
+		if (!Entry.is_regular_file())
+			continue;
+
+		const fs::path& Path = Entry.path();
+		FString Extension = Path.extension().string();
+		std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+		if (Extension == ".fbx")
+		{
+			FString PathStr = NormalizePath(Path.string());
+
+			// 이미 처리된 파일인지 확인
+			if (ProcessedFiles.find(PathStr) == ProcessedFiles.end())
+			{
+				ProcessedFiles.insert(PathStr);
+				FbxLoader.LoadFbxMesh(PathStr);
+				++LoadedCount;
+			}
+		}
+		else if (Extension == ".dds" || Extension == ".jpg" || Extension == ".png")
+		{
+			UResourceManager::GetInstance().Load<UTexture>(Path.string()); // 데칼 텍스쳐를 ui에서 고를 수 있게 하기 위해 임시로 만듬.
+		}
+	}
+	RESOURCE.SetSkeletalMeshs();
+
+	UE_LOG("UFbxLoader::Preload: Loaded %zu .fbx files from %s", LoadedCount, DataDir.string().c_str());
+}
+
 
 UFbxLoader::~UFbxLoader()
 {
@@ -20,17 +67,39 @@ UFbxLoader::~UFbxLoader()
 }
 UFbxLoader& UFbxLoader::GetInstance()
 {
-	static UFbxLoader* FBXLoader = nullptr;
-	if (!FBXLoader)
+	static UFbxLoader* FbxLoader = nullptr;
+	if (!FbxLoader)
 	{
-		FBXLoader = ObjectFactory::NewObject<UFbxLoader>();
+		FbxLoader = ObjectFactory::NewObject<UFbxLoader>();
 	}
-	return *FBXLoader;
+	return *FbxLoader;
 }
 
-FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
+USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 {
-	FSkeletalMeshData MeshData;
+	// 0) 경로
+	FString NormalizedPathStr = NormalizePath(FilePath);
+
+	// 1) 이미 로드된 UStaticMesh가 있는지 전체 검색 (정규화된 경로로 비교)
+	for (TObjectIterator<USkeletalMesh> It; It; ++It)
+	{
+		USkeletalMesh* SkeletalMesh = *It;
+
+		if (SkeletalMesh->GetFilePath() == NormalizedPathStr)
+		{
+			return SkeletalMesh;
+		}
+	}
+
+	// 2) 없으면 새로 로드 (정규화된 경로 사용)
+	USkeletalMesh* SkeletalMesh = UResourceManager::GetInstance().Load<USkeletalMesh>(NormalizedPathStr);
+
+	UE_LOG("USkeletalMesh(filename: \'%s\') is successfully crated!", NormalizedPathStr.c_str());
+	return SkeletalMesh;
+}
+
+FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
+{
 	// 임포트 옵션 세팅 ( 에니메이션 임포트 여부, 머티리얼 임포트 여부 등등 IO에 대한 세팅 )
 	// IOSROOT = IOSetting 객체의 기본 이름( Fbx매니저가 이름으로 관리하고 디버깅 시 매니저 내부의 객체를 이름으로 식별 가능)
 	// 하지만 매니저 자체의 기본 설정이 있기 때문에 아직 안씀
@@ -45,17 +114,27 @@ FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
 	{
 		UE_LOG("Call to FbxImporter::Initialize() Falied\n");
 		UE_LOG("[FbxImporter::Initialize()] Error Reports: %s\n\n", Importer->GetStatus().GetErrorString());
-		return FSkeletalMeshData();
+		return nullptr;
 	}
 
 	// 임포터가 씬에 데이터를 채워줄 것임. 이름은 IoSetting과 마찬가지로 매니저가 이름으로 관리하고 Export될 때 표시할 씬 이름.
 	FbxScene* Scene = FbxScene::Create(SdkManager, "My Scene");
 
-	// 임포트해서 FBX를 씬에 넣어줌
+	// 임포트해서 Fbx를 씬에 넣어줌
 	Importer->Import(Scene);
 
 	// 임포트 후 제거
 	Importer->Destroy();
+
+	FbxAxisSystem UnrealImportAxis(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded);
+	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
+
+	
+	if (SourceSetup != UnrealImportAxis)
+	{
+		UE_LOG("Fbx 축 변환 완료!\n");
+		UnrealImportAxis.DeepConvertScene(Scene);
+	}
 
 	// 매시의 폴리곤이 삼각형이 아닐 수가 있음, Converter가 모두 삼각화해줌.
 	FbxGeometryConverter IGeometryConverter(SdkManager);
@@ -68,12 +147,13 @@ FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
 		UE_LOG("Fbx 씬 삼각화가 실패했습니다, 매시가 깨질 수 있습니다\n");
 	}
 
-	// FBX파일에 씬은 하나만 존재하고 씬에 매쉬, 라이트, 카메라 등등의 element들이 트리 구조로 저장되어 있음.
+	FSkeletalMeshData* MeshData = new FSkeletalMeshData(); 
+	// Fbx파일에 씬은 하나만 존재하고 씬에 매쉬, 라이트, 카메라 등등의 element들이 트리 구조로 저장되어 있음.
 	// 씬 Export 시에 루트 노드 말고 Child 노드만 저장됨. 노드 하나가 여러 Element를 저장할 수 있고 Element는 FbxNodeAttribute 클래스로 정의되어 있음.
 	// 루트 노드 얻어옴
 	FbxNode* RootNode = Scene->GetRootNode();
 
-	// 뼈의 인덱스를 부여, 기본적으로 FBX는 정점이 아니라 뼈 중심으로 데이터가 저장되어 있음(뼈가 몇번 ControlPoint에 영향을 주는지)
+	// 뼈의 인덱스를 부여, 기본적으로 Fbx는 정점이 아니라 뼈 중심으로 데이터가 저장되어 있음(뼈가 몇번 ControlPoint에 영향을 주는지)
 	// 정점이 몇번 뼈의 영향을 받는지 표현하려면 직접 뼈 인덱스를 만들어야함.
 	TMap<FbxNode*, int32> BoneToIndex;
 
@@ -89,24 +169,24 @@ FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
 	// 그룹별 정렬하게 되면 인덱스가 꼬임. 그래서 머티리얼이 없는 경우 그냥 0번 그룹을 쓰도록 하고 머티리얼 인덱스 0번을 nullptr에 할당함
 	MaterialGroupIndexList.Add(0, TArray<uint32>());
 	MaterialToIndex.Add(nullptr, 0);
-	MeshData.GroupInfos.Add(FGroupInfo());
+	MeshData->GroupInfos.Add(FGroupInfo());
 	if (RootNode)
 	{
 		// 2번의 패스로 나눠서 처음엔 뼈의 인덱스를 결정하고 2번째 패스에서 뼈가 영향을 미치는 정점들을 구하고 정점마다 뼈 인덱스를 할당해 줄 것임(동시에 TPose 역행렬도 구함)
 		for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
 		{
-			LoadSkeletonFromNode(RootNode->GetChild(Index), MeshData, -1, BoneToIndex);
+			LoadSkeletonFromNode(RootNode->GetChild(Index), *MeshData, -1, BoneToIndex);
 		}
 		for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
 		{
-			LoadMeshFromNode(RootNode->GetChild(Index), MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex);
+			LoadMeshFromNode(RootNode->GetChild(Index), *MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex);
 		}
 	}
 
 	// 머티리얼이 있는 경우 플래그 설정
-	if (MeshData.GroupInfos.Num() > 1)
+	if (MeshData->GroupInfos.Num() > 1)
 	{
-		MeshData.bHasMaterial = true;
+		MeshData->bHasMaterial = true;
 	}
 	// 있든없든 항상 기본 머티리얼 포함 머티리얼 그룹별로 인덱스 저장하므로 Append 해줘야함
 	uint32 Count = 0;
@@ -117,11 +197,11 @@ FSkeletalMeshData UFbxLoader::LoadFbxMesh(const FString& FilePath)
 		const TArray<uint32>& IndexList = Element.second;
 
 		// 최종 인덱스 배열에 리스트 추가
-		MeshData.Indices.Append(IndexList);
+		MeshData->Indices.Append(IndexList);
 
 		// 그룹info에 Startindex와 Count 추가
-		MeshData.GroupInfos[MatrialIndex].StartIndex = Count;
-		MeshData.GroupInfos[MatrialIndex].IndexCount = IndexList.Num();
+		MeshData->GroupInfos[MatrialIndex].StartIndex = Count;
+		MeshData->GroupInfos[MatrialIndex].IndexCount = IndexList.Num();
 		Count += IndexList.Num();
 	}
 	
@@ -288,7 +368,7 @@ void UFbxLoader::LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalM
 	//UE_LOG("<Attribute Type = %s, Name = %s\n", TypeName.Buffer(), AttributeName.Buffer());
 }
 
-void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 MaterialIndex)
+void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 DefaultMaterialIndex)
 {
 	// 위에서 뼈 인덱스를 구했으므로 일단 ControlPoint에 대응되는 뼈 인덱스와 가중치부터 할당할 것임(이후 MeshData를 채우면서 ControlPoint를 순회할 것이므로)
 	struct IndexWeight
@@ -316,7 +396,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 			double* Weights = Cluster->GetControlPointWeights();
 
             // Bind Pose, Inverse Bind Pose 저장.
-            // FBX 스킨 규약:
+            // Fbx 스킨 규약:
             //  - TransformLinkMatrix: 본의 글로벌 바인드 행렬
             //  - TransformMatrix:     메시의 글로벌 바인드 행렬
             // 엔진 로컬(메시 기준) 바인드 행렬 = Inv(TransformMatrix) * TransformLinkMatrix
@@ -350,7 +430,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 
 
 	// 로드는 TriangleList를 가정하고 할 것임. 
-	// TriangleStrip은 한번 만들면 편집이 사실상 불가능함, FBX같은 호환성이 중요한 모델링 포멧이 유연성 부족한 모델을 저장할 이유도 없고
+	// TriangleStrip은 한번 만들면 편집이 사실상 불가능함, Fbx같은 호환성이 중요한 모델링 포멧이 유연성 부족한 모델을 저장할 이유도 없고
 	// 엔진 최적화 측면에서도 GPU의 Vertex Cache가 Strip과 비슷한 성능을 내면서도 직관적이고 유연해서 잘 쓰지도 않기 때문에 그냥 안 씀.
 	int PolygonCount = InMesh->GetPolygonCount();
 
@@ -358,7 +438,7 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 	FbxVector4* ControlPoints = InMesh->GetControlPoints();
 
 
-	// Vertex 위치가 같아도 서로 다른 Normal, Tangent, UV좌표를 가질 수 있음, FBX는 하나의 인덱스 배열에서 이들을 서로 다른 인덱스로 관리하길 강제하지 않고 
+	// Vertex 위치가 같아도 서로 다른 Normal, Tangent, UV좌표를 가질 수 있음, Fbx는 하나의 인덱스 배열에서 이들을 서로 다른 인덱스로 관리하길 강제하지 않고 
 	// Vertex 위치는 ControlPoint로 관리하고 그 외의 정보들은 선택적으로 분리해서 관리하도록 함. 그래서 ControlPoint를 Index로 쓸 수도 없어서 따로 만들어야 하고, 
 	// 위치정보 외의 정보를 참조할때는 매핑 방식별로 분기해서 저장해야함. 만약 매핑 방식이 eByPolygonVertex(꼭짓점 기준)인 경우 폴리곤의 꼭짓점을 순회하는 순서
 	// 그대로 참조하면 됨, 그래서 VertexId를 꼭짓점 순회하는 순서대로 증가시키면서 매핑할 것임.
@@ -375,7 +455,8 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 		
 		// 머티리얼이 여러개인 경우(머티리얼이 하나 이상 있는데 materialIndex가 0이면 여러개, 하나일때는 MaterialIndex를 설정해주니까)
 		// 이때는 해싱을 해줘야함
-		if (MaterialIndex == 0 && InMesh->GetElementMaterialCount() > 0)
+		int32 MaterialIndex = DefaultMaterialIndex;
+		if (DefaultMaterialIndex == 0 && InMesh->GetElementMaterialCount() > 0)
 		{
 			FbxGeometryElementMaterial* Material = InMesh->GetElementMaterial(0);
 			int MaterialSlot = Material->GetIndexArray().GetAt(PolygonIndex);
@@ -395,20 +476,28 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 
 			if (ControlPointToBoneWeight.Contains(ControlPointIndex))
 			{
+				double TotalWeights = 0.0;
+
+
 				const TArray<IndexWeight>& WeightArray = ControlPointToBoneWeight[ControlPointIndex];
+				for (int BoneIndex = 0; BoneIndex < WeightArray.Num() && BoneIndex < 4; BoneIndex++)
+				{
+					// Total weight 구하기(정규화)
+					TotalWeights += ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight;
+				}
 				// 5개 이상이 있어도 4개만 처리할 것임.
 				for (int BoneIndex = 0; BoneIndex < WeightArray.Num() && BoneIndex < 4; BoneIndex++)
 				{
 					// ControlPoint에 대응하는 뼈 인덱스, 가중치를 모두 저장
 					SkinnedVertex.BoneIndices[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneIndex;
-					SkinnedVertex.BoneWeights[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight;
+					SkinnedVertex.BoneWeights[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight/TotalWeights;
 				}
 			}
 
 
 			// 함수명과 다르게 매시가 가진 버텍스 컬러 레이어 개수를 리턴함.( 0번 : Diffuse, 1번 : 블랜딩 마스크 , 기타..)
 			// 엔진에서는 항상 0번만 사용하거나 Count가 0임. 그래서 하나라도 있으면 그냥 0번 쓰게 함.
-			// 왜 이렇게 지어졌나? -> FBX가 3D 모델링 관점에서 만들어졌기 때문, 모델링 툴에서는 여러 개의 컬러 레이어를 하나에 매시에 만들 수 있음.
+			// 왜 이렇게 지어졌나? -> Fbx가 3D 모델링 관점에서 만들어졌기 때문, 모델링 툴에서는 여러 개의 컬러 레이어를 하나에 매시에 만들 수 있음.
 			// 컬러 뿐만 아니라 UV Normal Tangent 모두 다 레이어로 저장하고 모두 다 0번만 쓰면 됨.
 			if (InMesh->GetElementVertexColorCount() > 0)
 			{

@@ -40,6 +40,8 @@ class Property:
                     self.metadata['inner_type'] = 'EPropertyType::Sound'
                 elif 'ustaticmesh' in inner_type:
                     self.metadata['inner_type'] = 'EPropertyType::StaticMesh'
+                elif 'uskeletalmesh' in inner_type:
+                    self.metadata['inner_type'] = 'EPropertyType::SkeletalMesh'
                 else:
                     self.metadata['inner_type'] = 'EPropertyType::ObjectPtr'
             return 'ADD_PROPERTY_ARRAY'
@@ -58,6 +60,8 @@ class Property:
                 return 'ADD_PROPERTY_TEXTURE'
             elif 'ustaticmesh' in type_lower:
                 return 'ADD_PROPERTY_STATICMESH'
+            elif 'uskeletalmesh' in type_lower:
+                return 'ADD_PROPERTY_SKELETALMESH'
             elif 'umaterial' in type_lower:
                 return 'ADD_PROPERTY_MATERIAL'
             elif 'usound' in type_lower:

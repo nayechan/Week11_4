@@ -149,6 +149,11 @@ void UResourceManager::SetStaticMeshs()
     StaticMeshs = GetAll<UStaticMesh>();
 }
 
+void UResourceManager::SetSkeletalMeshs()
+{
+    SkeletalMeshs = GetAll<USkeletalMesh>();
+}
+
 void UResourceManager::SetAudioFiles()
 { 
     Sounds = GetAll<USound>();

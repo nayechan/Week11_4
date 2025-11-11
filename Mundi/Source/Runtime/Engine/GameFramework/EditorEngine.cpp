@@ -3,6 +3,7 @@
 #include "USlateManager.h"
 #include "SelectionManager.h"
 #include "FAudioDevice.h"
+#include "FbxLoader.h"
 #include <ObjManager.h>
 
 
@@ -192,6 +193,7 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     INPUT.Initialize(HWnd);
 
     FObjManager::Preload(); 
+    UFbxLoader::PreLoad();
 
     FAudioDevice::Preload();
 
