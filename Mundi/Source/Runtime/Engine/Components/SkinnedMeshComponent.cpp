@@ -122,11 +122,123 @@ void USkinnedMeshComponent::SetSkeletalMesh(const FString& PathFileName)
           SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
        }
        MarkWorldPartitionDirty();
+
+       // Initialize editable pose from bind pose for gizmo editing
+       InitializeEditablePoseFromBindPose();
     }
     else
     {
        SkeletalMesh = nullptr;
     }
+}
+
+void USkinnedMeshComponent::InitializeEditablePoseFromBindPose()
+{
+    EditableLocalBone.Empty();
+    if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) return;
+    const auto& Bones = SkeletalMesh->GetSkeletalMeshData()->Skeleton.Bones;
+    EditableLocalBone.resize(Bones.size());
+    // Convert absolute bind pose (object space) to local matrices per bone (row-major)
+    for (int32 i = 0; i < Bones.size(); ++i)
+    {
+        const int32 parent = Bones[i].ParentIndex;
+        if (parent >= 0)
+        {
+            const FMatrix& ParentAbs = Bones[parent].BindPose;
+            EditableLocalBone[i] = ParentAbs.InverseAffine() * Bones[i].BindPose; // local = ParentInv * Abs
+        }
+        else
+        {
+            // Root local equals its absolute bind pose
+            EditableLocalBone[i] = Bones[i].BindPose;
+        }
+    }
+}
+
+FMatrix USkinnedMeshComponent::ComputeBoneWorldMatrix(int32 BoneIndex) const
+{
+    if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) return FMatrix::Identity();
+    const auto& Bones = SkeletalMesh->GetSkeletalMeshData()->Skeleton.Bones;
+    if (BoneIndex < 0 || BoneIndex >= (int32)Bones.size()) return FMatrix::Identity();
+
+    const bool bUseEditable = (EditableLocalBone.Num() == Bones.size());
+
+    FMatrix BoneObjectMatrix = FMatrix::Identity();
+    if (bUseEditable)
+    {
+        // Accumulate editable local transforms along the chain (row-major)
+        int32 idx = BoneIndex;
+        TArray<int32> Chain;
+        while (idx >= 0)
+        {
+            Chain.Add(idx);
+            idx = Bones[idx].ParentIndex;
+        }
+        for (int c = Chain.Num() - 1; c >= 0; --c)
+        {
+            const int32 b = Chain[c];
+            BoneObjectMatrix = BoneObjectMatrix * EditableLocalBone[b];
+        }
+    }
+    else
+    {
+        // BindPose is absolute (object space); do not accumulate
+        BoneObjectMatrix = Bones[BoneIndex].BindPose;
+    }
+
+    // Apply component/world transform
+    return BoneObjectMatrix * GetWorldMatrix();
+}
+
+void USkinnedMeshComponent::SetBoneWorldMatrix(int32 BoneIndex, const FMatrix& WorldMatrix)
+{
+    if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) return;
+    const auto& Bones = SkeletalMesh->GetSkeletalMeshData()->Skeleton.Bones;
+    if (BoneIndex < 0 || BoneIndex >= (int32)Bones.size()) return;
+
+    if (EditableLocalBone.Num() != Bones.size())
+    {
+        // Initialize to local bind pose if not ready
+        EditableLocalBone.resize(Bones.size());
+        for (int32 i = 0; i < Bones.size(); ++i)
+        {
+            const int32 parent = Bones[i].ParentIndex;
+            if (parent >= 0)
+            {
+                const FMatrix& ParentAbs = Bones[parent].BindPose;
+                EditableLocalBone[i] = ParentAbs.InverseAffine() * Bones[i].BindPose;
+            }
+            else
+            {
+                EditableLocalBone[i] = Bones[i].BindPose;
+            }
+        }
+    }
+
+    // Convert world to component space
+    FMatrix ComponentInv = GetWorldMatrix().InverseAffine();
+    FMatrix DesiredCompWorld = ComponentInv * WorldMatrix;
+
+    // Parent world (component space)
+    FMatrix ParentWorld = FMatrix::Identity();
+    int32 parent = Bones[BoneIndex].ParentIndex;
+    if (parent >= 0)
+    {
+        TArray<int32> Chain;
+        int32 idx = parent;
+        while (idx >= 0)
+        {
+            Chain.Add(idx);
+            idx = Bones[idx].ParentIndex;
+        }
+        for (int c = Chain.Num() - 1; c >= 0; --c)
+        {
+            int32 b = Chain[c];
+            ParentWorld = ParentWorld * EditableLocalBone[b];
+        }
+    }
+    FMatrix ParentInv = ParentWorld.InverseAffine();
+    EditableLocalBone[BoneIndex] = ParentInv * DesiredCompWorld;
 }
 
 FAABB USkinnedMeshComponent::GetWorldAABB() const

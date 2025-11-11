@@ -37,6 +37,11 @@ public:
      */
     USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh; }
 
+    // Bone editing API (viewer)
+    FMatrix ComputeBoneWorldMatrix(int32 BoneIndex) const;
+    void SetBoneWorldMatrix(int32 BoneIndex, const FMatrix& WorldMatrix);
+    void InitializeEditablePoseFromBindPose();
+
 protected:
     USkeletalMesh* SkeletalMesh;
 
@@ -44,4 +49,7 @@ protected:
     * CPU 스키닝 최종 결과물 (TODO: 스키닝 계산 결과 버텍스들)
     */
     // TArray<FNormalVertex> SkinnedVertices;
+
+    // Editable local bone transforms (as matrices), initialized from BindPose
+    TArray<FMatrix> EditableLocalBone;
 };

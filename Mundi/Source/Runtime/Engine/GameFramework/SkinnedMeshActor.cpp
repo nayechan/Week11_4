@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "SkinnedMeshActor.h"
+#include "BoneAnchorComponent.h"
 
 ASkinnedMeshActor::ASkinnedMeshActor()
 {
@@ -20,6 +21,14 @@ ASkinnedMeshActor::ASkinnedMeshActor()
         BoneLineComponent->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
         // Render skeleton overlay always on top of geometry
         BoneLineComponent->SetAlwaysOnTop(true);
+    }
+
+    // Hidden anchor for gizmo placement on selected bone
+    BoneAnchor = CreateDefaultSubobject<UBoneAnchorComponent>("BoneAnchor");
+    if (BoneAnchor && RootComponent)
+    {
+        BoneAnchor->SetupAttachment(RootComponent, EAttachmentRule::KeepRelative);
+        BoneAnchor->SetVisibility(false); // not rendered; used only for selection/gizmo
     }
 }
 
@@ -95,6 +104,7 @@ void ASkinnedMeshActor::RebuildBoneLines(int32 SelectedBoneIndex)
         JointPos[i] = FVector(P.X, P.Y, P.Z);
     }
 
+    // 1) Bone connection lines (parent-child)
     for (int32 i = 0; i < BoneCount; ++i)
     {
         int32 parent = Bones[i].ParentIndex;
@@ -106,6 +116,78 @@ void ASkinnedMeshActor::RebuildBoneLines(int32 SelectedBoneIndex)
             BoneLineComponent->AddLine(JointPos[parent], JointPos[i], color);
         }
     }
+
+    // 2) Joint spheres (three great-circle rings per joint)
+    const float SmallRadius = 0.1f;
+    const float SelectedRadius = 0.15f;
+    const int NumSegments = 16;
+    for (int32 i = 0; i < BoneCount; ++i)
+    {
+        const FVector Center = JointPos[i];
+        const bool bSelected = (SelectedBoneIndex == i);
+        const FVector4 RingColor = bSelected
+            ? FVector4(1.0f, 0.85f, 0.2f, 1.0f)
+            : FVector4(0.8f, 0.8f, 0.8f, 1.0f);
+
+        const float Radius = bSelected ? SelectedRadius : SmallRadius;
+        for (int k = 0; k < NumSegments; ++k)
+        {
+            const float a0 = (static_cast<float>(k) / NumSegments) * TWO_PI;
+            const float a1 = (static_cast<float>((k + 1) % NumSegments) / NumSegments) * TWO_PI;
+            // XY ring
+            BoneLineComponent->AddLine(
+                Center + FVector(Radius * std::cos(a0), Radius * std::sin(a0), 0.0f),
+                Center + FVector(Radius * std::cos(a1), Radius * std::sin(a1), 0.0f),
+                RingColor);
+            // XZ ring
+            BoneLineComponent->AddLine(
+                Center + FVector(Radius * std::cos(a0), 0.0f, Radius * std::sin(a0)),
+                Center + FVector(Radius * std::cos(a1), 0.0f, Radius * std::sin(a1)),
+                RingColor);
+            // YZ ring
+            BoneLineComponent->AddLine(
+                Center + FVector(0.0f, Radius * std::cos(a0), Radius * std::sin(a0)),
+                Center + FVector(0.0f, Radius * std::cos(a1), Radius * std::sin(a1)),
+                RingColor);
+        }
+
+        // Small axis cross for selected bone for extra visibility
+        if (bSelected)
+        {
+            const float AxisLen = SelectedRadius * 0.6f;
+            BoneLineComponent->AddLine(Center + FVector(-AxisLen, 0, 0), Center + FVector(AxisLen, 0, 0), RingColor);
+            BoneLineComponent->AddLine(Center + FVector(0, -AxisLen, 0), Center + FVector(0, AxisLen, 0), RingColor);
+            BoneLineComponent->AddLine(Center + FVector(0, 0, -AxisLen), Center + FVector(0, 0, AxisLen), RingColor);
+        }
+    }
+}
+
+void ASkinnedMeshActor::MoveGizmoToBone(int32 BoneIndex)
+{
+    if (!SkinnedMeshComponent || !BoneAnchor)
+        return;
+
+    USkeletalMesh* SkeletalMesh = SkinnedMeshComponent->GetSkeletalMesh();
+    if (!SkeletalMesh)
+        return;
+
+    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    if (!Data)
+        return;
+
+    const auto& Bones = Data->Skeleton.Bones;
+    if (BoneIndex < 0 || BoneIndex >= (int32)Bones.size())
+        return;
+
+    // Compute approximate world-space joint position from bind pose
+    const FVector4 Origin(0, 0, 0, 1);
+    const FMatrix& Bind = Bones[BoneIndex].BindPose;
+    const FVector4 P = Origin * Bind; // row-vector convention used throughout
+    const FVector Local = FVector(P.X, P.Y, P.Z);
+    const FVector4 W = FVector4(Local.X, Local.Y, Local.Z, 1.0f) * GetWorldMatrix();
+    const FVector WorldTranslation = FVector(W.X, W.Y, W.Z);
+
+    BoneAnchor->SetWorldLocation(WorldTranslation);
 }
 
 void ASkinnedMeshActor::DuplicateSubObjects()

@@ -24,6 +24,7 @@ public:
     
     // - 본 오버레이(뼈대 선) 시각화를 위한 라인 컴포넌트
     ULineComponent* GetBoneLineComponent() const { return BoneLineComponent; }
+    class UBoneAnchorComponent* GetBoneGizmoAnchor() const { return BoneAnchor; }
 
     // Convenience: forward to component
     void SetSkeletalMesh(const FString& PathFileName);
@@ -31,6 +32,10 @@ public:
     // Rebuild bone line overlay from the current skeletal mesh bind pose
     // SelectedBoneIndex: highlight this bone and its parent connection
     void RebuildBoneLines(int32 SelectedBoneIndex);
+
+    // Move a hidden anchor component to the specified bone's world position
+    // and make it selectable for the gizmo to latch onto
+    void MoveGizmoToBone(int32 BoneIndex);
 
     // Copy/Serialize
     void DuplicateSubObjects() override;
@@ -43,4 +48,6 @@ protected:
     // 본(부모-자식) 연결을 라인으로 그리기 위한 디버그용 컴포넌트
     // - 액터의 로컬 공간에서 선분을 추가하고, 액터 트랜스폼에 따라 함께 이동/회전/스케일됨
     ULineComponent* BoneLineComponent = nullptr;
+    // Anchor component used for gizmo selection/transform at a bone
+    class UBoneAnchorComponent* BoneAnchor = nullptr;
 };

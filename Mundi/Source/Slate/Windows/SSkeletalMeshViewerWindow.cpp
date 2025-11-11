@@ -6,6 +6,8 @@
 #include "Source/Editor/PlatformProcess.h"
 #include "Source/Runtime/Engine/GameFramework/SkinnedMeshActor.h"
 #include "Source/Runtime/Engine/Components/LineComponent.h"
+#include "SelectionManager.h"
+#include "BoneAnchorComponent.h"
 
 SSkeletalMeshViewerWindow::SSkeletalMeshViewerWindow()
 {
@@ -247,6 +249,16 @@ void SSkeletalMeshViewerWindow::OnRender()
                         {
                             ActiveState->SelectedBoneIndex = Index;
                             ActiveState->bBoneLinesDirty = true; // 색상 갱신 필요
+
+                            // Move gizmo to the selected bone and update selection
+                            if (ActiveState->PreviewActor && ActiveState->World)
+                            {
+                                ActiveState->PreviewActor->MoveGizmoToBone(Index);
+                                if (USceneComponent* Anchor = ActiveState->PreviewActor->GetBoneGizmoAnchor())
+                                {
+                                    ActiveState->World->GetSelectionManager()->SelectComponent(Anchor);
+                                }
+                            }
                         }
                     }
                     if (!bLeaf && open)
@@ -317,6 +329,12 @@ void SSkeletalMeshViewerWindow::OnUpdate(float DeltaSeconds)
 {
     if (!ActiveState || !ActiveState->Viewport)
         return;
+
+    // Tick the preview world so editor actors (e.g., gizmo) update visibility/state
+    if (ActiveState->World)
+    {
+        ActiveState->World->Tick(DeltaSeconds);
+    }
 
     if (ActiveState && ActiveState->Client)
     {
