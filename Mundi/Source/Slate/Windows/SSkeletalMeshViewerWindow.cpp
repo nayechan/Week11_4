@@ -493,6 +493,46 @@ void SSkeletalMeshViewerWindow::CloseTab(int Index)
     else { ActiveTabIndex = std::min(Index, Tabs.Num() - 1); ActiveState = Tabs[ActiveTabIndex]; }
 }
 
+void SSkeletalMeshViewerWindow::LoadSkeletalMesh(const FString& Path)
+{
+    if (!ActiveState || Path.empty())
+        return;
+
+    // Load the skeletal mesh using the resource manager
+    USkeletalMesh* Mesh = UResourceManager::GetInstance().Load<USkeletalMesh>(Path);
+    if (Mesh && ActiveState->PreviewActor)
+    {
+        // Set the mesh on the preview actor
+        ActiveState->PreviewActor->SetSkeletalMesh(Path);
+        ActiveState->CurrentMesh = Mesh;
+
+        // Update mesh path buffer for display in UI
+        strncpy_s(ActiveState->MeshPathBuffer, Path.c_str(), sizeof(ActiveState->MeshPathBuffer) - 1);
+
+        // Sync mesh visibility with checkbox state
+        if (auto* Skeletal = ActiveState->PreviewActor->GetSkeletalMeshComponent())
+        {
+            Skeletal->SetVisibility(ActiveState->bShowMesh);
+        }
+
+        // Mark bone lines as dirty to rebuild on next frame
+        ActiveState->bBoneLinesDirty = true;
+
+        // Clear and sync bone line visibility
+        if (auto* LineComp = ActiveState->PreviewActor->GetBoneLineComponent())
+        {
+            LineComp->ClearLines();
+            LineComp->SetLineVisible(ActiveState->bShowBones);
+        }
+
+        UE_LOG("SSkeletalMeshViewerWindow: Loaded skeletal mesh from %s", Path.c_str());
+    }
+    else
+    {
+        UE_LOG("SSkeletalMeshViewerWindow: Failed to load skeletal mesh from %s", Path.c_str());
+    }
+}
+
 void SSkeletalMeshViewerWindow::UpdateBoneTransformFromSkeleton(ViewerState* State)
 {
     if (!State || !State->CurrentMesh || State->SelectedBoneIndex < 0)

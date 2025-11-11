@@ -28,6 +28,9 @@ public:
     FViewport* GetViewport() const { return ActiveState ? ActiveState->Viewport : nullptr; }
     FViewportClient* GetViewportClient() const { return ActiveState ? ActiveState->Client : nullptr; }
 
+    // Load a skeletal mesh into the active tab
+    void LoadSkeletalMesh(const FString& Path);
+
 private:
     // Tabs
     void OpenNewTab(const char* Name = "Viewer");

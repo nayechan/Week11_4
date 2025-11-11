@@ -195,9 +195,12 @@ void USlateManager::OpenSkeletalMeshViewerWithFile(const char* FilePath)
         OpenSkeletalMeshViewer();
     }
 
-    // TODO: 실제로 파일을 로드하는 기능은 SSkeletalMeshViewerWindow에 추가해야 함
-    // 현재는 뷰어만 열림
-    UE_LOG("Opening SkeletalMeshViewer with file: %s", FilePath);
+    // Load the skeletal mesh into the viewer
+    if (SkeletalViewerWindow && FilePath && FilePath[0] != '\0')
+    {
+        SkeletalViewerWindow->LoadSkeletalMesh(FilePath);
+        UE_LOG("Opening SkeletalMeshViewer with file: %s", FilePath);
+    }
 }
 
 void USlateManager::CloseSkeletalMeshViewer()

@@ -1054,7 +1054,15 @@ bool UPropertyRenderer::RenderSkeletalMeshProperty(const FProperty& Prop, void* 
 	{
 		if (!USlateManager::GetInstance().IsSkeletalMeshViewerOpen())
 		{
-			USlateManager::GetInstance().OpenSkeletalMeshViewer();
+			// Open viewer with the currently selected skeletal mesh if available
+			if (!CurrentPath.empty())
+			{
+				USlateManager::GetInstance().OpenSkeletalMeshViewerWithFile(CurrentPath.c_str());
+			}
+			else
+			{
+				USlateManager::GetInstance().OpenSkeletalMeshViewer();
+			}
 		}
 		else
 		{
