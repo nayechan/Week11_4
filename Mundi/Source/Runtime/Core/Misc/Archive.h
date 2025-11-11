@@ -61,6 +61,16 @@ namespace Serialization
     }
 
     template<typename T>
+    inline void WriteAsset(FArchive& Ar, T* Asset)
+    {
+        Ar.Serialize((void*)Asset, sizeof(T));
+    }
+    template<typename T>
+    inline void ReadAsset(FArchive& Ar, T* Asset)
+    {
+        Ar.Serialize((void*)Asset, sizeof(T));
+    }
+    template<typename T>
     inline void WriteArray(FArchive& Ar, const TArray<T>& Arr)
     {
         uint32 Count = (uint32)Arr.size();

@@ -104,6 +104,8 @@ USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 
 FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 {
+
+	MaterialInfos.clear();
 	FString NormalizedPath = NormalizePath(FilePath);
 	FSkeletalMeshData* MeshData = nullptr;
 #ifdef USE_OBJ_CACHE
@@ -157,6 +159,30 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 			}
 			Reader << *MeshData;
 			Reader.Close();
+
+			for (int Index = 0; Index < MeshData->GroupInfos.Num(); Index++)
+			{
+				if (MeshData->GroupInfos[Index].InitialMaterialName.empty())
+					continue;
+				const FString& MaterialName = MeshData->GroupInfos[Index].InitialMaterialName;
+				const FString& MaterialFilePath = ConvertDataPathToCachePath(MaterialName + ".mat.bin");
+				FWindowsBinReader MatReader(MaterialFilePath);
+				if (!MatReader.IsOpen())
+				{
+					throw std::runtime_error("Failed to open material bin file for reading.");
+				}
+				// for bin Load
+				FMaterialInfo MaterialInfo{};
+				Serialization::ReadAsset<FMaterialInfo>(MatReader, &MaterialInfo);
+
+				UMaterial* NewMaterial = NewObject<UMaterial>();
+
+				UMaterial* Default = UResourceManager::GetInstance().GetDefaultMaterial();
+				NewMaterial->SetMaterialInfo(MaterialInfo);
+				NewMaterial->SetShader(Default->GetShader());
+				NewMaterial->SetShaderMacros(Default->GetShaderMacros());
+				UResourceManager::GetInstance().Add<UMaterial>(MaterialInfo.MaterialName, NewMaterial);
+			}
 
 			MeshData->CacheFilePath = BinPathFileName;
 			bLoadedFromCache = true;
@@ -295,6 +321,15 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 		FWindowsBinWriter Writer(BinPathFileName);
 		Writer << *MeshData;
 		Writer.Close();
+
+		for (FMaterialInfo& MaterialInfo : MaterialInfos)
+		{
+			
+			const FString MaterialFilePath = ConvertDataPathToCachePath(MaterialInfo.MaterialName + ".mat.bin");
+			FWindowsBinWriter MatWriter(MaterialFilePath);
+			Serialization::WriteAsset<FMaterialInfo>(MatWriter, &MaterialInfo);
+			MatWriter.Close();
+		}
 
 		MeshData->CacheFilePath = BinPathFileName;
 
@@ -895,6 +930,7 @@ void UFbxLoader::ParseMaterial(FbxSurfaceMaterial* Material, FMaterialInfo& Mate
 	NewMaterial->SetShader(Default->GetShader());
 	NewMaterial->SetShaderMacros(Default->GetShaderMacros());
 
+	MaterialInfos.Add(MaterialInfo);
 	UResourceManager::GetInstance().Add<UMaterial>(MaterialInfo.MaterialName, NewMaterial);
 }
 

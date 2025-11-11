@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Archive.h"
 #include <d3d11.h>
 
@@ -72,6 +72,16 @@ struct FMaterialInfo
 };
 
 namespace Serialization {
+    template<>
+    inline void ReadAsset<FMaterialInfo>(FArchive& Ar, FMaterialInfo* Arr)
+    { 
+        Ar << *Arr;
+    }
+    template<>
+    inline void WriteAsset<FMaterialInfo>(FArchive& Ar, FMaterialInfo* Arr)
+    {
+        Ar << *Arr;
+    }
     template<>
     inline void WriteArray<FMaterialInfo>(FArchive& Ar, const TArray<FMaterialInfo>& Arr) {
         uint32 Count = (uint32)Arr.size();
