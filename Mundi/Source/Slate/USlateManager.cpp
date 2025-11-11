@@ -658,6 +658,8 @@ void USlateManager::OnShutdown()
 
 void USlateManager::Shutdown()
 {
+    if (bIsShutdown) { return; }
+    bIsShutdown = true;
     // 레이아웃/설정 저장
     SaveSplitterConfig();
 
