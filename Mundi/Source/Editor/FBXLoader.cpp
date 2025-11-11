@@ -358,7 +358,7 @@ void UFbxLoader::LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalM
 	//UE_LOG("<Attribute Type = %s, Name = %s\n", TypeName.Buffer(), AttributeName.Buffer());
 }
 
-void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 MaterialIndex)
+void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 DefaultMaterialIndex)
 {
 	// 위에서 뼈 인덱스를 구했으므로 일단 ControlPoint에 대응되는 뼈 인덱스와 가중치부터 할당할 것임(이후 MeshData를 채우면서 ControlPoint를 순회할 것이므로)
 	struct IndexWeight
@@ -445,7 +445,8 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 		
 		// 머티리얼이 여러개인 경우(머티리얼이 하나 이상 있는데 materialIndex가 0이면 여러개, 하나일때는 MaterialIndex를 설정해주니까)
 		// 이때는 해싱을 해줘야함
-		if (MaterialIndex == 0 && InMesh->GetElementMaterialCount() > 0)
+		int32 MaterialIndex = DefaultMaterialIndex;
+		if (DefaultMaterialIndex == 0 && InMesh->GetElementMaterialCount() > 0)
 		{
 			FbxGeometryElementMaterial* Material = InMesh->GetElementMaterial(0);
 			int MaterialSlot = Material->GetIndexArray().GetAt(PolygonIndex);
@@ -465,13 +466,21 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 
 			if (ControlPointToBoneWeight.Contains(ControlPointIndex))
 			{
+				double TotalWeights = 0.0;
+
+
 				const TArray<IndexWeight>& WeightArray = ControlPointToBoneWeight[ControlPointIndex];
+				for (int BoneIndex = 0; BoneIndex < WeightArray.Num() && BoneIndex < 4; BoneIndex++)
+				{
+					// Total weight 구하기(정규화)
+					TotalWeights += ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight;
+				}
 				// 5개 이상이 있어도 4개만 처리할 것임.
 				for (int BoneIndex = 0; BoneIndex < WeightArray.Num() && BoneIndex < 4; BoneIndex++)
 				{
 					// ControlPoint에 대응하는 뼈 인덱스, 가중치를 모두 저장
 					SkinnedVertex.BoneIndices[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneIndex;
-					SkinnedVertex.BoneWeights[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight;
+					SkinnedVertex.BoneWeights[BoneIndex] = ControlPointToBoneWeight[ControlPointIndex][BoneIndex].BoneWeight/TotalWeights;
 				}
 			}
 
