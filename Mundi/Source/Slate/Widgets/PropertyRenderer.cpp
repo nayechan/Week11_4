@@ -1300,6 +1300,7 @@ bool UPropertyRenderer::RenderSingleMaterialSlot(const char* Label, UMaterialInt
 		if (!StaticMeshComp)
 		{
 			ImGui::Text("UStaticMeshComponent 만 텍스처를 변경할 수 있습니다");
+			ImGui::Unindent();
 			return false;
 		}
 
