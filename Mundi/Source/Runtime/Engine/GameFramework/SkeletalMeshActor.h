@@ -54,15 +54,19 @@ protected:
     // Incremental bone line overlay cache (avoid ClearLines every frame)
     struct FBoneDebugLines
     {
-        ULine* ParentLine = nullptr;      // parent-child connection
-        TArray<ULine*> Rings;             // 3 * NumSegments lines per bone
+        TArray<ULine*> ConeEdges;         // NumSegments lines from base circle to tip (child joint)
+        TArray<ULine*> ConeBase;          // NumSegments lines forming the base circle at parent
+        TArray<ULine*> Rings;             // 3 * NumSegments lines per bone (joint spheres)
     };
 
     bool bBoneLinesInitialized = false;
-    int32 CachedSegments = 16;
+    int32 CachedSegments = 8;
     int32 CachedSelected = -1;
     TArray<FBoneDebugLines> BoneLinesCache; // size == BoneCount
     TArray<TArray<int32>> BoneChildren;     // adjacency for subtree updates
+
+    float BoneJointRadius = 0.1f;
+    float BoneBaseRadius = 0.2f;
 
     void BuildBoneLinesCache();
     void UpdateBoneSubtreeTransforms(int32 BoneIndex);

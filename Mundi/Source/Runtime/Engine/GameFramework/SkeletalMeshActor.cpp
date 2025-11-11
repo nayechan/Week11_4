@@ -220,7 +220,6 @@ void ASkeletalMeshActor::BuildBoneLinesCache()
         JointPos[i] = FVector(P.X, P.Y, P.Z);
     }
 
-    const float SmallRadius = 0.1f;
     const int NumSegments = CachedSegments;
     
     for (int32 i = 0; i < BoneCount; ++i)
@@ -231,26 +230,64 @@ void ASkeletalMeshActor::BuildBoneLinesCache()
         
         if (parent >= 0)
         {
-            BL.ParentLine = BoneLineComponent->AddLine(JointPos[parent], Center, FVector4(0,1,0,1));
+            const FVector ParentPos = JointPos[parent];
+            const FVector ChildPos = Center;
+            const FVector BoneDir = (ChildPos - ParentPos).GetNormalized();
+
+            // Calculate perpendicular vectors for the cone base
+            // Find a vector not parallel to BoneDir
+            FVector Up = FVector(0, 0, 1);
+            if (std::abs(FVector::Dot(Up, BoneDir)) > 0.99f)
+            {
+                Up = FVector(0, 1, 0); // Use Y if bone is too aligned with Z
+            }
+
+            FVector Right = FVector::Cross(BoneDir, Up).GetNormalized();
+            FVector Forward = FVector::Cross(Right, BoneDir).GetNormalized();
+
+            // Scale cone radius based on bone length
+            const float BoneLength = (ChildPos - ParentPos).Size();
+            const float Radius = std::min(BoneBaseRadius, BoneLength * 0.15f);
+
+            // Create cone geometry
+            BL.ConeEdges.reserve(NumSegments);
+            BL.ConeBase.reserve(NumSegments);
+
+            for (int k = 0; k < NumSegments; ++k)
+            {
+                const float angle0 = (static_cast<float>(k) / NumSegments) * TWO_PI;
+                const float angle1 = (static_cast<float>((k + 1) % NumSegments) / NumSegments) * TWO_PI;
+
+                // Base circle vertices at parent
+                const FVector BaseVertex0 = ParentPos + Right * (Radius * std::cos(angle0)) + Forward * (Radius * std::sin(angle0));
+                const FVector BaseVertex1 = ParentPos + Right * (Radius * std::cos(angle1)) + Forward * (Radius * std::sin(angle1));
+
+                // Cone edge from base vertex to tip (child)
+                BL.ConeEdges.Add(BoneLineComponent->AddLine(BaseVertex0, ChildPos, FVector4(0, 1, 0, 1)));
+
+                // Base circle edge
+                BL.ConeBase.Add(BoneLineComponent->AddLine(BaseVertex0, BaseVertex1, FVector4(0, 1, 0, 1)));
+            }
         }
-        
+
+        // Joint sphere visualization (3 orthogonal rings)
         BL.Rings.reserve(NumSegments*3);
-        
+
         for (int k = 0; k < NumSegments; ++k)
         {
             const float a0 = (static_cast<float>(k) / NumSegments) * TWO_PI;
             const float a1 = (static_cast<float>((k + 1) % NumSegments) / NumSegments) * TWO_PI;
             BL.Rings.Add(BoneLineComponent->AddLine(
-                Center + FVector(SmallRadius * std::cos(a0), SmallRadius * std::sin(a0), 0.0f),
-                Center + FVector(SmallRadius * std::cos(a1), SmallRadius * std::sin(a1), 0.0f),
+                Center + FVector(BoneJointRadius * std::cos(a0), BoneJointRadius * std::sin(a0), 0.0f),
+                Center + FVector(BoneJointRadius * std::cos(a1), BoneJointRadius * std::sin(a1), 0.0f),
                 FVector4(0.8f,0.8f,0.8f,1.0f)));
             BL.Rings.Add(BoneLineComponent->AddLine(
-                Center + FVector(SmallRadius * std::cos(a0), 0.0f, SmallRadius * std::sin(a0)),
-                Center + FVector(SmallRadius * std::cos(a1), 0.0f, SmallRadius * std::sin(a1)),
+                Center + FVector(BoneJointRadius * std::cos(a0), 0.0f, BoneJointRadius * std::sin(a0)),
+                Center + FVector(BoneJointRadius * std::cos(a1), 0.0f, BoneJointRadius * std::sin(a1)),
                 FVector4(0.8f,0.8f,0.8f,1.0f)));
             BL.Rings.Add(BoneLineComponent->AddLine(
-                Center + FVector(0.0f, SmallRadius * std::cos(a0), SmallRadius * std::sin(a0)),
-                Center + FVector(0.0f, SmallRadius * std::cos(a1), SmallRadius * std::sin(a1)),
+                Center + FVector(0.0f, BoneJointRadius * std::cos(a0), BoneJointRadius * std::sin(a0)),
+                Center + FVector(0.0f, BoneJointRadius * std::cos(a1), BoneJointRadius * std::sin(a1)),
                 FVector4(0.8f,0.8f,0.8f,1.0f)));
         }
     }
@@ -280,23 +317,34 @@ void ASkeletalMeshActor::UpdateBoneSelectionHighlight(int32 SelectedBoneIndex)
 
     const FVector4 SelRing(1.0f, 0.85f, 0.2f, 1.0f);
     const FVector4 NormalRing(0.8f, 0.8f, 0.8f, 1.0f);
-    
+    const FVector4 SelCone(1.0f, 0.0f, 0.0f, 1.0f);      // Red for selected bone cone
+    const FVector4 NormalCone(0.0f, 1.0f, 0.0f, 1.0f);   // Green for normal bone cone
+
     for (int32 i = 0; i < BoneCount; ++i)
     {
         const bool bSelected = (i == SelectedBoneIndex);
         const FVector4 RingColor = bSelected ? SelRing : NormalRing;
         FBoneDebugLines& BL = BoneLinesCache[i];
-        
+
+        // Update joint ring colors
         for (ULine* L : BL.Rings)
         {
             if (L) L->SetColor(RingColor);
         }
-        
-        if (BL.ParentLine)
+
+        // Update cone colors
+        const int32 parent = Bones[i].ParentIndex;
+        const bool bConeSelected = (i == SelectedBoneIndex || parent == SelectedBoneIndex);
+        const FVector4 ConeColor = bConeSelected ? SelCone : NormalCone;
+
+        for (ULine* L : BL.ConeEdges)
         {
-            const int32 parent = Bones[i].ParentIndex;
-            const bool bEdgeSel = (i == SelectedBoneIndex || parent == SelectedBoneIndex);
-            BL.ParentLine->SetColor(bEdgeSel ? FVector4(1,0,0,1) : FVector4(0,1,0,1));
+            if (L) L->SetColor(ConeColor);
+        }
+
+        for (ULine* L : BL.ConeBase)
+        {
+            if (L) L->SetColor(ConeColor);
         }
     }
 }
@@ -346,23 +394,63 @@ void ASkeletalMeshActor::UpdateBoneSubtreeTransforms(int32 BoneIndex)
         Centers[b] = FVector(O.M[3][0], O.M[3][1], O.M[3][2]);
     }
 
-    const float SmallRadius = 0.1f;
     const int NumSegments = CachedSegments;
+
     for (int32 b : ToUpdate)
     {
         FBoneDebugLines& BL = BoneLinesCache[b];
         const int32 parent = Bones[b].ParentIndex;
-        
-        if (parent >= 0 && BL.ParentLine)
+
+        // Update cone geometry
+        if (parent >= 0 && !BL.ConeEdges.IsEmpty())
         {
             const FMatrix ParentW = SkeletalMeshComponent->GetBoneWorldTransform(parent).ToMatrix();
             const FMatrix ParentO = ParentW * WorldInv;
-            const FVector ParentCenter(ParentO.M[3][0], ParentO.M[3][1], ParentO.M[3][2]);
-            BL.ParentLine->SetLine(ParentCenter, Centers[b]);
+            const FVector ParentPos(ParentO.M[3][0], ParentO.M[3][1], ParentO.M[3][2]);
+            const FVector ChildPos = Centers[b];
+
+            const FVector BoneDir = (ChildPos - ParentPos).GetNormalized();
+
+            // Calculate perpendicular vectors for the cone base
+            FVector Up = FVector(0, 0, 1);
+            if (std::abs(FVector::Dot(Up, BoneDir)) > 0.99f)
+            {
+                Up = FVector(0, 1, 0);
+            }
+
+            FVector Right = FVector::Cross(BoneDir, Up).GetNormalized();
+            FVector Forward = FVector::Cross(Right, BoneDir).GetNormalized();
+
+            // Scale cone radius based on bone length
+            const float BoneLength = (ChildPos - ParentPos).Size();
+            const float Radius = std::min(BoneBaseRadius, BoneLength * 0.15f);
+
+            // Update cone lines
+            for (int k = 0; k < NumSegments && k < BL.ConeEdges.Num(); ++k)
+            {
+                const float angle0 = (static_cast<float>(k) / NumSegments) * TWO_PI;
+                const float angle1 = (static_cast<float>((k + 1) % NumSegments) / NumSegments) * TWO_PI;
+
+                const FVector BaseVertex0 = ParentPos + Right * (Radius * std::cos(angle0)) + Forward * (Radius * std::sin(angle0));
+                const FVector BaseVertex1 = ParentPos + Right * (Radius * std::cos(angle1)) + Forward * (Radius * std::sin(angle1));
+
+                // Update cone edge
+                if (BL.ConeEdges[k])
+                {
+                    BL.ConeEdges[k]->SetLine(BaseVertex0, ChildPos);
+                }
+
+                // Update base circle edge
+                if (k < BL.ConeBase.Num() && BL.ConeBase[k])
+                {
+                    BL.ConeBase[k]->SetLine(BaseVertex0, BaseVertex1);
+                }
+            }
         }
-        
+
+        // Update joint rings
         const FVector Center = Centers[b];
-        
+
         for (int k = 0; k < NumSegments; ++k)
         {
             const float a0 = (static_cast<float>(k) / NumSegments) * TWO_PI;
@@ -370,14 +458,14 @@ void ASkeletalMeshActor::UpdateBoneSubtreeTransforms(int32 BoneIndex)
             const int base = k * 3;
             if (BL.Rings.IsEmpty() || base + 2 >= BL.Rings.Num()) break;
             BL.Rings[base+0]->SetLine(
-                Center + FVector(SmallRadius * std::cos(a0), SmallRadius * std::sin(a0), 0.0f),
-                Center + FVector(SmallRadius * std::cos(a1), SmallRadius * std::sin(a1), 0.0f));
+                Center + FVector(BoneJointRadius * std::cos(a0), BoneJointRadius * std::sin(a0), 0.0f),
+                Center + FVector(BoneJointRadius * std::cos(a1), BoneJointRadius * std::sin(a1), 0.0f));
             BL.Rings[base+1]->SetLine(
-                Center + FVector(SmallRadius * std::cos(a0), 0.0f, SmallRadius * std::sin(a0)),
-                Center + FVector(SmallRadius * std::cos(a1), 0.0f, SmallRadius * std::sin(a1)));
+                Center + FVector(BoneJointRadius * std::cos(a0), 0.0f, BoneJointRadius * std::sin(a0)),
+                Center + FVector(BoneJointRadius * std::cos(a1), 0.0f, BoneJointRadius * std::sin(a1)));
             BL.Rings[base+2]->SetLine(
-                Center + FVector(0.0f, SmallRadius * std::cos(a0), SmallRadius * std::sin(a0)),
-                Center + FVector(0.0f, SmallRadius * std::cos(a1), SmallRadius * std::sin(a1)));
+                Center + FVector(0.0f, BoneJointRadius * std::cos(a0), BoneJointRadius * std::sin(a0)),
+                Center + FVector(0.0f, BoneJointRadius * std::cos(a1), BoneJointRadius * std::sin(a1)));
         }
     }
 }
