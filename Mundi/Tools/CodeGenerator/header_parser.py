@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Tuple
+from macro_parser import MacroParser, create_macro_parser
 
 
 @dataclass
@@ -22,8 +23,16 @@ class Property:
     has_range: bool = False
     metadata: Dict[str, str] = field(default_factory=dict)
 
+    # MacroParser 인스턴스 (클래스 변수)
+    _macro_parser: Optional['MacroParser'] = None
+
+    @classmethod
+    def set_macro_parser(cls, parser: 'MacroParser'):
+        """MacroParser 인스턴스 설정 (전역)"""
+        cls._macro_parser = parser
+
     def get_property_type_macro(self) -> str:
-        """타입에 맞는 ADD_PROPERTY 매크로 결정"""
+        """타입에 맞는 ADD_PROPERTY 매크로 결정 (동적 감지)"""
         type_lower = self.type.lower()
 
         # TArray 타입 체크 (포인터 체크보다 먼저)
@@ -31,31 +40,59 @@ class Property:
             # TArray<UMaterialInterface*> 같은 형태에서 내부 타입 추출
             match = re.search(r'tarray\s*<\s*(\w+)', self.type, re.IGNORECASE)
             if match:
-                inner_type = match.group(1).lower()
-                if 'umaterial' in inner_type:
-                    self.metadata['inner_type'] = 'EPropertyType::Material'
-                elif 'utexture' in inner_type:
-                    self.metadata['inner_type'] = 'EPropertyType::Texture'
-                elif 'usound' in inner_type:
-                    self.metadata['inner_type'] = 'EPropertyType::Sound'
-                elif 'ustaticmesh' in inner_type:
-                    self.metadata['inner_type'] = 'EPropertyType::StaticMesh'
-                elif 'uskeletalmesh' in inner_type:
-                    self.metadata['inner_type'] = 'EPropertyType::SkeletalMesh'
+                inner_type = match.group(1) + '*'  # 포인터 추가
+
+                # MacroParser를 사용하여 동적으로 매크로 찾기
+                if self._macro_parser:
+                    macro_name = self._macro_parser.get_macro_for_type(inner_type)
+                    if macro_name:
+                        # 매크로 이름에서 EPropertyType 추출
+                        property_type = self._macro_parser.get_property_type_enum(macro_name)
+                        if property_type:
+                            self.metadata['inner_type'] = property_type
+                        else:
+                            self.metadata['inner_type'] = 'EPropertyType::ObjectPtr'
+                    else:
+                        self.metadata['inner_type'] = 'EPropertyType::ObjectPtr'
                 else:
-                    self.metadata['inner_type'] = 'EPropertyType::ObjectPtr'
+                    # Fallback: 기존 하드코딩된 방식
+                    inner_type_lower = inner_type.lower()
+                    if 'umaterial' in inner_type_lower:
+                        self.metadata['inner_type'] = 'EPropertyType::Material'
+                    elif 'utexture' in inner_type_lower:
+                        self.metadata['inner_type'] = 'EPropertyType::Texture'
+                    elif 'usound' in inner_type_lower:
+                        self.metadata['inner_type'] = 'EPropertyType::Sound'
+                    elif 'ustaticmesh' in inner_type_lower:
+                        self.metadata['inner_type'] = 'EPropertyType::StaticMesh'
+                    elif 'uskeletalmesh' in inner_type_lower:
+                        self.metadata['inner_type'] = 'EPropertyType::SkeletalMesh'
+                    else:
+                        self.metadata['inner_type'] = 'EPropertyType::ObjectPtr'
             return 'ADD_PROPERTY_ARRAY'
 
         # 특수 타입 체크 (포인터보다 먼저)
         if 'ucurve' in type_lower or 'fcurve' in type_lower:
+            # MacroParser에서 CURVE 매크로 찾기
+            if self._macro_parser and 'ADD_PROPERTY_CURVE' in self._macro_parser.macros:
+                return 'ADD_PROPERTY_CURVE'
             return 'ADD_PROPERTY_CURVE'
 
         # SRV (Shader Resource View) 타입 체크
         if 'srv' in type_lower or 'shaderresourceview' in type_lower:
+            # MacroParser에서 SRV 매크로 찾기
+            if self._macro_parser and 'ADD_PROPERTY_SRV' in self._macro_parser.macros:
+                return 'ADD_PROPERTY_SRV'
             return 'ADD_PROPERTY_SRV'
 
-        # 포인터 타입 체크
+        # 포인터 타입 체크 - MacroParser 사용 (자동 감지)
         if '*' in self.type:
+            if self._macro_parser:
+                macro_name = self._macro_parser.get_macro_for_type(self.type)
+                if macro_name:
+                    return macro_name
+
+            # Fallback: 기존 하드코딩된 방식
             if 'utexture' in type_lower:
                 return 'ADD_PROPERTY_TEXTURE'
             elif 'ustaticmesh' in type_lower:
@@ -121,6 +158,26 @@ class HeaderParser:
 
     # UPROPERTY 시작 패턴 (괄호는 별도 파싱)
     UPROPERTY_START = re.compile(r'UPROPERTY\s*\(')
+
+    def __init__(self, project_root: Optional[Path] = None):
+        """
+        HeaderParser 초기화
+
+        Args:
+            project_root: 프로젝트 루트 경로 (MacroParser 초기화용)
+                         None이면 현재 파일 기준으로 자동 감지
+        """
+        if project_root is None:
+            # 현재 파일(header_parser.py)의 상위 2단계가 프로젝트 루트
+            project_root = Path(__file__).parent.parent.parent
+
+        # MacroParser 생성 및 파싱
+        self.macro_parser = create_macro_parser(project_root)
+
+        # Property 클래스에 MacroParser 설정 (전역)
+        Property.set_macro_parser(self.macro_parser)
+
+        print(f"[HeaderParser] Initialized with {len(self.macro_parser.macros)} macros from ObjectMacros.h")
 
     # UCLASS 시작 패턴
     UCLASS_START = re.compile(r'UCLASS\s*\(')

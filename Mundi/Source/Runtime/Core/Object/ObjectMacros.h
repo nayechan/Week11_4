@@ -201,6 +201,33 @@ struct TPropertyTypeTraits
 		Class->AddProperty(Prop); \
 	}
 
+#define ADD_PROPERTY_CURVE(VarType, VarName, CategoryName, bEditAnywhere, ...) \
+	{ \
+		static_assert(std::is_array_v<std::remove_reference_t<decltype(CategoryName)>>, \
+		              "CategoryName must be a string literal!"); \
+		FProperty Prop; \
+		Prop.Name = #VarName; \
+		Prop.Type = EPropertyType::Curve; \
+		Prop.Offset = offsetof(ThisClass_t, VarName); \
+		Prop.Category = CategoryName; \
+		Prop.bIsEditAnywhere = bEditAnywhere; \
+		Prop.Tooltip = "" __VA_ARGS__; \
+		Class->AddProperty(Prop); \
+	}
+#define ADD_PROPERTY_COUNT(VarType, VarName, CategoryName, bEditAnywhere, ...) \
+	{ \
+		static_assert(std::is_array_v<std::remove_reference_t<decltype(CategoryName)>>, \
+		              "CategoryName must be a string literal!"); \
+		FProperty Prop; \
+		Prop.Name = #VarName; \
+		Prop.Type = EPropertyType::Count; \
+		Prop.Offset = offsetof(ThisClass_t, VarName); \
+		Prop.Category = CategoryName; \
+		Prop.bIsEditAnywhere = bEditAnywhere; \
+		Prop.Tooltip = "" __VA_ARGS__; \
+		Class->AddProperty(Prop); \
+	}
+
 // Material 프로퍼티 추가
 #define ADD_PROPERTY_MATERIAL(VarType, VarName, CategoryName, bEditAnywhere, ...) \
 	{ \
@@ -266,6 +293,8 @@ struct TPropertyTypeTraits
 		Prop.Metadata.Add(FName("FileExtension"), InExtension); \
 		Class->AddProperty(Prop); \
 	}
+
+
   
 // 클래스 메타데이터 설정 매크로
 // StaticRegisterProperties() 함수 내에서 사용
