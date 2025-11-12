@@ -10,7 +10,7 @@ public:
     GENERATED_REFLECTION_BODY()
 
     USkinnedMeshComponent();
-    ~USkinnedMeshComponent() override = default;
+    ~USkinnedMeshComponent() override;
 
     void BeginPlay() override;
     void TickComponent(float DeltaTime) override;
@@ -63,4 +63,9 @@ private:
     */
     TArray<FMatrix> FinalSkinningMatrices;
     bool bSkinningMatricesDirty = true;
+    
+    /**
+     * @brief CPU 스키닝에서 진행하기 때문에, Component별로 VertexBuffer를 가지고 스키닝 업데이트를 진행해야함
+    */
+    ID3D11Buffer* VertexBuffer = nullptr;
 };

@@ -8,6 +8,15 @@ USkinnedMeshComponent::USkinnedMeshComponent() : SkeletalMesh(nullptr)
    bCanEverTick = true;
 }
 
+USkinnedMeshComponent::~USkinnedMeshComponent()
+{
+   if (VertexBuffer)
+   {
+      VertexBuffer->Release();
+      VertexBuffer = nullptr;
+   }
+}
+
 void USkinnedMeshComponent::BeginPlay()
 {
    Super::BeginPlay();
@@ -16,7 +25,6 @@ void USkinnedMeshComponent::BeginPlay()
 void USkinnedMeshComponent::TickComponent(float DeltaTime)
 {
    UMeshComponent::TickComponent(DeltaTime);
-   
 }
 
 void USkinnedMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
@@ -33,7 +41,7 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
    if (bSkinningMatricesDirty)
    {
       bSkinningMatricesDirty = false;
-      SkeletalMesh->UpdateVertexBuffer(SkinnedVertices);
+      SkeletalMesh->UpdateVertexBuffer(SkinnedVertices, VertexBuffer);
    }
 
     const TArray<FGroupInfo>& MeshGroupInfos = SkeletalMesh->GetMeshGroupInfo();
@@ -111,7 +119,7 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        
        BatchElement.Material = MaterialToUse;
        
-       BatchElement.VertexBuffer = SkeletalMesh->GetVertexBuffer();
+       BatchElement.VertexBuffer = VertexBuffer;
        BatchElement.IndexBuffer = SkeletalMesh->GetIndexBuffer();
        BatchElement.VertexStride = SkeletalMesh->GetVertexStride();
        
@@ -177,33 +185,39 @@ void USkinnedMeshComponent::OnTransformUpdated()
 
 void USkinnedMeshComponent::SetSkeletalMesh(const FString& PathFileName)
 {
-    ClearDynamicMaterials();
+   ClearDynamicMaterials();
 
-    SkeletalMesh = UResourceManager::GetInstance().Load<USkeletalMesh>(PathFileName);
+   SkeletalMesh = UResourceManager::GetInstance().Load<USkeletalMesh>(PathFileName);
+
+   if (VertexBuffer)
+   {
+      VertexBuffer->Release();
+      VertexBuffer = nullptr;
+   }
     
-    if (SkeletalMesh && SkeletalMesh->GetSkeletalMeshData())
-    {
-       const TArray<FMatrix> IdentityMatrices(SkeletalMesh->GetBoneCount(), FMatrix::Identity());
-       UpdateSkinningMatrices(IdentityMatrices);
-       PerformSkinning();
-       
-       const TArray<FGroupInfo>& GroupInfos = SkeletalMesh->GetMeshGroupInfo();
+   if (SkeletalMesh && SkeletalMesh->GetSkeletalMeshData())
+   {
+      SkeletalMesh->CreateVertexBuffer(&VertexBuffer);
 
+      const TArray<FMatrix> IdentityMatrices(SkeletalMesh->GetBoneCount(), FMatrix::Identity());
+      UpdateSkinningMatrices(IdentityMatrices);
+      PerformSkinning();
+      
+      const TArray<FGroupInfo>& GroupInfos = SkeletalMesh->GetMeshGroupInfo();
        MaterialSlots.resize(GroupInfos.size());
-
        for (int i = 0; i < GroupInfos.size(); ++i)
-       {
-          // FGroupInfo에 InitialMaterialName이 있다고 가정
-          SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
-       }
-       MarkWorldPartitionDirty();
-    }
-    else
-    {
-       SkeletalMesh = nullptr;
-       UpdateSkinningMatrices(TArray<FMatrix>());
-       PerformSkinning();
-    }
+      {
+         // FGroupInfo에 InitialMaterialName이 있다고 가정
+         SetMaterialByName(i, GroupInfos[i].InitialMaterialName);
+      }
+      MarkWorldPartitionDirty();
+   }
+   else
+   {
+      SkeletalMesh = nullptr;
+      UpdateSkinningMatrices(TArray<FMatrix>());
+      PerformSkinning();
+   }
 }
 
 void USkinnedMeshComponent::PerformSkinning()

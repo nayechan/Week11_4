@@ -64,8 +64,8 @@ void USlateManager::LoadSplitterConfig()
 
 USlateManager::USlateManager()
 {
-    for (int i = 0; i < 4; i++)
-        Viewports[i] = nullptr;
+    for (auto& Viewport : Viewports)
+        Viewport = nullptr;
 }
 
 USlateManager::~USlateManager()

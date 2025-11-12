@@ -36,7 +36,6 @@ void USkeletalMesh::Load(const FString& InFilePath, ID3D11Device* InDevice)
     }
 
     // GPU 버퍼 생성
-    CreateVertexBuffer(Data, InDevice);
     CreateIndexBuffer(Data, InDevice);
     VertexCount = static_cast<uint32>(Data->Vertices.size());
     IndexCount = static_cast<uint32>(Data->Indices.size());
@@ -45,12 +44,6 @@ void USkeletalMesh::Load(const FString& InFilePath, ID3D11Device* InDevice)
 
 void USkeletalMesh::ReleaseResources()
 {
-    if (VertexBuffer)
-    {
-        VertexBuffer->Release();
-        VertexBuffer = nullptr;
-    }
-
     if (IndexBuffer)
     {
         IndexBuffer->Release();
@@ -64,31 +57,19 @@ void USkeletalMesh::ReleaseResources()
     }
 }
 
-void USkeletalMesh::SetSkeletalMeshAsset(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice)
+void USkeletalMesh::CreateVertexBuffer(ID3D11Buffer** InVertexBuffer)
 {
-    if (Data)
-    {
-        ReleaseResources();
-    }
-    Data = InSkeletalMesh;
-
-    CreateVertexBuffer(Data, InDevice);
-    CreateIndexBuffer(Data, InDevice);
-    VertexCount = static_cast<uint32>(Data->Vertices.size());
-    IndexCount = static_cast<uint32>(Data->Indices.size());
-}
-
-void USkeletalMesh::UpdateVertexBuffer(const TArray<FNormalVertex>& SkinnedVertices)
-{
-    if (!VertexBuffer) { return; }
-
-    GEngine.GetRHIDevice()->VertexBufferUpdate(VertexBuffer, SkinnedVertices);
-}
-
-void USkeletalMesh::CreateVertexBuffer(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice)
-{
-    HRESULT hr = D3D11RHI::CreateVertexBuffer<FVertexDynamic>(InDevice, InSkeletalMesh->Vertices, &VertexBuffer);
+    if (!Data) { return; }
+    ID3D11Device* Device = GEngine.GetRHIDevice()->GetDevice();
+    HRESULT hr = D3D11RHI::CreateVertexBuffer<FVertexDynamic>(Device, Data->Vertices, InVertexBuffer);
     assert(SUCCEEDED(hr));
+}
+
+void USkeletalMesh::UpdateVertexBuffer(const TArray<FNormalVertex>& SkinnedVertices, ID3D11Buffer* InVertexBuffer)
+{
+    if (!InVertexBuffer) { return; }
+
+    GEngine.GetRHIDevice()->VertexBufferUpdate(InVertexBuffer, SkinnedVertices);
 }
 
 void USkeletalMesh::CreateIndexBuffer(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice)
