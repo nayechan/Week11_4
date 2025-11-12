@@ -69,5 +69,4 @@ public:
 private:
     void UpdateBoneTransformFromSkeleton(ViewerState* State);
     void ApplyBoneTransform(ViewerState* State);
-    void ApplyModernStyle();
 };
