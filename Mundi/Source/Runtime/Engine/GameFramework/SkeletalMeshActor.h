@@ -69,8 +69,8 @@ protected:
     TArray<FBoneDebugLines> BoneLinesCache; // size == BoneCount
     TArray<TArray<int32>> BoneChildren;     // adjacency for subtree updates
 
-    float BoneJointRadius = 0.1f;
-    float BoneBaseRadius = 0.2f;
+    float BoneJointRadius = 0.05f;
+    float BoneBaseRadius = 0.1f;
 
     void BuildBoneLinesCache();
     void UpdateBoneSubtreeTransforms(int32 BoneIndex);
