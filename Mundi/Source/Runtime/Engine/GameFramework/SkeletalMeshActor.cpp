@@ -246,15 +246,17 @@ void ASkeletalMeshActor::BuildBoneLinesCache()
         }
     }
 
-    // Initial centers from bind pose (object space)
+    // Initial centers from current bone transforms (object space)
+    // Use GetBoneWorldTransform to properly accumulate parent transforms
+    const FMatrix WorldInv = GetWorldMatrix().InverseAffine();
     TArray<FVector> JointPos;
     JointPos.resize(BoneCount);
-    const FVector4 Origin(0,0,0,1);
-    
+
     for (int32 i = 0; i < BoneCount; ++i)
     {
-        const FVector4 P = Origin * Bones[i].BindPose;
-        JointPos[i] = FVector(P.X, P.Y, P.Z);
+        const FMatrix W = SkeletalMeshComponent->GetBoneWorldTransform(i).ToMatrix();
+        const FMatrix O = W * WorldInv;
+        JointPos[i] = FVector(O.M[3][0], O.M[3][1], O.M[3][2]);
     }
 
     const int NumSegments = CachedSegments;
