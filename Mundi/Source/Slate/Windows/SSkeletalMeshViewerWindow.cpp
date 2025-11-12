@@ -685,7 +685,6 @@ void SSkeletalMeshViewerWindow::OnRenderViewport()
         {
             ActiveState->bBoneLinesDirty = true;
         }
-        
         if (ActiveState->bShowBones && ActiveState->PreviewActor && ActiveState->CurrentMesh && ActiveState->bBoneLinesDirty)
         {
             if (ULineComponent* LineComp = ActiveState->PreviewActor->GetBoneLineComponent())
