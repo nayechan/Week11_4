@@ -469,3 +469,61 @@ void ASkeletalMeshActor::UpdateBoneSubtreeTransforms(int32 BoneIndex)
         }
     }
 }
+
+int32 ASkeletalMeshActor::PickBone(const FRay& Ray, float& OutDistance) const
+{
+    if (!SkeletalMeshComponent)
+    {
+        return -1;
+    }
+
+    USkeletalMesh* SkeletalMesh = SkeletalMeshComponent->GetSkeletalMesh();
+    if (!SkeletalMesh)
+    {
+        return -1;
+    }
+
+    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    if (!Data)
+    {
+        return -1;
+    }
+
+    const auto& Bones = Data->Skeleton.Bones;
+    if (Bones.empty())
+    {
+        return -1;
+    }
+
+    int32 ClosestBoneIndex = -1;
+    float ClosestDistance = FLT_MAX;
+
+    // Test each bone with a bounding sphere
+    for (int32 i = 0; i < (int32)Bones.size(); ++i)
+    {
+        // Get bone world transform
+        FTransform BoneWorldTransform = SkeletalMeshComponent->GetBoneWorldTransform(i);
+        FVector BoneWorldPos = BoneWorldTransform.Translation;
+
+        // Use BoneJointRadius as picking radius (can be adjusted)
+        float PickRadius = BoneJointRadius * 2.0f; // Slightly larger for easier picking
+
+        // Test ray-sphere intersection
+        float HitDistance;
+        if (IntersectRaySphere(Ray, BoneWorldPos, PickRadius, HitDistance))
+        {
+            if (HitDistance < ClosestDistance)
+            {
+                ClosestDistance = HitDistance;
+                ClosestBoneIndex = i;
+            }
+        }
+    }
+
+    if (ClosestBoneIndex >= 0)
+    {
+        OutDistance = ClosestDistance;
+    }
+
+    return ClosestBoneIndex;
+}

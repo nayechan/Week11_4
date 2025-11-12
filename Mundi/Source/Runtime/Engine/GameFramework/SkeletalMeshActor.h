@@ -37,6 +37,10 @@ public:
     // Position the anchor
     void RepositionAnchorToBone(int32 BoneIndex);
 
+    // Bone picking with ray
+    // Returns bone index if hit, -1 otherwise
+    int32 PickBone(const FRay& Ray, float& OutDistance) const;
+
     // Copy/Serialize
     void DuplicateSubObjects() override;
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
