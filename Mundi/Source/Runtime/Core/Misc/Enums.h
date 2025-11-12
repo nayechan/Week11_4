@@ -247,4 +247,5 @@ enum class EWorldType : uint8
     Game,
 
     End,
+    PreviewMinimal, 
 };

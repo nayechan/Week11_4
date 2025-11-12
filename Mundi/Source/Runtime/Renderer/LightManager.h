@@ -119,13 +119,17 @@ struct FSpotLightInfo
     // Total: 64 + 80 = 144 bytes
 };
 
+// Forward declare UWorld
+class UWorld;
+
 class FLightManager
 {
 public:
     FLightManager() = default;
     ~FLightManager();
 
-    void Initialize(D3D11RHI* RHIDevice);
+    void SetOwningWorld(UWorld* InWorld) { OwningWorld = InWorld; }
+    void Initialize(D3D11RHI* RHIDevice, uint32 InShadowAtlasSize2D = 8192, uint32 InAtlasSizeCube = 1024, uint32 InCubeArrayCount = 8);
     void Release();
 
     void UpdateLightBuffer(D3D11RHI* RHIDevice);
@@ -230,6 +234,9 @@ private:
     TSet<ULightComponent*> LightComponentList;
     uint32 PointLightNum = 0;
     uint32 SpotLightNum = 0;
+
+    // Owning world (to check world type for optimization)
+    UWorld* OwningWorld = nullptr;
 };
 
 template<> void FLightManager::RegisterLight<UAmbientLightComponent>(UAmbientLightComponent* LightComponent);

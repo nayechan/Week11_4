@@ -35,6 +35,7 @@ public:
 	virtual void DuplicateSubObjects() override;
 
 	bool IsCastShadows() { return bCastShadows; }
+	void SetCastShadows(bool InbCastShadows) { bCastShadows = InbCastShadows; }
 
 protected:
 	//bool bIsEnabled = true;

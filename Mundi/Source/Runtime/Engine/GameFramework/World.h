@@ -39,7 +39,9 @@ struct FActorTimeState
     float Durtaion;
     float Dilation;
 };
-    
+
+enum class EWorldType : uint8;
+
 class UWorld final : public UObject
 {
 public:
@@ -48,6 +50,11 @@ public:
     ~UWorld() override;
 
     bool bPie = false;
+
+    // World type management
+    void SetWorldType(EWorldType InWorldType) { WorldType = InWorldType; }
+    EWorldType GetWorldType() const { return WorldType; }
+    bool IsPreviewWorld() const { return WorldType == EWorldType::PreviewMinimal; }
 public:
     /** 초기화 */
     void Initialize();
@@ -179,6 +186,8 @@ private:
     float TimeDuration;
 
     bool bIsTearingDown = false;    // 월드가 파괴 중임을 알리는 플래그
+
+    EWorldType WorldType = EWorldType::Editor;  // Default to editor world
 };
 template<class T>
 inline T* UWorld::SpawnActor()

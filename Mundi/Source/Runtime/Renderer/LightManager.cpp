@@ -5,6 +5,7 @@
 #include "SpotLightComponent.h"
 #include "PointLightComponent.h"
 #include "D3D11RHI.h"
+#include "World.h"
 
 #define NUM_POINT_LIGHT_MAX 256
 #define NUM_SPOT_LIGHT_MAX 256
@@ -12,8 +13,23 @@ FLightManager::~FLightManager()
 {
 	Release();
 }
-void FLightManager::Initialize(D3D11RHI* RHIDevice)
+void FLightManager::Initialize(D3D11RHI* RHIDevice, uint32 InShadowAtlasSize2D, uint32 InAtlasSizeCube, uint32 InCubeArrayCount)
 {
+	// Check if owning world is a preview world and adjust shadow atlas sizes accordingly
+	if (OwningWorld && OwningWorld->IsPreviewWorld())
+	{
+		// For preview worlds, use minimal shadow resources to save memory (~900+ MB savings)
+		InShadowAtlasSize2D = 512;  // Reduce from 8192 to 512 (256 MB -> ~1 MB)
+		InAtlasSizeCube = 0;         // Disable cube shadows entirely
+		InCubeArrayCount = 0;        // No point light shadows
+		UE_LOG("FLightManager: Initializing for preview world with minimal shadow resources");
+	}
+
+	// Set shadow atlas sizes from parameters
+	ShadowAtlasSize2D = InShadowAtlasSize2D;
+	AtlasSizeCube = InAtlasSizeCube;
+	CubeArrayCount = InCubeArrayCount;
+
 	// --- 1. Structured Buffers (t17, t18) ---
 	if (!PointLightBuffer)
 	{
@@ -82,7 +98,8 @@ void FLightManager::Initialize(D3D11RHI* RHIDevice)
 	}
 
 	// --- 3. Cube Map Atlas (t8) ---
-	if (!ShadowAtlasTextureCube)
+	// Skip cube shadow creation if CubeArrayCount is 0 (for preview worlds)
+	if (!ShadowAtlasTextureCube && CubeArrayCount > 0 && AtlasSizeCube > 0)
 	{
 		// 3.1. 큐브맵 배열 리소스 생성 (TextureCubeArray)
 		D3D11_TEXTURE2D_DESC CubeDesc = {};

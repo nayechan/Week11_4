@@ -4,6 +4,8 @@
 #include "FViewport.h"
 #include "FSkeletalViewerViewportClient.h"
 #include "Source/Runtime/Engine/GameFramework/SkeletalMeshActor.h"
+#include "ResourceManager.h"
+#include "SkeletalMesh.h"
 
 ViewerState* SkeletalViewerBootstrap::CreateViewerState(const char* Name, UWorld* InWorld, ID3D11Device* InDevice)
 {
@@ -11,9 +13,10 @@ ViewerState* SkeletalViewerBootstrap::CreateViewerState(const char* Name, UWorld
 
     ViewerState* State = new ViewerState();
     State->Name = Name ? Name : "Viewer";
-    
+
     // Preview world 만들기
     State->World = NewObject<UWorld>();
+    State->World->SetWorldType(EWorldType::PreviewMinimal);  // Set as preview world for memory optimization
     State->World->Initialize();
 
     State->World->GetGizmoActor()->SetSpace(EGizmoSpace::Local);

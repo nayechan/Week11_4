@@ -21,6 +21,9 @@
 #include "Grid/GridActor.h"
 #include "StaticMeshComponent.h"
 #include "DirectionalLightActor.h"
+#include "DirectionalLightComponent.h"
+#include "AmbientLightActor.h"
+#include "AmbientLightComponent.h"
 #include "Frustum.h"
 #include "Level.h"
 #include "LightManager.h"
@@ -31,12 +34,13 @@
 
 IMPLEMENT_CLASS(UWorld)
 
-UWorld::UWorld() : Partition(new UWorldPartitionManager())
+UWorld::UWorld() : Partition(nullptr)  // Will be created in Initialize() based on world type
 {
 	SelectionMgr = std::make_unique<USelectionManager>();
 	//PIE의 경우 Initalize 없이 빈 Level 생성만 해야함
 	Level = std::make_unique<ULevel>();
 	LightManager = std::make_unique<FLightManager>();
+	LightManager->SetOwningWorld(this);  // Set owning world for optimization decisions
 	LuaManager = std::make_unique<FLuaManager>();
 
 	UnscaledDelta = 0;
@@ -86,6 +90,13 @@ UWorld::~UWorld()
 
 void UWorld::Initialize()
 {
+	// Create partition manager first, before CreateLevel() calls SetLevel()
+	// Skip for preview worlds to save ~190 MB
+	if (!IsPreviewWorld())
+	{
+		Partition = std::make_unique<UWorldPartitionManager>();
+	}
+
 	// 기본 씬을 생성합니다.
 	CreateLevel();
 
@@ -229,9 +240,14 @@ void UWorld::Tick(float DeltaSeconds)
         }
 	} 
 	 
-	// 중복충돌 방지 pair clear 
+	// 중복충돌 방지 pair clear
     FrameOverlapPairs.clear();
-    Partition->Update(DeltaSeconds, /*budget*/256);
+
+    // Skip partition update for preview worlds (no spatial partitioning needed)
+    if (Partition)
+    {
+        Partition->Update(DeltaSeconds, /*budget*/256);
+    }
 
 	if (Level)
 	{
@@ -420,8 +436,33 @@ inline FString RemoveObjExtension(const FString& FileName)
 void UWorld::CreateLevel()
 {
 	if (SelectionMgr) SelectionMgr->ClearSelection();
-	
-	SetLevel(ULevelService::CreateNewLevel());
+
+	// For preview worlds, create minimal level with no default actors
+	// Spawn lights without shadows for proper lighting with zero shadow memory cost
+	if (IsPreviewWorld())
+	{
+		SetLevel(ULevelService::CreateDefaultLevel());
+
+		// Spawn directional light WITHOUT shadows for proper directional lighting (no memory cost)
+		ADirectionalLightActor* DirectionalLight = SpawnActor<ADirectionalLightActor>();
+		if (DirectionalLight)
+		{
+			DirectionalLight->GetLightComponent()->SetCastShadows(false);  // Disable shadows - saves ALL shadow memory
+			DirectionalLight->SetActorRotation(FQuat::FromAxisAngle(FVector(1.f, -1.f, 1.f), 30.f));
+		}
+
+		// Add ambient light for base illumination
+		AAmbientLightActor* AmbientLight = SpawnActor<AAmbientLightActor>();
+		if (AmbientLight)
+		{
+			AmbientLight->GetLightComponent()->SetIntensity(0.2f);
+		}
+	}
+	else
+	{
+		SetLevel(ULevelService::CreateNewLevel());
+	}
+
 	// 이름 카운터 초기화: 씬을 새로 시작할 때 각 BaseName 별 suffix를 0부터 다시 시작
 	ObjectTypeCounts.clear();
 }
@@ -448,15 +489,22 @@ void UWorld::SetLevel(std::unique_ptr<ULevel> InLevel)
         }
         Level->Clear();
     }
-    // Clear spatial indices
-    Partition->Clear();
+    // Clear spatial indices (skip if partition is null for preview worlds)
+    if (Partition)
+    {
+        Partition->Clear();
+    }
 
     Level = std::move(InLevel);
 
     // Adopt actors: set world and register
     if (Level)
     {
-		Partition->BulkRegister(Level->GetActors());
+		// Bulk register only if partition exists
+		if (Partition)
+		{
+			Partition->BulkRegister(Level->GetActors());
+		}
         for (AActor* Actor : Level->GetActors())
         {
 			if (Actor)
