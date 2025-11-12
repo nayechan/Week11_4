@@ -104,7 +104,6 @@ USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 
 FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 {
-
 	MaterialInfos.clear();
 	FString NormalizedPath = NormalizePath(FilePath);
 	FSkeletalMeshData* MeshData = nullptr;
@@ -152,6 +151,8 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 		try
 		{
 			MeshData = new FSkeletalMeshData();
+			MeshData->PathFileName = NormalizedPath;
+
 			FWindowsBinReader Reader(BinPathFileName);
 			if (!Reader.IsOpen())
 			{
@@ -256,7 +257,9 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 		UE_LOG("Fbx 씬 삼각화가 실패했습니다, 매시가 깨질 수 있습니다\n");
 	}
 
-	MeshData = new FSkeletalMeshData(); 
+	MeshData = new FSkeletalMeshData();
+	MeshData->PathFileName = NormalizedPath;
+
 	// Fbx파일에 씬은 하나만 존재하고 씬에 매쉬, 라이트, 카메라 등등의 element들이 트리 구조로 저장되어 있음.
 	// 씬 Export 시에 루트 노드 말고 Child 노드만 저장됨. 노드 하나가 여러 Element를 저장할 수 있고 Element는 FbxNodeAttribute 클래스로 정의되어 있음.
 	// 루트 노드 얻어옴
