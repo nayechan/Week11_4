@@ -30,8 +30,18 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime)
 void USkinnedMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
    Super::Serialize(bInIsLoading, InOutHandle);
-    
+
+   if (bInIsLoading)
+   {
+      SetSkeletalMesh(SkeletalMesh->GetPathFileName());
+   }
    // @TODO - UStaticMeshComponent처럼 프로퍼티 기반 직렬화 로직 추가
+}
+
+void USkinnedMeshComponent::DuplicateSubObjects()
+{
+   Super::DuplicateSubObjects();
+   SkeletalMesh->CreateVertexBuffer(&VertexBuffer);
 }
 
 void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMeshBatchElements, const FSceneView* View)

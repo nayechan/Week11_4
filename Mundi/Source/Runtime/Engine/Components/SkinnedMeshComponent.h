@@ -16,6 +16,7 @@ public:
     void TickComponent(float DeltaTime) override;
 
     void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+    void DuplicateSubObjects() override;
     
 // Mesh Component Section
 public:
