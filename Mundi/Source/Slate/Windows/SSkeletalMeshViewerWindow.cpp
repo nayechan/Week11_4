@@ -276,10 +276,18 @@ void SSkeletalMeshViewerWindow::OnRender()
                     {
                         const bool bLeaf = Children[Index].IsEmpty();
                         ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth;
+                        
                         if (bLeaf)
                         {
                             flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
                         }
+                        
+                        // 펼쳐진 노드는 명시적으로 열린 상태로 설정
+                        if (ActiveState->ExpandedBoneIndices.count(Index) > 0)
+                        {
+                            ImGui::SetNextItemOpen(true);
+                        }
+                        
                         if (ActiveState->SelectedBoneIndex == Index)
                         {
                             flags |= ImGuiTreeNodeFlags_Selected;
@@ -300,6 +308,18 @@ void SSkeletalMeshViewerWindow::OnRender()
                         if (ActiveState->SelectedBoneIndex == Index)
                         {
                             ImGui::PopStyleColor(3);
+                            
+                            // 선택된 본까지 스크롤
+                            ImGui::SetScrollHereY(0.5f);
+                        }
+
+                        // 사용자가 수동으로 노드를 접거나 펼쳤을 때 상태 업데이트
+                        if (ImGui::IsItemToggledOpen())
+                        {
+                            if (open)
+                                ActiveState->ExpandedBoneIndices.insert(Index);
+                            else
+                                ActiveState->ExpandedBoneIndices.erase(Index);
                         }
 
                         if (ImGui::IsItemClicked())
@@ -308,6 +328,8 @@ void SSkeletalMeshViewerWindow::OnRender()
                             {
                                 ActiveState->SelectedBoneIndex = Index;
                                 ActiveState->bBoneLinesDirty = true;
+                                
+                                ExpandToSelectedBone(ActiveState, Index);
 
                                 if (ActiveState->PreviewActor && ActiveState->World)
                                 {
@@ -320,6 +342,7 @@ void SSkeletalMeshViewerWindow::OnRender()
                                 }
                             }
                         }
+                        
                         if (!bLeaf && open)
                         {
                             for (int32 Child : Children[Index])
@@ -606,6 +629,8 @@ void SSkeletalMeshViewerWindow::OnMouseDown(FVector2D MousePos, uint32 Button)
                         ActiveState->SelectedBoneIndex = PickedBoneIndex;
                         ActiveState->bBoneLinesDirty = true;
 
+                        ExpandToSelectedBone(ActiveState, PickedBoneIndex);
+
                         // Move gizmo to the selected bone
                         ActiveState->PreviewActor->RepositionAnchorToBone(PickedBoneIndex);
                         if (USceneComponent* Anchor = ActiveState->PreviewActor->GetBoneGizmoAnchor())
@@ -755,4 +780,22 @@ void SSkeletalMeshViewerWindow::ApplyBoneTransform(ViewerState* State)
 
     FTransform NewTransform(State->EditBoneLocation, FQuat::MakeFromEulerZYX(State->EditBoneRotation), State->EditBoneScale);
     State->PreviewActor->GetSkeletalMeshComponent()->SetBoneLocalTransform(State->SelectedBoneIndex, NewTransform);
+}
+
+void SSkeletalMeshViewerWindow::ExpandToSelectedBone(ViewerState* State, int32 BoneIndex)
+{
+    if (!State || !State->CurrentMesh)
+        return;
+        
+    const FSkeleton* Skeleton = State->CurrentMesh->GetSkeleton();
+    if (!Skeleton || BoneIndex < 0 || BoneIndex >= Skeleton->Bones.size())
+        return;
+    
+    // 선택된 본부터 루트까지 모든 부모를 펼침
+    int32 CurrentIndex = BoneIndex;
+    while (CurrentIndex >= 0)
+    {
+        State->ExpandedBoneIndices.insert(CurrentIndex);
+        CurrentIndex = Skeleton->Bones[CurrentIndex].ParentIndex;
+    }
 }
