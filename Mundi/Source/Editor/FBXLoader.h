@@ -38,6 +38,7 @@ private:
 
 	FbxString GetAttributeTypeName(FbxNodeAttribute* InAttribute);
 
+	void EnsureSingleRootBone(FSkeletalMeshData& MeshData);
 	
 	// bin파일 저장용
 	TArray<FMaterialInfo> MaterialInfos;
