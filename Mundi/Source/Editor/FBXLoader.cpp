@@ -294,6 +294,9 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 		{
 			LoadMeshFromNode(RootNode->GetChild(Index), *MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex);
 		}
+		
+		// 여러 루트 본이 있으면 가상 루트 생성
+		EnsureSingleRootBone(*MeshData);
 	}
 
 	// 머티리얼이 있는 경우 플래그 설정
@@ -881,6 +884,9 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 		} // for PolygonSize
 	} // for PolygonCount
 
+	
+
+	// FBX에 정점의 탄젠트 벡터가 존재하지 않을 시
 	if (InMesh->GetElementTangentCount() == 0)
 	{
         // 1. 계산된 탄젠트와 바이탄젠트(Bitangent)를 누적할 임시 저장소를 만듭니다.
@@ -1114,5 +1120,62 @@ FbxString UFbxLoader::GetAttributeTypeName(FbxNodeAttribute* InAttribute)
 	default: return "unknown";
 	}*/
 	return "test";
+}
+
+void UFbxLoader::EnsureSingleRootBone(FSkeletalMeshData& MeshData)
+{
+	if (MeshData.Skeleton.Bones.IsEmpty())
+		return;
+    
+	// 루트 본 개수 세기
+	TArray<int32> RootBoneIndices;
+	for (int32 i = 0; i < MeshData.Skeleton.Bones.size(); ++i)
+	{
+		if (MeshData.Skeleton.Bones[i].ParentIndex == -1)
+		{
+			RootBoneIndices.Add(i);
+		}
+	}
+    
+	// 루트 본이 2개 이상이면 가상 루트 생성
+	if (RootBoneIndices.Num() > 1)
+	{
+		// 가상 루트 본 생성
+		FBone VirtualRoot;
+		VirtualRoot.Name = "VirtualRoot";
+		VirtualRoot.ParentIndex = -1;
+        
+		// 항등 행렬로 초기화 (원점에 위치, 회전/스케일 없음)
+		VirtualRoot.BindPose = FMatrix::Identity();
+		VirtualRoot.InverseBindPose = FMatrix::Identity();
+        
+		// 가상 루트를 배열 맨 앞에 삽입
+		MeshData.Skeleton.Bones.Insert(VirtualRoot, 0);
+        
+		// 기존 본들의 인덱스가 모두 +1 씩 밀림
+		// 모든 본의 ParentIndex 업데이트
+		for (int32 i = 1; i < MeshData.Skeleton.Bones.size(); ++i)
+		{
+			if (MeshData.Skeleton.Bones[i].ParentIndex >= 0)
+			{
+				MeshData.Skeleton.Bones[i].ParentIndex += 1;
+			}
+			else // 원래 루트 본들
+			{
+				MeshData.Skeleton.Bones[i].ParentIndex = 0; // 가상 루트를 부모로 설정
+			}
+		}
+        
+		// Vertex의 BoneIndex도 모두 +1 해줘야 함
+		for (auto& Vertex : MeshData.Vertices)
+		{
+			for (int32 i = 0; i < 4; ++i)
+			{
+				Vertex.BoneIndices[i] += 1;
+			}
+		}
+        
+		UE_LOG("UFbxLoader: Created virtual root bone. Found %d root bones.", RootBoneIndices.Num());
+	}
 }
 
