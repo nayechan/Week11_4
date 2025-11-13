@@ -491,7 +491,7 @@
     <ClCompile Include="Source\Slate\Windows\SWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\UIWindow.cpp" />
     <ClCompile Include="Generated\UMeshComponent.generated.cpp" />
-  </ItemGroup>
+  <ClCompile Include="Generated\UMovementComponent.generated.cpp" /><ClCompile Include="Generated\AInfo.generated.cpp" /></ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -865,7 +865,7 @@
     <ClInclude Include="ThirdParty\Lua\include\lualib.h" />
     <ClInclude Include="Generated\UMeshComponent.generated.h" />
     <ClInclude Include="Generated\ASkinnedMeshActor.generated.h" />
-  <ClInclude Include="Generated\ASkeletalMeshActor.generated.h" /></ItemGroup>
+  <ClInclude Include="Generated\ASkeletalMeshActor.generated.h" /><ClInclude Include="Generated\UMovementComponent.generated.h" /><ClInclude Include="Generated\AInfo.generated.h" /></ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />

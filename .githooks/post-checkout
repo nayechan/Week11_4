@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Git LFS post-checkout hook
+command -v git-lfs >/dev/null 2>&1 || { printf >&2 "\n%s\n\n" "This repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-checkout' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks')."; exit 2; }
+git lfs post-checkout "$@"
+
+# Submodule auto-update on checkout
+# Arguments: $1 = previous HEAD, $2 = new HEAD, $3 = flag (1 = branch checkout, 0 = file checkout)
+prev_head=$1
+new_head=$2
+branch_checkout=$3
+
+# Only update submodules on branch checkout (not file checkout)
+if [ "$branch_checkout" = "1" ]; then
+    echo "Updating submodules after checkout..."
+    git submodule update --init --recursive || true
+fi

@@ -34,7 +34,7 @@ const bool AHeightFogActor::bPropertiesRegistered = []() {
 // ===== Property Reflection =====
 
 BEGIN_PROPERTIES(AHeightFogActor)
-    MARK_AS_COMPONENT("높이 안개", "높이 기반 안개 효과를 생성하는 액터입니다")
+    MARK_AS_SPAWNABLE("높이 안개", "높이 기반 안개 효과를 생성하는 액터입니다")
 END_PROPERTIES()
 
 

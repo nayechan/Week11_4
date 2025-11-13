@@ -4,6 +4,7 @@
 
 class UShader;
 
+UCLASS(Abstract)
 class UMeshComponent : public UPrimitiveComponent
 {
 public:

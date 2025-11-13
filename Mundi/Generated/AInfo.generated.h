@@ -8,18 +8,18 @@
 #define CURRENT_CLASS_GENERATED_BODY \
 public: \
     using Super = AActor; \
-    using ThisClass_t = ASkeletalMeshActor; \
+    using ThisClass_t = AInfo; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "ASkeletalMeshActor", AActor::StaticClass(), sizeof(ASkeletalMeshActor) }; \
+        static UClass Cls{ "AInfo", AActor::StaticClass(), sizeof(AInfo) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return ASkeletalMeshActor::StaticClass(); } \
-    ASkeletalMeshActor(const ASkeletalMeshActor&) = default; \
-    ASkeletalMeshActor* Duplicate() const override \
+    virtual UClass* GetClass() const override { return AInfo::StaticClass(); } \
+    AInfo(const AInfo&) = default; \
+    AInfo* Duplicate() const override \
     { \
-        ASkeletalMeshActor* NewObject = ObjectFactory::DuplicateObject<ASkeletalMeshActor>(this); \
+        AInfo* NewObject = ObjectFactory::DuplicateObject<AInfo>(this); \
         NewObject->DuplicateSubObjects(); \
         NewObject->PostDuplicate(); \
         return NewObject; \

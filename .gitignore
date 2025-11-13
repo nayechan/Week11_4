@@ -440,6 +440,7 @@ enc_temp_folder/*
 # AI Configuration Files
 AGENTS.md
 .claude/settings.local.json
+.claude/
 nul
 CLAUDE.md
 GEMINI.md
@@ -460,3 +461,21 @@ GEMINI.md
 !/Mundi/Tools/Python/python311.dll
 # pip 다운로드 파일 제외
 /Mundi/Tools/Python/get-pip.py
+
+# BuildTools Submodule
+# BuildTools 자체는 submodule이므로 추적하지만, 내부의 Python 캐시와 임시 파일은 제외
+/Mundi/BuildTools/**/__pycache__/
+/Mundi/BuildTools/**/*.pyc
+/Mundi/BuildTools/**/*.pyo
+/Mundi/BuildTools/**/nul
+# BuildTools 내부의 분석/문서 파일은 제외 (로컬 작업용)
+/Mundi/BuildTools/CodeGenerator/SYSTEM_REEVALUATION.md
+/Mundi/BuildTools/CodeGenerator/UOBJECT_REFLECTION_ANALYSIS.md
+/Mundi/BuildTools/CodeGenerator/IMPROVEMENT_PROPOSAL.md
+/Mundi/BuildTools/CodeGenerator/BEFORE_AFTER_COMPARISON.md
+
+# Auto-Generated Reflection Files
+# Generated 폴더는 자동 생성되지만 커밋에 포함 (빌드 없이 바로 실행 가능하도록)
+# 단, 일부 임시 파일은 제외
+/Mundi/Generated/**/*.bak
+/Mundi/Generated/**/*.tmp

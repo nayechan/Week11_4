@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# Git LFS post-merge hook
+command -v git-lfs >/dev/null 2>&1 || { printf >&2 "\n%s\n\n" "This repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'post-merge' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks')."; exit 2; }
+git lfs post-merge "$@"
+
+# Submodule auto-update after merge
+# Argument: $1 = squash flag (1 = squash merge, 0 = normal merge)
+echo "Updating submodules after merge..."
+git submodule update --init --recursive || true

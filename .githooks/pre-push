@@ -1,0 +1,35 @@
+#!/bin/sh
+
+# Git LFS pre-push hook
+command -v git-lfs >/dev/null 2>&1 || { printf >&2 "\n%s\n\n" "This repository is configured for Git LFS but 'git-lfs' was not found on your path. If you no longer wish to use Git LFS, remove this hook by deleting the 'pre-push' file in the hooks directory (set by 'core.hookspath'; usually '.git/hooks')."; exit 2; }
+git lfs pre-push "$@"
+
+# Submodule verification before push
+# Check if submodules have unpushed commits
+echo "Checking submodules..."
+
+# Initialize submodules if not done
+git submodule update --init --recursive > /dev/null 2>&1 || true
+
+# Check each submodule
+git submodule foreach --quiet --recursive '
+    SUBMODULE_PATH="$sm_path"
+    SUBMODULE_NAME="$name"
+
+    # Check if submodule has a remote
+    if git remote -v | grep -q origin; then
+        # Get current commit
+        CURRENT_COMMIT=$(git rev-parse HEAD)
+
+        # Try to check if commit exists on remote (only warns, does not block)
+        if ! git branch -r --contains "$CURRENT_COMMIT" 2>/dev/null | grep -q .; then
+            printf >&2 "\n[WARNING] Submodule '\''%s'\'' has unpushed commits.\n" "$SUBMODULE_NAME"
+            printf >&2 "   Location: %s\n" "$SUBMODULE_PATH"
+            printf >&2 "   Commit: %s\n" "$CURRENT_COMMIT"
+            printf >&2 "   Consider pushing submodule changes first to avoid CI/CD issues.\n\n"
+        fi
+    fi
+' || true
+
+# Always allow push (warning only, not blocking)
+exit 0

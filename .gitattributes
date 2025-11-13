@@ -1,5 +1,5 @@
+# Git LFS - Binary Files
 *.lib filter=lfs diff=lfs merge=lfs -text
-*.* !text !filter !merge !diff
 *.fbx filter=lfs diff=lfs merge=lfs -text
 /Mundi/ThirdParty/FBXSDK/lib/debug/alembic-md.lib filter=lfs diff=lfs merge=lfs -text
 /Mundi/ThirdParty/FBXSDK/lib/debug/alembic-mt.lib filter=lfs diff=lfs merge=lfs -text

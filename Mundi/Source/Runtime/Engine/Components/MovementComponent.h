@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "ActorComponent.h"
 #include "Vector.h"
+#include "UMovementComponent.generated.h"
 
 class USceneComponent;
 
@@ -9,12 +10,12 @@ class USceneComponent;
  * 이동 로직을 처리하는 컴포넌트의 기본 클래스
  * 기본적인 속도, 가속도, 이동 상태 관리를 제공
  */
+UCLASS(Abstract)
 class UMovementComponent : public UActorComponent
 {
 public:
-    DECLARE_CLASS(UMovementComponent, UActorComponent)
-    DECLARE_DUPLICATE(UMovementComponent)
-    
+    GENERATED_REFLECTION_BODY()
+
     UMovementComponent();
 
 protected:

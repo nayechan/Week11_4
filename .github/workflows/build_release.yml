@@ -17,19 +17,22 @@ jobs:
       fail-fast: false
 
     steps:
-      # 1. lfs: false로 설정하여 LFS 파일은 제외하고 코드만 먼저 체크아웃합니다.
+      # 1. 코드 체크아웃 (LFS는 캐시 이후에 pull, submodule도 포함)
       - name: Checkout Code (no LFS)
         uses: actions/checkout@v4
         with:
           lfs: false # LFS 파일은 캐시 복원 후에 별도로 받습니다.
+          submodules: true # BuildTools submodule 체크아웃
 
-      # 2. 현재 커밋에 필요한 LFS 파일 목록을 기반으로 고유한 캐시 키를 생성합니다.
+      # 2. LFS 캐시 키 생성 - 커밋 해시 기반 (git lfs ls-files 호출 없음)
+      #    .gitattributes 파일의 해시와 현재 커밋 해시를 조합하여 캐시 키 생성
       - name: Generate LFS cache key
         run: |
-          echo "LFS_CACHE_KEY=$(git lfs ls-files -l | cut -d' ' -f1 | git hash-object --stdin)" >> $GITHUB_ENV
+          GITATTRIBUTES_HASH=$(git hash-object .gitattributes 2>/dev/null || echo "no-gitattributes")
+          echo "LFS_CACHE_KEY=${{ github.sha }}-${GITATTRIBUTES_HASH}" >> $GITHUB_ENV
         shell: bash
 
-      # 3. 생성된 키를 사용해 LFS 객체(.git/lfs/objects)를 캐시에서 복원합니다.
+      # 3. LFS 객체 캐시 복원
       - name: Restore LFS cache
         uses: actions/cache@v4
         id: lfs-cache
@@ -37,11 +40,11 @@ jobs:
           path: .git/lfs/objects
           key: lfs-${{ runner.os }}-${{ env.LFS_CACHE_KEY }}
           restore-keys: |
+            lfs-${{ runner.os }}-${{ github.sha }}-
             lfs-${{ runner.os }}-${{ github.ref_name }}-
             lfs-${{ runner.os }}-
 
-      # 4. git lfs pull을 실행합니다.
-      #    캐시에서 복원된 파일은 건너뛰고, 캐시에 없는 새 파일만 다운로드합니다.
+      # 4. LFS 파일 pull (캐시된 파일은 건너뜀)
       - name: Pull LFS files
         run: git lfs pull
 
