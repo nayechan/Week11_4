@@ -9,18 +9,8 @@
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(AInfo) expansion
+// Abstract class - no factory registration
 namespace {
-    struct AInfoFactoryRegister
-    {
-        AInfoFactoryRegister()
-        {
-            ObjectFactory::RegisterClassType(
-                AInfo::StaticClass(),
-                []() -> UObject* { return new AInfo(); }
-            );
-        }
-    };
-    static AInfoFactoryRegister GRegister_AInfo;
     static bool bIsRegistered_AInfo = [](){ AInfo::StaticClass(); return true; }();
 }
 

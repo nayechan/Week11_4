@@ -9,18 +9,8 @@
 // ===== Class Factory Registration (IMPLEMENT_CLASS) =====
 
 // IMPLEMENT_CLASS(UMeshComponent) expansion
+// Abstract class - no factory registration
 namespace {
-    struct UMeshComponentFactoryRegister
-    {
-        UMeshComponentFactoryRegister()
-        {
-            ObjectFactory::RegisterClassType(
-                UMeshComponent::StaticClass(),
-                []() -> UObject* { return new UMeshComponent(); }
-            );
-        }
-    };
-    static UMeshComponentFactoryRegister GRegister_UMeshComponent;
     static bool bIsRegistered_UMeshComponent = [](){ UMeshComponent::StaticClass(); return true; }();
 }
 

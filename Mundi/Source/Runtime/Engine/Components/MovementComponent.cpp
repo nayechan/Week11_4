@@ -3,8 +3,6 @@
 #include "SceneComponent.h"
 #include "ObjectFactory.h"
 
-IMPLEMENT_CLASS(UMovementComponent)
-
 UMovementComponent::UMovementComponent()
     : UpdatedComponent(nullptr)
     , Velocity(0.0f, 0.0f, 0.0f)

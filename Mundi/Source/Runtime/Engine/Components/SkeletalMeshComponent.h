@@ -2,6 +2,12 @@
 #include "SkinnedMeshComponent.h"
 #include "USkeletalMeshComponent.generated.h"
 
+// 전방 선언
+class UAnimInstance;
+class UAnimSequence;
+struct FAnimNotifyEvent;
+enum class EAnimationMode : uint8;
+
 UCLASS(DisplayName="스켈레탈 메시 컴포넌트", Description="스켈레탈 메시를 렌더링하는 컴포넌트입니다")
 class USkeletalMeshComponent : public USkinnedMeshComponent
 {
@@ -13,6 +19,38 @@ public:
 
     void TickComponent(float DeltaTime) override;
     void SetSkeletalMesh(const FString& PathFileName) override;
+
+// Animation Section
+public:
+    // 애니메이션 모드
+    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 모드")
+    EAnimationMode AnimationMode;
+
+    // 애니메이션 인스턴스
+    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 인스턴스")
+    UAnimInstance* AnimInstance = nullptr;
+
+    // 단일 노드 모드용 애니메이션
+    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="재생할 애니메이션")
+    UAnimSequence* AnimationData = nullptr;
+
+    // 재생 제어 (발제 문서 요구사항)
+    UFUNCTION(DisplayName="애니메이션_재생", LuaBind)
+    void PlayAnimation(UAnimSequence* NewAnimToPlay, bool bLooping);
+
+    UFUNCTION(DisplayName="애니메이션_정지", LuaBind)
+    void StopAnimation();
+
+    void SetAnimationMode(EAnimationMode InMode);
+    void SetAnimation(UAnimSequence* InAnim);
+    void Play(bool bLooping);
+
+    // AnimNotify 핸들링 (발제 문서 구조)
+    void HandleAnimNotify(const FAnimNotifyEvent& Notify);
+
+protected:
+    // TickComponent에서 호출
+    void TickAnimation(float DeltaTime);
 
 // Editor Section
 public:

@@ -1,5 +1,9 @@
 ﻿#include "pch.h"
 #include "SkeletalMeshComponent.h"
+#include "../Animation/AnimInstance.h"
+#include "../Animation/AnimSingleNodeInstance.h"
+#include "../Animation/AnimSequence.h"
+#include "../Animation/AnimationTypes.h"
 
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
@@ -11,6 +15,10 @@ USkeletalMeshComponent::USkeletalMeshComponent()
 void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     Super::TickComponent(DeltaTime);
+
+    // 애니메이션 틱
+    TickAnimation(DeltaTime);
+
     //// FOR TEST ////
     if (!SkeletalMesh) { return; } // 부모의 SkeletalMesh 확인
 
@@ -171,8 +179,107 @@ void USkeletalMeshComponent::UpdateFinalSkinningMatrices()
     {
         const FMatrix& InvBindPose = Skeleton.Bones[BoneIndex].InverseBindPose;
         const FMatrix ComponentPoseMatrix = CurrentComponentSpacePose[BoneIndex].ToMatrix();
-        
+
         TempFinalSkinningMatrices[BoneIndex] = InvBindPose * ComponentPoseMatrix;
         TempFinalSkinningNormalMatrices[BoneIndex] = TempFinalSkinningMatrices[BoneIndex].Inverse().Transpose();
+    }
+}
+
+// Animation Section Implementation
+
+void USkeletalMeshComponent::PlayAnimation(UAnimSequence* NewAnimToPlay, bool bLooping)
+{
+    if (!NewAnimToPlay)
+    {
+        UE_LOG("USkeletalMeshComponent::PlayAnimation - Null animation");
+        return;
+    }
+
+    SetAnimationMode(EAnimationMode::AnimationSingleNode);
+    SetAnimation(NewAnimToPlay);
+    Play(bLooping);
+
+    UE_LOG("USkeletalMeshComponent::PlayAnimation - %s", NewAnimToPlay->GetName().c_str());
+}
+
+void USkeletalMeshComponent::StopAnimation()
+{
+    if (AnimInstance)
+    {
+        UAnimSingleNodeInstance* SingleNode = dynamic_cast<UAnimSingleNodeInstance*>(AnimInstance);
+        if (SingleNode)
+        {
+            SingleNode->Stop();
+        }
+    }
+
+    UE_LOG("USkeletalMeshComponent::StopAnimation");
+}
+
+void USkeletalMeshComponent::SetAnimationMode(EAnimationMode InMode)
+{
+    AnimationMode = InMode;
+
+    // 모드에 맞는 AnimInstance 생성
+    if (AnimationMode == EAnimationMode::AnimationSingleNode)
+    {
+        if (!AnimInstance || !dynamic_cast<UAnimSingleNodeInstance*>(AnimInstance))
+        {
+            // 새 SingleNode 인스턴스 생성
+            AnimInstance = NewObject<UAnimSingleNodeInstance>();
+            AnimInstance->OwnerComponent = this;
+        }
+    }
+}
+
+void USkeletalMeshComponent::SetAnimation(UAnimSequence* InAnim)
+{
+    AnimationData = InAnim;
+
+    UAnimSingleNodeInstance* SingleNode = dynamic_cast<UAnimSingleNodeInstance*>(AnimInstance);
+    if (SingleNode)
+    {
+        SingleNode->SetAnimationAsset(InAnim);
+    }
+}
+
+void USkeletalMeshComponent::Play(bool bLooping)
+{
+    UAnimSingleNodeInstance* SingleNode = dynamic_cast<UAnimSingleNodeInstance*>(AnimInstance);
+    if (SingleNode)
+    {
+        SingleNode->Play(bLooping);
+    }
+}
+
+void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+    AActor* Owner = GetOwner();
+    if (Owner)
+    {
+        // Actor의 HandleAnimNotify 호출 (발제 문서 구조)
+        // TODO: AActor에 HandleAnimNotify 가상 함수 추가 필요
+        UE_LOG("AnimNotify: %s at time %.2f", Notify.NotifyName.ToString().c_str(), Notify.TriggerTime);
+    }
+}
+
+void USkeletalMeshComponent::TickAnimation(float DeltaTime)
+{
+    if (!AnimInstance)
+        return;
+
+    // 애니메이션 업데이트
+    AnimInstance->NativeUpdateAnimation(DeltaTime);
+
+    // 포즈 추출 및 적용
+    if (AnimationData)
+    {
+        FPoseContext Pose;
+        FAnimExtractContext Context(AnimInstance->GetCurrentTime(), false);
+
+        AnimationData->GetAnimationPose(Pose, Context);
+
+        // TODO: Pose를 CurrentLocalSpacePose에 적용
+        // TODO: ForceRecomputePose() 호출하여 스키닝 업데이트
     }
 }

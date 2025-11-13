@@ -8,17 +8,17 @@
 // Abstract class - cannot be instantiated
 #define CURRENT_CLASS_GENERATED_BODY \
 public: \
-    using Super = UPrimitiveComponent; \
-    using ThisClass_t = UMeshComponent; \
+    using Super = UAnimationAsset; \
+    using ThisClass_t = UAnimSequenceBase; \
     static UClass* StaticClass() \
     { \
-        static UClass Cls{ "UMeshComponent", UPrimitiveComponent::StaticClass(), sizeof(UMeshComponent) }; \
+        static UClass Cls{ "UAnimSequenceBase", UAnimationAsset::StaticClass(), sizeof(UAnimSequenceBase) }; \
         static bool bRegistered = (UClass::SignUpClass(&Cls), true); \
         return &Cls; \
     } \
-    virtual UClass* GetClass() const override { return UMeshComponent::StaticClass(); } \
-    UMeshComponent(const UMeshComponent&) = default; \
-    UMeshComponent* Duplicate() const override = 0; \
+    virtual UClass* GetClass() const override { return UAnimSequenceBase::StaticClass(); } \
+    UAnimSequenceBase(const UAnimSequenceBase&) = default; \
+    UAnimSequenceBase* Duplicate() const override = 0; \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \
