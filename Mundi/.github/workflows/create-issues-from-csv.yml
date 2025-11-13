@@ -1,0 +1,104 @@
+name: Create Issues from CSV
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv_file:
+        description: 'Path to CSV file (relative to repository root)'
+        required: false
+        default: '.github/issue_template.csv'
+  push:
+    paths:
+      - '.github/issues.csv'
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set CSV file path
+        id: csv-path
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "path=${{ github.event.inputs.csv_file }}" >> $GITHUB_OUTPUT
+          else
+            echo "path=.github/issues.csv" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y csvkit jq
+
+      - name: Create issues from CSV
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CSV_FILE="${{ steps.csv-path.outputs.path }}"
+
+          if [ ! -f "$CSV_FILE" ]; then
+            echo "CSV file not found: $CSV_FILE"
+            exit 1
+          fi
+
+          echo "Processing CSV file: $CSV_FILE"
+
+          # Skip header and process each line
+          tail -n +2 "$CSV_FILE" | while IFS=, read -r title body labels assignees; do
+            # Remove quotes from fields
+            title=$(echo "$title" | sed 's/^"//;s/"$//')
+            body=$(echo "$body" | sed 's/^"//;s/"$//')
+            labels=$(echo "$labels" | sed 's/^"//;s/"$//')
+            assignees=$(echo "$assignees" | sed 's/^"//;s/"$//')
+
+            # Skip empty lines
+            if [ -z "$title" ]; then
+              continue
+            fi
+
+            echo "Creating issue: $title"
+
+            # Build gh issue create command
+            CMD="gh issue create --title \"$title\" --body \"$body\""
+
+            # Add labels if provided
+            if [ -n "$labels" ]; then
+              # Convert comma-separated labels to space-separated for gh
+              label_args=$(echo "$labels" | tr ',' '\n' | while read label; do
+                if [ -n "$label" ]; then
+                  echo "--label \"$label\""
+                fi
+              done | tr '\n' ' ')
+              CMD="$CMD $label_args"
+            fi
+
+            # Add assignees if provided
+            if [ -n "$assignees" ]; then
+              assignee_args=$(echo "$assignees" | tr ',' '\n' | while read assignee; do
+                if [ -n "$assignee" ]; then
+                  echo "--assignee \"$assignee\""
+                fi
+              done | tr '\n' ' ')
+              CMD="$CMD $assignee_args"
+            fi
+
+            # Execute command
+            eval $CMD
+
+            # Small delay to avoid rate limiting
+            sleep 1
+          done
+
+          echo "All issues created successfully!"
+
+      - name: Summary
+        run: |
+          echo "### Issues Created from CSV" >> $GITHUB_STEP_SUMMARY
+          echo "CSV file processed: ${{ steps.csv-path.outputs.path }}" >> $GITHUB_STEP_SUMMARY
+          echo "Issues have been created in the repository." >> $GITHUB_STEP_SUMMARY

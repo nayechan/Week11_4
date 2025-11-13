@@ -28,7 +28,7 @@ end
 function BeginPlay()
     Obj.Tag = "Damageable"
 
-    meshComp = GetComponent(Obj, "UStaticMeshComponent")
+    meshComp = GetComponent(Obj, "UMeshComponent")
     if meshComp then
         meshComp:SetColor(0, "DiffuseColor", Color(1.0, 1.0, 1.0, 1.0)) -- 초기 하얀색
     end

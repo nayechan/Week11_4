@@ -1,0 +1,4 @@
+title,body,labels,assignees
+"Example Issue Title","This is an example issue description with details about the task or bug.","bug,enhancement",""
+"Setup Documentation","Create comprehensive setup documentation for new developers","documentation",""
+"Fix Build Warning","Investigate and fix build warnings in ActorComponent","bug",""
