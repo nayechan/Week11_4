@@ -5,7 +5,9 @@
 
 // Macro expansion for GENERATED_REFLECTION_BODY()
 // This file must be included BEFORE the class definition
-// Abstract class - cannot be instantiated
+#ifdef CURRENT_CLASS_GENERATED_BODY
+#undef CURRENT_CLASS_GENERATED_BODY
+#endif
 #define CURRENT_CLASS_GENERATED_BODY \
 public: \
     using Super = AActor; \
@@ -18,7 +20,11 @@ public: \
     } \
     virtual UClass* GetClass() const override { return AInfo::StaticClass(); } \
     AInfo(const AInfo&) = default; \
-    AInfo* Duplicate() const override = 0; \
+    AInfo* Duplicate() const override \
+    { \
+        assert(false && "Cannot duplicate abstract class AInfo"); \
+        return nullptr; \
+    } \
 private: \
     static void StaticRegisterProperties(); \
     static const bool bPropertiesRegistered; \

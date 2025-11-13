@@ -40,6 +40,7 @@ struct TPropertyTypeTraits
 	}
 };
 
+// =
 // ===== 코드 생성 마커 매크로 =====
 
 // 코드 생성기가 파싱할 마커 (컴파일 시에는 빈 매크로)
@@ -47,15 +48,21 @@ struct TPropertyTypeTraits
 
 // 프로퍼티 자동 생성 마커
 // 사용법: UPROPERTY(EditAnywhere, Category="Mesh")
+#ifndef UPROPERTY
 #define UPROPERTY(...)
+#endif
 
 // 함수 자동 바인딩 마커
 // 사용법: UFUNCTION(LuaBind, DisplayName="SetColor")
+#ifndef UFUNCTION
 #define UFUNCTION(...)
+#endif
 
 // 클래스 메타데이터 마커
 // 사용법: UCLASS(DisplayName="방향성 라이트", Description="태양광과 같은 평행광 액터")
+#ifndef UCLASS
 #define UCLASS(...)
+#endif
 
 // ===== 리플렉션 매크로 (수동 등록 방식) =====
 
