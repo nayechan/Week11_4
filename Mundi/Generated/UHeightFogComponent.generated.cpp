@@ -36,17 +36,11 @@ const bool UHeightFogComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UHeightFogComponent)
     MARK_AS_COMPONENT("높이 안개 컴포넌트", "높이 기반 안개 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, FogDensity, "Fog", 0.0f, 10.0f, true)
-    ADD_PROPERTY_METADATA(FogDensity, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, FogHeightFalloff, "Fog", 0.0f, 10.0f, true)
-    ADD_PROPERTY_METADATA(FogHeightFalloff, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, StartDistance, "Fog", 0.0f, 10000.0f, true)
-    ADD_PROPERTY_METADATA(StartDistance, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, FogCutoffDistance, "Fog", 0.0f, 100000.0f, true)
-    ADD_PROPERTY_METADATA(FogCutoffDistance, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, FogMaxOpacity, "Fog", 0.0f, 1.0f, true)
-    ADD_PROPERTY_METADATA(FogMaxOpacity, "LuaReadWrite", "true")
     ADD_PROPERTY(FLinearColor, FogInscatteringColor, "Fog", true)
-    ADD_PROPERTY_METADATA(FogInscatteringColor, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

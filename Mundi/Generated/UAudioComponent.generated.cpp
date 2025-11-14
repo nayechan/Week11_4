@@ -36,16 +36,10 @@ const bool UAudioComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UAudioComponent)
     MARK_AS_COMPONENT("오디오 컴포넌트", "사운드를 재생하는 컴포넌트입니다")
     ADD_PROPERTY_ARRAY(EPropertyType::Sound, Sounds, "Sound", true, "Array of sound assets to play")
-    ADD_PROPERTY_METADATA(Sounds, "LuaReadWrite", "true")
-    ADD_PROPERTY_METADATA(Sounds, "inner_type", "EPropertyType::Sound")
     ADD_PROPERTY(float, Volume, "Audio", true, "Volume (0..1)")
-    ADD_PROPERTY_METADATA(Volume, "LuaReadWrite", "true")
     ADD_PROPERTY(float, Pitch, "Audio", true, "Pitch (frequency ratio)")
-    ADD_PROPERTY_METADATA(Pitch, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bIsLooping, "Audio", true, "Loop playback")
-    ADD_PROPERTY_METADATA(bIsLooping, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bAutoPlay, "Audio", true, "Auto play on BeginPlay")
-    ADD_PROPERTY_METADATA(bAutoPlay, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

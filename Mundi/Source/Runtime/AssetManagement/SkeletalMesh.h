@@ -16,7 +16,7 @@ public:
     const FSkeleton* GetSkeleton() const { return Data ? &Data->Skeleton : nullptr; }
     uint32 GetBoneCount() const { return Data ? Data->Skeleton.Bones.Num() : 0; }
     
-    // ID3D11Buffer* GetVertexBuffer() const { return VertexBuffer; } // W10 CPU Skinning이라 Component가 VB 소유
+    ID3D11Buffer* GetVertexBuffer() const { return VertexBuffer; } // W10 CPU Skinning이라 Component가 VB 소유
     ID3D11Buffer* GetIndexBuffer() const { return IndexBuffer; }
 
     uint32 GetVertexCount() const { return VertexCount; }
@@ -38,7 +38,7 @@ private:
     
 private:
     // GPU 리소스
-    // ID3D11Buffer* VertexBuffer = nullptr; // W10 CPU Skinning이라 Component가 VB 소유
+    ID3D11Buffer* VertexBuffer = nullptr; // W10 CPU Skinning이라 Component가 VB 소유
     ID3D11Buffer* IndexBuffer = nullptr;
     uint32 VertexCount = 0;     // 정점 개수
     uint32 IndexCount = 0;     // 버텍스 점의 개수 

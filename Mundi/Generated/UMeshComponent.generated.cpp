@@ -35,10 +35,7 @@ const bool UMeshComponent::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UMeshComponent)
     ADD_PROPERTY_ARRAY(EPropertyType::Material, MaterialSlots, "Materials", true, "Material slots for the mesh")
-    ADD_PROPERTY_METADATA(MaterialSlots, "LuaReadWrite", "true")
-    ADD_PROPERTY_METADATA(MaterialSlots, "inner_type", "EPropertyType::Material")
     ADD_PROPERTY(bool, bCastShadows, "Rendering", true, "그림자를 드리울지 여부입니다")
-    ADD_PROPERTY_METADATA(bCastShadows, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

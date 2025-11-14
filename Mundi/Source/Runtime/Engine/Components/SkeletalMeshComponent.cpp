@@ -145,7 +145,6 @@ void USkeletalMeshComponent::ForceRecomputePose()
     // ComponentSpace -> Final Skinning Matrices 계산
     UpdateFinalSkinningMatrices();
     UpdateSkinningMatrices(TempFinalSkinningMatrices, TempFinalSkinningNormalMatrices);
-    PerformSkinning();
 }
 
 void USkeletalMeshComponent::UpdateComponentSpaceTransforms()

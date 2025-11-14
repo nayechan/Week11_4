@@ -36,11 +36,8 @@ const bool ULocalLightComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(ULocalLightComponent)
     MARK_AS_COMPONENT("로컬 라이트 컴포넌트", "국소 조명 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, AttenuationRadius, "Light", 0.0f, 100.0f, true)
-    ADD_PROPERTY_METADATA(AttenuationRadius, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, FalloffExponent, "Light", 0.1f, 10.0f, true)
-    ADD_PROPERTY_METADATA(FalloffExponent, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bUseInverseSquareFalloff, "Light", true)
-    ADD_PROPERTY_METADATA(bUseInverseSquareFalloff, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====
