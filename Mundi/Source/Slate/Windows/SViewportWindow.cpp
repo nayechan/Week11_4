@@ -307,7 +307,7 @@ void SViewportWindow::RenderToolbar()
 
 		// 버튼들을 순서대로 그리기 (Y 위치는 동일하게 유지)
 		// 파이에서 GPU, CPU 스키닝 전환이 안 되도록 함.
-		if (!GWorld->bPie)
+		//if (!GWorld->bPie)
 		{
 			bool bGpuSkinning = GEngine.GetRenderer()->IsGpuSkinning();
 			ImGui::SetCursorPos(ImVec2(GpuSkinningX, CurrentCursor.y));

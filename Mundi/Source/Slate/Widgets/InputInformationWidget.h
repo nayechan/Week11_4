@@ -11,7 +11,7 @@ public:
 	DECLARE_CLASS(UInputInformationWidget, UWidget)
 
 	void Initialize() override;
-	void Update() override;
+	void Update(float DeltaTime) override;
 	void RenderWidget() override;
 	static void RenderKeyList(const TArray<EKeyInput>& InPressedKeys);
 	void RenderMouseInfo();

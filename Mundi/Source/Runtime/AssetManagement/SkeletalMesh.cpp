@@ -36,6 +36,7 @@ void USkeletalMesh::Load(const FString& InFilePath, ID3D11Device* InDevice)
     }
 
     // GPU 버퍼 생성
+    CreateVertexBuffer(&VertexBuffer);
     CreateIndexBuffer(Data, InDevice);
     VertexCount = static_cast<uint32>(Data->Vertices.size());
     IndexCount = static_cast<uint32>(Data->Indices.size());
@@ -44,6 +45,12 @@ void USkeletalMesh::Load(const FString& InFilePath, ID3D11Device* InDevice)
 
 void USkeletalMesh::ReleaseResources()
 {
+
+    if (VertexBuffer)
+    {
+        VertexBuffer->Release();
+        VertexBuffer = nullptr;
+    }
     if (IndexBuffer)
     {
         IndexBuffer->Release();

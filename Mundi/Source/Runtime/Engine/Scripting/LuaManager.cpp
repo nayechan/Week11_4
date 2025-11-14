@@ -1,6 +1,8 @@
 ﻿#include "pch.h"
 #include "LuaManager.h"
 #include "LuaObjectProxy.h"  // Changed from LuaComponentProxy.h
+#include "LuaArrayProxy.h"
+#include "LuaMapProxy.h"
 #include "GameObject.h"
 #include "ObjectIterator.h"
 #include "CameraActor.h"
@@ -374,6 +376,10 @@ void FLuaManager::RegisterComponentProxy(sol::state& Lua) {
         sol::meta_function::index,     &LuaComponentProxy::Index,
         sol::meta_function::new_index, &LuaComponentProxy::NewIndex
     );
+
+    // Register container proxies
+    LuaArrayProxy::RegisterLua(Lua);
+    LuaMapProxy::RegisterLua(Lua);
 }
 
 void FLuaManager::ExposeAllComponentsToLua()

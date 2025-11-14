@@ -38,6 +38,6 @@ void SControlPanel::OnRender()
 
 void SControlPanel::OnUpdate(float deltaSecond)
 {
-    SceneWindow->Update();
-    ControlPanelWidget->Update();
+    SceneWindow->Update(deltaSecond);
+    ControlPanelWidget->Update(deltaSecond);
 }

@@ -36,7 +36,9 @@ const bool UShapeComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UShapeComponent)
     MARK_AS_COMPONENT("셰이프 컴포넌트", "충돌 모양 기본 컴포넌트입니다")
     ADD_PROPERTY(bool, bShapeIsVisible, "Shape", true)
+    ADD_PROPERTY_METADATA(bShapeIsVisible, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bShapeHiddenInGame, "Shape", true)
+    ADD_PROPERTY_METADATA(bShapeHiddenInGame, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

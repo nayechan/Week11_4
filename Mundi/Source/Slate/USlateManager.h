@@ -10,6 +10,7 @@ class SSceneIOWindow; // 새로 추가할 UI
 class SDetailsWindow;
 class UMainToolbarWidget;
 class UConsoleWindow; // 오버레이 콘솔 윈도우
+class SConsolePanel; // 도킹 콘솔 패널
 class UContentBrowserWindow;
 
 // 중앙 레이아웃/입력 라우팅/뷰포트 관리 매니저 (위젯 아님)
@@ -65,6 +66,8 @@ public:
     void SetPIEWorld(UWorld* InWorld);
 
     // 콘솔 관리
+    void ShowConsole();
+    void HideConsole();
     void ToggleConsole();
     bool IsConsoleVisible() const { return bIsConsoleVisible; }
     void ForceOpenConsole();
@@ -100,10 +103,12 @@ private:
     SWindow* ControlPanel = nullptr;
     SWindow* DetailPanel = nullptr;
 
-    // 레이아웃 구조: TopPanel(좌우) -> Left: LeftPanel(뷰포트), Right: RightPanel(상하)
-    SSplitterH* TopPanel = nullptr;       // 전체 화면 좌우 분할
+    // 레이아웃 구조: TopPanel(좌우) -> Left: LeftRootPanel(상하), Right: RightPanel
+    SSplitterH* TopPanel = nullptr;       // 전체 화면 좌우 분할 (좌: 뷰포트+콘솔, 우: UI)
+    SSplitterV* LeftRootPanel = nullptr;  // 왼쪽 영역 상하 분할 (상: 4뷰포트, 하: Console)
     SSplitterH* LeftPanel = nullptr;      // 왼쪽 뷰포트 영역 (좌우 4분할)
     SSplitterV* RightPanel = nullptr;     // 오른쪽 UI 영역 (상하: Control + Details)
+    SConsolePanel* ConsolePanelWindow = nullptr; // 하단 콘솔 패널
 
     // 현재 모드
     EViewportLayoutMode CurrentMode = EViewportLayoutMode::FourSplit;

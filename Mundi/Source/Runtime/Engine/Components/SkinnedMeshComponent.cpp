@@ -48,8 +48,9 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
 {
     if (!SkeletalMesh || !SkeletalMesh->GetSkeletalMeshData()) { return; }
 
-   if (bSkinningMatricesDirty)
+   if (bSkinningMatricesDirty && !GEngine.GetRenderer()->IsGpuSkinning())
    {
+      PerformSkinning();
       bSkinningMatricesDirty = false;
       SkeletalMesh->UpdateVertexBuffer(SkinnedVertices, VertexBuffer);
    }
@@ -121,6 +122,14 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        if (GEngine.GetRenderer()->IsGpuSkinning())
        {
            ShaderMacros.Add(FShaderMacro("USE_SKINNING", "1"));
+
+           BatchElement.VertexBuffer = SkeletalMesh->GetVertexBuffer();
+           BatchElement.SkinnedMeshComponent = this;
+       }
+       else
+       {
+           BatchElement.VertexBuffer = VertexBuffer;
+           BatchElement.SkinnedMeshComponent = nullptr;
        }
        FShaderVariant* ShaderVariant = ShaderToUse->GetOrCompileShaderVariant(ShaderMacros);
 
@@ -133,7 +142,7 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        
        BatchElement.Material = MaterialToUse;
        
-       BatchElement.VertexBuffer = VertexBuffer;
+       
        BatchElement.IndexBuffer = SkeletalMesh->GetIndexBuffer();
        BatchElement.VertexStride = SkeletalMesh->GetVertexStride();
        
@@ -143,16 +152,6 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        BatchElement.WorldMatrix = GetWorldMatrix();
        BatchElement.ObjectID = InternalIndex;
        BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-       // GPU스키닝을 위해 필요
-       if (GEngine.GetRenderer()->IsGpuSkinning())
-       {
-           BatchElement.SkinnedMeshComponent = this;
-       }
-       else
-       {
-           BatchElement.SkinnedMeshComponent = nullptr;
-       }
        OutMeshBatchElements.Add(BatchElement);
     }
 }
@@ -224,7 +223,6 @@ void USkinnedMeshComponent::SetSkeletalMesh(const FString& PathFileName)
 
       const TArray<FMatrix> IdentityMatrices(SkeletalMesh->GetBoneCount(), FMatrix::Identity());
       UpdateSkinningMatrices(IdentityMatrices, IdentityMatrices);
-      PerformSkinning();
       
       const TArray<FGroupInfo>& GroupInfos = SkeletalMesh->GetMeshGroupInfo();
        MaterialSlots.resize(GroupInfos.size());
@@ -239,7 +237,6 @@ void USkinnedMeshComponent::SetSkeletalMesh(const FString& PathFileName)
    {
       SkeletalMesh = nullptr;
       UpdateSkinningMatrices(TArray<FMatrix>(), TArray<FMatrix>());
-      PerformSkinning();
    }
 }
 

@@ -36,8 +36,11 @@ const bool USkeletalMeshComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(USkeletalMeshComponent)
     MARK_AS_COMPONENT("스켈레탈 메시 컴포넌트", "스켈레탈 메시를 렌더링하는 컴포넌트입니다")
     ADD_PROPERTY(EAnimationMode, AnimationMode, "[애니메이션]", true, "애니메이션 모드")
+    ADD_PROPERTY_METADATA(AnimationMode, "LuaReadWrite", "true")
     ADD_PROPERTY(UAnimInstance*, AnimInstance, "[애니메이션]", true, "애니메이션 인스턴스")
+    ADD_PROPERTY_METADATA(AnimInstance, "LuaReadWrite", "true")
     ADD_PROPERTY_ANIMSEQUENCE(UAnimSequence*, AnimationData, "[애니메이션]", true, "재생할 애니메이션")
+    ADD_PROPERTY_METADATA(AnimationData, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

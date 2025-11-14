@@ -40,5 +40,5 @@ void SDetailsWindow::OnRender()
 
 void SDetailsWindow::OnUpdate(float deltaSecond)
 {
-    DetailsWidget->Update();
+    DetailsWidget->Update(deltaSecond);
 }

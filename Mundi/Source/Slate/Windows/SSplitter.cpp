@@ -66,30 +66,33 @@ void SSplitter::OnRender()
     if (SideLT) SideLT->OnRender();
     if (SideRB) SideRB->OnRender();
 
-    // 스플리터 라인 그리기
-    FRect SplitterRect = GetSplitterRect();
-    ImDrawList* DrawList = ImGui::GetBackgroundDrawList();
+    // 스플리터 라인 그리기 (둘 다 있을 때만)
+    if (SideLT && SideRB)
+    {
+        FRect SplitterRect = GetSplitterRect();
+        ImDrawList* DrawList = ImGui::GetBackgroundDrawList();
 
-    // 드래그 중이거나 마우스 호버 시 색상 변경
-    ImU32 SplitterColor;
-    if (bIsDragging)
-    {
-        SplitterColor = ImGui::GetColorU32(ImGuiCol_ButtonActive);
-    }
-    else if (IsMouseOnSplitter(FVector2D(ImGui::GetMousePos().x, ImGui::GetMousePos().y)))
-    {
-        SplitterColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
-    }
-    else
-    {
-        SplitterColor = ImGui::GetColorU32(ImGuiCol_Separator);
-    }
+        // 드래그 중이거나 마우스 호버 시 색상 변경
+        ImU32 SplitterColor;
+        if (bIsDragging)
+        {
+            SplitterColor = ImGui::GetColorU32(ImGuiCol_ButtonActive);
+        }
+        else if (IsMouseOnSplitter(FVector2D(ImGui::GetMousePos().x, ImGui::GetMousePos().y)))
+        {
+            SplitterColor = ImGui::GetColorU32(ImGuiCol_ButtonHovered);
+        }
+        else
+        {
+            SplitterColor = ImGui::GetColorU32(ImGuiCol_Separator);
+        }
 
-    DrawList->AddRectFilled(
-        ImVec2(SplitterRect.Min.X, SplitterRect.Min.Y),
-        ImVec2(SplitterRect.Max.X, SplitterRect.Max.Y),
-        SplitterColor
-    );
+        DrawList->AddRectFilled(
+            ImVec2(SplitterRect.Min.X, SplitterRect.Min.Y),
+            ImVec2(SplitterRect.Max.X, SplitterRect.Max.Y),
+            SplitterColor
+        );
+    }
 }
 
 void SSplitter::OnUpdate(float DeltaSeconds)
@@ -134,10 +137,10 @@ void SSplitter::OnMouseUp(FVector2D MousePos, uint32 Button)
 
     // 자식 윈도우에 이벤트 전달
     // NOTE: IsHover하지 않더라도 Up 이벤트는 항상 보내주어 드래그 관련 버그를 제거
-    //if (SideLT && SideLT->IsHover(MousePos))
-    SideLT->OnMouseUp(MousePos, Button);
-    //if (SideRB && SideRB->IsHover(MousePos)) 
-    SideRB->OnMouseUp(MousePos, Button);
+    if (SideLT)
+        SideLT->OnMouseUp(MousePos, Button);
+    if (SideRB)
+        SideRB->OnMouseUp(MousePos, Button);
 }
 
 void SSplitter::SaveToConfig(const FString& SectionName) const

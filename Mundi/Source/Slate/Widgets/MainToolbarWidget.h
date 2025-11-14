@@ -13,7 +13,7 @@ public:
 
     // UWidget 인터페이스
     void Initialize() override;
-    void Update() override;
+    void Update(float DeltaTime) override;
     void RenderWidget() override;
 
 private:

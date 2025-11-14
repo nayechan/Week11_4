@@ -35,8 +35,11 @@ const bool UAnimSequence::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UAnimSequence)
     ADD_PROPERTY(FFrameRate, FrameRate, "[애니메이션]", true, "프레임 레이트")
+    ADD_PROPERTY_METADATA(FrameRate, "LuaReadWrite", "true")
     ADD_PROPERTY(int32, NumberOfFrames, "[애니메이션]", true, "총 프레임 수")
+    ADD_PROPERTY_METADATA(NumberOfFrames, "LuaReadWrite", "true")
     ADD_PROPERTY(int32, NumberOfKeys, "[애니메이션]", true, "총 키 개수")
+    ADD_PROPERTY_METADATA(NumberOfKeys, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

@@ -1,62 +1,14 @@
 ﻿#include "pch.h"
 #include "LuaObjectProxy.h"
+#include "LuaObjectProxyHelpers.h"
+#include "LuaArrayProxy.h"
+#include "LuaMapProxy.h"
 #include "ObjectFactory.h"  // For GUObjectArray
 
 TMap<UClass*, FBoundClassDesc> GBoundClasses;
 
 // External function from LuaManager.cpp
 extern sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class);
-
-// ===== Helper Functions =====
-
-// Map EPropertyType to expected UClass* for UObject pointer types
-// NOTE: Update this map when new UObject-derived types are added to EPropertyType enum
-// ObjectPtr maps to UObject (accepts any UObject-derived type)
-static const TMap<EPropertyType, UClass*> ObjectPointerTypeMap = {
-    {EPropertyType::ObjectPtr,     UObject::StaticClass()},
-    {EPropertyType::Texture,       UTexture::StaticClass()},
-    {EPropertyType::StaticMesh,    UStaticMesh::StaticClass()},
-    {EPropertyType::SkeletalMesh,  USkeletalMesh::StaticClass()},
-    {EPropertyType::Material,      UMaterialInterface::StaticClass()},
-    {EPropertyType::Sound,         USound::StaticClass()}
-};
-
-// Validate UObject pointer using GUObjectArray
-static bool IsValidUObject(UObject* Ptr)
-{
-    if (!Ptr) return false;
-
-    // Step 1: Check InternalIndex range
-    uint32_t idx = Ptr->InternalIndex;
-    if (idx >= static_cast<uint32_t>(GUObjectArray.Num()))
-        return false;
-
-    // Step 2: Verify GUObjectArray slot points to the same object
-    UObject* RegisteredObj = GUObjectArray[idx];
-    if (RegisteredObj != Ptr)
-        return false;  // Deleted or different object
-
-    // Step 3: UUID validation (commented for now)
-    // TODO(SlotReuse): If ObjectFactory enables null slot reuse, uncomment below
-    // to prevent ABA problem (same address, different object):
-    // if (RegisteredObj->UUID != Ptr->UUID)
-    //     return false;
-
-    return true;
-}
-
-// Check if EPropertyType represents a UObject pointer
-static bool IsObjectPointerType(EPropertyType Type)
-{
-    return ObjectPointerTypeMap.count(Type) > 0;
-}
-
-// Get expected UClass* for property type (for type validation)
-static UClass* GetExpectedClassForPropertyType(EPropertyType Type)
-{
-    auto it = ObjectPointerTypeMap.find(Type);
-    return (it != ObjectPointerTypeMap.end()) ? it->second : nullptr;
-}
 
 // ===== Core Functions =====
 
@@ -142,36 +94,16 @@ sol::object LuaObjectProxy::Index(sol::this_state LuaState, LuaObjectProxy& Self
         return MakeCompProxy(LuaView, TargetObj, TargetObj->GetClass());
     }
 
-    // Array of UObject pointers
+    // Array types (TArray<T>) - return LuaArrayProxy
     case EPropertyType::Array:
     {
-        // Only support arrays of UObject pointer types
-        if (!IsObjectPointerType(Property->InnerType))
-            return sol::nil;
+        return sol::make_object(LuaView, LuaArrayProxy(Self.Instance, Property));
+    }
 
-        TArray<UObject*>* ArrayPtr = Property->GetValuePtr<TArray<UObject*>>(Self.Instance);
-        if (!ArrayPtr) return sol::nil;
-
-        // Create Lua table (1-based indexing)
-        sol::table Result = LuaView.create_table();
-
-        for (size_t i = 0; i < ArrayPtr->size(); ++i)
-        {
-            UObject* Element = (*ArrayPtr)[i];
-
-            // Validate each element
-            if (IsValidUObject(Element))
-            {
-                // Create proxy for each element (enables recursive access)
-                Result[i + 1] = MakeCompProxy(LuaView, Element, Element->GetClass());
-            }
-            else
-            {
-                Result[i + 1] = sol::nil;
-            }
-        }
-
-        return Result;
+    // Map types (TMap<K,V>) - return LuaMapProxy
+    case EPropertyType::Map:
+    {
+        return sol::make_object(LuaView, LuaMapProxy(Self.Instance, Property));
     }
 
     default: return sol::nil;
