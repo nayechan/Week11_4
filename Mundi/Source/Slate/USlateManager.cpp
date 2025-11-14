@@ -571,6 +571,13 @@ void USlateManager::Shutdown()
         UE_LOG("USlateManager: ConsoleWindow destroyed");
     }
 
+    // 콘솔 패널 삭제
+    if (ConsolePanelWindow)
+    {
+        delete ConsolePanelWindow;
+        ConsolePanelWindow = nullptr;
+    }
+
     // Content Browser 윈도우 삭제
     if (ContentBrowserWindow)
     {
@@ -585,6 +592,7 @@ void USlateManager::Shutdown()
 
     // D3D 컨텍스트를 해제하기 위해 UI 패널과 뷰포트를 명시적으로 삭제
     if (TopPanel) { delete TopPanel; TopPanel = nullptr; }
+    if (LeftRootPanel) { delete LeftRootPanel; LeftRootPanel = nullptr; }
     if (LeftTop) { delete LeftTop; LeftTop = nullptr; }
     if (LeftBottom) { delete LeftBottom; LeftBottom = nullptr; }
     if (LeftPanel) { delete LeftPanel; LeftPanel = nullptr; }
