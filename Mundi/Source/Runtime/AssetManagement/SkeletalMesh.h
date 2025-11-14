@@ -30,7 +30,7 @@ public:
     uint64 GetMeshGroupCount() const { return Data ? Data->GroupInfos.size() : 0; }
 
     void CreateVertexBuffer(ID3D11Buffer** InVertexBuffer);
-    void UpdateVertexBuffer(const TArray<FNormalVertex>& SkinnedVertices, ID3D11Buffer* InVertexBuffer);
+    void UpdateVertexBuffer(const TArray<FSkinnedVertex>& SkinnedVertices, ID3D11Buffer* InVertexBuffer);
     
 private:
     void CreateIndexBuffer(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice);

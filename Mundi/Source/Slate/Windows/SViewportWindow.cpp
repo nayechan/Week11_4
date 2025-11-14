@@ -281,6 +281,10 @@ void SViewportWindow::RenderToolbar()
 		ImVec2 cameraTextSize = ImGui::CalcTextSize(cameraText);
 		const float CameraButtonWidth = 17.0f + 4.0f + cameraTextSize.x + 16.0f;
 
+		char GpuSkinningText[64] = "GPU 스키닝";
+		ImVec2 SkinningTextSize = ImGui::CalcTextSize(GpuSkinningText);
+		const float SkinningButtonWidth = 17.0f + 4.0f + SkinningTextSize.x + 16.0f;
+
 		// 사용 가능한 전체 너비와 현재 커서 위치
 		float AvailableWidth = ImGui::GetContentRegionAvail().x;
 		float CursorStartX = ImGui::GetCursorPosX();
@@ -299,7 +303,18 @@ void SViewportWindow::RenderToolbar()
 		// Camera는 ViewMode 왼쪽 (ViewMode 너비에 따라 위치 변동)
 		float CameraX = ViewModeX - ButtonSpacing - CameraButtonWidth;
 
+		float GpuSkinningX = CameraX - ButtonSpacing - SkinningButtonWidth;
+
 		// 버튼들을 순서대로 그리기 (Y 위치는 동일하게 유지)
+		// 파이에서 GPU, CPU 스키닝 전환이 안 되도록 함.
+		if (!GWorld->bPie)
+		{
+			bool bGpuSkinning = GEngine.GetRenderer()->IsGpuSkinning();
+			ImGui::SetCursorPos(ImVec2(GpuSkinningX, CurrentCursor.y));
+			ImGui::Checkbox("GPU 스키닝", &bGpuSkinning);
+			GEngine.GetRenderer()->SetGpuSkinning(bGpuSkinning);
+		}
+
 		ImGui::SetCursorPos(ImVec2(CameraX, CurrentCursor.y));
 		RenderCameraOptionDropdownMenu();
 

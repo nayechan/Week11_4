@@ -18,6 +18,11 @@ CreateConstantBuffer(&TYPE##Buffer, sizeof(TYPE));
 	{\
 		ConstantBufferUpdate(TYPE##Buffer, Data);\
 	}
+#define DECLARE_GET_CONSTANT_BUFFER_FUNC(TYPE) \
+	ID3D11Buffer* GetConstantBuffer(const TYPE& Data) \
+	{\
+		return ConstantBufferGet(TYPE##Buffer);\
+	}
 #define DECLARE_SET_CONSTANT_BUFFER_FUNC(TYPE) \
 	void SetConstantBuffer(const TYPE& Data)\
 	{\
@@ -86,6 +91,7 @@ public:
 	static HRESULT CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMeshData* Mesh, ID3D11Buffer** OutBuffer);
 
 	CONSTANT_BUFFER_LIST(DECLARE_UPDATE_CONSTANT_BUFFER_FUNC)
+	CONSTANT_BUFFER_LIST(DECLARE_GET_CONSTANT_BUFFER_FUNC)
 	CONSTANT_BUFFER_LIST(DECLARE_SET_CONSTANT_BUFFER_FUNC)
 	CONSTANT_BUFFER_LIST(DECLARE_SET_UPDATE_CONSTANT_BUFFER_FUNC)
 	
@@ -103,6 +109,12 @@ public:
 
 		DeviceContext->Unmap(VertexBuffer, 0);
 	}
+
+	ID3D11Buffer* ConstantBufferGet(ID3D11Buffer* ConstantBuffer)
+	{
+		return ConstantBuffer;
+	}
+
 	template <typename T>
 	void ConstantBufferUpdate(ID3D11Buffer* ConstantBuffer, T& Data)
 	{
@@ -112,12 +124,25 @@ public:
 		memcpy(MSR.pData, &Data, sizeof(T));
 		DeviceContext->Unmap(ConstantBuffer, 0);
 	}
+
 	template <typename T>
 	void ConstantBufferSetUpdate(ID3D11Buffer* ConstantBuffer, T& Data, const uint32 Slot, const bool bIsVS, const bool bIsPS)
 	{
 		ConstantBufferUpdate(ConstantBuffer, Data);
 		ConstantBufferSet(ConstantBuffer, Slot, bIsVS, bIsPS);
-		
+	}
+
+	// 기존의 구조체 전달 방식은 SkinningMatrix같은 대용량 버퍼를 전달하기에 적합하지 않음(힙에서 스택으로 64KB 복사됨)
+	// 그래서 따로 만듦.
+	void ConstantBufferUpdateForMatrixArray(ID3D11Buffer* ConstantBuffer, const TArray<FMatrix>& Data, const uint32 Slot, const bool bIsVS, const bool bIsPS)
+	{
+		D3D11_MAPPED_SUBRESOURCE MSR;
+
+		DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &MSR);
+		memcpy(MSR.pData, Data.data(), sizeof(FMatrix) * Data.Num());
+		DeviceContext->Unmap(ConstantBuffer, 0);
+
+		ConstantBufferSet(ConstantBuffer, Slot, bIsVS, bIsPS);
 	}
 	void ConstantBufferSet(ID3D11Buffer* ConstantBuffer, uint32 Slot, bool bIsVS, bool bIsPS);
     void UpdateUVScrollConstantBuffers(const FVector2D& Speed, float TimeSec);
@@ -388,6 +413,20 @@ inline HRESULT D3D11RHI::CreateVertexBuffer<FBillboardVertexInfo_GPU>(ID3D11Devi
 }
 
 template<>
+inline HRESULT D3D11RHI::CreateVertexBuffer<FSkinnedVertex>(ID3D11Device* Device, const std::vector<FSkinnedVertex>& SrcVertices, ID3D11Buffer** OutBuffer)
+{
+	D3D11_BUFFER_DESC BufferDesc = {};
+	BufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	BufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	BufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	BufferDesc.ByteWidth = static_cast<UINT>(sizeof(FSkinnedVertex) * SrcVertices.size());
+
+	D3D11_SUBRESOURCE_DATA InitData = {};
+	InitData.pSysMem = SrcVertices.data();
+
+	return Device->CreateBuffer(&BufferDesc, &InitData, OutBuffer);
+}
+template<>
 inline HRESULT D3D11RHI::CreateVertexBuffer<FVertexDynamic>(ID3D11Device* Device, const std::vector<FSkinnedVertex>& SrcVertices, ID3D11Buffer** OutBuffer)
 {
 	std::vector<FVertexDynamic> VertexArray;
@@ -417,3 +456,4 @@ inline HRESULT D3D11RHI::CreateVertexBuffer<FVertexDynamic>(ID3D11Device* Device
 
 	return Device->CreateBuffer(&BufferDesc, &InitData, OutBuffer);
 }
+
