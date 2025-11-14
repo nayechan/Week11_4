@@ -4,6 +4,7 @@
 #include "SelectionManager.h"
 #include "FAudioDevice.h"
 #include "FbxLoader.h"
+#include "PlatformTime.h"
 #include <ObjManager.h>
 
 
@@ -210,6 +211,7 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     // 최근에 사용한 레벨 불러오기를 시도합니다.
     GWorld->TryLoadLastUsedLevel();
 
+    FGpuProfiler::Initialize(RHIDevice.GetDevice());
     bRunning = true;
     return true;
 }
