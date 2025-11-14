@@ -10,6 +10,7 @@
 #include "Windows/SViewportWindow.h"
 #include "Windows/SSkeletalMeshViewerWindow.h"
 #include "Windows/ConsoleWindow.h"
+#include "Windows/SConsolePanel.h"
 #include "Windows/ContentBrowserWindow.h"
 #include "Widgets/MainToolbarWidget.h"
 #include "Widgets/ConsoleWidget.h"
@@ -84,12 +85,16 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     World = InWorld;
     Rect = InRect;
 
-    // === 전체 화면: 좌(4뷰포트) + 우(Control + Details) ===
+    // === 전체 화면: 좌(4뷰포트+콘솔) + 우(Control + Details) ===
     TopPanel = new SSplitterH();  // 수평 분할 (좌우)
     TopPanel->SetSplitRatio(0.7f);  // 70% 뷰포트, 30% UI
     TopPanel->SetRect(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
 
-    // 왼쪽: 4분할 뷰포트 영역
+    // 왼쪽: 상하 분할 (상: 4분할 뷰포트, 하: 콘솔)
+    LeftRootPanel = new SSplitterV(); // 수직 분할 (상하)
+    LeftRootPanel->SetSplitRatio(0.75f); // 75% 뷰포트, 25% 콘솔
+
+    // 왼쪽 상단: 4분할 뷰포트 영역
     LeftPanel = new SSplitterH();  // 수평 분할 (좌우)
     LeftTop = new SSplitterV();    // 수직 분할 (상하)
     LeftBottom = new SSplitterV(); // 수직 분할 (상하)
@@ -107,7 +112,7 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     RightPanel->SideRB = DetailPanel;    // 아래쪽: DetailsWindow
 
     // TopPanel 좌우 배치
-    TopPanel->SideLT = LeftPanel;
+    TopPanel->SideLT = LeftRootPanel;
     TopPanel->SideRB = RightPanel;
 
     // === 뷰포트 생성 ===
@@ -141,14 +146,12 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     LeftBottom->SideLT = Viewports[2];
     LeftBottom->SideRB = Viewports[3];
 
-    SwitchLayout(EViewportLayoutMode::SingleMain);
-
-    LoadSplitterConfig();
-
-    // === Console Overlay 생성 ===
+    // === Console Panel 생성 ===
     ConsoleWindow = new UConsoleWindow();
-    if (ConsoleWindow)
+    ConsolePanelWindow = new SConsolePanel();
+    if (ConsoleWindow && ConsolePanelWindow)
     {
+        ConsolePanelWindow->Initialize(ConsoleWindow);
         UE_LOG("USlateManager: ConsoleWindow created successfully");
         UGlobalConsole::SetConsoleWidget(ConsoleWindow->GetConsoleWidget());
         UE_LOG("USlateManager: GlobalConsole connected to ConsoleWidget");
@@ -157,6 +160,14 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     {
         UE_LOG("ERROR: Failed to create ConsoleWindow");
     }
+
+    // === LeftRootPanel 상하 배치 (상: LeftPanel(4뷰포트), 하: ConsolePanel) ===
+    LeftRootPanel->SideLT = LeftPanel;
+    LeftRootPanel->SideRB = ConsolePanelWindow;
+
+    SwitchLayout(EViewportLayoutMode::SingleMain);
+
+    LoadSplitterConfig();
 
     // === Thumbnail Manager 초기화 ===
     FThumbnailManager::GetInstance().Initialize(Device, nullptr);
@@ -221,11 +232,11 @@ void USlateManager::SwitchLayout(EViewportLayoutMode NewMode)
 
     if (NewMode == EViewportLayoutMode::FourSplit)
     {
-        TopPanel->SideLT = LeftPanel;
+        LeftRootPanel->SideLT = LeftPanel;
     }
     else if (NewMode == EViewportLayoutMode::SingleMain)
     {
-        TopPanel->SideLT = MainViewport;
+        LeftRootPanel->SideLT = MainViewport;
     }
 
     CurrentMode = NewMode;
@@ -233,12 +244,12 @@ void USlateManager::SwitchLayout(EViewportLayoutMode NewMode)
 
 void USlateManager::SwitchPanel(SWindow* SwitchPanel)
 {
-    if (TopPanel->SideLT != SwitchPanel) {
-        TopPanel->SideLT = SwitchPanel;
+    if (LeftRootPanel->SideLT != SwitchPanel) {
+        LeftRootPanel->SideLT = SwitchPanel;
         CurrentMode = EViewportLayoutMode::SingleMain;
     }
     else {
-        TopPanel->SideLT = LeftPanel;
+        LeftRootPanel->SideLT = LeftPanel;
         CurrentMode = EViewportLayoutMode::FourSplit;
     }
 }
@@ -323,91 +334,6 @@ void USlateManager::Render()
         ImGui::PopStyleVar(3);
     }
 
-    // 콘솔 오버레이 렌더링 (모든 것 위에 표시)
-    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
-    {
-        extern float CLIENTWIDTH;
-        extern float CLIENTHEIGHT;
-
-        // 부드러운 감속을 위한 ease-out 곡선 적용
-        float EasedProgress = 1.0f - (1.0f - ConsoleAnimationProgress) * (1.0f - ConsoleAnimationProgress);
-
-        // 좌우 여백을 포함한 콘솔 크기 계산
-        float ConsoleHeight = CLIENTHEIGHT * ConsoleHeightRatio;
-        float ConsoleWidth = CLIENTWIDTH - (ConsoleHorizontalMargin * 2.0f);
-        float ConsoleXPos = ConsoleHorizontalMargin;
-
-        // Y 위치 계산 (하단에서 슬라이드 업)
-        float YPosWhenHidden = CLIENTHEIGHT; // 화면 밖 (하단)
-        float YPosWhenVisible = CLIENTHEIGHT - ConsoleHeight; // 화면 내 (하단)
-        float CurrentYPos = YPosWhenHidden + (YPosWhenVisible - YPosWhenHidden) * EasedProgress;
-
-        // 둥근 모서리 스타일 적용
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 2.0f);
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.4f, 0.4f, 0.4f, 0.8f));
-
-        // 윈도우 위치 및 크기 설정
-        ImGui::SetNextWindowPos(ImVec2(ConsoleXPos, CurrentYPos));
-        ImGui::SetNextWindowSize(ImVec2(ConsoleWidth, ConsoleHeight));
-
-        // 윈도우 플래그
-        ImGuiWindowFlags flags = ImGuiWindowFlags_NoMove
-            | ImGuiWindowFlags_NoResize
-            | ImGuiWindowFlags_NoCollapse
-            | ImGuiWindowFlags_NoTitleBar
-            | ImGuiWindowFlags_NoScrollbar
-            | ImGuiWindowFlags_NoScrollWithMouse;
-
-        // 처음 열렸을 때 콘솔에 포커스
-        if (bConsoleShouldFocus)
-        {
-            ImGui::SetNextWindowFocus();
-            bConsoleShouldFocus = false;
-        }
-
-        // 콘솔 렌더링
-        bool isWindowOpen = true;
-        if (ImGui::Begin("ConsoleOverlay", &isWindowOpen, flags))
-        {
-            UConsoleWidget* ConsoleWidget = ConsoleWindow->GetConsoleWidget();
-            bool bIsPinned = false;
-            if (ConsoleWidget)
-            {
-                bIsPinned = ConsoleWidget->IsWindowPinned();
-            }
-
-            // 2. '핀'이 활성화되지 않았을 때만 포커스를 잃으면 닫기
-            if (!bIsPinned &&
-                !ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
-                bIsConsoleVisible &&
-                !bIsConsoleAnimating)
-            {
-                ToggleConsole(); // 콘솔 닫기
-            }
-            
-            // 둥근 모서리가 있는 반투명 배경 추가
-            ImDrawList* DrawList = ImGui::GetWindowDrawList();
-            ImVec2 WindowPos = ImGui::GetWindowPos();
-            ImVec2 WindowSize = ImGui::GetWindowSize();
-            DrawList->AddRectFilled(
-                WindowPos,
-                ImVec2(WindowPos.x + WindowSize.x, WindowPos.y + WindowSize.y),
-                IM_COL32(20, 20, 20, 240), // 높은 불투명도의 어두운 배경
-                12.0f // 둥근 정도
-            );
-
-            // 콘솔 위젯 렌더링
-            ConsoleWindow->RenderWidget();
-        }
-        ImGui::End();
-
-        // 스타일 변수 및 색상 복원
-        ImGui::PopStyleColor(1);
-        ImGui::PopStyleVar(3);
-    }
-    
     // Render detached viewer on top
     if (SkeletalViewerWindow)
     {
@@ -427,7 +353,7 @@ void USlateManager::Update(float DeltaSeconds)
 {
     ProcessInput();
     // MainToolbar 업데이트
-    MainToolbar->Update();
+    MainToolbar->Update(DeltaSeconds);
 
     if (TopPanel)
     {
@@ -440,31 +366,6 @@ void USlateManager::Update(float DeltaSeconds)
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnUpdate(DeltaSeconds);
-    }
-
-    // 콘솔 애니메이션 업데이트
-    if (bIsConsoleAnimating)
-    {
-        if (bIsConsoleVisible)
-        {
-            // 애니메이션 인 (나타남)
-            ConsoleAnimationProgress += DeltaSeconds / ConsoleAnimationDuration;
-            if (ConsoleAnimationProgress >= 1.0f)
-            {
-                ConsoleAnimationProgress = 1.0f;
-                bIsConsoleAnimating = false;
-            }
-        }
-        else
-        {
-            // 애니메이션 아웃 (사라짐)
-            ConsoleAnimationProgress -= DeltaSeconds / ConsoleAnimationDuration;
-            if (ConsoleAnimationProgress <= 0.0f)
-            {
-                ConsoleAnimationProgress = 0.0f;
-                bIsConsoleAnimating = false;
-            }
-        }
     }
 
     // Content Browser 애니메이션 업데이트
@@ -490,12 +391,6 @@ void USlateManager::Update(float DeltaSeconds)
                 bIsContentBrowserAnimating = false;
             }
         }
-    }
-
-    // ConsoleWindow 업데이트
-    if (ConsoleWindow && ConsoleAnimationProgress > 0.0f)
-    {
-        ConsoleWindow->Update();
     }
 }
 
@@ -719,15 +614,45 @@ void USlateManager::SetPIEWorld(UWorld* InWorld)
     InWorld->SetEditorCameraActor(MainViewport->GetViewportClient()->GetCamera());
 }
 
+void USlateManager::ShowConsole()
+{
+    if (!LeftRootPanel || !ConsolePanelWindow)
+        return;
+
+    bIsConsoleVisible = true;
+
+    // 콘솔 패널을 LeftRootPanel의 하단에 연결
+    LeftRootPanel->SideRB = ConsolePanelWindow;
+    LeftRootPanel->SetSplitRatio(0.75f); // 75% 뷰포트, 25% Console
+
+    // 콘솔을 열 때 스크롤을 가장 아래로 이동
+    if (ConsoleWindow && ConsoleWindow->GetConsoleWidget())
+    {
+        ConsoleWindow->GetConsoleWidget()->SetScrollToBottom();
+    }
+}
+
+void USlateManager::HideConsole()
+{
+    if (!LeftRootPanel)
+        return;
+
+    bIsConsoleVisible = false;
+
+    // 콘솔 패널을 LeftRootPanel에서 분리 (뷰포트만 표시)
+    LeftRootPanel->SideRB = nullptr;
+    LeftRootPanel->SetSplitRatio(1.0f); // 100% 뷰포트
+}
+
 void USlateManager::ToggleConsole()
 {
-    bIsConsoleVisible = !bIsConsoleVisible;
-    bIsConsoleAnimating = true;
-
-    // 콘솔을 열 때 포커스 플래그 설정
     if (bIsConsoleVisible)
     {
-        bConsoleShouldFocus = true;
+        HideConsole();
+    }
+    else
+    {
+        ShowConsole();
     }
 }
 
@@ -735,8 +660,7 @@ void USlateManager::ForceOpenConsole()
 {
     if (!bIsConsoleVisible)
     {
-        // 2. 토글 함수를 호출하여 열기 상태(true)로 전환하고 애니메이션 시작
-        ToggleConsole();
+        ShowConsole();
     }
 }
 

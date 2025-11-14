@@ -35,7 +35,10 @@ const bool UAnimationAsset::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UAnimationAsset)
     ADD_PROPERTY(struct FSkeleton*, Skeleton, "[애니메이션]", true, "대상 스켈레톤")
+    ADD_PROPERTY_METADATA(Skeleton, "LuaReadWrite", "true")
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, MetaData, "[애니메이션]", true)
+    ADD_PROPERTY_METADATA(MetaData, "LuaReadWrite", "true")
+    ADD_PROPERTY_METADATA(MetaData, "inner_type", "EPropertyType::ObjectPtr")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

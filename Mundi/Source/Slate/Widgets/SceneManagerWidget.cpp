@@ -44,7 +44,7 @@ void USceneManagerWidget::LoadIcons()
 	IconHidden = UResourceManager::GetInstance().Load<UTexture>("Data/Icon/Eye_Hidden.png");
 }
 
-void USceneManagerWidget::Update()
+void USceneManagerWidget::Update(float DeltaTime)
 {
 	// 지연된 새로고침 처리 (렌더링 중 iterator invalidation 방지)
 	if (bNeedRefreshNextFrame)

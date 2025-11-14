@@ -35,7 +35,9 @@ const bool UStaticMesh::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(UStaticMesh)
     ADD_PROPERTY(uint32, TestVertexCount, "Mesh Info", false)
+    ADD_PROPERTY_METADATA(TestVertexCount, "LuaReadWrite", "true")
     ADD_PROPERTY(uint32, TestIndexCount, "Mesh Info", false)
+    ADD_PROPERTY_METADATA(TestIndexCount, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

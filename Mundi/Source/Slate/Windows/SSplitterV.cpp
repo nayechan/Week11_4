@@ -27,8 +27,23 @@ void SSplitterV::UpdateDrag(FVector2D MousePos)
 
 void SSplitterV::UpdateChildRects()
 {
-    if (!SideLT || !SideRB) return;
+    if (!SideLT && !SideRB) return;
 
+    // SideRB가 없으면 SideLT가 전체 영역 사용
+    if (SideLT && !SideRB)
+    {
+        SideLT->SetRect(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
+        return;
+    }
+
+    // SideLT가 없으면 SideRB가 전체 영역 사용
+    if (!SideLT && SideRB)
+    {
+        SideRB->SetRect(Rect.Min.X, Rect.Min.Y, Rect.Max.X, Rect.Max.Y);
+        return;
+    }
+
+    // 둘 다 있으면 비율대로 분할
     float SplitY = Rect.Min.Y + (GetHeight() * SplitRatio);
 
     // Top 영역

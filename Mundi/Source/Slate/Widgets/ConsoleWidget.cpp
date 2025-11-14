@@ -63,7 +63,7 @@ void UConsoleWidget::Initialize()
 	UE_LOG("This message should appear in the console widget");
 }
 
-void UConsoleWidget::Update()
+void UConsoleWidget::Update(float DeltaTime)
 {
 	// Console doesn't need per-frame updates
 }
@@ -104,7 +104,53 @@ void UConsoleWidget::RenderToolbar()
 	}
 	ImGui::SameLine();
 
-	bool copy_to_clipboard = ImGui::SmallButton("Copy");
+	if (ImGui::SmallButton("Copy"))
+	{
+		// Build full log text
+		FString logText;
+		for (const FString& item : Items)
+		{
+			logText += item;
+			logText += "\n";
+		}
+
+		// Copy to clipboard using Windows API
+		if (OpenClipboard(nullptr))
+		{
+			EmptyClipboard();
+
+			size_t size = (logText.length() + 1) * sizeof(char);
+			HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size);
+
+			if (hMem)
+			{
+				char* pMem = (char*)GlobalLock(hMem);
+				if (pMem)
+				{
+					strcpy_s(pMem, size, logText.c_str());
+					GlobalUnlock(hMem);
+					SetClipboardData(CF_TEXT, hMem);
+
+					AddLog("[info] Copied %d lines to clipboard", Items.Num());
+				}
+				else
+				{
+					GlobalFree(hMem);
+					AddLog("[error] Failed to lock clipboard memory");
+				}
+			}
+			else
+			{
+				AddLog("[error] Failed to allocate clipboard memory");
+			}
+
+			CloseClipboard();
+		}
+		else
+		{
+			AddLog("[error] Failed to open clipboard");
+		}
+	}
 
 	ImGui::SameLine();
 

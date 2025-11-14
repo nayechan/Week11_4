@@ -137,7 +137,7 @@ public:
 	void ClampWindow();
 
 	void RenderWidget() const;
-	void Update() const;
+	void Update(float DeltaTime) const;
 	// Render
 	void RenderWindow();
 
@@ -156,7 +156,6 @@ private:
 	float LastFocusTime = 0.0f;
 
 	// ImGui 내부 상태
-	bool bIsWindowOpen = false;
 	ImVec2 LastWindowSize;
 	ImVec2 LastWindowPosition;
 

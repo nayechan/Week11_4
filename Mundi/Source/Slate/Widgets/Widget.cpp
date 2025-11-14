@@ -7,7 +7,7 @@ void UWidget::Initialize()
 {
 }
 
-void UWidget::Update()
+void UWidget::Update(float DeltaTime)
 {
 }
 

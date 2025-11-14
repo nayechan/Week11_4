@@ -23,7 +23,7 @@ void UMainToolbarWidget::Initialize()
     LoadToolbarIcons();
 }
 
-void UMainToolbarWidget::Update()
+void UMainToolbarWidget::Update(float DeltaTime)
 {
     // 키보드 단축키 처리
     HandleKeyboardShortcuts();

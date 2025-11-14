@@ -289,7 +289,7 @@ void UTargetActorTransformWidget::Initialize()
 }
 
 
-void UTargetActorTransformWidget::Update()
+void UTargetActorTransformWidget::Update(float DeltaTime)
 {
 	USceneComponent* SelectedComponent = GWorld->GetSelectionManager()->GetSelectedComponent();
 	if (SelectedComponent)
