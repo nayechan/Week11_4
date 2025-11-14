@@ -348,6 +348,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaBindingRegistry.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaObjectProxy.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Scripting\LuaArrayProxy.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Scripting\LuaMapProxy.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaManager.cpp" />
     <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.cpp" />
@@ -717,6 +719,9 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaBindingRegistry.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaObjectProxy.h" />
+    <ClInclude Include="Source\Runtime\Engine\Scripting\LuaObjectProxyHelpers.h" />
+    <ClInclude Include="Source\Runtime\Engine\Scripting\LuaArrayProxy.h" />
+    <ClInclude Include="Source\Runtime\Engine\Scripting\LuaMapProxy.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaManager.h" />
     <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.h" />
