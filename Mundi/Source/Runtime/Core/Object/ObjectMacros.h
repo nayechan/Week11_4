@@ -264,6 +264,24 @@ struct TPropertyTypeTraits
 	Class->AddProperty(Prop); \
 }
 
+// TMap<K, V> 프로퍼티 추가
+// 첫 번째 인자: Key 타입, 두 번째 인자: Value 타입
+#define ADD_PROPERTY_MAP(KeyPropertyType, ValuePropertyType, VarName, CategoryName, bEditAnywhere, ...) \
+{ \
+	static_assert(std::is_array_v<std::remove_reference_t<decltype(CategoryName)>>, \
+				  "CategoryName must be a string literal!"); \
+	FProperty Prop; \
+	Prop.Name = #VarName; \
+	Prop.Type = EPropertyType::Map; \
+	Prop.KeyType = KeyPropertyType; \
+	Prop.InnerType = ValuePropertyType; /* Value 타입 */ \
+	Prop.Offset = offsetof(ThisClass_t, VarName); \
+	Prop.Category = CategoryName; \
+	Prop.bIsEditAnywhere = bEditAnywhere; \
+	Prop.Tooltip = "" __VA_ARGS__; \
+	Class->AddProperty(Prop); \
+}
+
 // Material 프로퍼티 추가
 #define ADD_PROPERTY_SRV(VarType, VarName, CategoryName, bEditAnywhere, ...) \
 	{ \

@@ -36,7 +36,6 @@ const bool UAnimSequenceBase::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UAnimSequenceBase)
     ADD_PROPERTY_ARRAY(EPropertyType::ObjectPtr, Notifies, "[애니메이션|Notify]", true, "애니메이션 알림 이벤트")
     ADD_PROPERTY_METADATA(Notifies, "LuaReadWrite", "true")
-    ADD_PROPERTY_METADATA(Notifies, "inner_type", "EPropertyType::ObjectPtr")
     ADD_PROPERTY(float, SequenceLength, "[애니메이션]", true, "애니메이션 길이 (초)")
     ADD_PROPERTY_METADATA(SequenceLength, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, RateScale, "[애니메이션]", 0.1f, 10.0f, true, "재생 속도 배율")
