@@ -267,8 +267,8 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime)
     if (!AnimInstance)
         return;
 
-    // 애니메이션 업데이트
-    AnimInstance->NativeUpdateAnimation(DeltaTime);
+    // 애니메이션 파이프라인 실행 (Native + Lua)
+    AnimInstance->UpdateAnimation(DeltaTime);
 
     // 포즈 추출 및 적용
     if (AnimationData)

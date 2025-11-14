@@ -41,12 +41,13 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	Super::NativeUpdateAnimation(DeltaSeconds);
+	// Super 호출 안 함 - 자체 시간 관리 (PlayRate, 루핑 등 고려)
+	// Super::NativeUpdateAnimation(DeltaSeconds);
 
 	if (!bIsPlaying || !CurrentSequence)
 		return;
 
-	// 시간 업데이트
+	// 시간 업데이트 (PlayRate 적용)
 	PreviousTime = CurrentTime;
 	CurrentTime += DeltaSeconds * PlayRate;
 

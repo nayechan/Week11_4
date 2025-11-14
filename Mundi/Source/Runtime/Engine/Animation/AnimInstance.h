@@ -12,10 +12,30 @@ public:
 	UAnimInstance() = default;
 	virtual ~UAnimInstance() = default;
 
-	// 애니메이션 업데이트 (팀원2가 오버라이드)
+	// ========================================
+	// 메인 업데이트 파이프라인
+	// ========================================
+
+	// 최종 업데이트 함수 (하위 클래스에서 오버라이드 금지)
+	// 전체 애니메이션 파이프라인을 정의
+	void UpdateAnimation(float DeltaSeconds);
+
+	// ========================================
+	// 확장 포인트 (하위 클래스에서 오버라이드)
+	// ========================================
+
+	// C++ 네이티브 업데이트 로직
+	// 하위 클래스에서 Super::NativeUpdateAnimation() 호출 후 커스텀 로직 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
-	// Notify 트리거링 (발제 문서 요구사항)
+	// TODO: Lua 스크립트 업데이트 (향후 구현)
+	// virtual void LuaUpdateAnimation(float DeltaSeconds);
+
+	// ========================================
+	// 내부 시스템 함수들
+	// ========================================
+
+	// Notify 트리거링 (PreviousTime ~ CurrentTime 범위)
 	void TriggerAnimNotifies(float DeltaSeconds);
 
 	// 현재 시간 접근자
@@ -30,6 +50,6 @@ protected:
 	float PreviousTime = 0.0f;
 
 	class USkeletalMeshComponent* OwnerComponent = nullptr;
-
+	 
 	friend class USkeletalMeshComponent;
 };
