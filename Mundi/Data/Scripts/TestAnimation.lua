@@ -10,12 +10,23 @@ function BeginPlay()
     if SkeletalComp then
         print("Found SkeletalMeshComponent")
 
-        -- Property Window에서 설정한 AnimationData를 자동으로 사용
-        -- (UObject* 타입은 Lua에서 직접 접근 불가하므로 인자 없는 PlayAnimation 호출)
-        SkeletalComp:PlayAnimationDefault(true)
+        -- Property Window에서 설정한 AnimationData 가져오기
+        local AnimData = SkeletalComp.AnimationData
 
-        print("Animation playback started (looping)")
-        print("  If no animation plays, set AnimationData in Property Window")
+        if AnimData then
+            print("AnimationData found, starting playback...")
+
+            -- 애니메이션 재생 (루핑 true)
+            SkeletalComp:PlayAnimation(AnimData, true)
+
+            print("Animation playback started (looping)")
+        else
+            print("WARNING: No AnimationData selected!")
+            print("  Please select an animation in Property Window:")
+            print("  1. Select this Actor")
+            print("  2. Find SkeletalMeshComponent")
+            print("  3. Set AnimationData (e.g., ninave.fbx)")
+        end
     else
         print("ERROR: No SkeletalMeshComponent found on this Actor")
     end

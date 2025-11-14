@@ -2,16 +2,26 @@
 #include "ResourceBase.h"
 #include "MeshBVH.h"
 #include <d3d11.h>
+#include "UStaticMesh.generated.h"
 
 class UStaticMeshComponent;
 class FMeshBVH;
+
+UCLASS(DisplayName="스태틱 메시", Description="정적 메시 에셋입니다")
 class UStaticMesh : public UResourceBase
 {
 public:
-    DECLARE_CLASS(UStaticMesh, UResourceBase)
+    GENERATED_REFLECTION_BODY()
 
     UStaticMesh() = default;
     virtual ~UStaticMesh() override;
+
+    // Lua-accessible properties for testing recursive access
+    UPROPERTY(LuaReadWrite, Category="Mesh Info")
+    uint32 TestVertexCount = 0;
+
+    UPROPERTY(LuaReadWrite, Category="Mesh Info")
+    uint32 TestIndexCount = 0;
 
     void Load(const FString& InFilePath, ID3D11Device* InDevice, EVertexLayoutType InVertexType = EVertexLayoutType::PositionColorTexturNormal);
     void Load(FMeshData* InData, ID3D11Device* InDevice, EVertexLayoutType InVertexType = EVertexLayoutType::PositionColorTexturNormal);

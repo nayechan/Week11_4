@@ -41,7 +41,7 @@ public:
 protected:
     void ClearDynamicMaterials();
     
-    UPROPERTY(EditAnywhere, Category="Materials", Tooltip="Material slots for the mesh")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Materials", Tooltip="Material slots for the mesh")
     TArray<UMaterialInterface*> MaterialSlots;
     TArray<UMaterialInstanceDynamic*> DynamicMaterialInstances;
 
@@ -50,6 +50,6 @@ public:
     bool IsCastShadows() const { return bCastShadows; }
 
 private:
-    UPROPERTY(EditAnywhere, Category="Rendering", Tooltip="그림자를 드리울지 여부입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Rendering", Tooltip="그림자를 드리울지 여부입니다")
     bool bCastShadows = true;
 };

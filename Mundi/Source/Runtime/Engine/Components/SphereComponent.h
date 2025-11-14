@@ -17,7 +17,7 @@ public:
     virtual void DuplicateSubObjects() override;
 
 private:
-    UPROPERTY(EditAnywhere, Category="SphereRaidus")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="SphereRaidus")
     float SphereRadius = 0;
 
     void GetShape(FShape& Out) const override;

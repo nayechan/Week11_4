@@ -16,11 +16,11 @@ public:
 	virtual float GetPlayLength() const { return 0.0f; }
 
 	// 스켈레톤 참조
-	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="대상 스켈레톤")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="대상 스켈레톤")
 	struct FSkeleton* Skeleton = nullptr;
 
 	// 메타데이터
-	UPROPERTY(EditAnywhere, Category="[애니메이션]")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]")
 	TArray<class UAnimMetaData*> MetaData;
 
 	// 직렬화

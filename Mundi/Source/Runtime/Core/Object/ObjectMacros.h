@@ -1,47 +1,9 @@
 ﻿#pragma once
 #include "Property.h"
 #include "Color.h"
-#include "StaticMesh.h"
-#include "Texture.h"
 #include <type_traits>
 
-// ===== 타입 자동 감지 템플릿 =====
-
-// 기본 타입 감지 템플릿
-template<typename T>
-struct TPropertyTypeTraits
-{
-	static constexpr EPropertyType GetType()
-	{
-		if constexpr (std::is_same_v<T, bool>)
-			return EPropertyType::Bool;
-		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, int>)
-			return EPropertyType::Int32;
-		else if constexpr (std::is_same_v<T, float>)
-			return EPropertyType::Float;
-		else if constexpr (std::is_same_v<T, FVector>)
-			return EPropertyType::FVector;
-		else if constexpr (std::is_same_v<T, FLinearColor>)
-			return EPropertyType::FLinearColor;
-		else if constexpr (std::is_same_v<T, FString>)
-			return EPropertyType::FString;
-		else if constexpr (std::is_same_v<T, FName>)
-			return EPropertyType::FName;
-		else if constexpr (std::is_pointer_v<T>)
-			return EPropertyType::ObjectPtr;  // UObject* 및 파생 타입
-		else if constexpr (std::is_same_v<T, UTexture>)
-			return EPropertyType::Texture;
-		else if constexpr (std::is_same_v<T, UStaticMesh>)
-			return EPropertyType::StaticMesh;
-		//else if constexpr (std::is_same_v<T, USound>)
-		//	return EPropertyType::Sound;
-		else
-			return EPropertyType::Struct;
-	}
-};
-
-// =
-// ===== 코드 생성 마커 매크로 =====
+// ===== 코드 생성 마커 매크로 (순환 include 방지를 위해 최상단에 정의) =====
 
 // 코드 생성기가 파싱할 마커 (컴파일 시에는 빈 매크로)
 // 실제 동작은 generate.py가 생성한 .generated.cpp에서 이루어짐
@@ -63,6 +25,43 @@ struct TPropertyTypeTraits
 #ifndef UCLASS
 #define UCLASS(...)
 #endif
+
+// ===== 타입 자동 감지 템플릿 =====
+
+// 기본 타입 감지 템플릿
+// 참고: UStaticMesh, UTexture 등 리소스 타입은 명시적 매크로(ADD_PROPERTY_STATICMESH, ADD_PROPERTY_TEXTURE)를 사용하므로
+// 여기서는 포인터로 처리하고 순환 의존성을 방지합니다.
+template<typename T>
+struct TPropertyTypeTraits
+{
+	static constexpr EPropertyType GetType()
+	{
+		if constexpr (std::is_same_v<T, bool>)
+			return EPropertyType::Bool;
+		else if constexpr (std::is_same_v<T, int32> || std::is_same_v<T, int> ||
+		                   std::is_same_v<T, uint32> || std::is_same_v<T, unsigned int>)
+			return EPropertyType::Int32;  // Lua number는 부호 구분 없음, int32로 통합
+		else if constexpr (std::is_same_v<T, int64> || std::is_same_v<T, long long> ||
+		                   std::is_same_v<T, uint64> || std::is_same_v<T, unsigned long long>)
+			return EPropertyType::Int32;  // Lua number로 변환 (정밀도 손실 가능)
+		else if constexpr (std::is_same_v<T, float>)
+			return EPropertyType::Float;
+		else if constexpr (std::is_same_v<T, double>)
+			return EPropertyType::Float;  // Lua number는 기본적으로 double
+		else if constexpr (std::is_same_v<T, FVector>)
+			return EPropertyType::FVector;
+		else if constexpr (std::is_same_v<T, FLinearColor>)
+			return EPropertyType::FLinearColor;
+		else if constexpr (std::is_same_v<T, FString>)
+			return EPropertyType::FString;
+		else if constexpr (std::is_same_v<T, FName>)
+			return EPropertyType::FName;
+		else if constexpr (std::is_pointer_v<T>)
+			return EPropertyType::ObjectPtr;  // UObject* 및 파생 타입 (UStaticMesh*, UTexture* 포함)
+		else
+			return EPropertyType::Struct;
+	}
+};
 
 // ===== 리플렉션 매크로 (수동 등록 방식) =====
 
@@ -109,6 +108,19 @@ struct TPropertyTypeTraits
 
 // StaticRegisterProperties 함수 종료
 #define END_PROPERTIES() \
+	}
+
+// 프로퍼티 메타데이터 추가
+// 사용법: ADD_PROPERTY_METADATA(PropertyName, "Key", "Value")
+// 예시: ADD_PROPERTY_METADATA(Intensity, "LuaReadWrite", "true")
+#define ADD_PROPERTY_METADATA(VarName, Key, Value) \
+	{ \
+		for (auto& Prop : Class->Properties) { \
+			if (strcmp(Prop.Name, #VarName) == 0) { \
+				Prop.Metadata[FName(Key)] = Value; \
+				break; \
+			} \
+		} \
 	}
 
 // 범위 제한이 있는 프로퍼티 추가

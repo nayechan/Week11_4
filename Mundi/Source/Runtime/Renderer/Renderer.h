@@ -46,6 +46,8 @@ public:
 
 	D3D11RHI* GetRHIDevice() { return RHIDevice; }
 
+	void SetGpuSkinning(bool InGpuSkinning) { bGpuSkinning = InGpuSkinning; }
+	bool IsGpuSkinning() const { return bGpuSkinning; }
 	void SetCurrentCamera(ACameraActor* InCamera) { CurrentCamera = InCamera; }
 	ACameraActor* GetCurrentCamera() const { return CurrentCamera; }
 
@@ -62,6 +64,7 @@ private:
 	FMeshData* LineBatchData = nullptr;
 	UShader* LineShader = nullptr;
 	bool bLineBatchActive = false;
+	bool bGpuSkinning = true;
 	static const uint32 MAX_LINES = 200000;  // Maximum lines per batch (safety headroom)
 
 	void InitializeLineBatch();

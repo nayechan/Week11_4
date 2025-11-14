@@ -42,6 +42,6 @@ protected:
 	void OnTransformUpdated() override;
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Static Mesh", Tooltip="Static mesh asset to render")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Static Mesh", Tooltip="Static mesh asset to render")
 	UStaticMesh* StaticMesh = nullptr;
 };

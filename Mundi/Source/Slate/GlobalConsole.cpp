@@ -46,18 +46,21 @@ void UGlobalConsole::Log(const char* fmt, ...)
 void UGlobalConsole::LogV(const char* fmt, va_list args)
 {
 #ifdef _EDITOR
+    // Format message once
+    char tmp[1024];
+    vsnprintf_s(tmp, _countof(tmp), fmt, args);
+
+    // Always output to Visual Studio debugger
+    OutputDebugStringA(tmp);
+    if (tmp[strlen(tmp) - 1] != '\n')
+    {
+        OutputDebugStringA("\n");
+    }
+
+    // Also output to ConsoleWidget if available
     if (ConsoleWidget)
     {
-        ConsoleWidget->VAddLog(fmt, args);
-    }
-    else
-    {
-        // Fallback to OutputDebugString if console widget not available
-        char tmp[1024];
-        vsnprintf_s(tmp, _countof(tmp), fmt, args);
-        OutputDebugStringA("[No Console] ");
-        OutputDebugStringA(tmp);
-        OutputDebugStringA("\n");
+        ConsoleWidget->AddLog(tmp);
     }
 #endif
 }

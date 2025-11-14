@@ -36,6 +36,7 @@ public:
      * @brief 이 컴포넌트의 USkeletalMesh 에셋을 반환
      */
     USkeletalMesh* GetSkeletalMesh() const { return SkeletalMesh; }
+    const TArray<FMatrix>& GetFinalSkinningMatrices() const{ return FinalSkinningMatrices; }
 
 protected:
     void PerformSkinning();
@@ -45,17 +46,13 @@ protected:
      */
     void UpdateSkinningMatrices(const TArray<FMatrix>& InSkinningMatrices, const TArray<FMatrix>& InSkinningNormalMatrices);
     
-    UPROPERTY(EditAnywhere, Category = "Skeletal Mesh", Tooltip = "Skeletal mesh asset to render")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category = "Skeletal Mesh", Tooltip = "Skeletal mesh asset to render")
     USkeletalMesh* SkeletalMesh;
 
     /**
      * @brief CPU 스키닝 최종 결과물. 렌더러가 이 데이터를 사용합니다.
      */
-    TArray<FNormalVertex> SkinnedVertices;
-    /**
-     * @brief CPU 스키닝 최종 결과물. 렌더러가 이 데이터를 사용합니다.
-     */
-    TArray<FNormalVertex> NormalSkinnedVertices;
+    TArray<FSkinnedVertex> SkinnedVertices;
 
 private:
     FVector SkinVertexPosition(const FSkinnedVertex& InVertex) const;

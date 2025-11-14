@@ -83,18 +83,18 @@ protected:
 
     // === 물리 속성 ===
     // 중력 가속도 (cm/s^2), Z-Up 좌표계에서 Z가 음수면 아래로 떨어짐
-    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 중력 가속도입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="발사체", Tooltip="발사체 중력 가속도입니다")
     float Gravity;
 
-    UPROPERTY(EditAnywhere, Category="속도", Tooltip="초기 속도입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="속도", Tooltip="초기 속도입니다")
     FVector Velocity;
 
     // 발사 시 초기 속도 (cm/s)
-    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 초기 속도입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="발사체", Tooltip="발사체 초기 속도입니다")
     float InitialSpeed;
 
     // 최대 속도 제한 (cm/s), 0이면 제한 없음
-    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 최대 속도입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="발사체", Tooltip="발사체 최대 속도입니다")
     float MaxSpeed;
 
     // === 호밍 속성 ===
@@ -105,11 +105,11 @@ protected:
     USceneComponent* HomingTargetComponent;
 
     // 호밍 가속도 크기 (cm/s^2)
-    UPROPERTY(EditAnywhere, Category="호밍", Tooltip="호밍 가속도 크기입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="호밍", Tooltip="호밍 가속도 크기입니다")
     float HomingAccelerationMagnitude;
 
     // 호밍 기능 활성화 여부
-    UPROPERTY(EditAnywhere, Category="호밍", Tooltip="호밍 기능을 활성화합니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="호밍", Tooltip="호밍 기능을 활성화합니다")
     bool bIsHomingProjectile;
 
     // === 회전 속성 ===
@@ -118,14 +118,14 @@ protected:
 
     // === 생명주기 속성 ===
     // 발사체 생명 시간 (초), 0이면 무제한
-    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="발사체 생명 시간입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="발사체", Tooltip="발사체 생명 시간입니다")
     float ProjectileLifespan;
 
     // 현재 생존 시간 (초)
     float CurrentLifetime;
 
     // 생명 시간 초과 시 자동 파괴 여부
-    UPROPERTY(EditAnywhere, Category="발사체", Tooltip="생명 시간 초과시 발사체를 파괴합니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="발사체", Tooltip="생명 시간 초과시 발사체를 파괴합니다")
     bool bAutoDestroyWhenLifespanExceeded;
 
     // === 상태 ===

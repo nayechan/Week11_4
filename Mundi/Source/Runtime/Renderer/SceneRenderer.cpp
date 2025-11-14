@@ -1417,6 +1417,15 @@ void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, b
 		RHIDevice->SetAndUpdateConstantBuffer(ModelBufferType(Batch.WorldMatrix, Batch.WorldMatrix.InverseAffine().Transpose()));
 		RHIDevice->SetAndUpdateConstantBuffer(ColorBufferType(Batch.InstanceColor, Batch.ObjectID));
 
+		// GPU 스키닝 적용
+		if (Batch.SkinnedMeshComponent)
+		{
+			const TArray<FMatrix>& SkinningMatrices = Batch.SkinnedMeshComponent->GetFinalSkinningMatrices();
+			// 기존의 구조체 전달 방식은 SkinningMatrix같은 대용량 버퍼를 전달하기에 적합하지 않음(힙에서 스택으로 64KB 복사됨)
+			// 그래서 따로 만듦.
+			RHIDevice->ConstantBufferUpdateForMatrixArray(RHIDevice->GetConstantBuffer(FSkinningMatrixBufferType()), SkinningMatrices, 5, true, false);
+		}
+
 		// 5. 드로우 콜 실행
 		RHIDevice->GetDeviceContext()->DrawIndexed(Batch.IndexCount, Batch.StartIndex, Batch.BaseVertexIndex);
 	}

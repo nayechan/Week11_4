@@ -4,6 +4,7 @@
 // 전방 선언
 class UShader;
 class UMaterial;
+class USkinnedMeshComponent;
 
 /**
  * @struct FMeshBatchElement
@@ -57,6 +58,10 @@ struct FMeshBatchElement
 	// 빌보드나 데칼처럼 머티리얼이 아닌 컴포넌트 인스턴스가
 	// 직접 텍스처를 지정해야 할 때 사용합니다.
 	ID3D11ShaderResourceView* InstanceShaderResourceView = nullptr;
+
+	// GPU스키닝을 할 때, SkinnedMeshComponnet의 SkinningMatrix 배열을 상수버퍼에 업데이트 해줘야함.
+	// 다른 방법이 뭐가 있을지 모르겠어서 일단 MeshBatch가 포인터를 가지고 있도록 함
+	USkinnedMeshComponent* SkinnedMeshComponent = nullptr;
 
 	// 기즈모 하이라이트, 빌보드 틴트 등 인스턴스별 색상 오버라이드입니다.
 	// (기본값으로 흰색(1,1,1,1)을 설정하는 것이 일반적입니다.)

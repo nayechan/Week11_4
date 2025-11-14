@@ -12,13 +12,13 @@ public:
 	virtual ~UAnimSequence() = default;
 
 	// 프레임 레이트
-	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="프레임 레이트")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="프레임 레이트")
 	FFrameRate FrameRate;
 
-	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="총 프레임 수")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="총 프레임 수")
 	int32 NumberOfFrames = 0;
 
-	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="총 키 개수")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="총 키 개수")
 	int32 NumberOfKeys = 0;
 
 	// 포즈 추출 구현

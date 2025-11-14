@@ -6,7 +6,7 @@
 #include "FBXLoader.h"
 #include <filesystem>
 
-IMPLEMENT_CLASS(UStaticMesh)
+// IMPLEMENT_CLASS removed - now handled by code generator (UStaticMesh.generated.cpp)
 
 namespace
 {
@@ -92,6 +92,10 @@ void UStaticMesh::Load(const FString& InFilePath, ID3D11Device* InDevice, EVerte
         CreateLocalBound(StaticMeshAsset);
         VertexCount = static_cast<uint32>(StaticMeshAsset->Vertices.size());
         IndexCount = static_cast<uint32>(StaticMeshAsset->Indices.size());
+
+        // Update Lua-accessible properties
+        TestVertexCount = VertexCount;
+        TestIndexCount = IndexCount;
     }
 }
 
@@ -116,6 +120,10 @@ void UStaticMesh::Load(FMeshData* InData, ID3D11Device* InDevice, EVertexLayoutT
 
     VertexCount = static_cast<uint32>(InData->Vertices.size());
     IndexCount = static_cast<uint32>(InData->Indices.size());
+
+    // Update Lua-accessible properties
+    TestVertexCount = VertexCount;
+    TestIndexCount = IndexCount;
 }
 
 void UStaticMesh::SetVertexType(EVertexLayoutType InVertexType)

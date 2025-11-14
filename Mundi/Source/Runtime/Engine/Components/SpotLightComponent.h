@@ -82,10 +82,10 @@ public:
 	void CalculateWarpMatrix(URenderer* Renderer, UCameraComponent* Camera, FViewport* Viewport);
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 90.0")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Light", Range="0.0, 90.0")
 	float InnerConeAngle = 30.0f; // 내부 원뿔 각도
 
-	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 90.0")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Light", Range="0.0, 90.0")
 	float OuterConeAngle = 45.0f; // 외부 원뿔 각도
 
 	// 이전 값 추적 (UI 변경 감지용)

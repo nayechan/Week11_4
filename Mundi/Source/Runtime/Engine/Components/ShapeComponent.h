@@ -61,10 +61,10 @@ protected:
 	FVector4 ShapeColor ;
 	bool bDrawOnlyIfSelected;
 
-	UPROPERTY(EditAnywhere, Category="Shape")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Shape")
 	bool bShapeIsVisible;
 
-	UPROPERTY(EditAnywhere, Category="Shape")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Shape")
 	bool bShapeHiddenInGame;
 	TArray<FOverlapInfo> OverlapInfos; 
 	//TODO: float LineThickness;

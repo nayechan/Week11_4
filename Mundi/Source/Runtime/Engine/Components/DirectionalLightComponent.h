@@ -43,29 +43,29 @@ protected:
 	// Direction Gizmo (shows light direction)
 	class UGizmoArrowComponent* DirectionGizmo = nullptr;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap")
 	ID3D11ShaderResourceView* ShadowMapSRV = nullptr;
 
 private:
-	UPROPERTY(EditAnywhere, Category="ShadowMap")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap")
 	bool bCascaded = true;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="1, 8")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap", Range="1, 8")
 	int CascadedCount = 4;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 1")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap", Range="0, 1")
 	float CascadedLinearBlendingValue = 0.5f;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 0.5")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap", Range="0, 0.5")
 	float CascadedOverlapValue = 0.2f;
 
 	bool bOverrideCameraLightPerspective = false;
 	TArray<float> CascadedSliceDepth;
 
 	//로그용
-	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 1.0")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap", Range="0, 1.0")
 	float CascadedAreaColorDebugValue = 0;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="-1, 8")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap", Range="-1, 8")
 	int CascadedAreaShadowDebugValue = -1;
 };

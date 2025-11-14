@@ -202,17 +202,6 @@ void USkeletalMeshComponent::PlayAnimation(UAnimSequence* NewAnimToPlay, bool bL
     UE_LOG("USkeletalMeshComponent::PlayAnimation - %s", NewAnimToPlay->GetName().c_str());
 }
 
-void USkeletalMeshComponent::PlayAnimation(bool bLooping)
-{
-    if (!AnimationData)
-    {
-        UE_LOG("USkeletalMeshComponent::PlayAnimation - No AnimationData set in property window");
-        return;
-    }
-
-    PlayAnimation(AnimationData, bLooping);
-}
-
 void USkeletalMeshComponent::StopAnimation()
 {
     if (AnimInstance)

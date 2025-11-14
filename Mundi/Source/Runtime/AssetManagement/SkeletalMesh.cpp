@@ -39,7 +39,7 @@ void USkeletalMesh::Load(const FString& InFilePath, ID3D11Device* InDevice)
     CreateIndexBuffer(Data, InDevice);
     VertexCount = static_cast<uint32>(Data->Vertices.size());
     IndexCount = static_cast<uint32>(Data->Indices.size());
-    VertexStride = sizeof(FVertexDynamic);
+    VertexStride = sizeof(FSkinnedVertex);
 }
 
 void USkeletalMesh::ReleaseResources()
@@ -61,11 +61,11 @@ void USkeletalMesh::CreateVertexBuffer(ID3D11Buffer** InVertexBuffer)
 {
     if (!Data) { return; }
     ID3D11Device* Device = GEngine.GetRHIDevice()->GetDevice();
-    HRESULT hr = D3D11RHI::CreateVertexBuffer<FVertexDynamic>(Device, Data->Vertices, InVertexBuffer);
+    HRESULT hr = D3D11RHI::CreateVertexBuffer<FSkinnedVertex>(Device, Data->Vertices, InVertexBuffer);
     assert(SUCCEEDED(hr));
 }
 
-void USkeletalMesh::UpdateVertexBuffer(const TArray<FNormalVertex>& SkinnedVertices, ID3D11Buffer* InVertexBuffer)
+void USkeletalMesh::UpdateVertexBuffer(const TArray<FSkinnedVertex>& SkinnedVertices, ID3D11Buffer* InVertexBuffer)
 {
     if (!InVertexBuffer) { return; }
 

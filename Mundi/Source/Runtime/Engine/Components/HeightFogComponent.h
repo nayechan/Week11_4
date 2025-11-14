@@ -49,22 +49,22 @@ public:
 	void DuplicateSubObjects() override;
 
 private:
-    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 10.0")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Fog", Range="0.0, 10.0")
     float FogDensity = 0.2f;
 
-    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 10.0")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Fog", Range="0.0, 10.0")
     float FogHeightFalloff = 0.2f;
 
-    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 10000.0")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Fog", Range="0.0, 10000.0")
     float StartDistance = 0.0f;
 
-    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 100000.0")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Fog", Range="0.0, 100000.0")
     float FogCutoffDistance = 6000.0f;
 
-    UPROPERTY(EditAnywhere, Category="Fog", Range="0.0, 1.0")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Fog", Range="0.0, 1.0")
     float FogMaxOpacity = 1.0f;
 
-    UPROPERTY(EditAnywhere, Category="Fog")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Fog")
     FLinearColor FogInscatteringColor;
 
     // Full Screen Quad Resources

@@ -482,6 +482,11 @@ void UResourceManager::InitShaderILMap()
 	ShaderToInputLayoutMap["Shaders/Materials/Fireball.hlsl"] = layout; // Use same vertex format as UberLit
 	ShaderToInputLayoutMap["Shaders/Shadow/PointLightShadow.hlsl"] = layout;  // Shadow map rendering uses same vertex format
 	ShaderToInputLayoutMap["Shaders/Shadows/DepthOnly_VS.hlsl"] = layout;
+
+    layout.Add({ "BoneIndices", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 64, D3D11_INPUT_PER_VERTEX_DATA,0 });
+    layout.Add({ "BoneWeights", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 80, D3D11_INPUT_PER_VERTEX_DATA,0 });
+    ShaderToInputLayoutMap["Shaders/Materials/UberLit.hlsl#USESKINNING"] = layout;
+
     layout.clear();
 
     layout.Add({ "WORLDPOSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 });
@@ -517,14 +522,28 @@ void UResourceManager::InitShaderILMap()
 
 TArray<D3D11_INPUT_ELEMENT_DESC>& UResourceManager::GetProperInputLayout(const FString& InShaderName)
 {
-    auto it = ShaderToInputLayoutMap.find(InShaderName);
+    // 현재 구조상 어쩔 수 없는 하드코딩, 인풋 레이아웃이 셰이더 파일경로에 결합되어있는데 매크로에 따라 다른 레이아웃을 써야 하는 상황임.
+    // 그렇다고 셰이더 이름을 바꿀 수도 없는 것이 머티리얼로부터 셰이더 객체를 참조로 얻어오고 컴파일하고 있음.
+    // 레이아웃을 참조하는 키를 셰이더 이름 말고 새로 만들고 셰이더에서 레이아웃 키를 참조하도록 바꿔야 하는데 리스크가 너무 큼.
+    // 어차피 현재 레이아웃도 하드코딩이라서 경로를 바꾸면 코드도 다 바꿔야 하는 상황이라 시간이 남으면 리팩토링 할 것
+
+    // UberLit이고 GpuSkinning을 하는 경우 #USESKINNING 추가해서 레이아웃 키로 씀.
+    FString ShaderName = InShaderName;  
+    
+    if (InShaderName.find("UberLit") != FString::npos &&
+        GEngine.GetRenderer() &&
+        GEngine.GetRenderer()->IsGpuSkinning())
+    {
+        ShaderName += "#USESKINNING";
+    }
+    auto it = ShaderToInputLayoutMap.find(ShaderName);
 
     if (it == ShaderToInputLayoutMap.end())
     {
-        throw std::runtime_error("Proper input layout not found for " + InShaderName);
+        throw std::runtime_error("Proper input layout not found for " + ShaderName);
     }
     
-    return ShaderToInputLayoutMap[InShaderName];
+    return ShaderToInputLayoutMap[ShaderName];
 }
 
 FString& UResourceManager::GetProperShader(const FString& InTextureName)

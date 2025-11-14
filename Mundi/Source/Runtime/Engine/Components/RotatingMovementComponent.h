@@ -40,14 +40,14 @@ public:
 protected:
     // [PIE] 값 복사
     // 초당 회전 속도 (도 단위, Pitch/Yaw/Roll)
-    UPROPERTY(EditAnywhere, Category="회전 컴포넌트", Tooltip="회전 속도입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="회전 컴포넌트", Tooltip="회전 속도입니다")
     FVector RotationRate;
 
     // 컴포넌트 위치로부터의 피벗 오프셋
-    UPROPERTY(EditAnywhere, Category="회전 컴포넌트", Tooltip="피벗 오프셋입니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="회전 컴포넌트", Tooltip="피벗 오프셋입니다")
     FVector PivotTranslation;
 
     // true면 로컬 공간에서 회전, false면 월드 공간에서 회전
-    UPROPERTY(EditAnywhere, Category="회전 컴포넌트", Tooltip="로컬에서 회전합니다")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="회전 컴포넌트", Tooltip="로컬에서 회전합니다")
     bool bRotationInLocalSpace;
 };

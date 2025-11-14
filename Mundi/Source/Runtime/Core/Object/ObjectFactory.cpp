@@ -31,7 +31,22 @@ namespace ObjectFactory
 
         int32 idx = -1;
 
-        idx = GUObjectArray.Add(Obj);
+        // TODO(SlotReuse): Null slot reuse optimization for memory efficiency
+        // Currently always appends to end (memory grows continuously).
+        // To enable null slot reuse:
+        // 1. Uncomment the loop below to search for nullptr slots first
+        // 2. Uncomment UUID validation in LuaObjectProxy.cpp IsValidUObject()
+        //
+        // for (int32 i = 0; i < GUObjectArray.Num(); ++i) {
+        //     if (GUObjectArray[i] == nullptr) {
+        //         idx = i;
+        //         GUObjectArray[i] = Obj;
+        //         break;
+        //     }
+        // }
+        // if (idx == -1) {
+            idx = GUObjectArray.Add(Obj);
+        // }
 
         Obj->InternalIndex = static_cast<uint32>(idx);
 
@@ -54,11 +69,24 @@ namespace ObjectFactory
     {
         if (!Obj) return nullptr;
 
-        // 배열에 등록: 빈 슬롯 재사용
         int32 idx = -1;
 
-        idx = GUObjectArray.Add(Obj);
-        //}
+        // TODO(SlotReuse): Same as NewObject() - null slot reuse optimization
+        // To enable:
+        // 1. Uncomment the search loop below
+        // 2. Uncomment UUID validation in LuaObjectProxy.cpp IsValidUObject()
+        //
+        // for (int32 i = 0; i < GUObjectArray.Num(); ++i) {
+        //     if (GUObjectArray[i] == nullptr) {
+        //         idx = i;
+        //         GUObjectArray[i] = Obj;
+        //         break;
+        //     }
+        // }
+        // if (idx == -1) {
+            idx = GUObjectArray.Add(Obj);
+        // }
+
         Obj->InternalIndex = static_cast<uint32>(idx);
 
         static TMap<UClass*, int> NameCounters;

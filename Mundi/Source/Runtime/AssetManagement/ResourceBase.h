@@ -2,11 +2,13 @@
 #include <d3d11.h>
 #include <filesystem>
 #include "Object.h"
+#include "UResourceBase.generated.h"
 
+UCLASS(Abstract, DisplayName="리소스 베이스", Description="모든 리소스의 기본 클래스입니다")
 class UResourceBase : public UObject
 {
 public:
-	DECLARE_CLASS(UResourceBase, UObject)
+	GENERATED_REFLECTION_BODY()
 
 	UResourceBase() = default;
 	virtual ~UResourceBase() {}

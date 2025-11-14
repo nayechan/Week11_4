@@ -177,7 +177,7 @@ public:
     USceneComponent* RootComponent = nullptr;
     UTextRenderComponent* TextComp = nullptr;
 
-    UPROPERTY(EditAnywhere, Category="[액터]", Tooltip="액터의 태그를 지정합니다.")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[액터]", Tooltip="액터의 태그를 지정합니다.")
     FString Tag;  // for collision check
 
 protected:
@@ -188,10 +188,10 @@ protected:
     
     bool bTickInEditor = false; // 에디터에서도 틱 허용
 
-    UPROPERTY(EditAnywhere, Category="[액터]")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[액터]")
     bool bActorHiddenInGame = false;
 
-    UPROPERTY(EditAnywhere, Category="[액터]")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[액터]")
     bool bActorIsActive = true;       // 활성 상태(사용자 on/off), tick 적용
 
     // Actor의 Visibility는 루트 컴포넌트로 설정

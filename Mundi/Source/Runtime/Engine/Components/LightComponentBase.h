@@ -40,12 +40,12 @@ public:
 protected:
 	//bool bIsEnabled = true;
 
-	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 100.0")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Light", Range="0.0, 100.0")
 	float Intensity = 1.0f;
 
-	UPROPERTY(EditAnywhere, Category="Light")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Light")
 	FLinearColor LightColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-	UPROPERTY(EditAnywhere, Category="Light")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Light")
 	bool bCastShadows = true;
 };

@@ -50,6 +50,12 @@ struct PostProcessBufferType // b0
     float Padding; // 16바이트 정렬을 위한 패딩
 };
 
+// b5 VS
+struct FSkinningMatrixBufferType
+{
+    FMatrix SkinningMatrices[1000];
+};
+
 struct FogBufferType // b2
 {
     float FogDensity;
@@ -233,7 +239,8 @@ MACRO(CameraBufferType)             \
 MACRO(FLightBufferType)             \
 MACRO(FViewportConstants)           \
 MACRO(FTileCullingBufferType)       \
-MACRO(FPointLightShadowBufferType)
+MACRO(FPointLightShadowBufferType)  \
+MACRO(FSkinningMatrixBufferType)     
 
 // 16 바이트 패딩 어썰트
 #define STATIC_ASSERT_CBUFFER_ALIGNMENT(Type) \
@@ -252,6 +259,7 @@ CONSTANT_BUFFER_INFO(FVinetteBufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(FXAABufferType, 2, false, true)
 CONSTANT_BUFFER_INFO(ColorBufferType, 3, true, true)   // b3 color
 CONSTANT_BUFFER_INFO(FPixelConstBufferType, 4, true, true) // GOURAUD에도 사용되므로 VS도 true
+CONSTANT_BUFFER_INFO(FSkinningMatrixBufferType, 5, true, false)
 CONSTANT_BUFFER_INFO(DecalBufferType, 6, true, true)
 CONSTANT_BUFFER_INFO(FireballBufferType, 6, false, true)
 CONSTANT_BUFFER_INFO(CameraBufferType, 7, true, true)  // b7, VS+PS (UberLit.hlsl과 일치)

@@ -118,6 +118,10 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        {
           ShaderMacros.Append(MaterialToUse->GetShaderMacros());
        }
+       if (GEngine.GetRenderer()->IsGpuSkinning())
+       {
+           ShaderMacros.Add(FShaderMacro("USE_SKINNING", "1"));
+       }
        FShaderVariant* ShaderVariant = ShaderToUse->GetOrCompileShaderVariant(ShaderMacros);
 
        if (ShaderVariant)
@@ -140,6 +144,15 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
        BatchElement.ObjectID = InternalIndex;
        BatchElement.PrimitiveTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
+       // GPU스키닝을 위해 필요
+       if (GEngine.GetRenderer()->IsGpuSkinning())
+       {
+           BatchElement.SkinnedMeshComponent = this;
+       }
+       else
+       {
+           BatchElement.SkinnedMeshComponent = nullptr;
+       }
        OutMeshBatchElements.Add(BatchElement);
     }
 }
@@ -234,20 +247,23 @@ void USkinnedMeshComponent::PerformSkinning()
 {
    if (!SkeletalMesh || FinalSkinningMatrices.IsEmpty()) { return; }
    if (!bSkinningMatricesDirty) { return; }
-   
-   const TArray<FSkinnedVertex>& SrcVertices = SkeletalMesh->GetSkeletalMeshData()->Vertices;
-   const int32 NumVertices = SrcVertices.Num();
-   SkinnedVertices.SetNum(NumVertices);
 
-   for (int32 Idx = 0; Idx < NumVertices; ++Idx)
+   if (!GEngine.GetRenderer()->IsGpuSkinning())
    {
-      const FSkinnedVertex& SrcVert = SrcVertices[Idx];
-      FNormalVertex& DstVert = SkinnedVertices[Idx];
+       const TArray<FSkinnedVertex>& SrcVertices = SkeletalMesh->GetSkeletalMeshData()->Vertices;
+       const int32 NumVertices = SrcVertices.Num();
+       SkinnedVertices.SetNum(NumVertices);
 
-      DstVert.pos = SkinVertexPosition(SrcVert); 
-      DstVert.normal = SkinVertexNormal(SrcVert);
-      DstVert.Tangent = SkinVertexTangent(SrcVert);
-      DstVert.tex = SrcVert.UV;
+       for (int32 Idx = 0; Idx < NumVertices; ++Idx)
+       {
+           const FSkinnedVertex& SrcVert = SrcVertices[Idx];
+           FSkinnedVertex& DstVert = SkinnedVertices[Idx];
+
+           DstVert.Position = SkinVertexPosition(SrcVert);
+           DstVert.Normal = SkinVertexNormal(SrcVert);
+           DstVert.Tangent = SkinVertexTangent(SrcVert);
+           DstVert.UV = SrcVert.UV;
+       }
    }
 }
 
