@@ -35,9 +35,7 @@ const bool USkeletalMeshComponent::bPropertiesRegistered = []() {
 
 BEGIN_PROPERTIES(USkeletalMeshComponent)
     MARK_AS_COMPONENT("스켈레탈 메시 컴포넌트", "스켈레탈 메시를 렌더링하는 컴포넌트입니다")
-    ADD_PROPERTY(EAnimationMode, AnimationMode, "[애니메이션]", true, "애니메이션 모드")
-    ADD_PROPERTY(UAnimInstance*, AnimInstance, "[애니메이션]", true, "애니메이션 인스턴스")
-    ADD_PROPERTY(UAnimSequence*, AnimationData, "[애니메이션]", true, "재생할 애니메이션")
+    ADD_PROPERTY_ANIMSEQUENCE(UAnimSequence*, AnimationData, "Animation", true, "재생할 애니메이션")
 END_PROPERTIES()
 
 // ===== Lua Binding =====
@@ -47,8 +45,10 @@ extern "C" void LuaBind_Anchor_USkeletalMeshComponent() {}
 LUA_BIND_BEGIN(USkeletalMeshComponent)
 {
     AddAlias<USkeletalMeshComponent, UAnimSequence*, bool>(
-        T, "애니메이션_재생", &USkeletalMeshComponent::PlayAnimation);
+        T, "Play Animation", &USkeletalMeshComponent::PlayAnimation);
+    AddAlias<USkeletalMeshComponent, bool>(
+        T, "PlayAnimationDefault", &USkeletalMeshComponent::PlayAnimation);
     AddAlias<USkeletalMeshComponent>(
-        T, "애니메이션_정지", &USkeletalMeshComponent::StopAnimation);
+        T, "Stop Animation", &USkeletalMeshComponent::StopAnimation);
 }
 LUA_BIND_END()
