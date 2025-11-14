@@ -36,6 +36,7 @@ const bool UPerspectiveDecalComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UPerspectiveDecalComponent)
     MARK_AS_COMPONENT("원근 데칼 컴포넌트", "원근 투영 데칼 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, FovY, "Decal", 1.0f, 179.0f, true, "수직 시야각 (FOV, Degrees)입니다.")
+    ADD_PROPERTY_METADATA(FovY, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

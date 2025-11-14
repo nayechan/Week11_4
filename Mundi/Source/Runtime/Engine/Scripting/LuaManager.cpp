@@ -1,6 +1,6 @@
 ﻿#include "pch.h"
 #include "LuaManager.h"
-#include "LuaComponentProxy.h"
+#include "LuaObjectProxy.h"  // Changed from LuaComponentProxy.h
 #include "GameObject.h"
 #include "ObjectIterator.h"
 #include "CameraActor.h"
@@ -10,8 +10,8 @@
 
 sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class) {
     BuildBoundClass(Class);
-    LuaComponentProxy Proxy;
-    Proxy.Instance = Instance;
+    LuaObjectProxy Proxy;  // Using LuaObjectProxy (LuaComponentProxy is alias)
+    Proxy.Instance = static_cast<UObject*>(Instance);  // Cast to UObject*
     Proxy.Class = Class;
     return sol::make_object(SolState, std::move(Proxy));
 }

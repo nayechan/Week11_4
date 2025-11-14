@@ -12,13 +12,13 @@ public:
 	~UAnimSequenceBase() = default;
 
 	// Notify 이벤트 배열 (발제 문서 요구사항)
-	UPROPERTY(EditAnywhere, Category="[애니메이션|Notify]", Tooltip="애니메이션 알림 이벤트")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션|Notify]", Tooltip="애니메이션 알림 이벤트")
 	TArray<FAnimNotifyEvent> Notifies;
 
-	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 길이 (초)")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 길이 (초)")
 	float SequenceLength = 0.0f;
 
-	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="재생 속도 배율", Range="0.1, 10.0")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="재생 속도 배율", Range="0.1, 10.0")
 	float RateScale = 1.0f;
 
 	// 포즈 추출 (순수 가상 - 팀원2가 사용할 인터페이스)

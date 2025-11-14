@@ -17,10 +17,10 @@ public:
 	virtual void DuplicateSubObjects() override;
 
 protected:
-	UPROPERTY(EditAnywhere, Category="CapsuleHalfHeight")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="CapsuleHalfHeight")
 	float CapsuleHalfHeight;
 
-	UPROPERTY(EditAnywhere, Category="CapsuleHalfHeight")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="CapsuleHalfHeight")
 	float CapsuleRadius;
 
 	void GetShape(FShape& Out) const override; 

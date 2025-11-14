@@ -23,15 +23,15 @@ public:
 // Animation Section
 public:
     // 애니메이션 모드
-    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 모드")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 모드")
     EAnimationMode AnimationMode;
 
     // 애니메이션 인스턴스
-    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 인스턴스")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 인스턴스")
     UAnimInstance* AnimInstance = nullptr;
 
     // 단일 노드 모드용 애니메이션
-    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="재생할 애니메이션")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="재생할 애니메이션")
     UAnimSequence* AnimationData = nullptr;
 
     // 재생 제어 (발제 문서 요구사항)

@@ -42,16 +42,16 @@ public:
 	uint32 GetOverrideCameraLightNum() { return OverrideCameraLightNum; }
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Light", Range="0.0, 1000.0")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Light", Range="0.0, 1000.0")
 	float SourceRadius = 0.0f; // 광원 반경
 
 	// NOTE: 실제로는 사용하지 않지만 프로퍼티 양식 때문에 어쩔 수 없이 임시로 선언
-	UPROPERTY(EditAnywhere, Category="ShadowMap")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap")
 	ID3D11ShaderResourceView* ShadowMapSRV = nullptr;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap")
 	bool bOverrideCameraLightPerspective = false;
 
-	UPROPERTY(EditAnywhere, Category="ShadowMap", Range="0, 5")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="ShadowMap", Range="0, 5")
 	uint32 OverrideCameraLightNum = 0;
 };

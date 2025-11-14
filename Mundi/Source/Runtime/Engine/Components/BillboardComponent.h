@@ -40,7 +40,7 @@ public:
 private:
     FString TexturePath;
 
-    UPROPERTY(EditAnywhere, Category="Billboard")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Billboard")
     UTexture* Texture = nullptr;  // 리플렉션 시스템용 Texture 포인터
 
     UMaterialInterface* Material = nullptr;

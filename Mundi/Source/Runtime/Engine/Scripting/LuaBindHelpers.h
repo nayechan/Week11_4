@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "LuaManager.h"
-#include "LuaComponentProxy.h"
+#include "LuaObjectProxy.h"  // Changed from LuaComponentProxy.h
 
 // 클래스별 바인더 등록 매크로(컴포넌트 cpp에서 사용)
 #define LUA_BIND_BEGIN(ClassType) \

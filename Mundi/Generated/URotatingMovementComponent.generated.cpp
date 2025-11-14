@@ -36,8 +36,11 @@ const bool URotatingMovementComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(URotatingMovementComponent)
     MARK_AS_COMPONENT("회전 이동 컴포넌트", "자동 회전 컴포넌트입니다")
     ADD_PROPERTY(FVector, RotationRate, "회전 컴포넌트", true, "회전 속도입니다")
+    ADD_PROPERTY_METADATA(RotationRate, "LuaReadWrite", "true")
     ADD_PROPERTY(FVector, PivotTranslation, "회전 컴포넌트", true, "피벗 오프셋입니다")
+    ADD_PROPERTY_METADATA(PivotTranslation, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bRotationInLocalSpace, "회전 컴포넌트", true, "로컬에서 회전합니다")
+    ADD_PROPERTY_METADATA(bRotationInLocalSpace, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

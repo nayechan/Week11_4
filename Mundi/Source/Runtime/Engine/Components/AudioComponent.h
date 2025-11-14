@@ -32,19 +32,19 @@ class UAudioComponent : public USceneComponent
 
 public:
     // Multiple sounds accessible by index
-    UPROPERTY(EditAnywhere, Category="Sound", Tooltip="Array of sound assets to play")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Sound", Tooltip="Array of sound assets to play")
     TArray<USound*> Sounds;
 
-    UPROPERTY(EditAnywhere, Category="Audio", Tooltip="Volume (0..1)")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Audio", Tooltip="Volume (0..1)")
     float Volume;
 
-    UPROPERTY(EditAnywhere, Category="Audio", Tooltip="Pitch (frequency ratio)")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Audio", Tooltip="Pitch (frequency ratio)")
     float Pitch;
 
-    UPROPERTY(EditAnywhere, Category="Audio", Tooltip="Loop playback")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Audio", Tooltip="Loop playback")
     bool  bIsLooping;
 
-    UPROPERTY(EditAnywhere, Category="Audio", Tooltip="Auto play on BeginPlay")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Audio", Tooltip="Auto play on BeginPlay")
     bool  bAutoPlay;
 
     // Duplication

@@ -36,8 +36,11 @@ const bool UActorComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UActorComponent)
     ADD_PROPERTY(FName, ObjectName, "[컴포넌트]", true, "컴포넌트의 이름입니다")
     ADD_PROPERTY(bool, bIsActive, "렌더링", true)
+    ADD_PROPERTY_METADATA(bIsActive, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bHiddenInGame, "렌더링", true)
+    ADD_PROPERTY_METADATA(bHiddenInGame, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bTickEnabled, "렌더링", true)
+    ADD_PROPERTY_METADATA(bTickEnabled, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

@@ -19,7 +19,7 @@ public:
 	virtual void DuplicateSubObjects() override;
 
 private:
-	UPROPERTY(EditAnywhere, Category="BoxExtent")
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="BoxExtent")
 	FVector BoxExtent; // Half Extent
 
 	void GetShape(FShape& Out) const override;

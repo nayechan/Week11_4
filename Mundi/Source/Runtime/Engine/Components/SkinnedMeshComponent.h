@@ -46,7 +46,7 @@ protected:
      */
     void UpdateSkinningMatrices(const TArray<FMatrix>& InSkinningMatrices, const TArray<FMatrix>& InSkinningNormalMatrices);
     
-    UPROPERTY(EditAnywhere, Category = "Skeletal Mesh", Tooltip = "Skeletal mesh asset to render")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category = "Skeletal Mesh", Tooltip = "Skeletal mesh asset to render")
     USkeletalMesh* SkeletalMesh;
 
     /**

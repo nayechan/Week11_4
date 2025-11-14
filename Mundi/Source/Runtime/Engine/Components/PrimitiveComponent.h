@@ -78,9 +78,9 @@ protected:
     bool bIsCulled = false;
      
     // ───── 충돌 관련 ────────────────────────────
-    UPROPERTY(EditAnywhere, Category="Shape")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Shape")
     bool bGenerateOverlapEvents;
 
-    UPROPERTY(EditAnywhere, Category="Shape")
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Shape")
     bool bBlockComponent;
 };
