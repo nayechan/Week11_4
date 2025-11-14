@@ -13,7 +13,7 @@ public:
 	DECLARE_CLASS(UConsoleWidget, UWidget)
 
 	void Initialize() override;
-	void Update() override;
+	void Update(float DeltaTime) override;
 	void RenderWidget() override;
 
 	// Console specific methods
@@ -21,6 +21,7 @@ public:
 	void VAddLog(const char* fmt, va_list args);
 	void ClearLog();
 	void ExecCommand(const char* command_line);
+	void SetScrollToBottom() { ScrollToBottom = true; }
 
 	// Special Member Function
 	UConsoleWidget();

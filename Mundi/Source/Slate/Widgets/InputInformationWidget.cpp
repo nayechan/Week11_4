@@ -37,7 +37,7 @@ void UInputInformationWidget::Initialize()
 	UE_LOG("InputInformationWidget: Successfully Initialized");
 }
 
-void UInputInformationWidget::Update()
+void UInputInformationWidget::Update(float DeltaTime)
 {
 }
 

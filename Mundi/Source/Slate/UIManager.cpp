@@ -130,7 +130,7 @@ void UUIManager::Update(float DeltaTime)
 	{
 		if (Window && Window->IsVisible())
 		{
-			Window->Update();
+			Window->Update(DeltaTime);
 		}
 	}
 

@@ -12,7 +12,6 @@ int UUIWindow::IssuedWindowID = 0;
 UUIWindow::UUIWindow(const FUIWindowConfig& InConfig)
 	: Config(InConfig)
 	  , CurrentState(InConfig.InitialState)
-	  , bIsWindowOpen(true)  // ImGui 윈도우가 열린 상태로 초기화
 {
 	// 고유한 윈도우 ID 생성
 	WindowID = ++IssuedWindowID;
@@ -140,7 +139,7 @@ void UUIWindow::RenderWindow()
 	// 크기 제한 설정
 	//ImGui::SetNextWindowSizeConstraints(Config.MinSize, Config.MaxSize);
 
-	bool bIsOpen = bIsWindowOpen;
+	bool bIsOpen = true;
 
 	if (ImGui::Begin(Config.WindowTitle.c_str(), &bIsOpen, Config.WindowFlags))
 	{
@@ -182,17 +181,11 @@ void UUIWindow::RenderWindow()
 	ImGui::End();
 
 	// 윈도우가 닫혔는지 확인
-	if (!bIsWindowOpen && bIsWindowOpen)
+	if (!bIsOpen)
 	{
 		if (OnWindowClose())
 		{
-			bIsWindowOpen = false;
 			SetWindowState(EUIWindowState::Hidden);
-		}
-		else
-		{
-			// 닫기 취소
-			bIsWindowOpen = true;
 		}
 	}
 }
@@ -209,7 +202,7 @@ void UUIWindow::RenderWidget() const
 	}
 }
 
-void UUIWindow::Update() const
+void UUIWindow::Update(float DeltaTime) const
 {
 	for (size_t i = 0; i < Widgets.size(); ++i)
 	{
@@ -218,7 +211,7 @@ void UUIWindow::Update() const
 		{
 			try
 			{
-				Widget->Update();
+				Widget->Update(DeltaTime);
 			}
 			catch (...)
 			{

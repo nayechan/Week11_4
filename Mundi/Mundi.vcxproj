@@ -497,6 +497,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Slate\Windows\ExperimentalFeatureWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\PropertyWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SceneWindow.cpp" />
+    <ClCompile Include="Source\Slate\Windows\SConsolePanel.cpp" />
     <ClCompile Include="Source\Slate\Windows\SControlPanel.cpp" />
     <ClCompile Include="Source\Slate\Windows\SDetailsWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SSplitter.cpp" />
@@ -882,6 +883,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Slate\Windows\ExperimentalFeatureWindow.h" />
     <ClInclude Include="Source\Slate\Windows\PropertyWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SceneWindow.h" />
+    <ClInclude Include="Source\Slate\Windows\SConsolePanel.h" />
     <ClInclude Include="Source\Slate\Windows\SControlPanel.h" />
     <ClInclude Include="Source\Slate\Windows\SDetailsWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SSplitter.h" />
