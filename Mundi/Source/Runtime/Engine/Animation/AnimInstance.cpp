@@ -6,11 +6,8 @@
 
 void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	// 기본 구현: 시간만 업데이트
-	PreviousTime = CurrentTime;
-	CurrentTime += DeltaSeconds;
-
-	// 오버라이드하여 커스텀 로직 구현
+	// 기본 구현: 비어있음 (파생 클래스에서 오버라이드하여 구현)
+	// 시간 업데이트는 파생 클래스(UAnimSingleNodeInstance 등)에서 처리
 }
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)

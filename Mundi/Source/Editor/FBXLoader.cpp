@@ -120,6 +120,104 @@ USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 	return SkeletalMesh;
 }
 
+// UE5 방식: Scene 캐싱 및 공유 메커니즘
+FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewlyLoaded)
+{
+	bOutNewlyLoaded = false;
+
+	// 이미 같은 파일이 로드되어 있으면 캐시된 Scene 반환
+	if (CachedScene.Scene && CachedScene.FilePath == FilePath)
+	{
+		UE_LOG("[Scene Cache] Reusing cached FbxScene for: %s", FilePath.c_str());
+		return CachedScene.Scene;
+	}
+
+	// 다른 파일이면 기존 Scene 정리
+	if (CachedScene.Scene)
+	{
+		UE_LOG("[Scene Cache] Clearing previous cached scene: %s", CachedScene.FilePath.c_str());
+		CachedScene.Scene->Destroy();
+		CachedScene.Scene = nullptr;
+		CachedScene.FilePath.clear();
+		CachedScene.bConverted = false;
+	}
+
+	// 새로운 Scene 생성 및 Import
+	UE_LOG("[Scene Cache] Loading new FbxScene: %s", FilePath.c_str());
+
+	FbxImporter* Importer = FbxImporter::Create(SdkManager, "");
+	if (!Importer->Initialize(FilePath.c_str(), -1, SdkManager->GetIOSettings()))
+	{
+		UE_LOG("Error: FbxImporter::Initialize() failed for: %s", FilePath.c_str());
+		UE_LOG("Error: %s", Importer->GetStatus().GetErrorString());
+		Importer->Destroy();
+		return nullptr;
+	}
+
+	FbxScene* Scene = FbxScene::Create(SdkManager, "Shared Scene");
+	Importer->Import(Scene);
+	Importer->Destroy();
+
+	// 단위 변환 (중요: DeepConvertScene 전에 수행)
+	FbxSystemUnit SceneSystemUnit = Scene->GetGlobalSettings().GetSystemUnit();
+	double ScaleFactor = SceneSystemUnit.GetScaleFactor();
+	UE_LOG("[Scene Cache] FBX Scene Unit Scale Factor: %.2f (1.0=cm, 100.0=m)", ScaleFactor);
+
+	// m(미터) 기준으로 통일
+	if (ScaleFactor != 100.0)
+	{
+		UE_LOG("[Scene Cache] Converting units to meters (from %.2f)...", ScaleFactor);
+		FbxSystemUnit::m.ConvertScene(Scene);
+		Scene->GetAnimationEvaluator()->Reset();
+	}
+	else
+	{
+		UE_LOG("[Scene Cache] Already in meters, no unit conversion needed");
+	}
+
+	// 좌표계 변환
+	FbxAxisSystem UnrealImportAxis(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded);
+	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
+
+	if (SourceSetup != UnrealImportAxis)
+	{
+		UE_LOG("[Scene Cache] Converting coordinate system to Z-Up Left-Handed");
+		UnrealImportAxis.DeepConvertScene(Scene);
+	}
+
+	// 삼각화
+	FbxGeometryConverter GeometryConverter(SdkManager);
+	if (GeometryConverter.Triangulate(Scene, true))
+	{
+		UE_LOG("[Scene Cache] Scene triangulation completed");
+	}
+	else
+	{
+		UE_LOG("[Scene Cache] Warning: Scene triangulation failed");
+	}
+
+	// 캐시에 저장
+	CachedScene.Scene = Scene;
+	CachedScene.FilePath = FilePath;
+	CachedScene.bConverted = true;
+	bOutNewlyLoaded = true;
+
+	UE_LOG("[Scene Cache] Successfully loaded and converted FbxScene");
+	return Scene;
+}
+
+void UFbxLoader::ClearCachedScene()
+{
+	if (CachedScene.Scene)
+	{
+		UE_LOG("[Scene Cache] Clearing cached scene: %s", CachedScene.FilePath.c_str());
+		CachedScene.Scene->Destroy();
+		CachedScene.Scene = nullptr;
+		CachedScene.FilePath.clear();
+		CachedScene.bConverted = false;
+	}
+}
+
 FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 {
 	MaterialInfos.clear();
@@ -228,53 +326,18 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	UE_LOG("Regenerating cache for FBX '%s'...", NormalizedPath.c_str());
 #endif // USE_OBJ_CACHE
 
-	// 임포트 옵션 세팅 ( 에니메이션 임포트 여부, 머티리얼 임포트 여부 등등 IO에 대한 세팅 )
-	// IOSROOT = IOSetting 객체의 기본 이름( Fbx매니저가 이름으로 관리하고 디버깅 시 매니저 내부의 객체를 이름으로 식별 가능)
-	// 하지만 매니저 자체의 기본 설정이 있기 때문에 아직 안씀
-	//FbxIOSettings* IoSetting = FbxIOSettings::Create(SdkManager, IOSROOT);
-	//SdkManager->SetIOSettings(IoSetting);
-
-	// 로드할때마다 임포터 생성
-	FbxImporter* Importer = FbxImporter::Create(SdkManager, "");
-
-	// 원하는 IO 세팅과 Fbx파일로 Importer initialize
-	if (!Importer->Initialize(NormalizedPath.c_str(), -1, SdkManager->GetIOSettings()))
+	// UE5 방식: 단일 FbxScene 공유
+	bool bNewlyLoaded = false;
+	FbxScene* Scene = GetOrLoadFbxScene(NormalizedPath, bNewlyLoaded);
+	if (!Scene)
 	{
-		UE_LOG("Call to FbxImporter::Initialize() Falied\n");
-		UE_LOG("[FbxImporter::Initialize()] Error Reports: %s\n\n", Importer->GetStatus().GetErrorString());
+		UE_LOG("Error: Failed to load FBX scene: %s", NormalizedPath.c_str());
 		return nullptr;
 	}
 
-	// 임포터가 씬에 데이터를 채워줄 것임. 이름은 IoSetting과 마찬가지로 매니저가 이름으로 관리하고 Export될 때 표시할 씬 이름.
-	FbxScene* Scene = FbxScene::Create(SdkManager, "My Scene");
-
-	// 임포트해서 Fbx를 씬에 넣어줌
-	Importer->Import(Scene);
-
-	// 임포트 후 제거
-	Importer->Destroy();
-
-	FbxAxisSystem UnrealImportAxis(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded);
-	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-
-	FbxSystemUnit::m.ConvertScene(Scene);
-	
-	if (SourceSetup != UnrealImportAxis)
-	{
-		UE_LOG("Fbx 축 변환 완료!\n");
-		UnrealImportAxis.DeepConvertScene(Scene);
-	}
-
-	// 매시의 폴리곤이 삼각형이 아닐 수가 있음, Converter가 모두 삼각화해줌.
-	FbxGeometryConverter IGeometryConverter(SdkManager);
-	if (IGeometryConverter.Triangulate(Scene, true))
-	{
-		UE_LOG("Fbx 씬 삼각화 완료\n");
-	}
-	else
-	{
-		UE_LOG("Fbx 씬 삼각화가 실패했습니다, 매시가 깨질 수 있습니다\n");
-	}
+	UE_LOG("========================================");
+	UE_LOG("[MESH] Loading Skeletal Mesh from FBX: %s", NormalizedPath.c_str());
+	UE_LOG("========================================");
 
 	MeshData = new FSkeletalMeshData();
 	MeshData->PathFileName = NormalizedPath;
@@ -310,7 +373,7 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 		}
 		for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
 		{
-			LoadMeshFromNode(RootNode->GetChild(Index), *MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex);
+			LoadMeshFromNode(RootNode->GetChild(Index), *MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex, Scene);
 		}
 		
 		// 여러 루트 본이 있으면 가상 루트 생성
@@ -373,8 +436,9 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 void UFbxLoader::LoadMeshFromNode(FbxNode* InNode,
 	FSkeletalMeshData& MeshData,
 	TMap<int32, TArray<uint32>>& MaterialGroupIndexList,
-	TMap<FbxNode*, int32>& BoneToIndex, 
-	TMap<FbxSurfaceMaterial*, int32>& MaterialToIndex)
+	TMap<FbxNode*, int32>& BoneToIndex,
+	TMap<FbxSurfaceMaterial*, int32>& MaterialToIndex,
+	FbxScene* Scene)
 {
 
 	// 부모노드로부터 상대좌표 리턴
@@ -455,18 +519,18 @@ void UFbxLoader::LoadMeshFromNode(FbxNode* InNode,
 						MeshData.GroupInfos[MaterialIndex].InitialMaterialName = MaterialInfo.MaterialName;
 					}
 					// MaterialSlotToIndex에 추가할 필요 없음(머티리얼 하나일때 해싱 패스하고 Material Index로 바로 그룹핑 할 거라서 안 씀)
-					LoadMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, MaterialIndex);
+					LoadMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, Scene, MaterialIndex);
 					continue;
 				}
 			}
-			
-			LoadMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex);
+
+			LoadMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, Scene);
 		}
 	}
 
 	for (int Index = 0; Index < InNode->GetChildCount(); Index++)
 	{
-		LoadMeshFromNode(InNode->GetChild(Index), MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex);
+		LoadMeshFromNode(InNode->GetChild(Index), MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex, Scene);
 	}
 }
 
@@ -529,7 +593,7 @@ void UFbxLoader::LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalM
 	//UE_LOG("<Attribute Type = %s, Name = %s\n", TypeName.Buffer(), AttributeName.Buffer());
 }
 
-void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 DefaultMaterialIndex)
+void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, FbxScene* Scene, int32 DefaultMaterialIndex)
 {
 	// 위에서 뼈 인덱스를 구했으므로 일단 ControlPoint에 대응되는 뼈 인덱스와 가중치부터 할당할 것임(이후 MeshData를 채우면서 ControlPoint를 순회할 것이므로)
 	struct IndexWeight
@@ -568,12 +632,10 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 			int* Indices = Cluster->GetControlPointIndices();
 			double* Weights = Cluster->GetControlPointWeights();
             // Bind Pose, Inverse Bind Pose 저장.
-            // Fbx 스킨 규약:
-            //  - TransformLinkMatrix: 본의 글로벌 바인드 행렬
-            //  - TransformMatrix:     메시의 글로벌 바인드 행렬
-            // 엔진 로컬(메시 기준) 바인드 행렬 = Inv(TransformMatrix) * TransformLinkMatrix
-            FbxAMatrix BoneBindGlobal;
-            Cluster->GetTransformLinkMatrix(BoneBindGlobal);
+            // UE5 방식: AnimationEvaluator를 사용하여 Time 0에서의 Global Transform 가져오기
+            // 이렇게 하면 ConvertScene이 적용된 값을 사용하여 Animation과 일관성 확보
+            FbxNode* BoneNode = Cluster->GetLink();
+            FbxAMatrix BoneBindGlobal = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(BoneNode, FBXSDK_TIME_ZERO);
             FbxAMatrix BoneBindGlobalInv = BoneBindGlobal.Inverse();
             // FbxMatrix는 128바이트, FMatrix는 64바이트라서 memcpy쓰면 안 됨. 원소 단위로 복사합니다.
             for (int Row = 0; Row < 4; Row++)
@@ -1217,40 +1279,21 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 		}
 	}
 
-	// 3. FBX Importer 생성 (기존 패턴)
-	FbxImporter* Importer = FbxImporter::Create(SdkManager, "");
-	if (!Importer->Initialize(NormalizedPath.c_str(), -1, SdkManager->GetIOSettings()))
+	// 3. UE5 방식: 단일 FbxScene 공유
+	bool bNewlyLoaded = false;
+	FbxScene* Scene = GetOrLoadFbxScene(NormalizedPath, bNewlyLoaded);
+	if (!Scene)
 	{
-		UE_LOG("Failed to initialize FBX importer for animation: %s", NormalizedPath.c_str());
-		UE_LOG("Error: %s", Importer->GetStatus().GetErrorString());
+		UE_LOG("Error: Failed to load FBX scene for animation: %s", NormalizedPath.c_str());
 		return nullptr;
 	}
 
-	// 4. FBX Scene 생성 및 Import
-	FbxScene* Scene = FbxScene::Create(SdkManager, "Animation Scene");
-	Importer->Import(Scene);
-	Importer->Destroy();
-
-	// 5. 좌표계 변환 (기존 패턴 - 애니메이션 커브도 자동 변환!)
-	FbxAxisSystem UnrealImportAxis(FbxAxisSystem::eZAxis,
-								   FbxAxisSystem::eParityEven,
-								   FbxAxisSystem::eLeftHanded);
-	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-	if (SourceSetup != UnrealImportAxis)
-	{
-		UE_LOG("Converting animation coordinate system...");
-		UnrealImportAxis.DeepConvertScene(Scene);
-	}
-
-	// 6. 단위 변환 (기존 패턴)
-	FbxSystemUnit::m.ConvertScene(Scene);
-
-	// 7. AnimStack 확인
+	// 4. AnimStack 확인
 	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
 	if (AnimStackCount == 0)
 	{
 		UE_LOG("Error: No animation data found in FBX file: %s", NormalizedPath.c_str());
-		Scene->Destroy();
+		// Scene은 캐시에서 관리되므로 Destroy하지 않음
 		return nullptr;
 	}
 
@@ -1260,21 +1303,31 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 	UAnimSequence* AnimSeq = NewObject<UAnimSequence>();
 	AnimSeq->SetFilePath(NormalizedPath);
 
-	// 9. 첫 번째 AnimStack 로드 (대부분의 FBX는 1개만 있음)
+	// 9. Skeleton 할당 (중요! 이것이 없으면 GetAnimationPose에서 실패)
+	AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
+
+	// 10. 첫 번째 AnimStack 로드 (대부분의 FBX는 1개만 있음)
 	FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
-	UE_LOG("Loading animation: %s", AnimStack->GetName());
+	UE_LOG("========================================");
+	UE_LOG("[ANIMATION] Loading from FBX: %s", NormalizedPath.c_str());
+	UE_LOG("[ANIMATION] Animation stack name: %s", AnimStack->GetName());
+	UE_LOG("========================================");
 
 	LoadAnimationFromStack(AnimStack, TargetSkeleton, AnimSeq);
 
-	// 10. Scene 정리
-	Scene->Destroy();
+	// 11. Scene 정리 - UE5 방식: Scene은 캐시에서 관리하므로 Destroy하지 않음
+	// (GetOrLoadFbxScene에서 캐싱된 Scene을 재사용)
 
-	// 11. 리소스 매니저에 등록
+	// 12. 리소스 매니저에 등록
 	UResourceManager::GetInstance().Add<UAnimSequence>(NormalizedPath, AnimSeq);
 
-	UE_LOG("Animation loaded successfully: %d frames, %d bone tracks",
+	UE_LOG("========================================");
+	UE_LOG("[ANIMATION] Load complete for: %s", NormalizedPath.c_str());
+	UE_LOG("[ANIMATION] Result: %d frames, %d bone tracks, %d total keys",
 		   AnimSeq->NumberOfFrames,
-		   AnimSeq->GetBoneAnimationTracks().Num());
+		   AnimSeq->GetBoneAnimationTracks().Num(),
+		   AnimSeq->NumberOfKeys);
+	UE_LOG("========================================");
 
 	return AnimSeq;
 }
@@ -1323,7 +1376,19 @@ void UFbxLoader::LoadAnimationFromStack(FbxAnimStack* AnimStack,
 
 	// 4. RootNode부터 본별 애니메이션 추출
 	FbxNode* RootNode = AnimStack->GetScene()->GetRootNode();
-	ExtractBoneAnimationTracks(RootNode, AnimLayer, TargetSkeleton, OutAnim);
+	UE_LOG("");
+	UE_LOG("--- [SKELETON INFO] Target skeleton has %d bones ---", TargetSkeleton->Bones.Num());
+	for (const auto& Pair : TargetSkeleton->BoneNameToIndex)
+	{
+		UE_LOG("    Skeleton Bone[%d]: '%s'", Pair.second, Pair.first.c_str());
+	}
+	UE_LOG("");
+	UE_LOG("--- [FBX EXTRACTION] Searching for bones in FBX file ---");
+
+	// 디버그용 본 카운터 (첫 3개만 자세히 로깅)
+	int DebugBoneCount = 0;
+	ExtractBoneAnimationTracks(RootNode, AnimLayer, TargetSkeleton, OutAnim, DebugBoneCount);
+	UE_LOG("");
 
 	// 5. NumberOfKeys 계산
 	int32 TotalKeys = 0;
@@ -1332,12 +1397,22 @@ void UFbxLoader::LoadAnimationFromStack(FbxAnimStack* AnimStack,
 		TotalKeys += Track.InternalTrack.GetNumKeys();
 	}
 	OutAnim->NumberOfKeys = TotalKeys;
+
+	UE_LOG("--- [RESULT] Extracted %d bone tracks, %d total keys ---",
+		   OutAnim->GetBoneAnimationTracks().Num(), TotalKeys);
+	if (OutAnim->GetBoneAnimationTracks().Num() == 0)
+	{
+		UE_LOG("!!! WARNING: NO BONE TRACKS EXTRACTED !!!");
+		UE_LOG("!!! This means bone names in FBX don't match skeleton bone names !!!");
+	}
+	UE_LOG("");
 }
 
 void UFbxLoader::ExtractBoneAnimationTracks(FbxNode* InNode,
 											FbxAnimLayer* AnimLayer,
 											const FSkeleton* TargetSkeleton,
-											UAnimSequence* OutAnim)
+											UAnimSequence* OutAnim,
+											int& DebugBoneCount)
 {
 	// 기존 LoadSkeletonFromNode 패턴 재사용
 
@@ -1352,16 +1427,18 @@ void UFbxLoader::ExtractBoneAnimationTracks(FbxNode* InNode,
 		{
 			// 본 발견! 애니메이션 커브 추출
 			FString BoneName = FString(InNode->GetName());
+			UE_LOG("    FBX Bone found: '%s'", BoneName.c_str());
 
 			// 본 매칭
 			const int32* BoneIndexPtr = TargetSkeleton->BoneNameToIndex.Find(BoneName);
 			if (!BoneIndexPtr)
 			{
-				UE_LOG("Warning: Bone '%s' not found in skeleton, skipping animation", BoneName.c_str());
+				UE_LOG("    -> [SKIP] NOT FOUND in skeleton (name mismatch)", BoneName.c_str());
 				break;  // 스켈레톤에 없는 본은 스킵
 			}
 
 			int32 BoneIndex = *BoneIndexPtr;
+			UE_LOG("    -> Matched to Skeleton Bone[%d]", BoneIndex);
 
 			// 본 애니메이션 트랙 생성
 			FBoneAnimationTrack Track;
@@ -1369,14 +1446,17 @@ void UFbxLoader::ExtractBoneAnimationTracks(FbxNode* InNode,
 			Track.BoneTreeIndex = BoneIndex;
 
 			// 커브 추출
-			ExtractBoneCurve(InNode, AnimLayer, TargetSkeleton, Track);
+			ExtractBoneCurve(InNode, AnimLayer, TargetSkeleton, Track, DebugBoneCount);
 
 			// 키프레임이 있는 경우에만 추가
 			if (!Track.InternalTrack.IsEmpty())
 			{
 				OutAnim->AddBoneTrack(Track);
-				UE_LOG("Extracted animation for bone '%s': %d keys",
-					   BoneName.c_str(), Track.InternalTrack.GetNumKeys());
+				UE_LOG("    -> [SUCCESS] Extracted %d animation keys", Track.InternalTrack.GetNumKeys());
+			}
+			else
+			{
+				UE_LOG("    -> [SKIP] No animation keys found for this bone");
 			}
 
 			break;  // 노드당 1개의 Skeleton 속성만 있음
@@ -1386,137 +1466,205 @@ void UFbxLoader::ExtractBoneAnimationTracks(FbxNode* InNode,
 	// 2. Depth-first 재귀 (자식 노드 순회)
 	for (int i = 0; i < InNode->GetChildCount(); i++)
 	{
-		ExtractBoneAnimationTracks(InNode->GetChild(i), AnimLayer, TargetSkeleton, OutAnim);
+		ExtractBoneAnimationTracks(InNode->GetChild(i), AnimLayer, TargetSkeleton, OutAnim, DebugBoneCount);
 	}
 }
 
 void UFbxLoader::ExtractBoneCurve(FbxNode* BoneNode,
 								  FbxAnimLayer* AnimLayer,
 								  const FSkeleton* TargetSkeleton,
-								  FBoneAnimationTrack& OutTrack)
+								  FBoneAnimationTrack& OutTrack,
+								  int& DebugBoneCount)
 {
-	// 1. Translation 커브 추출 (X, Y, Z)
-	FbxAnimCurve* TransX = BoneNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
-	FbxAnimCurve* TransY = BoneNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y);
-	FbxAnimCurve* TransZ = BoneNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z);
+	bool bShowDebug = (DebugBoneCount < 4); // 처음 4개 본만 자세히 로그 (bip001 포함)
+	DebugBoneCount++;
 
-	// 2. Rotation 커브 추출 (Euler X, Y, Z)
-	FbxAnimCurve* RotX = BoneNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
-	FbxAnimCurve* RotY = BoneNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y);
-	FbxAnimCurve* RotZ = BoneNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z);
+	FString BoneName = BoneNode->GetName();
 
-	// 3. Scale 커브 추출 (X, Y, Z)
-	FbxAnimCurve* ScaleX = BoneNode->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
-	FbxAnimCurve* ScaleY = BoneNode->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y);
-	FbxAnimCurve* ScaleZ = BoneNode->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z);
+	// ======================================================================
+	// UE5 방식: EvaluateGlobalTransform() 사용
+	// ConvertScene()이 적용된 Scene Graph를 사용하므로 스케일 문제 해결!
+	// ======================================================================
 
-	// 4. Position 키프레임 추출
-	if (TransX && TransY && TransZ)
+	// 1. 모든 애니메이션 커브에서 KeyTime 수집
+	TArray<FbxTime> AllKeyTimes;
+	TArray<FbxAnimCurve*> AllCurves;
+
+	// Translation curves
+	if (FbxAnimCurve* Curve = BoneNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X))
+		AllCurves.Add(Curve);
+	if (FbxAnimCurve* Curve = BoneNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y))
+		AllCurves.Add(Curve);
+	if (FbxAnimCurve* Curve = BoneNode->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z))
+		AllCurves.Add(Curve);
+
+	// Rotation curves
+	if (FbxAnimCurve* Curve = BoneNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X))
+		AllCurves.Add(Curve);
+	if (FbxAnimCurve* Curve = BoneNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y))
+		AllCurves.Add(Curve);
+	if (FbxAnimCurve* Curve = BoneNode->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z))
+		AllCurves.Add(Curve);
+
+	// Scale curves
+	if (FbxAnimCurve* Curve = BoneNode->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X))
+		AllCurves.Add(Curve);
+	if (FbxAnimCurve* Curve = BoneNode->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y))
+		AllCurves.Add(Curve);
+	if (FbxAnimCurve* Curve = BoneNode->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z))
+		AllCurves.Add(Curve);
+
+	// 애니메이션 커브가 하나도 없으면 종료
+	if (AllCurves.IsEmpty())
 	{
-		int32 KeyCount = TransX->KeyGetCount();
-		OutTrack.InternalTrack.PosKeys.Reserve(KeyCount);
+		if (bShowDebug)
+		{
+			UE_LOG("       [CURVE DEBUG] Bone: '%s' - No animation curves", BoneName.c_str());
+		}
+		return;
+	}
 
+	// 모든 커브에서 unique한 KeyTime 수집
+	for (FbxAnimCurve* Curve : AllCurves)
+	{
+		int32 KeyCount = Curve->KeyGetCount();
 		for (int32 i = 0; i < KeyCount; ++i)
 		{
-			FbxTime Time = TransX->KeyGetTime(i);
-			float TimeSeconds = static_cast<float>(Time.GetSecondDouble());
+			FbxTime KeyTime = Curve->KeyGetTime(i);
 
-			// ⚠️ DeepConvertScene()이 이미 좌표계 변환했으므로 그대로 사용
-			FVector Position(
-				static_cast<float>(TransX->KeyGetValue(i)),
-				static_cast<float>(TransY->KeyGetValue(i)),
-				static_cast<float>(TransZ->KeyGetValue(i))
-			);
-
-			// NaN/Inf 체크
-			if (std::isnan(Position.X) || std::isnan(Position.Y) || std::isnan(Position.Z) ||
-				std::isinf(Position.X) || std::isinf(Position.Y) || std::isinf(Position.Z))
+			// 중복 체크
+			bool bExists = false;
+			for (const FbxTime& ExistingTime : AllKeyTimes)
 			{
-				UE_LOG("Warning: Invalid position value at time %f, using zero", TimeSeconds);
-				Position = FVector(0, 0, 0);
+				if (KeyTime == ExistingTime)
+				{
+					bExists = true;
+					break;
+				}
 			}
 
-			OutTrack.InternalTrack.PosKeys.Add(Position);
+			if (!bExists)
+			{
+				AllKeyTimes.Add(KeyTime);
+			}
 		}
 	}
 
-	// 5. Rotation 키프레임 추출 (Euler → Quaternion 변환)
-	if (RotX && RotY && RotZ)
+	// 시간순 정렬
+	std::sort(AllKeyTimes.begin(), AllKeyTimes.end(), [](const FbxTime& a, const FbxTime& b) {
+		return a < b;
+	});
+
+	if (bShowDebug)
 	{
-		int32 KeyCount = RotX->KeyGetCount();
-		OutTrack.InternalTrack.RotKeys.Reserve(KeyCount);
-
-		for (int32 i = 0; i < KeyCount; ++i)
-		{
-			FbxTime Time = RotX->KeyGetTime(i);
-			float TimeSeconds = static_cast<float>(Time.GetSecondDouble());
-
-			// Euler angles (degrees)
-			double EulerX = RotX->KeyGetValue(i);
-			double EulerY = RotY->KeyGetValue(i);
-			double EulerZ = RotZ->KeyGetValue(i);
-
-			// FBX SDK를 사용한 Euler → Quaternion 변환
-			FbxVector4 EulerAngles(EulerX, EulerY, EulerZ);
-			FbxQuaternion FbxQuat;
-			FbxQuat.ComposeSphericalXYZ(EulerAngles);
-
-			// ⚠️ DeepConvertScene()이 이미 변환했으므로 그대로 사용
-			FQuat EngineQuat(
-				static_cast<float>(FbxQuat[0]),  // X
-				static_cast<float>(FbxQuat[1]),  // Y
-				static_cast<float>(FbxQuat[2]),  // Z
-				static_cast<float>(FbxQuat[3])   // W
-			);
-
-			// Quaternion 정규화
-			EngineQuat.Normalize();
-
-			// NaN/Inf 체크
-			if (std::isnan(EngineQuat.X) || std::isnan(EngineQuat.Y) || std::isnan(EngineQuat.Z) || std::isnan(EngineQuat.W) ||
-				std::isinf(EngineQuat.X) || std::isinf(EngineQuat.Y) || std::isinf(EngineQuat.Z) || std::isinf(EngineQuat.W))
-			{
-				UE_LOG("Warning: Invalid rotation value at time %f, using identity", TimeSeconds);
-				EngineQuat = FQuat::Identity();
-			}
-
-			OutTrack.InternalTrack.RotKeys.Add(EngineQuat);
-		}
+		UE_LOG("       [UE5 METHOD] Bone: '%s' - Using EvaluateGlobalTransform()", BoneName.c_str());
+		UE_LOG("         Total unique keyframes: %d", AllKeyTimes.Num());
 	}
 
-	// 6. Scale 키프레임 추출
-	if (ScaleX && ScaleY && ScaleZ)
+	// 2. Get FbxScene and Parent Node
+	FbxScene* Scene = BoneNode->GetScene();
+	FbxNode* ParentNode = BoneNode->GetParent();
+
+	// 3. Reserve space for animation tracks
+	OutTrack.InternalTrack.PosKeys.Reserve(AllKeyTimes.Num());
+	OutTrack.InternalTrack.RotKeys.Reserve(AllKeyTimes.Num());
+	OutTrack.InternalTrack.ScaleKeys.Reserve(AllKeyTimes.Num());
+
+	// 4. Evaluate transforms at each KeyTime using Scene Graph (respects ConvertScene!)
+	for (int32 KeyIndex = 0; KeyIndex < AllKeyTimes.Num(); ++KeyIndex)
 	{
-		int32 KeyCount = ScaleX->KeyGetCount();
-		OutTrack.InternalTrack.ScaleKeys.Reserve(KeyCount);
+		const FbxTime& KeyTime = AllKeyTimes[KeyIndex];
 
-		for (int32 i = 0; i < KeyCount; ++i)
+		// Get global transform at this time (ConvertScene has already been applied to Scene Graph!)
+		FbxAMatrix GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(BoneNode, KeyTime);
+
+		// Compute local transform relative to parent
+		FbxAMatrix LocalTransform;
+		if (ParentNode)
 		{
-			FbxTime Time = ScaleX->KeyGetTime(i);
-			float TimeSeconds = static_cast<float>(Time.GetSecondDouble());
-
-			FVector Scale(
-				static_cast<float>(ScaleX->KeyGetValue(i)),
-				static_cast<float>(ScaleY->KeyGetValue(i)),
-				static_cast<float>(ScaleZ->KeyGetValue(i))
-			);
-
-			// NaN/Inf 체크
-			if (std::isnan(Scale.X) || std::isnan(Scale.Y) || std::isnan(Scale.Z) ||
-				std::isinf(Scale.X) || std::isinf(Scale.Y) || std::isinf(Scale.Z))
-			{
-				UE_LOG("Warning: Invalid scale value at time %f, using (1,1,1)", TimeSeconds);
-				Scale = FVector(1.0f, 1.0f, 1.0f);
-			}
-
-			OutTrack.InternalTrack.ScaleKeys.Add(Scale);
+			FbxAMatrix ParentGlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(ParentNode, KeyTime);
+			LocalTransform = ParentGlobalTransform.Inverse() * GlobalTransform;
 		}
+		else
+		{
+			// Root bone: use global transform directly
+			LocalTransform = GlobalTransform;
+		}
+
+		// Extract Position from local transform
+		FbxVector4 Translation = LocalTransform.GetT();
+		FVector Position(
+			static_cast<float>(Translation[0]),
+			static_cast<float>(Translation[1]),
+			static_cast<float>(Translation[2])
+		);
+
+		// Extract Rotation from local transform
+		FbxQuaternion FbxQuat = LocalTransform.GetQ();
+		FQuat Rotation(
+			static_cast<float>(FbxQuat[0]),  // X
+			static_cast<float>(FbxQuat[1]),  // Y
+			static_cast<float>(FbxQuat[2]),  // Z
+			static_cast<float>(FbxQuat[3])   // W
+		);
+		Rotation.Normalize();
+
+		// Extract Scale from local transform
+		FbxVector4 Scaling = LocalTransform.GetS();
+		FVector Scale(
+			static_cast<float>(Scaling[0]),
+			static_cast<float>(Scaling[1]),
+			static_cast<float>(Scaling[2])
+		);
+
+		// Debug logging for first keyframe of first 4 bones
+		if (bShowDebug && KeyIndex == 0)
+		{
+			UE_LOG("         Key[0] Position: (%.3f, %.3f, %.3f)", Position.X, Position.Y, Position.Z);
+			UE_LOG("         Key[0] Rotation Quat: (%.3f, %.3f, %.3f, %.3f)", Rotation.X, Rotation.Y, Rotation.Z, Rotation.W);
+			UE_LOG("         Key[0] Scale: (%.3f, %.3f, %.3f)", Scale.X, Scale.Y, Scale.Z);
+		}
+
+		// NaN/Inf validation
+		if (std::isnan(Position.X) || std::isnan(Position.Y) || std::isnan(Position.Z) ||
+			std::isinf(Position.X) || std::isinf(Position.Y) || std::isinf(Position.Z))
+		{
+			float TimeSeconds = static_cast<float>(KeyTime.GetSecondDouble());
+			UE_LOG("Warning: Invalid position value at time %f, using zero", TimeSeconds);
+			Position = FVector(0, 0, 0);
+		}
+
+		if (std::isnan(Rotation.X) || std::isnan(Rotation.Y) || std::isnan(Rotation.Z) || std::isnan(Rotation.W) ||
+			std::isinf(Rotation.X) || std::isinf(Rotation.Y) || std::isinf(Rotation.Z) || std::isinf(Rotation.W))
+		{
+			float TimeSeconds = static_cast<float>(KeyTime.GetSecondDouble());
+			UE_LOG("Warning: Invalid rotation value at time %f, using identity", TimeSeconds);
+			Rotation = FQuat::Identity();
+		}
+
+		if (std::isnan(Scale.X) || std::isnan(Scale.Y) || std::isnan(Scale.Z) ||
+			std::isinf(Scale.X) || std::isinf(Scale.Y) || std::isinf(Scale.Z))
+		{
+			float TimeSeconds = static_cast<float>(KeyTime.GetSecondDouble());
+			UE_LOG("Warning: Invalid scale value at time %f, using (1,1,1)", TimeSeconds);
+			Scale = FVector(1.0f, 1.0f, 1.0f);
+		}
+
+		// Store keyframes
+		OutTrack.InternalTrack.PosKeys.Add(Position);
+		OutTrack.InternalTrack.RotKeys.Add(Rotation);
+		OutTrack.InternalTrack.ScaleKeys.Add(Scale);
 	}
 
-	// 7. 키프레임 개수 불일치 처리
+	// Verify all tracks have same keyframe count
 	int32 PosCount = OutTrack.InternalTrack.PosKeys.Num();
 	int32 RotCount = OutTrack.InternalTrack.RotKeys.Num();
 	int32 ScaleCount = OutTrack.InternalTrack.ScaleKeys.Num();
+
+	if (bShowDebug)
+	{
+		UE_LOG("         Final keyframe counts - Pos: %d, Rot: %d, Scale: %d", PosCount, RotCount, ScaleCount);
+	}
 
 	if (PosCount != RotCount || PosCount != ScaleCount)
 	{

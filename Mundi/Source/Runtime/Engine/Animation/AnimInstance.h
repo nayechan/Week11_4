@@ -12,10 +12,10 @@ public:
 	UAnimInstance() = default;
 	virtual ~UAnimInstance() = default;
 
-	// 애니메이션 업데이트 (팀원2가 오버라이드)
+	// 애니메이션 업데이트
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
-	// Notify 트리거링 (발제 문서 요구사항)
+	// Notify 트리거링
 	void TriggerAnimNotifies(float DeltaSeconds);
 
 	// 현재 시간 접근자
