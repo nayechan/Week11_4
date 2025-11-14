@@ -2,6 +2,11 @@
 #include "Object.h"
 #include "fbxsdk.h"
 
+// Forward declarations for animation types
+class UAnimSequence;
+struct FBoneAnimationTrack;
+struct FSkeleton;
+
 class UFbxLoader : public UObject
 {
 public:
@@ -15,7 +20,8 @@ public:
 	USkeletalMesh* LoadFbxMesh(const FString& FilePath);
 
 	FSkeletalMeshData* LoadFbxMeshAsset(const FString& FilePath);
-	
+
+	UAnimSequence* LoadFbxAnimation(const FString& FilePath, const FSkeleton* TargetSkeleton);
 
 protected:
 	~UFbxLoader() override;
@@ -31,6 +37,12 @@ private:
 	void LoadMeshFromAttribute(FbxNodeAttribute* InAttribute, FSkeletalMeshData& MeshData);
 
 	void LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int32, TArray<uint32>>& MaterialGroupIndexList, TMap<FbxNode*, int32>& BoneToIndex, TArray<int32> MaterialSlotToIndex, int32 DefaultMaterialIndex = 0);
+
+	void LoadAnimationFromStack(FbxAnimStack* AnimStack, const FSkeleton* TargetSkeleton, UAnimSequence* OutAnim);
+
+	void ExtractBoneAnimationTracks(FbxNode* RootNode, FbxAnimLayer* AnimLayer, const FSkeleton* TargetSkeleton, UAnimSequence* OutAnim);
+
+	void ExtractBoneCurve(FbxNode* BoneNode, FbxAnimLayer* AnimLayer, const FSkeleton* TargetSkeleton, FBoneAnimationTrack& OutTrack);
 
 	void ParseMaterial(FbxSurfaceMaterial* Material, FMaterialInfo& MaterialInfo);
 

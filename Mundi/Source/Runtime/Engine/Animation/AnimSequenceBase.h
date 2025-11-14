@@ -21,7 +21,7 @@ public:
 	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="재생 속도 배율", Range="0.1, 10.0")
 	float RateScale = 1.0f;
 
-	// 포즈 추출 (순수 가상 - 팀원2가 사용할 인터페이스)
+	// 포즈 추출
 	virtual void GetAnimationPose(FPoseContext& OutPose, const FAnimExtractContext& Context) = 0;
 
 	// 시간 범위 내의 Notify 가져오기

@@ -30,6 +30,8 @@
 // 정적 멤버 변수 초기화
 TArray<FString> UPropertyRenderer::CachedSkeletalMeshPaths;
 TArray<FString> UPropertyRenderer::CachedSkeletalMeshItems;
+TArray<FString> UPropertyRenderer::CachedAnimSequencePaths;
+TArray<FString> UPropertyRenderer::CachedAnimSequenceItems;
 TArray<FString> UPropertyRenderer::CachedStaticMeshPaths;
 TArray<FString> UPropertyRenderer::CachedStaticMeshItems;
 TArray<FString> UPropertyRenderer::CachedMaterialPaths;
@@ -107,6 +109,10 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 
 	case EPropertyType::SkeletalMesh:
 		bChanged = RenderSkeletalMeshProperty(Property, ObjectInstance);
+		break;
+
+	case EPropertyType::AnimSequence:
+		bChanged = RenderAnimSequenceProperty(Property, ObjectInstance);
 		break;
 
 	case EPropertyType::StaticMesh:
@@ -341,6 +347,20 @@ void UPropertyRenderer::CacheResources()
 		CachedSkeletalMeshItems.Insert("None", 0);
 	}
 
+	// AnimSequence 캐싱
+	if (CachedAnimSequencePaths.IsEmpty() && CachedAnimSequenceItems.IsEmpty())
+	{
+		CachedAnimSequencePaths = ResMgr.GetAllFilePaths<UAnimSequence>();
+		for (const FString& path : CachedAnimSequencePaths)
+		{
+			// 파일명만 추출해서 표시
+			std::filesystem::path fsPath(path);
+			CachedAnimSequenceItems.push_back(fsPath.filename().string());
+		}
+		CachedAnimSequencePaths.Insert("", 0);
+		CachedAnimSequenceItems.Insert("None", 0);
+	}
+
 	// 2. 머티리얼
 	if (CachedMaterialPaths.IsEmpty() && CachedTexturePaths.IsEmpty())
 	{
@@ -420,6 +440,8 @@ void UPropertyRenderer::ClearResourcesCache()
 {
 	CachedSkeletalMeshPaths.Empty();
 	CachedSkeletalMeshItems.Empty();
+	CachedAnimSequencePaths.Empty();
+	CachedAnimSequenceItems.Empty();
 	CachedStaticMeshPaths.Empty();
 	CachedStaticMeshItems.Empty();
 	CachedMaterialPaths.Empty();
@@ -1113,6 +1135,60 @@ bool UPropertyRenderer::RenderSkeletalMeshProperty(const FProperty& Prop, void* 
 		//	}
 		//}
 
+		ImGui::EndTooltip();
+	}
+
+	return false;
+}
+
+bool UPropertyRenderer::RenderAnimSequenceProperty(const FProperty& Prop, void* Instance)
+{
+	UAnimSequence** AnimPtr = Prop.GetValuePtr<UAnimSequence*>(Instance);
+
+	FString CurrentPath;
+	if (*AnimPtr)
+	{
+		CurrentPath = (*AnimPtr)->GetFilePath();
+	}
+
+	if (CachedAnimSequencePaths.empty())
+	{
+		ImGui::Text("%s: <No Animations>", Prop.Name);
+		return false;
+	}
+
+	int SelectedIdx = -1;
+	for (int i = 0; i < static_cast<int>(CachedAnimSequencePaths.size()); ++i)
+	{
+		if (CachedAnimSequencePaths[i] == CurrentPath)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, &ItemsGetter, (void*)&CachedAnimSequenceItems, static_cast<int>(CachedAnimSequenceItems.size())))
+	{
+		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(CachedAnimSequencePaths.size()))
+		{
+			// "None" 선택 시 (빈 경로) nullptr 설정
+			if (CachedAnimSequencePaths[SelectedIdx].empty())
+			{
+				*AnimPtr = nullptr;
+			}
+			else
+			{
+				// 이미 로드된 애니메이션 가져오기 (Load가 아닌 Get 사용)
+				*AnimPtr = UResourceManager::GetInstance().Get<UAnimSequence>(CachedAnimSequencePaths[SelectedIdx]);
+			}
+			return true;
+		}
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::TextUnformatted(CurrentPath.c_str());
 		ImGui::EndTooltip();
 	}
 

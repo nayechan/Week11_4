@@ -22,23 +22,24 @@ public:
 
 // Animation Section
 public:
-    // 애니메이션 모드
-    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 모드")
+    // 애니메이션 모드 (내부 전용, 자동 설정)
     EAnimationMode AnimationMode;
 
-    // 애니메이션 인스턴스
-    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 인스턴스")
+    // 애니메이션 인스턴스 (런타임 자동 생성)
     UAnimInstance* AnimInstance = nullptr;
 
-    // 단일 노드 모드용 애니메이션
-    UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="재생할 애니메이션")
+    // 재생할 애니메이션
+    UPROPERTY(EditAnywhere, Category="Animation", Tooltip="재생할 애니메이션")
     UAnimSequence* AnimationData = nullptr;
 
-    // 재생 제어 (발제 문서 요구사항)
-    UFUNCTION(DisplayName="애니메이션_재생", LuaBind)
+    // 재생 제어
+    UFUNCTION(DisplayName="Play Animation", LuaBind)
     void PlayAnimation(UAnimSequence* NewAnimToPlay, bool bLooping);
 
-    UFUNCTION(DisplayName="애니메이션_정지", LuaBind)
+    UFUNCTION(DisplayName="PlayAnimationDefault", LuaBind)
+    void PlayAnimation(bool bLooping);
+
+    UFUNCTION(DisplayName="Stop Animation", LuaBind)
     void StopAnimation();
 
     void SetAnimationMode(EAnimationMode InMode);
