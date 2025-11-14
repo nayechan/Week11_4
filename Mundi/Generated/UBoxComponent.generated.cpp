@@ -36,7 +36,6 @@ const bool UBoxComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UBoxComponent)
     MARK_AS_COMPONENT("박스 컴포넌트", "박스 모양 충돌 컴포넌트입니다")
     ADD_PROPERTY(FVector, BoxExtent, "BoxExtent", true)
-    ADD_PROPERTY_METADATA(BoxExtent, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

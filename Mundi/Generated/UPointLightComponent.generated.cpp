@@ -36,13 +36,9 @@ const bool UPointLightComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UPointLightComponent)
     MARK_AS_COMPONENT("포인트 라이트 컴포넌트", "점광원 조명 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, SourceRadius, "Light", 0.0f, 1000.0f, true)
-    ADD_PROPERTY_METADATA(SourceRadius, "LuaReadWrite", "true")
     ADD_PROPERTY_SRV(ID3D11ShaderResourceView*, ShadowMapSRV, "ShadowMap", true)
-    ADD_PROPERTY_METADATA(ShadowMapSRV, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bOverrideCameraLightPerspective, "ShadowMap", true)
-    ADD_PROPERTY_METADATA(bOverrideCameraLightPerspective, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(uint32, OverrideCameraLightNum, "ShadowMap", 0.0f, 5.0f, true)
-    ADD_PROPERTY_METADATA(OverrideCameraLightNum, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

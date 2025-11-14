@@ -36,9 +36,7 @@ const bool UPrimitiveComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UPrimitiveComponent)
     MARK_AS_COMPONENT("프리미티브 컴포넌트", "렌더링 가능한 기본 컴포넌트입니다")
     ADD_PROPERTY(bool, bGenerateOverlapEvents, "Shape", true)
-    ADD_PROPERTY_METADATA(bGenerateOverlapEvents, "LuaReadWrite", "true")
     ADD_PROPERTY(bool, bBlockComponent, "Shape", true)
-    ADD_PROPERTY_METADATA(bBlockComponent, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====

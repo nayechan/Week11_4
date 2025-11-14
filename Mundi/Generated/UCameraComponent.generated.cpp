@@ -36,15 +36,10 @@ const bool UCameraComponent::bPropertiesRegistered = []() {
 BEGIN_PROPERTIES(UCameraComponent)
     MARK_AS_COMPONENT("카메라 컴포넌트", "카메라 뷰포트 컴포넌트입니다")
     ADD_PROPERTY_RANGE(float, FieldOfView, "Camera", 1.0f, 179.0f, true)
-    ADD_PROPERTY_METADATA(FieldOfView, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, AspectRatio, "Camera", 0.1f, 10.0f, true)
-    ADD_PROPERTY_METADATA(AspectRatio, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, NearClip, "Camera", 0.01f, 1000.0f, true)
-    ADD_PROPERTY_METADATA(NearClip, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, FarClip, "Camera", 1.0f, 100000.0f, true)
-    ADD_PROPERTY_METADATA(FarClip, "LuaReadWrite", "true")
     ADD_PROPERTY_RANGE(float, ZoomFactor, "Camera", 0.1f, 10.0f, true)
-    ADD_PROPERTY_METADATA(ZoomFactor, "LuaReadWrite", "true")
 END_PROPERTIES()
 
 // ===== Lua Binding =====
