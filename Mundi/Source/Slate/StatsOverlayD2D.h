@@ -19,6 +19,7 @@ public:
     void SetShowTileCulling(bool b);
     void SetShowLights(bool b);
     void SetShowShadow(bool b);
+    void SetShowSkinningProfile(bool bInShowSkinningProfile);
     void ToggleFPS();
     void ToggleMemory();
     void TogglePicking();
@@ -26,6 +27,7 @@ public:
     void ToggleTileCulling();
     void ToggleLights();
     void ToggleShadow();
+    void ToggleSkinningProfile();
     bool IsFPSVisible() const { return bShowFPS; }
     bool IsMemoryVisible() const { return bShowMemory; }
     bool IsPickingVisible() const { return bShowPicking; }
@@ -33,6 +35,7 @@ public:
     bool IsTileCullingVisible() const { return bShowTileCulling; }
     bool IsLightsVisible() const { return bShowLights; }
     bool IsShadowVisible() const { return bShowShadow; }
+    bool IsSkinningProfileVisible() const { return bShowSkinningProfile; }
 
 private:
     UStatsOverlayD2D() = default;
@@ -52,6 +55,7 @@ private:
     bool bShowTileCulling = false;
     bool bShowShadow = false;
     bool bShowLights = false;
+    bool bShowSkinningProfile = false;
 
     ID3D11Device* D3DDevice = nullptr;
     ID3D11DeviceContext* D3DContext = nullptr;

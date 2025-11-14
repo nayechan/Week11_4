@@ -14,6 +14,10 @@
   - ✅ 재귀 UObject 프로퍼티 접근 지원
   - ✅ uint32, uint64, int64, double 타입 바인딩 추가
   - ✅ UStaticMesh를 리플렉션 시스템으로 전환 (예제)
+  - ✅ TArray<Primitive> 완전 지원 (int32, float, FString, FVector 등)
+  - ✅ TArray<UObject*> 완전 지원 (모든 UObject 파생 타입)
+  - ✅ TMap<K, V> 완전 지원 (모든 primitive/struct/UObject* 조합)
+  - ✅ LuaArrayProxy 및 LuaMapProxy SRP 설계 구현
   - ✅ Documentation 작성
 
 ## Quick Start
@@ -102,9 +106,32 @@ end
 - `UMaterialInterface*` - Material 리소스
 - `USound*` - Sound 리소스
 
-### Array 타입
-- `TArray<UObject*>` - UObject 포인터 배열
-- `TArray<UMaterialInterface*>` - Material 배열 등
+### Container 타입
+
+#### TArray (배열)
+**Primitive 타입 배열**:
+- `TArray<int32>` - 정수 배열
+- `TArray<float>` - 실수 배열
+- `TArray<FString>` - 문자열 배열
+- `TArray<FVector>` - 벡터 배열
+- `TArray<bool>`, `TArray<double>` 등 모든 primitive 타입
+
+**UObject 포인터 배열**:
+- `TArray<UObject*>` - 모든 UObject 배열
+- `TArray<UTexture*>` - 텍스처 배열
+- `TArray<UMaterialInterface*>` - 머티리얼 배열
+- 기타 모든 UObject* 파생 타입
+
+#### TMap (맵/딕셔너리)
+**Primitive Key/Value**:
+- `TMap<FString, int32>` - 문자열 → 정수
+- `TMap<int32, float>` - 정수 → 실수
+- `TMap<FString, FVector>` - 문자열 → 벡터
+
+**UObject 포인터 Value**:
+- `TMap<FString, UTexture*>` - 문자열 → 텍스처
+- `TMap<int32, UMaterialInterface*>` - 정수 → 머티리얼
+- 기타 모든 조합 가능
 
 ---
 
@@ -409,6 +436,173 @@ END_PROPERTIES()
 
 ---
 
+## Container 사용 가이드
+
+### TArray 사용법
+
+#### C++ 선언
+
+```cpp
+UCLASS()
+class UInventoryComponent : public UActorComponent
+{
+public:
+    GENERATED_REFLECTION_BODY()
+
+    // Primitive 타입 배열
+    UPROPERTY(LuaReadWrite, Category="Inventory")
+    TArray<int32> ItemIDs;
+
+    UPROPERTY(LuaReadWrite, Category="Inventory")
+    TArray<FString> ItemNames;
+
+    UPROPERTY(LuaReadWrite, Category="Inventory")
+    TArray<FVector> ItemPositions;
+
+    // UObject 포인터 배열
+    UPROPERTY(LuaReadWrite, Category="Inventory")
+    TArray<UTexture*> ItemIcons;
+};
+```
+
+#### Lua 사용
+
+```lua
+function BeginPlay()
+    local inv = GetComponent(Obj, "UInventoryComponent")
+
+    -- 배열 길이 확인 (# 연산자)
+    print("Item count: " .. #inv.ItemIDs)
+
+    -- 배열 읽기 (1-based 인덱스)
+    for i = 1, #inv.ItemNames do
+        print("Item " .. i .. ": " .. inv.ItemNames[i])
+    end
+
+    -- 배열 쓰기
+    inv.ItemIDs[1] = 100         -- 첫 번째 요소 수정
+    inv.ItemNames[1] = "Sword"   -- 문자열 수정
+
+    -- 배열에 새 요소 추가
+    local newIndex = #inv.ItemIDs + 1
+    inv.ItemIDs[newIndex] = 200
+    inv.ItemNames[newIndex] = "Shield"
+
+    -- 벡터 배열
+    inv.ItemPositions[1] = Vector(10.0, 20.0, 30.0)
+    local pos = inv.ItemPositions[1]
+    print("Position: " .. pos.X .. ", " .. pos.Y .. ", " .. pos.Z)
+end
+```
+
+### TMap 사용법
+
+#### C++ 선언
+
+```cpp
+UCLASS()
+class UGameStateComponent : public UActorComponent
+{
+public:
+    GENERATED_REFLECTION_BODY()
+
+    // Primitive 타입 맵
+    UPROPERTY(LuaReadWrite, Category="Game State")
+    TMap<FString, int32> PlayerScores;
+
+    UPROPERTY(LuaReadWrite, Category="Game State")
+    TMap<int32, float> LevelDifficulties;
+
+    UPROPERTY(LuaReadWrite, Category="Game State")
+    TMap<FString, FVector> SpawnPoints;
+
+    // UObject 포인터 맵
+    UPROPERTY(LuaReadWrite, Category="Resources")
+    TMap<FString, UTexture*> TextureCache;
+};
+```
+
+#### Lua 사용
+
+```lua
+function BeginPlay()
+    local gameState = GetComponent(Obj, "UGameStateComponent")
+
+    -- 맵에 값 추가/수정
+    gameState.PlayerScores["Player1"] = 100
+    gameState.PlayerScores["Player2"] = 200
+    gameState.PlayerScores["Player3"] = 150
+
+    -- 맵에서 값 읽기
+    print("Player1 score: " .. gameState.PlayerScores["Player1"])
+
+    -- 정수 키 맵
+    gameState.LevelDifficulties[1] = 0.5
+    gameState.LevelDifficulties[2] = 0.8
+    gameState.LevelDifficulties[10] = 1.5
+
+    print("Level 1 difficulty: " .. gameState.LevelDifficulties[1])
+
+    -- 벡터 값 맵
+    gameState.SpawnPoints["Start"] = Vector(0, 0, 0)
+    gameState.SpawnPoints["Boss"] = Vector(100, 200, 50)
+
+    local spawnPos = gameState.SpawnPoints["Start"]
+    print("Spawn at: " .. spawnPos.X .. ", " .. spawnPos.Y .. ", " .. spawnPos.Z)
+
+    -- 키 삭제 (nil 할당)
+    gameState.PlayerScores["Player2"] = nil
+    print("Player2 score after deletion: " .. tostring(gameState.PlayerScores["Player2"]))  -- nil
+end
+```
+
+### Container 주의사항
+
+#### 1. Lua는 1-based 인덱싱
+```lua
+local arr = comp.MyArray
+-- arr[1]  ← 첫 번째 요소 (C++의 [0])
+-- arr[2]  ← 두 번째 요소 (C++의 [1])
+```
+
+#### 2. 배열 길이는 # 연산자
+```lua
+local length = #comp.MyArray
+for i = 1, length do
+    print(comp.MyArray[i])
+end
+```
+
+#### 3. Map 키 삭제는 nil 할당
+```lua
+comp.MyMap["KeyToDelete"] = nil  -- 키 삭제
+```
+
+#### 4. UObject* 컨테이너는 nil 체크 필요
+```lua
+local textures = comp.TextureArray
+if textures[1] ~= nil then
+    -- 텍스처 사용
+end
+```
+
+#### 5. 성능 고려사항
+- 컨테이너 접근은 프록시를 통하므로 반복 접근 시 로컬 변수에 캐싱 권장:
+```lua
+-- Bad: 매번 프로퍼티 접근
+for i = 1, 1000 do
+    comp.MyArray[i] = i
+end
+
+-- Good: 로컬 변수에 캐싱
+local arr = comp.MyArray
+for i = 1, 1000 do
+    arr[i] = i
+end
+```
+
+---
+
 ## 예제 코드 전체
 
 ### C++ Component
@@ -491,7 +685,22 @@ end
 1. ✅ C++ 프로퍼티를 Lua에 쉽게 노출
 2. ✅ 타입 안전성 보장 (컴파일 타임 체크)
 3. ✅ UObject 재귀 접근 지원
-4. ✅ 코드 생성 자동화 (빌드 시 자동 실행)
-5. ✅ 에디터 UI와 Lua 바인딩을 독립적으로 제어
+4. ✅ **TArray 완전 지원** (primitive, struct, UObject*)
+5. ✅ **TMap 완전 지원** (모든 키/값 조합)
+6. ✅ 코드 생성 자동화 (빌드 시 자동 실행)
+7. ✅ 에디터 UI와 Lua 바인딩을 독립적으로 제어
+8. ✅ SRP 설계 (LuaArrayProxy, LuaMapProxy 분리)
 
 필요한 클래스만 선택적으로 리플렉션 시스템으로 전환하면 됩니다!
+
+## 참고 구현 파일
+
+**Container 관련 파일**:
+- `LuaArrayProxy.h/cpp` - TArray Lua 바인딩 전담
+- `LuaMapProxy.h/cpp` - TMap Lua 바인딩 전담
+- `LuaObjectProxyHelpers.h` - 공통 유틸리티 (타입 검증, UObject 매핑)
+- `LuaObjectProxy.cpp` - 메인 프록시 (Container 프록시 생성)
+
+**코드 생성 파일**:
+- `BuildTools/CodeGenerator/generate.py` - TArray/TMap 타입 파싱
+- `BuildTools/CodeGenerator/property_generator.py` - Container 프로퍼티 생성

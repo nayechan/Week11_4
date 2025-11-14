@@ -1,5 +1,7 @@
 ﻿#pragma once
-
+#include "wrl/client.h"
+// NameSpace 그대로 두고 ComPtr만 사용함
+using Microsoft::WRL::ComPtr;
 
 #define TIME_PROFILE(Key)\
 FScopeCycleCounter Key##Counter(#Key); //현재 스코프 단위로 측정
@@ -31,6 +33,15 @@ public:
 
 			GSecondsPerCycle = 1.0 / Frequency;
 		}
+	}
+
+	// ElapsedTicks: 틱 수
+	// Frequency: GPU 초당 틱 수
+	static double GetElapsedTimeInMs(UINT64 ElpasedTicks, UINT64 Frequency)
+	{
+		double Seconds = (double)ElpasedTicks / (double)Frequency;
+
+		return Seconds * 1000.0f;
 	}
 	static double GetSecondsPerCycle()
 	{
@@ -161,3 +172,33 @@ private:
 
 };
 
+struct FGpuTimeQuery
+{
+	ComPtr<ID3D11Query> DisjointQuery;
+	ComPtr<ID3D11Query> StartTimeQuery;
+	ComPtr<ID3D11Query> EndTimeQuery;
+
+	bool bIsPending = false;
+};
+
+// 풀을 따로 안 만들고 일단 단일 이벤트 측정 용도로 만듦. 
+class FGpuProfiler
+{
+public:
+	static void Initialize(ID3D11Device* InDevice);
+	static void BeginFrame(ID3D11DeviceContext* InDeviceContext);
+	static void TimeStampStart(ID3D11DeviceContext* InDeviceContext);
+	static void TimeStampEnd(ID3D11DeviceContext* InDeviceContext);
+	static void EndFrame(ID3D11DeviceContext* InDeviceContext);
+
+	// 쿼리를 여러개 만드는 이유: 매 프레임 쿼리하면 GPU가 아직 쿼리를 처리하지 못 했을때 CPU가 요구하는 경우가 많아지고
+	// 프로파일링 결과가 n프레임 뒤에 업데이트되는 문제가 생김. 버퍼를 만들어서 여러번 쿼리하고 지연된 프레임을 메꿔줘야함.
+	// 버퍼 늘릴수록 GPU 병목이 있어도 놓치는 프레임이 적어짐. 근데 이게 좋은 게 아님.
+	// 병목을 빨리 잡아야지 병목때도 정확히 프로파일링 하는게 목적이 아님.
+	static const int NUM_FRAME_BUFFERS = 3;
+	static FGpuTimeQuery GpuTimeQueries[NUM_FRAME_BUFFERS];
+	static int CurrentFrameBuffer;
+private:
+	FGpuProfiler() {};
+	~FGpuProfiler() {};
+};
