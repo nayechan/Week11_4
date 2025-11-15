@@ -21,11 +21,8 @@ public:
 	void UpdateAnimation(float DeltaSeconds);
 
 	// 포즈 추출 (하위 클래스에서 구현)
+	// Unreal 방식: 트리를 순회하며 각 노드가 OutPose.AnimNotifies에 Notify 추가
 	virtual void GetAnimationPose(struct FPoseContext& OutPose);
-
-	// 활성 애니메이션 목록 (Notify 트리거링용)
-	// Transition 중이면 여러 개, 아니면 하나 반환
-	virtual void GetActiveAnimations(TArray<class UAnimSequence*>& OutAnimations) const {}
 
 	// ========================================
 	// 확장 포인트 (하위 클래스에서 오버라이드)
@@ -42,21 +39,19 @@ public:
 	// 내부 시스템 함수들
 	// ========================================
 
-	// Notify 트리거링 (PreviousTime ~ CurrentTime 범위)
-	void TriggerAnimNotifies(float DeltaSeconds);
-
-	// 현재 시간 접근자
-	float GetCurrentTime() const { return CurrentTime; }
-	void SetCurrentTime(float InTime) { CurrentTime = InTime; }
+	// Notify 트리거링 (Unreal 방식)
+	// FPoseContext에 수집된 Notify들을 일괄 트리거
+	void TriggerAnimNotifies(const struct FPoseContext& Pose);
 
 	// Owner component 접근자
 	class USkeletalMeshComponent* GetOwnerComponent() const { return OwnerComponent; }
 
 protected:
-	float CurrentTime = 0.0f;
-	float PreviousTime = 0.0f;
+	// ⭐ CurrentTime, PreviousTime 제거
+	// Unreal 방식: AnimInstance는 전역 시간을 관리하지 않음
+	// 각 AnimNode가 자신의 InternalTime을 관리
 
 	class USkeletalMeshComponent* OwnerComponent = nullptr;
-	 
+
 	friend class USkeletalMeshComponent;
 };

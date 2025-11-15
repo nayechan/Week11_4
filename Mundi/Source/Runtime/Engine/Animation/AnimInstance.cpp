@@ -10,11 +10,26 @@
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
-	// 1. C++ 네이티브 업데이트
+	// ========================================
+	// 애니메이션 업데이트 파이프라인 (Unreal 방식)
+	// ========================================
+
+	// 1. C++ 네이티브 업데이트 (하위 클래스에서 오버라이드)
+	//    각 AnimNode가 내부 시간(InternalTime) 업데이트
 	NativeUpdateAnimation(DeltaSeconds);
 
 	// 2. TODO: Lua 스크립트 업데이트 (향후 구현)
 	// LuaUpdateAnimation(DeltaSeconds);
+
+	// 3. 포즈 추출 + Notify 수집 (트리 누적 패턴)
+	//    GetAnimationPose()가 트리를 순회하며:
+	//    - 각 노드가 포즈 계산
+	//    - 각 노드가 Notify 수집하여 FPoseContext.AnimNotifies에 추가
+	FPoseContext FinalPose;
+	GetAnimationPose(FinalPose);
+
+	// 4. 수집된 Notify 트리거 (프레임워크가 자동 처리)
+	TriggerAnimNotifies(FinalPose);
 }
 
 // ========================================
@@ -23,20 +38,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	// 1. 시간 업데이트
-	PreviousTime = CurrentTime;
-	CurrentTime += DeltaSeconds;
-
-	// 2. Notify 트리거
-	TriggerAnimNotifies(DeltaSeconds);
-
-	// 3. TODO: State Machine 업데이트
-	// if (StateMachine)
-	// {
-	//     StateMachine->Update(DeltaSeconds);
-	// }
-
-	// 하위 클래스에서 Super::NativeUpdateAnimation() 호출 후 커스텀 로직 추가
+	// Unreal 방식: 기본 구현은 비어있음
+	// 하위 클래스(예: CharacterAnimInstance)에서:
+	// 1. Super::NativeUpdateAnimation(DeltaSeconds) 호출 (선택)
+	// 2. StateMachine->Update(DeltaSeconds) 호출 (각 노드가 InternalTime 업데이트)
+	//
+	// AnimInstance는 전역 시간을 관리하지 않음!
 }
 
 void UAnimInstance::GetAnimationPose(FPoseContext& OutPose)
@@ -44,29 +51,15 @@ void UAnimInstance::GetAnimationPose(FPoseContext& OutPose)
 	OutPose.BoneTransforms.Empty();
 }
 
-void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
+void UAnimInstance::TriggerAnimNotifies(const FPoseContext& Pose)
 {
 	if (!OwnerComponent)
 		return;
 
-	// 활성 애니메이션 목록 가져오기
-	TArray<UAnimSequence*> ActiveAnimations;
-	GetActiveAnimations(ActiveAnimations);
-
-	// 각 애니메이션의 Notify 트리거
-	for (UAnimSequence* Anim : ActiveAnimations)
+	// Unreal 방식: FPoseContext에 이미 수집된 Notify들을 일괄 트리거
+	// AnimNode들이 트리 순회 중 Pose.AnimNotifies에 추가한 것들
+	for (const FAnimNotifyEvent& Notify : Pose.AnimNotifies)
 	{
-		if (!Anim)
-			continue;
-
-		// PreviousTime ~ CurrentTime 범위의 Notify 찾기
-		TArray<FAnimNotifyEvent> TriggeredNotifies;
-		Anim->GetAnimNotifiesInRange(PreviousTime, CurrentTime, TriggeredNotifies);
-
-		// 각 Notify 트리거
-		for (const FAnimNotifyEvent& Notify : TriggeredNotifies)
-		{
-			OwnerComponent->HandleAnimNotify(Notify);
-		}
+		OwnerComponent->HandleAnimNotify(Notify);
 	}
 }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "AnimInstance.h"
 #include "UAnimSingleNodeInstance.generated.h"
 
@@ -31,12 +31,13 @@ public:
 	// 포즈 추출
 	virtual void GetAnimationPose(struct FPoseContext& OutPose) override;
 
-	// 활성 애니메이션
-	virtual void GetActiveAnimations(TArray<class UAnimSequence*>& OutAnimations) const override;
-
 private:
 	class UAnimSequence* CurrentSequence = nullptr;
 	bool bIsPlaying = false;
 	bool bLooping = false;
 	float PlayRate = 1.0f;
+
+	// Unreal 방식: 자체 Internal Time 관리
+	float InternalTime = 0.0f;
+	float PreviousInternalTime = 0.0f;
 };

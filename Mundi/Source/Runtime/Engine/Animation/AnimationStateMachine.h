@@ -38,8 +38,12 @@ public:
 
     void TransitionTo(FName NewState);
 
+    // Update: Transition 처리 + 내부 시간 업데이트
     void Update(float DeltaTime);
-    void GetBlendedPose(float DeltaTime, struct FPoseContext& OutPose);
+
+    // GetBlendedPose: 현재 상태의 포즈 추출 + Notify 수집
+    // Unreal 방식: DeltaTime을 받지 않음 (Update에서 이미 시간 업데이트 완료)
+    void GetBlendedPose(struct FPoseContext& OutPose);
 
     virtual void ProcessState() {}
 
@@ -50,7 +54,10 @@ private:
     float TransitionAlpha = 0.0f;
     float TransitionDuration = 0.3f;
     float TransitionElapsed = 0.0f;
-    float CurrentTime = 0.0f;
+
+    // ⭐ Node-Centric 아키텍처 완성:
+    // 각 State(FAnimState)가 자신의 InternalTime을 소유
+    // StateMachine은 더 이상 전역 시간을 관리하지 않음
 
     void StartTransition(FName From, FName To, float Duration);
     void UpdateTransition(float DeltaTime);

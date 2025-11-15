@@ -15,11 +15,17 @@ void USkeletalMeshComponent::BeginPlay()
 {
     Super::BeginPlay();
 
+    // AnimationMode가 이미 설정되어 있으면 (예: AnimationLuaScript) 자동 재생 스킵
+    // 이는 Actor에서 커스텀 AnimInstance를 설정한 경우입니다
+    if (AnimationMode != EAnimationMode::AnimationSingleNode)
+    {
+        return;
+    }
+
     // PIE 모드 시작 시 AnimationData가 설정되어 있으면 자동으로 반복 재생
     if (AnimationData)
     {
         PlayAnimation(AnimationData, true);
-        UE_LOG("USkeletalMeshComponent::BeginPlay - Auto-playing animation: %s", AnimationData->GetName().c_str());
     }
 }
 
@@ -29,35 +35,6 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
     // 애니메이션 틱
     TickAnimation(DeltaTime);
-
-    //// FOR TEST ////
-    if (!SkeletalMesh) { return; } // 부모의 SkeletalMesh 확인
-
-    // 1. 테스트할 뼈 인덱스 (모델에 따라 1, 5, 10 등 바꿔보세요)
-    constexpr int32 TEST_BONE_INDEX = 2;
-    
-    // 3. 테스트 시간 누적
-    if (!bIsInitialized)
-    {
-        TestBoneBasePose = CurrentLocalSpacePose[TEST_BONE_INDEX];
-        bIsInitialized = true;
-    }
-    TestTime += DeltaTime;
-
-    // 4. sin 함수를 이용해 -1 ~ +1 사이를 왕복하는 회전값 생성
-    // (예: Y축(Yaw)을 기준으로 1초에 1라디안(약 57도)씩 왕복)
-    float Angle = sinf(TestTime * 2.f);
-    FQuat TestRotation = FQuat::FromAxisAngle(FVector(1.f, 0.f, 0.f), Angle);
-    TestRotation.Normalize();
-
-    // 5. [중요] 원본 T-Pose에 테스트 회전을 누적
-    FTransform NewLocalPose = TestBoneBasePose;
-    NewLocalPose.Rotation = TestRotation * TestBoneBasePose.Rotation;
-    
-    // 6. [핵심] 기즈모가 하듯이, 뼈의 로컬 트랜스폼을 강제 설정
-    // (이 함수는 내부적으로 ForceRecomputePose()를 호출함)
-    SetBoneLocalTransform(TEST_BONE_INDEX, NewLocalPose);
-    //// FOR TEST ////
 }
 
 void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
@@ -250,6 +227,17 @@ void USkeletalMeshComponent::SetAnimation(UAnimSequence* InAnim)
     if (SingleNode)
     {
         SingleNode->SetAnimationAsset(InAnim);
+    }
+}
+
+void USkeletalMeshComponent::SetAnimInstance(UAnimInstance* InAnimInstance)
+{
+    if (InAnimInstance)
+    {
+        AnimInstance = InAnimInstance;
+        AnimInstance->OwnerComponent = this;  // ⭐ OwnerComponent 설정 (friend 클래스로 접근 가능)
+
+        UE_LOG("USkeletalMeshComponent::SetAnimInstance - %s", InAnimInstance->GetClass()->Name);
     }
 }
 
