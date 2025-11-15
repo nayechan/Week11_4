@@ -75,7 +75,12 @@ void UFbxLoader::PreLoad()
 		}
 		else if (Extension == ".dds" || Extension == ".jpg" || Extension == ".png")
 		{
-			UResourceManager::GetInstance().Load<UTexture>(Path.string()); // 데칼 텍스쳐를 ui에서 고를 수 있게 하기 위해 임시로 만듬.
+			// .fbm 폴더의 텍스처는 제외 (FBX embedded texture는 FBX 로드 시 자동 처리됨)
+			FString PathStr = NormalizePath(Path.string());
+			if (PathStr.find(".fbm") == FString::npos)
+			{
+				UResourceManager::GetInstance().Load<UTexture>(Path.string()); // 데칼 텍스쳐를 ui에서 고를 수 있게 하기 위해 임시로 만듬.
+			}
 		}
 	}
 	RESOURCE.SetSkeletalMeshs();
@@ -129,14 +134,12 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 	// 이미 같은 파일이 로드되어 있으면 캐시된 Scene 반환
 	if (CachedScene.Scene && CachedScene.FilePath == FilePath)
 	{
-		UE_LOG("[Scene Cache] Reusing cached FbxScene for: %s", FilePath.c_str());
 		return CachedScene.Scene;
 	}
 
 	// 다른 파일이면 기존 Scene 정리
 	if (CachedScene.Scene)
 	{
-		UE_LOG("[Scene Cache] Clearing previous cached scene: %s", CachedScene.FilePath.c_str());
 		CachedScene.Scene->Destroy();
 		CachedScene.Scene = nullptr;
 		CachedScene.FilePath.clear();
@@ -144,7 +147,6 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 	}
 
 	// 새로운 Scene 생성 및 Import
-	UE_LOG("[Scene Cache] Loading new FbxScene: %s", FilePath.c_str());
 
 	FbxImporter* Importer = FbxImporter::Create(SdkManager, "");
 	if (!Importer->Initialize(FilePath.c_str(), -1, SdkManager->GetIOSettings()))
@@ -181,16 +183,11 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
 
 	// bForceFrontXAxis option: use +X Forward instead (default: false in UE5)
-	bool bForceFrontXAxis = false;  // UE5 default: false
+	bool bForceFrontXAxis = true;  // UE5 default: false
 
 	if (bForceFrontXAxis)
 	{
 		FrontVector = FbxAxisSystem::eParityEven;  // +X Forward
-		UE_LOG("[Scene Cache] bForceFrontXAxis = true, using +X Forward");
-	}
-	else
-	{
-		UE_LOG("[Scene Cache] bForceFrontXAxis = false (default), using -Y Forward");
 	}
 
 	// Target coordinate system: Z-Up, Right-Handed, with dynamic Front vector
@@ -207,17 +204,6 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 
 	if (SourceSetup != UnrealImportAxis)
 	{
-		// Log source axis system for debugging
-		int SourceUpSign, SourceFrontSign;
-		FbxAxisSystem::EUpVector SourceUp = SourceSetup.GetUpVector(SourceUpSign);
-		FbxAxisSystem::EFrontVector SourceFront = SourceSetup.GetFrontVector(SourceFrontSign);
-		FbxAxisSystem::ECoordSystem SourceCoord = SourceSetup.GetCoorSystem();
-
-		UE_LOG("[Scene Cache] Source Axis System: Up=%d (sign=%d), Front=%d (sign=%d), Coord=%d",
-			(int)SourceUp, SourceUpSign, (int)SourceFront, SourceFrontSign, (int)SourceCoord);
-		UE_LOG("[Scene Cache] Converting coordinate system to Z-Up, %s, Right-Handed",
-			bForceFrontXAxis ? "+X Forward" : "-Y Forward");
-
 		// UE5 Pattern: Remove all FBX roots before conversion
 		FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
 
@@ -227,35 +213,21 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 		UnrealImportAxis.ConvertScene(Scene);
 		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after conversion
 	}
-	else
-	{
-		UE_LOG("[Scene Cache] Source already matches target axis system, no conversion needed");
-	}
 
 	// Unit Conversion AFTER Coordinate Conversion (Week10 order)
 	FbxSystemUnit SceneSystemUnit = Scene->GetGlobalSettings().GetSystemUnit();
 	double ScaleFactor = SceneSystemUnit.GetScaleFactor();
-	UE_LOG("[Scene Cache] FBX Scene Unit Scale Factor: %.2f (1.0=cm, 100.0=m)", ScaleFactor);
 
 	// Convert to meters (m)
 	if (ScaleFactor != 100.0)
 	{
-		UE_LOG("[Scene Cache] Converting units to meters (from %.2f)...", ScaleFactor);
 		FbxSystemUnit::m.ConvertScene(Scene);
 		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after unit conversion
-	}
-	else
-	{
-		UE_LOG("[Scene Cache] Already in meters, no unit conversion needed");
 	}
 
 	// 삼각화
 	FbxGeometryConverter GeometryConverter(SdkManager);
-	if (GeometryConverter.Triangulate(Scene, true))
-	{
-		UE_LOG("[Scene Cache] Scene triangulation completed");
-	}
-	else
+	if (!GeometryConverter.Triangulate(Scene, true))
 	{
 		UE_LOG("[Scene Cache] Warning: Scene triangulation failed");
 	}
@@ -266,7 +238,6 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 	CachedScene.bConverted = true;
 	bOutNewlyLoaded = true;
 
-	UE_LOG("[Scene Cache] Successfully loaded and converted FbxScene");
 	return Scene;
 }
 
@@ -274,7 +245,6 @@ void UFbxLoader::ClearCachedScene()
 {
 	if (CachedScene.Scene)
 	{
-		UE_LOG("[Scene Cache] Clearing cached scene: %s", CachedScene.FilePath.c_str());
 		CachedScene.Scene->Destroy();
 		CachedScene.Scene = nullptr;
 		CachedScene.FilePath.clear();
@@ -300,16 +270,17 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	}
 
 	bool bLoadedFromCache = false;
-	
 
 	// 2. 캐시 유효성 검사
 	bool bShouldRegenerate = true;
-	if (std::filesystem::exists(BinPathFileName))
+	bool bCacheExists = std::filesystem::exists(UTF8ToWide(BinPathFileName));
+
+	if (bCacheExists)
 	{
 		try
 		{
-			auto binTime = std::filesystem::last_write_time(BinPathFileName);
-			auto fbxTime = std::filesystem::last_write_time(NormalizedPath);
+			auto binTime = std::filesystem::last_write_time(UTF8ToWide(BinPathFileName));
+			auto fbxTime = std::filesystem::last_write_time(UTF8ToWide(NormalizedPath));
 
 			// FBX 파일이 캐시보다 오래되었으면 캐시 사용
 			if (fbxTime <= binTime)
@@ -327,7 +298,6 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	// 3. 캐시에서 로드 시도
 	if (!bShouldRegenerate)
 	{
-		UE_LOG("Attempting to load FBX '%s' from cache.", NormalizedPath.c_str());
 		try
 		{
 			MeshData = new FSkeletalMeshData();
@@ -345,13 +315,34 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 			{
 				if (MeshData->GroupInfos[Index].InitialMaterialName.empty())
 					continue;
+
 				const FString& MaterialName = MeshData->GroupInfos[Index].InitialMaterialName;
 				const FString& MaterialFilePath = ConvertDataPathToCachePath(MaterialName + ".mat.bin");
+
+				// 머티리얼 캐시 파일 존재 확인
+				if (!std::filesystem::exists(UTF8ToWide(MaterialFilePath)))
+				{
+					UE_LOG("Material cache not found: %s", MaterialFilePath.c_str());
+					throw std::runtime_error("Material cache file missing.");
+				}
+
+				// 머티리얼 캐시 타임스탬프 검증
+				auto matTime = std::filesystem::last_write_time(UTF8ToWide(MaterialFilePath));
+				auto binTime = std::filesystem::last_write_time(UTF8ToWide(BinPathFileName));
+
+				if (matTime < binTime)
+				{
+					UE_LOG("Material cache older than mesh cache: %s", MaterialFilePath.c_str());
+					throw std::runtime_error("Material cache outdated.");
+				}
+
+				// 머티리얼 캐시 로드
 				FWindowsBinReader MatReader(MaterialFilePath);
 				if (!MatReader.IsOpen())
 				{
 					throw std::runtime_error("Failed to open material bin file for reading.");
 				}
+
 				// for bin Load
 				FMaterialInfo MaterialInfo{};
 				Serialization::ReadAsset<FMaterialInfo>(MatReader, &MaterialInfo);
@@ -376,7 +367,34 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 			UE_LOG("Error loading FBX from cache: %s. Cache might be corrupt or incompatible.", e.what());
 			UE_LOG("Deleting corrupt cache and forcing regeneration for '%s'.", NormalizedPath.c_str());
 
-			std::filesystem::remove(BinPathFileName);
+			// 관련된 모든 캐시 파일 삭제
+			// 1. 머티리얼 캐시 삭제
+			if (MeshData && MeshData->GroupInfos.Num() > 0)
+			{
+				for (int Index = 0; Index < MeshData->GroupInfos.Num(); Index++)
+				{
+					if (!MeshData->GroupInfos[Index].InitialMaterialName.empty())
+					{
+						const FString& MaterialName = MeshData->GroupInfos[Index].InitialMaterialName;
+						const FString& MaterialFilePath = ConvertDataPathToCachePath(MaterialName + ".mat.bin");
+
+						if (std::filesystem::exists(UTF8ToWide(MaterialFilePath)))
+						{
+							std::filesystem::remove(UTF8ToWide(MaterialFilePath));
+							UE_LOG("Deleted corrupt material cache: %s", MaterialFilePath.c_str());
+						}
+					}
+				}
+			}
+
+			// 2. 메시 캐시 삭제
+			if (std::filesystem::exists(UTF8ToWide(BinPathFileName)))
+			{
+				std::filesystem::remove(UTF8ToWide(BinPathFileName));
+				UE_LOG("Deleted corrupt mesh cache: %s", BinPathFileName.c_str());
+			}
+
+			// 3. MeshData 정리
 			if (MeshData)
 			{
 				delete MeshData;
@@ -387,17 +405,20 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	}
 
 	// 4. 캐시 로드 실패 시 FBX 파싱
-	UE_LOG("Regenerating cache for FBX '%s'...", NormalizedPath.c_str());
+	UE_LOG("=== FBX PARSING START ===");
+	UE_LOG("  Regenerating cache for FBX '%s'...", NormalizedPath.c_str());
 #endif // USE_OBJ_CACHE
 
 	// UE5 방식: 단일 FbxScene 공유
 	bool bNewlyLoaded = false;
+	UE_LOG("  Calling GetOrLoadFbxScene...");
 	FbxScene* Scene = GetOrLoadFbxScene(NormalizedPath, bNewlyLoaded);
 	if (!Scene)
 	{
 		UE_LOG("Error: Failed to load FBX scene: %s", NormalizedPath.c_str());
 		return nullptr;
 	}
+	UE_LOG("  GetOrLoadFbxScene returned: %s", bNewlyLoaded ? "NEW SCENE" : "CACHED SCENE");
 
 	UE_LOG("========================================");
 	UE_LOG("[MESH] Loading Skeletal Mesh from FBX: %s", NormalizedPath.c_str());
@@ -1281,18 +1302,103 @@ void UFbxLoader::ParseMaterial(FbxSurfaceMaterial* Material, FMaterialInfo& Mate
 
 FString UFbxLoader::ParseTexturePath(FbxProperty& Property)
 {
-	if (Property.IsValid())
+	if (!Property.IsValid())
 	{
-		if (Property.GetSrcObjectCount<FbxFileTexture>() > 0)
+		return FString();
+	}
+
+	if (Property.GetSrcObjectCount<FbxFileTexture>() <= 0)
+	{
+		return FString();
+	}
+
+	FbxFileTexture* Texture = Property.GetSrcObject<FbxFileTexture>(0);
+	if (!Texture)
+	{
+		return FString();
+	}
+
+	// 1. FBX에서 텍스처 경로 가져오기
+	FString OriginalTexturePath = FString(Texture->GetFileName());
+	if (OriginalTexturePath.empty())
+	{
+		return FString();
+	}
+
+	// 2. .fbm 폴더에서 텍스처 찾기 (embedded 텍스처의 경우)
+	FString ActualTexturePath = OriginalTexturePath;
+	namespace fs = std::filesystem;
+
+	// 원본 FBX 파일 경로 (현재 로드 중인 파일)
+	FString CurrentFbxPath = CachedScene.FilePath;
+	if (!CurrentFbxPath.empty())
+	{
+		// .fbm 폴더 경로 구성: "FbxFileName.fbx.fbm"
+		fs::path FbxPath(UTF8ToWide(CurrentFbxPath));
+		fs::path FbmDir = FbxPath.parent_path() / (FbxPath.stem().wstring() + L".fbm");
+
+		// 텍스처 파일명 추출
+		fs::path TextureName = fs::path(UTF8ToWide(OriginalTexturePath)).filename();
+		fs::path TextureInFbm = FbmDir / TextureName;
+
+		// .fbm 폴더에 텍스처가 있으면 사용
+		if (fs::exists(TextureInFbm))
 		{
-			FbxFileTexture* Texture = Property.GetSrcObject<FbxFileTexture>(0);
-			if (Texture)
+			ActualTexturePath = WideToUTF8(TextureInFbm.wstring());
+		}
+		// 없으면 원본 경로 사용 (절대 경로이거나 상대 경로)
+		else if (!fs::exists(UTF8ToWide(OriginalTexturePath)))
+		{
+			// 원본 경로로도 찾을 수 없으면 FBX 기준 상대 경로 시도
+			fs::path RelativePath = FbxPath.parent_path() / fs::path(UTF8ToWide(OriginalTexturePath)).filename();
+			if (fs::exists(RelativePath))
 			{
-				return FString(Texture->GetFileName());
+				ActualTexturePath = WideToUTF8(RelativePath.wstring());
 			}
 		}
 	}
-	return FString();
+
+	// 3. DDS 캐시 경로 생성
+	FString DDSCachePath = FTextureConverter::GetDDSCachePath(ActualTexturePath);
+
+	// 4. DDS 캐시 재생성 필요 여부 확인
+	bool bShouldRegenerate = false;
+	bool bIsFbmTexture = ActualTexturePath.find(".fbm") != FString::npos;
+
+	if (bIsFbmTexture && !CurrentFbxPath.empty())
+	{
+		// .fbm 텍스처는 FBX 타임스탬프 기준
+		bShouldRegenerate = FTextureConverter::ShouldRegenerateDDS_Fbm(
+			ActualTexturePath, DDSCachePath, CurrentFbxPath);
+	}
+	else
+	{
+		// 일반 텍스처는 텍스처 파일 타임스탬프 기준
+		bShouldRegenerate = FTextureConverter::ShouldRegenerateDDS(
+			ActualTexturePath, DDSCachePath);
+	}
+
+	// 5. 필요 시 DDS 변환
+	if (bShouldRegenerate)
+	{
+		if (fs::exists(UTF8ToWide(ActualTexturePath)))
+		{
+			if (!FTextureConverter::ConvertToDDS(ActualTexturePath, DDSCachePath))
+			{
+				UE_LOG("[FBXLoader] Warning: DDS conversion failed for %s, using original path",
+					ActualTexturePath.c_str());
+				return ActualTexturePath;
+			}
+		}
+		else
+		{
+			UE_LOG("[FBXLoader] Warning: Texture file not found: %s", ActualTexturePath.c_str());
+			return OriginalTexturePath;
+		}
+	}
+
+	// 6. DDS 캐시 경로 반환
+	return DDSCachePath;
 }
 
 FbxString UFbxLoader::GetAttributeTypeName(FbxNodeAttribute* InAttribute)

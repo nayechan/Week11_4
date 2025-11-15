@@ -281,7 +281,6 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\BoneAnchorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Fade.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_StandAlone|x64'">true</ExcludedFromBuild>
@@ -919,7 +918,6 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UAnimSingleNodeInstance.generated.h" />
     <ClInclude Include="Generated\UResourceBase.generated.h" />
     <ClInclude Include="Generated\UStaticMesh.generated.h" />
-    <ClInclude Include="Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
   <ClInclude Include="Generated\FTestTransform.generated.h" /><ClInclude Include="Generated\UTestComponent.generated.h" /></ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />

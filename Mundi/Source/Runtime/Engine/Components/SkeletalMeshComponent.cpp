@@ -8,7 +8,7 @@
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
     // 테스트용 기본 메시 설정
-    SetSkeletalMesh(GDataDir + "/Test.fbx");
+    // SetSkeletalMesh(GDataDir + "/Test.fbx");
 }
 
 void USkeletalMeshComponent::BeginPlay()
