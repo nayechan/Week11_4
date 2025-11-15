@@ -6,8 +6,8 @@
 void UAnimSingleNodeInstance::SetAnimationAsset(UAnimSequence* NewAsset)
 {
 	CurrentSequence = NewAsset;
-	CurrentTime = 0.0f;
-	PreviousTime = 0.0f;
+	InternalTime = 0.0f;
+	PreviousInternalTime = 0.0f;
 }
 
 void UAnimSingleNodeInstance::Play(bool bInLooping)
@@ -21,8 +21,8 @@ void UAnimSingleNodeInstance::Play(bool bInLooping)
 void UAnimSingleNodeInstance::Stop()
 {
 	bIsPlaying = false;
-	CurrentTime = 0.0f;
-	PreviousTime = 0.0f;
+	InternalTime = 0.0f;
+	PreviousInternalTime = 0.0f;
 
 	UE_LOG("UAnimSingleNodeInstance::Stop");
 }
@@ -41,35 +41,51 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-	Super::NativeUpdateAnimation(DeltaSeconds);
-
+	// Unreal 방식: DeltaTime만 받아서 InternalTime 업데이트
 	if (!bIsPlaying || !CurrentSequence)
 		return;
 
-	// 시간 업데이트
-	PreviousTime = CurrentTime;
-	CurrentTime += DeltaSeconds * PlayRate;
+	// Notify 범위 체크용
+	PreviousInternalTime = InternalTime;
+	InternalTime += DeltaSeconds * PlayRate;
 
 	// 애니메이션 길이 체크
 	const float AnimLength = CurrentSequence->GetPlayLength();
 
-	if (CurrentTime >= AnimLength)
+	if (InternalTime >= AnimLength)
 	{
 		if (bLooping)
 		{
 			// 루핑: 시작으로 돌아가기
-			CurrentTime = std::fmod(CurrentTime, AnimLength);
+			InternalTime = std::fmod(InternalTime, AnimLength);
 		}
 		else
 		{
 			// 비루핑: 정지
-			CurrentTime = AnimLength;
+			InternalTime = AnimLength;
 			bIsPlaying = false;
 
 			UE_LOG("UAnimSingleNodeInstance - Animation finished");
 		}
 	}
+}
 
-	// Notify 트리거
-	TriggerAnimNotifies(DeltaSeconds);
+void UAnimSingleNodeInstance::GetAnimationPose(FPoseContext& OutPose)
+{
+	if (!CurrentSequence)
+	{
+		OutPose.BoneTransforms.Empty();
+		return;
+	}
+
+	// Unreal 방식:
+	// 1. InternalTime 기준으로 포즈 추출
+	// 2. Notify 수집하여 OutPose.AnimNotifies에 추가
+	FAnimExtractContext Context(InternalTime, bLooping);
+	CurrentSequence->GetAnimationPose(OutPose, Context);
+
+	// Notify 수집 (트리 누적 패턴)
+	TArray<FAnimNotifyEvent> Notifies;
+	CurrentSequence->GetAnimNotifiesInRange(PreviousInternalTime, InternalTime, Notifies);
+	OutPose.AnimNotifies.Append(Notifies);
 }

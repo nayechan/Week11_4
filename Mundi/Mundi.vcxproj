@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug_StandAlone|x64">
@@ -279,13 +279,17 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Core\Misc\VertexData.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationAsset.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationRuntime.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSequence.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSequenceBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\TestAnimNotifyActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\BoneAnchorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Fade.cpp" />
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
@@ -527,7 +531,11 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\UStaticMesh.generated.cpp" />
     <ClCompile Include="Generated\FTestTransform.generated.cpp" />
     <ClCompile Include="Generated\UTestComponent.generated.cpp" />
-  </ItemGroup>
+    <ClCompile Include="Generated\FAnimState.generated.cpp" />
+    <ClCompile Include="Generated\UAnimStateMachine.generated.cpp" />
+    <ClCompile Include="Generated\UCharacterAnimInstance.generated.cpp" />
+    <ClCompile Include="Generated\UCharacterStateMachine.generated.cpp" />
+  <ClCompile Include="Generated\ATestAnimNotifyActor.generated.cpp" /></ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -708,6 +716,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequenceBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h" />
@@ -737,6 +747,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Info.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PointLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\TestAnimNotifyActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\GameObject.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.h" />
@@ -934,9 +945,14 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UAnimSingleNodeInstance.generated.h" />
     <ClInclude Include="Generated\UResourceBase.generated.h" />
     <ClInclude Include="Generated\UStaticMesh.generated.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Generated\FTestTransform.generated.h" />
     <ClInclude Include="Generated\UTestComponent.generated.h" />
-  </ItemGroup>
+    <ClInclude Include="Generated\FAnimState.generated.h" />
+    <ClInclude Include="Generated\UAnimStateMachine.generated.h" />
+    <ClInclude Include="Generated\UCharacterAnimInstance.generated.h" />
+    <ClInclude Include="Generated\UCharacterStateMachine.generated.h" />
+  <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h" /></ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />

@@ -44,6 +44,7 @@ public:
 
     void SetAnimationMode(EAnimationMode InMode);
     void SetAnimation(UAnimSequence* InAnim);
+    void SetAnimInstance(class UAnimInstance* InAnimInstance);
     void Play(bool bLooping);
 
     // AnimNotify 핸들링 (발제 문서 구조)
@@ -109,11 +110,4 @@ protected:
      * @brief CPU 스키닝에 전달할 최종 노말 스키닝 행렬
      */
     TArray<FMatrix> TempFinalSkinningNormalMatrices;
-
-
-// FOR TEST!!!
-private:
-    float TestTime = 0;
-    bool bIsInitialized = false;
-    FTransform TestBoneBasePose;
 };
