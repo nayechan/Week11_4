@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "String.h"
 #include "fbxsdk.h"
 
@@ -11,7 +11,7 @@
  * UE5 Pattern: FFbxHelper (static utility functions)
  * Location: Engine/Plugins/Interchange/Runtime/Source/Parsers/Fbx/Private/FbxHelper.h
  *
- * Refactoring Phase 2 (v2.0): FBXLoader의 naming 로직을 중앙화
+ * FBXLoader의 naming 로직을 중앙화
  * NOTE: FPayloadContextBase 제거됨 (지연 로딩 패턴 미사용)
  */
 struct FFbxHelper

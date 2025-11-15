@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "String.h"
 #include "fbxsdk.h"
 #include "ResourceData.h"
@@ -12,7 +12,7 @@
  * UE5 Pattern: FFbxMaterial (static utility functions)
  * Location: Engine/Plugins/Interchange/Runtime/Source/Parsers/Fbx/Private/FbxMaterial.h
  *
- * Refactoring Phase 3 (v2.0): FBXLoader의 material 파싱 로직을 중앙화
+ * FBXLoader의 material 파싱 로직을 중앙화
  * NOTE: 즉시 로딩 패턴 사용 (지연 로딩 미사용)
  */
 struct FFbxMaterial

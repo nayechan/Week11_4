@@ -105,7 +105,7 @@ FSkeletalMeshData* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMate
 			OutMaterialInfos,
 			Scene,
 			FilePath,
-			CachedScene.bForceFrontXAxis
+			JointOrientationMatrix  // UE5 Pattern: 멤버 변수 직접 사용
 		);
 	}
 
@@ -180,7 +180,7 @@ UAnimSequence* FFbxParser::LoadFbxAnimation(const FString& FilePath, const FSkel
 	UE_LOG("========================================");
 
 	// 5. 애니메이션 추출 (Phase 4: FFbxAnimation)
-	FFbxAnimation::ExtractAnimation(AnimStack, TargetSkeleton, AnimSeq, CachedScene.bForceFrontXAxis);
+	FFbxAnimation::ExtractAnimation(AnimStack, TargetSkeleton, AnimSeq, JointOrientationMatrix);
 
 	UE_LOG("========================================");
 	UE_LOG("[ANIMATION] FFbxParser: Load complete");
@@ -285,71 +285,22 @@ FbxScene* FFbxParser::LoadFbxScene(const FString& FilePath, bool& bOutNewlyLoade
 void FFbxParser::ConvertScene(FbxScene* Scene, bool bForceFrontXAxis)
 {
 	// ========================================
-	// UE5 Pattern: Coordinate System Conversion
+	// UE5 Pattern: FFbxConvert::ConvertScene()로 위임
 	// ========================================
-	// Unreal Engine uses -Y as forward axis by default to mimic Maya/Max behavior
-	// This way, models facing +X in DCC tools will face +X in engine
+	// UE5 Reference:
+	// - FbxAPI.cpp Line 151: FFbxConvert::ConvertScene() 호출
+	// - FbxConvert.cpp Line 113-158: 실제 구현
 	//
-	// Reference: UE5 Engine\Source\Editor\UnrealEd\Private\Fbx\FbxMainImport.cpp Line 1528-1563
+	// 이 함수는 두 가지 작업을 수행:
+	// 1. FBX Scene 좌표계를 Z-Up, Right-Handed로 변환
+	// 2. JointOrientationMatrix 멤버 변수 설정 (참조로 전달)
 	//
-	// Quote from UE5 source:
-	// "we use -Y as forward axis here when we import. This is odd considering our
-	//  forward axis is technically +X but this is to mimic Maya/Max behavior where
-	//  if you make a model facing +X facing, when you import that mesh, you want
-	//  +X facing in engine."
+	// JointOrientationMatrix는 이후 모든 곳에서 재사용됨:
+	// - FbxMesh.cpp: BindPose 계산 시 사용 (Parser.JointOrientationMatrix)
+	// - FbxAnimation.cpp: 애니메이션 노드 변환 시 사용 (Parser.JointOrientationMatrix)
+	// - FbxScene.cpp: 스켈레톤 계층 구조 변환 시 사용 (Parser.JointOrientationMatrix)
 
-	// Default: -Y Forward (matches Maya/Max workflow)
-	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
-
-	// bForceFrontXAxis option: use +X Forward instead (default: false in UE5)
-	if (bForceFrontXAxis)
-	{
-		FrontVector = FbxAxisSystem::eParityEven;  // +X Forward
-	}
-
-	// Target coordinate system: Z-Up, Right-Handed, with dynamic Front vector
-	FbxAxisSystem UnrealImportAxis(
-		FbxAxisSystem::eZAxis,           // Up: Z
-		FrontVector,                     // Front: -Y (default) or +X (if bForceFrontXAxis)
-		FbxAxisSystem::eRightHanded      // Right-Handed intermediate stage
-	);
-
-	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-
-	if (SourceSetup != UnrealImportAxis)
-	{
-		// UE5 Pattern: Remove all FBX roots before conversion
-		FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
-
-		// CHANGED: DeepConvertScene → ConvertScene
-		// ConvertScene only transforms Scene Graph, NOT vertex data
-		// This prevents double-transformation bug (100x scale issue)
-		UnrealImportAxis.ConvertScene(Scene);
-		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after conversion
-	}
-
-	// ========================================
-	// JointOrientationMatrix 설정 (UE5 Pattern)
-	// ========================================
-	// IMPORTANT: JointOrientationMatrix는 함수가 아니라 public 멤버 변수!
-	//
-	// UE5 Reference: FbxAPI.cpp:480-500 (FFbxParser::JointPostConversionMatrix)
-	//
-	// 용도: BindPose 계산 시 사용
-	// GlobalBindPoseMatrix = TransformLinkMatrix * JointOrientationMatrix
-
-	if (bForceFrontXAxis)
-	{
-		// +X Forward: 90도 회전 행렬 적용
-		// UE5 Pattern: FbxMathInterface::GetJointPostConversionMatrix(...)
-		// 하지만 Mundi는 단순화하여 Identity 사용 (좌표계 변환은 FFbxConvert에서 처리)
-		JointOrientationMatrix.SetIdentity();
-	}
-	else
-	{
-		// -Y Forward (기본값): Identity
-		JointOrientationMatrix.SetIdentity();
-	}
+	FFbxConvert::ConvertScene(Scene, bForceFrontXAxis, JointOrientationMatrix);
 }
 
 #pragma warning(pop) // Restore warning state

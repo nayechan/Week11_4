@@ -12,7 +12,7 @@ class FFbxParser;
  *
  * FBX 로딩을 위한 얇은 래퍼 클래스 (애셋 레벨 캐싱 담당)
  *
- * Phase 7: Orchestration 로직을 FFbxParser로 이동
+ * Orchestration 로직을 FFbxParser로 이동
  *
  * 주요 책임:
  * - .bin 파일 캐싱 (메시)

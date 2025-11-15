@@ -85,10 +85,74 @@ FQuat FFbxConvert::ConvertRotation(const FbxQuaternion& FbxQuat)
  */
 FVector FFbxConvert::ConvertScale(const FbxVector4& FbxVector)
 {
-	// 스케일은 항상 양수, 손잡이 변환 불필요
+	// 스케일은 항상 양수, handedness 변환 불필요
 	return FVector(
 		static_cast<float>(FbxVector[0]),
 		static_cast<float>(FbxVector[1]),      // flip 안 함
 		static_cast<float>(FbxVector[2])
 	);
+}
+
+/**
+ * ConvertScene
+ *
+ * FBX Scene의 좌표계 변환 및 JointOrientationMatrix 설정 (UE5 Pattern)
+ *
+ * UE5 Reference:
+ * - FbxConvert.cpp Line 61-111
+ * - FbxAPI.cpp Line 151 (호출 부분)
+ *
+ * 이 함수는 두 가지 작업을 수행:
+ * 1. FBX Scene 좌표계를 Z-Up, Right-Handed로 변환
+ * 2. JointOrientationMatrix 설정 (BindPose 계산 시 사용됨)
+ *
+ * JointOrientationMatrix 용도:
+ * - GlobalBindPoseMatrix = TransformLinkMatrix * JointOrientationMatrix
+ * - 애니메이션: NodeTransform = NodeTransform * JointOrientationMatrix
+ */
+void FFbxConvert::ConvertScene(FbxScene* Scene, bool bForceFrontXAxis, FbxAMatrix& JointOrientationMatrix)
+{
+	if (!Scene)
+	{
+		return;
+	}
+
+	// Step 1: JointOrientationMatrix 초기화 (항상 먼저 수행)
+	JointOrientationMatrix.SetIdentity();
+
+	// Step 2: 좌표계 변환 (UE5 Pattern)
+	// UE는 Z-Up, Front는 -Y(기본) 또는 +X(bForceFrontXAxis), Right-Handed 중간 단계
+	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector)(
+		bForceFrontXAxis ? FbxAxisSystem::eParityEven : -FbxAxisSystem::eParityOdd
+		);
+
+	FbxAxisSystem UnrealImportAxis(
+		FbxAxisSystem::eZAxis,        // Up: Z
+		FrontVector,                  // Front: -Y (기본) 또는 +X (bForceFrontXAxis)
+		FbxAxisSystem::eRightHanded   // Right-Handed 중간 단계
+	);
+
+	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
+
+	if (SourceSetup != UnrealImportAxis)
+	{
+		// UE5 패턴: 변환 전 모든 FBX 루트 제거
+		FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
+
+		// ConvertScene: Scene Graph만 변환 (정점 데이터는 변환하지 않음)
+		UnrealImportAxis.ConvertScene(Scene);
+
+		// 변환 후 evaluator 리셋
+		Scene->GetAnimationEvaluator()->Reset();
+
+		// Step 3: JointOrientationMatrix 설정 (좌표계 변환이 실제로 발생한 경우만)
+		if (bForceFrontXAxis)
+		{
+			// +X Forward: -Y Forward를 +X Forward로 변환하는 회전 행렬
+			// UE5 Pattern: SetR(-90°, -90°, 0°)
+			JointOrientationMatrix.SetR(FbxVector4(-90.0, -90.0, 0.0));
+		}
+		// else: -Y Forward는 Identity (이미 초기화됨)
+	}
+	// else: 좌표계 변환 불필요, JointOrientationMatrix는 Identity 유지
 }

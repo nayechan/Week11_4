@@ -32,7 +32,7 @@ struct FFbxMesh
 	 * @param MaterialInfos - 추출된 머티리얼 정보 (bin 저장용)
 	 * @param Scene - FBX Scene (TotalMatrix 계산용)
 	 * @param CurrentFbxPath - 현재 FBX 파일 경로 (텍스처 경로 해석용)
-	 * @param bForceFrontXAxis - JointPostConversionMatrix 플래그
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (BindPose 계산용)
 	 *
 	 * 처리 순서:
 	 * 1. 노드의 모든 Attribute 순회
@@ -49,7 +49,7 @@ struct FFbxMesh
 		TArray<FMaterialInfo>& MaterialInfos,
 		FbxScene* Scene,
 		const FString& CurrentFbxPath,
-		bool bForceFrontXAxis);
+		const FbxAMatrix& JointOrientationMatrix);
 
 	/**
 	 * ExtractMesh
@@ -63,7 +63,7 @@ struct FFbxMesh
 	 * @param MaterialSlotToIndex - 머티리얼 슬롯 → 인덱스 매핑 (최적화용)
 	 * @param Scene - FBX Scene (TotalMatrix 계산용)
 	 * @param DefaultMaterialIndex - 기본 머티리얼 인덱스 (머티리얼 없는 메시용)
-	 * @param bForceFrontXAxis - JointPostConversionMatrix 플래그
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (BindPose 계산용)
 	 *
 	 * 처리 순서:
 	 * 1. Deformer (Skin) 순회하여 스키닝 데이터 추출
@@ -82,7 +82,7 @@ struct FFbxMesh
 		TArray<int32> MaterialSlotToIndex,
 		FbxScene* Scene,
 		int32 DefaultMaterialIndex,
-		bool bForceFrontXAxis);
+		const FbxAMatrix& JointOrientationMatrix);
 
 private:
 	/**

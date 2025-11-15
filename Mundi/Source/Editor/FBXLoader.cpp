@@ -3,13 +3,12 @@
 #pragma warning(disable: 4244) // Disable double to float conversion warning for FBX SDK
 #include "ObjectFactory.h"
 #include "FbxLoader.h"
-#include "FbxParser.h"         // Phase 7: FBX SDK management and orchestration
-#include "FbxDataConverter.h"  // Week10 Migration: Y-Flip and coordinate conversion utilities
-#include "FbxHelper.h"         // Phase 2: FBX naming utilities
-#include "FbxMaterial.h"       // Phase 3: FBX material and texture extraction
-#include "FbxAnimation.h"      // Phase 4: FBX animation extraction
-#include "FbxScene.h"          // Phase 5: FBX scene hierarchy and skeleton extraction
-#include "FbxMesh.h"           // Phase 6: FBX mesh extraction
+#include "FbxParser.h"         
+#include "FbxHelper.h"         
+#include "FbxMaterial.h"       
+#include "FbxAnimation.h"      
+#include "FbxScene.h"          
+#include "FbxMesh.h"               
 #include "ObjectIterator.h"
 #include "WindowsBinReader.h"
 #include "WindowsBinWriter.h"
@@ -23,7 +22,7 @@ IMPLEMENT_CLASS(UFbxLoader)
 UFbxLoader::UFbxLoader()
 	: Parser(nullptr)
 {
-	// Phase 7: FFbxParser 생성 (FBX SDK 관리 및 orchestration 담당)
+	// FFbxParser 생성 (FBX SDK 관리 및 orchestration 담당)
 	Parser = new FFbxParser();
 }
 
@@ -117,7 +116,7 @@ USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 	// 0) 경로
 	FString NormalizedPathStr = NormalizePath(FilePath);
 
-	// 1) 이미 로드된 UStaticMesh가 있는지 전체 검색 (정규화된 경로로 비교)
+	// 1) 이미 로드된 USkeletalMesh가 있는지 전체 검색 (정규화된 경로로 비교)
 	for (TObjectIterator<USkeletalMesh> It; It; ++It)
 	{
 		USkeletalMesh* SkeletalMesh = *It;

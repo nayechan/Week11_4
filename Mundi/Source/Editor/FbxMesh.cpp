@@ -3,7 +3,7 @@
 #pragma warning(disable: 4244) // Disable double to float conversion warning for FBX SDK
 #include "FbxMesh.h"
 #include "FbxMaterial.h"
-#include "FbxDataConverter.h"
+#include "FbxConvert.h"
 #include "fbxsdk/scene/geometry/fbxcluster.h"
 #include "Material.h"
 #include "ResourceManager.h"
@@ -27,7 +27,7 @@ void FFbxMesh::ExtractMeshFromNode(
 	TArray<FMaterialInfo>& MaterialInfos,
 	FbxScene* Scene,
 	const FString& CurrentFbxPath,
-	bool bForceFrontXAxis)
+	const FbxAMatrix& JointOrientationMatrix)
 {
 	// 최적화, 메시 로드 전에 미리 머티리얼로부터 인덱스를 해시맵을 이용해서 얻고 그걸 TArray에 저장하면 됨.
 	// 노드의 머티리얼 리스트는 슬롯으로 참조함(내가 정한 MaterialIndex는 슬롯과 다름), 슬롯에 대응하는 머티리얼 인덱스를 캐싱하는 것
@@ -122,18 +122,18 @@ void FFbxMesh::ExtractMeshFromNode(
 						MeshData.GroupInfos[MaterialIndex].InitialMaterialName = MaterialInfo.MaterialName;
 					}
 					// MaterialSlotToIndex에 추가할 필요 없음(머티리얼 하나일때 해싱 패스하고 Material Index로 바로 그룹핑 할 거라서 안 씀)
-					ExtractMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, Scene, MaterialIndex, bForceFrontXAxis);
+					ExtractMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, Scene, MaterialIndex, JointOrientationMatrix);
 					continue;
 				}
 			}
 
-			ExtractMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, Scene, 0, bForceFrontXAxis);
+			ExtractMesh(Mesh, MeshData, MaterialGroupIndexList, BoneToIndex, MaterialSlotToIndex, Scene, 0, JointOrientationMatrix);
 		}
 	}
 
 	for (int Index = 0; Index < InNode->GetChildCount(); Index++)
 	{
-		ExtractMeshFromNode(InNode->GetChild(Index), MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex, MaterialInfos, Scene, CurrentFbxPath, bForceFrontXAxis);
+		ExtractMeshFromNode(InNode->GetChild(Index), MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex, MaterialInfos, Scene, CurrentFbxPath, JointOrientationMatrix);
 	}
 }
 
@@ -150,7 +150,7 @@ void FFbxMesh::ExtractMesh(
 	TArray<int32> MaterialSlotToIndex,
 	FbxScene* Scene,
 	int32 DefaultMaterialIndex,
-	bool bForceFrontXAxis)
+	const FbxAMatrix& JointOrientationMatrix)
 {
 	// 위에서 뼈 인덱스를 구했으므로 일단 ControlPoint에 대응되는 뼈 인덱스와 가중치부터 할당할 것임(이후 MeshData를 채우면서 ControlPoint를 순회할 것이므로)
 	struct IndexWeight
@@ -198,23 +198,24 @@ void FFbxMesh::ExtractMesh(
 			Cluster->GetTransformLinkMatrix(TransformLinkMatrix);
 
 			// ========================================
-			// UE5 Pattern: Conditional JointPostConversionMatrix
+			// UE5 Pattern: JointOrientationMatrix 사용
 			// ========================================
-			// Reference: UE5 FbxMainImport.cpp Line 1559-1562
+			// UE5 Reference: FbxMesh.cpp Line 2180
 			//
-			// bForceFrontXAxis = true  → Apply JointPost (-90°, -90°, 0°) for +X Forward conversion
-			// bForceFrontXAxis = false → Identity (using -Y Forward, no additional rotation needed)
+			// JointOrientationMatrix는 ConvertScene()에서 한 번 설정되고
+			// 모든 BindPose 계산에서 재사용됨
 			//
-			// UE5 applies JointOrientationMatrix ONLY when bForceFrontXAxis is enabled
-			FbxAMatrix JointPostMatrix = FFbxDataConverter::GetJointPostConversionMatrix(bForceFrontXAxis);
-			TransformLinkMatrix = TransformLinkMatrix * JointPostMatrix;
+			// 값:
+			// - bForceFrontXAxis = false: Identity (-Y Forward, 기본값)
+			// - bForceFrontXAxis = true:  SetR(-90°, -90°, 0°) (+X Forward)
+			TransformLinkMatrix = TransformLinkMatrix * JointOrientationMatrix;
 
 			// Convert to Mundi FMatrix with Y-Flip (Right-Handed → Left-Handed)
-			FMatrix GlobalBindPoseMatrix = FFbxDataConverter::ConvertFbxMatrixWithYAxisFlip(TransformLinkMatrix);
+			FMatrix GlobalBindPoseMatrix = FFbxConvert::ConvertMatrix(TransformLinkMatrix);
 
 			// Calculate Inverse Bind Pose with Y-Flip
 			FbxAMatrix InverseBindMatrix = TransformLinkMatrix.Inverse();
-			FMatrix InverseBindPoseMatrix = FFbxDataConverter::ConvertFbxMatrixWithYAxisFlip(InverseBindMatrix);
+			FMatrix InverseBindPoseMatrix = FFbxConvert::ConvertMatrix(InverseBindMatrix);
 
 			// Store in Skeleton
 			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].BindPose = GlobalBindPoseMatrix;
@@ -294,7 +295,7 @@ void FFbxMesh::ExtractMesh(
 			// ========================================
 			const FbxVector4& Position = FbxSceneWorld.MultT(ControlPoints[ControlPointIndex]);
 			// Apply Y-Flip for Right-Handed → Left-Handed conversion
-			SkinnedVertex.Position = FFbxDataConverter::ConvertPos(Position);
+			SkinnedVertex.Position = FFbxConvert::ConvertPos(Position);
 
 
 			if (ControlPointToBoneWeight.Contains(ControlPointIndex))
@@ -397,7 +398,7 @@ void FFbxMesh::ExtractMesh(
 					const FbxVector4& Normal = Normals->GetDirectArray().GetAt(MappingIndex);
 					FbxVector4 NormalWorld = FbxSceneWorldInverseTranspose.MultT(FbxVector4(Normal.mData[0], Normal.mData[1], Normal.mData[2], 0.0f));
 					// PHASE 4: Apply Y-Flip to normal (Right-Handed → Left-Handed)
-					SkinnedVertex.Normal = FFbxDataConverter::ConvertDir(NormalWorld);
+					SkinnedVertex.Normal = FFbxConvert::ConvertDir(NormalWorld);
 				}
 				break;
 				case FbxGeometryElement::eIndexToDirect:
@@ -406,7 +407,7 @@ void FFbxMesh::ExtractMesh(
 					const FbxVector4& Normal = Normals->GetDirectArray().GetAt(Id);
 					FbxVector4 NormalWorld = FbxSceneWorldInverseTranspose.MultT(FbxVector4(Normal.mData[0], Normal.mData[1], Normal.mData[2], 0.0f));
 					// PHASE 4: Apply Y-Flip to normal (Right-Handed → Left-Handed)
-					SkinnedVertex.Normal = FFbxDataConverter::ConvertDir(NormalWorld);
+					SkinnedVertex.Normal = FFbxConvert::ConvertDir(NormalWorld);
 				}
 				break;
 				default:
@@ -440,7 +441,7 @@ void FFbxMesh::ExtractMesh(
 					const FbxVector4& Tangent = Tangents->GetDirectArray().GetAt(MappingIndex);
 					FbxVector4 TangentWorld = FbxSceneWorld.MultT(FbxVector4(Tangent.mData[0], Tangent.mData[1], Tangent.mData[2], 0.0f));
 					// PHASE 4: Apply Y-Flip to tangent (Right-Handed → Left-Handed), preserve W (handedness)
-					FVector TangentConverted = FFbxDataConverter::ConvertDir(TangentWorld);
+					FVector TangentConverted = FFbxConvert::ConvertDir(TangentWorld);
 					SkinnedVertex.Tangent = FVector4(TangentConverted.X, TangentConverted.Y, TangentConverted.Z, Tangent.mData[3]);
 				}
 				break;
@@ -450,7 +451,7 @@ void FFbxMesh::ExtractMesh(
 					const FbxVector4& Tangent = Tangents->GetDirectArray().GetAt(Id);
 					FbxVector4 TangentWorld = FbxSceneWorld.MultT(FbxVector4(Tangent.mData[0], Tangent.mData[1], Tangent.mData[2], 0.0f));
 					// PHASE 4: Apply Y-Flip to tangent (Right-Handed → Left-Handed), preserve W (handedness)
-					FVector TangentConverted = FFbxDataConverter::ConvertDir(TangentWorld);
+					FVector TangentConverted = FFbxConvert::ConvertDir(TangentWorld);
 					SkinnedVertex.Tangent = FVector4(TangentConverted.X, TangentConverted.Y, TangentConverted.Z, Tangent.mData[3]);
 				}
 				break;

@@ -120,4 +120,25 @@ struct FFbxConvert
 	static FVector ConvertDir(const FbxVector4& FbxVector);
 	static FQuat ConvertRotation(const FbxQuaternion& FbxQuat);
 	static FVector ConvertScale(const FbxVector4& FbxVector);
+
+	/**
+	 * ConvertScene
+	 *
+	 * FBX Scene의 좌표계 변환 (UE5 Pattern)
+	 *
+	 * UE5 Reference: FbxConvert.cpp Line 61-111
+	 * - Z-Up, Right-Handed 중간 단계로 변환
+	 * - JointOrientationMatrix 설정 (BindPose 계산 시 사용)
+	 *
+	 * 흐름:
+	 * 1. 좌표계가 다르면 ConvertScene() 호출
+	 * 2. JointOrientationMatrix 설정:
+	 *    - bForceFrontXAxis = false: Identity (기본값, -Y Forward)
+	 *    - bForceFrontXAxis = true: SetR(-90°, -90°, 0°) (+X Forward)
+	 *
+	 * @param Scene - 변환할 FBX Scene
+	 * @param bForceFrontXAxis - +X Forward 강제 사용 여부
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (출력 매개변수, 참조로 설정됨)
+	 */
+	static void ConvertScene(FbxScene* Scene, bool bForceFrontXAxis, FbxAMatrix& JointOrientationMatrix);
 };

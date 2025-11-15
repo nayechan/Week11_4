@@ -30,7 +30,7 @@ struct FFbxAnimation
 	 * @param AnimStack - FBX AnimStack (타임스팬, 레이어 포함)
 	 * @param TargetSkeleton - 타겟 스켈레톤 (본 매칭용)
 	 * @param OutAnim - 애니메이션 데이터를 저장할 UAnimSequence
-	 * @param bForceFrontXAxis - JointPostConversionMatrix 플래그 (UE5 패턴)
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (애니메이션 본 변환용)
 	 *
 	 * 처리 순서:
 	 * 1. AnimLayer 및 타임스팬 추출
@@ -42,7 +42,7 @@ struct FFbxAnimation
 		FbxAnimStack* AnimStack,
 		const FSkeleton* TargetSkeleton,
 		UAnimSequence* OutAnim,
-		bool bForceFrontXAxis = false);
+		const FbxAMatrix& JointOrientationMatrix);
 
 	/**
 	 * ExtractBoneCurves
@@ -54,7 +54,7 @@ struct FFbxAnimation
 	 * @param AnimLayer - FBX 애니메이션 레이어
 	 * @param TargetSkeleton - 타겟 스켈레톤 (본 이름 매칭용)
 	 * @param OutAnim - 애니메이션 트랙을 추가할 UAnimSequence
-	 * @param bForceFrontXAxis - JointPostConversionMatrix 플래그
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (애니메이션 본 변환용)
 	 * @param DebugBoneCount - 디버그 로깅용 카운터 (처음 3-4개만 자세히 로깅)
 	 */
 	static void ExtractBoneCurves(
@@ -62,7 +62,7 @@ struct FFbxAnimation
 		FbxAnimLayer* AnimLayer,
 		const FSkeleton* TargetSkeleton,
 		UAnimSequence* OutAnim,
-		bool bForceFrontXAxis,
+		const FbxAMatrix& JointOrientationMatrix,
 		int& DebugBoneCount);
 
 	/**
@@ -75,14 +75,14 @@ struct FFbxAnimation
 	 * @param AnimLayer - 애니메이션 레이어
 	 * @param TargetSkeleton - 타겟 스켈레톤
 	 * @param OutTrack - 키프레임을 저장할 본 애니메이션 트랙
-	 * @param bForceFrontXAxis - JointPostConversionMatrix 플래그 (UE5 패턴)
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (애니메이션 본 변환용)
 	 * @param DebugBoneCount - 디버그 로깅용 카운터
 	 *
 	 * 처리 순서:
 	 * 1. Translation, Rotation, Scale 커브 수집
 	 * 2. 모든 커브에서 unique한 KeyTime 수집
 	 * 3. 각 KeyTime에서 EvaluateGlobalTransform 호출
-	 * 4. JointPostConversionMatrix 적용 (bForceFrontXAxis에 따라)
+	 * 4. JointOrientationMatrix 적용
 	 * 5. 부모 기준 로컬 변환 계산
 	 * 6. Y-Flip 좌표 변환 적용
 	 * 7. NaN/Inf 검증
@@ -92,7 +92,7 @@ struct FFbxAnimation
 		FbxAnimLayer* AnimLayer,
 		const FSkeleton* TargetSkeleton,
 		FBoneAnimationTrack& OutTrack,
-		bool bForceFrontXAxis,
+		const FbxAMatrix& JointOrientationMatrix,
 		int& DebugBoneCount);
 
 private:
@@ -115,13 +115,13 @@ private:
 	 * EvaluateLocalTransformAtTime
 	 *
 	 * 특정 시간에서 본의 로컬 변환 계산
-	 * UE5 패턴: EvaluateGlobalTransform + 부모 역변환 + JointPostConversionMatrix 적용
+	 * UE5 패턴: EvaluateGlobalTransform + 부모 역변환 + JointOrientationMatrix 적용
 	 *
 	 * @param BoneNode - 본 FBX 노드
 	 * @param ParentNode - 부모 노드 (nullptr이면 root)
 	 * @param Scene - FBX Scene (AnimationEvaluator 사용)
 	 * @param KeyTime - 평가할 시간
-	 * @param bForceFrontXAxis - JointPostConversionMatrix 플래그
+	 * @param JointOrientationMatrix - Joint 변환 행렬 (애니메이션 본 변환용)
 	 * @param OutPosition - 출력 위치 (Y-Flip 적용됨)
 	 * @param OutRotation - 출력 회전 (Y-Flip 적용됨)
 	 * @param OutScale - 출력 스케일
@@ -131,7 +131,7 @@ private:
 		FbxNode* ParentNode,
 		FbxScene* Scene,
 		FbxTime KeyTime,
-		bool bForceFrontXAxis,
+		const FbxAMatrix& JointOrientationMatrix,
 		FVector& OutPosition,
 		FQuat& OutRotation,
 		FVector& OutScale);

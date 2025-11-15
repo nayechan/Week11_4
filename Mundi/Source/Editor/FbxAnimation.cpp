@@ -3,8 +3,7 @@
 #pragma warning(disable: 4244) // Disable double to float conversion warning for FBX SDK
 #include "FbxAnimation.h"
 #include "FbxHelper.h"
-#include "FbxConvert.h"
-#include "FbxDataConverter.h"  // GetJointPostConversionMatrix용 (legacy)
+#include "FbxConvert.h"        // Phase 1: 좌표계 변환 유틸리티
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
 #include "GlobalConsole.h"
@@ -23,7 +22,7 @@ void FFbxAnimation::ExtractAnimation(
 	FbxAnimStack* AnimStack,
 	const FSkeleton* TargetSkeleton,
 	UAnimSequence* OutAnim,
-	bool bForceFrontXAxis)
+	const FbxAMatrix& JointOrientationMatrix)
 {
 	if (!AnimStack || !TargetSkeleton || !OutAnim)
 	{
@@ -82,7 +81,7 @@ void FFbxAnimation::ExtractAnimation(
 
 	// 디버그용 본 카운터 (첫 3개만 자세히 로깅)
 	int DebugBoneCount = 0;
-	ExtractBoneCurves(RootNode, AnimLayer, TargetSkeleton, OutAnim, bForceFrontXAxis, DebugBoneCount);
+	ExtractBoneCurves(RootNode, AnimLayer, TargetSkeleton, OutAnim, JointOrientationMatrix, DebugBoneCount);
 	UE_LOG("");
 
 	// 5. NumberOfKeys 계산
@@ -113,7 +112,7 @@ void FFbxAnimation::ExtractBoneCurves(
 	FbxAnimLayer* AnimLayer,
 	const FSkeleton* TargetSkeleton,
 	UAnimSequence* OutAnim,
-	bool bForceFrontXAxis,
+	const FbxAMatrix& JointOrientationMatrix,
 	int& DebugBoneCount)
 {
 	if (!InNode || !AnimLayer || !TargetSkeleton || !OutAnim)
@@ -151,7 +150,7 @@ void FFbxAnimation::ExtractBoneCurves(
 			Track.BoneTreeIndex = BoneIndex;
 
 			// 커브 추출
-			ExtractCurveData(InNode, AnimLayer, TargetSkeleton, Track, bForceFrontXAxis, DebugBoneCount);
+			ExtractCurveData(InNode, AnimLayer, TargetSkeleton, Track, JointOrientationMatrix, DebugBoneCount);
 
 			// 키프레임이 있는 경우에만 추가
 			if (!Track.InternalTrack.IsEmpty())
@@ -171,7 +170,7 @@ void FFbxAnimation::ExtractBoneCurves(
 	// 2. Depth-first 재귀 (자식 노드 순회)
 	for (int i = 0; i < InNode->GetChildCount(); i++)
 	{
-		ExtractBoneCurves(InNode->GetChild(i), AnimLayer, TargetSkeleton, OutAnim, bForceFrontXAxis, DebugBoneCount);
+		ExtractBoneCurves(InNode->GetChild(i), AnimLayer, TargetSkeleton, OutAnim, JointOrientationMatrix, DebugBoneCount);
 	}
 }
 
@@ -185,7 +184,7 @@ void FFbxAnimation::ExtractCurveData(
 	FbxAnimLayer* AnimLayer,
 	const FSkeleton* TargetSkeleton,
 	FBoneAnimationTrack& OutTrack,
-	bool bForceFrontXAxis,
+	const FbxAMatrix& JointOrientationMatrix,
 	int& DebugBoneCount)
 {
 	if (!BoneNode || !AnimLayer)
@@ -235,7 +234,7 @@ void FFbxAnimation::ExtractCurveData(
 		// 로컬 변환 평가
 		FVector Position, Scale;
 		FQuat Rotation;
-		EvaluateLocalTransformAtTime(BoneNode, ParentNode, Scene, KeyTime, bForceFrontXAxis,
+		EvaluateLocalTransformAtTime(BoneNode, ParentNode, Scene, KeyTime, JointOrientationMatrix,
 									  Position, Rotation, Scale);
 
 		// NaN/Inf 검증
@@ -346,40 +345,40 @@ TArray<FbxAnimCurve*> FFbxAnimation::CollectUniqueKeyTimes(
  * EvaluateLocalTransformAtTime
  *
  * 특정 시간에서 본의 로컬 변환 계산
- * UE5 패턴: EvaluateGlobalTransform + 부모 역변환 + JointPostConversionMatrix 적용
+ * UE5 패턴: EvaluateGlobalTransform + 부모 역변환 + JointOrientationMatrix 적용
  */
 void FFbxAnimation::EvaluateLocalTransformAtTime(
 	FbxNode* BoneNode,
 	FbxNode* ParentNode,
 	FbxScene* Scene,
 	FbxTime KeyTime,
-	bool bForceFrontXAxis,
+	const FbxAMatrix& JointOrientationMatrix,
 	FVector& OutPosition,
 	FQuat& OutRotation,
 	FVector& OutScale)
 {
 	// ========================================
-	// UE5 Pattern: Conditional JointPostConversionMatrix for Animation
+	// UE5 Pattern: JointOrientationMatrix 사용
 	// ========================================
-	// Reference: UE5 FbxMainImport.cpp Line 1559-1562
+	// UE5 Reference: FbxAnimation.cpp Line 516, 528
 	//
-	// bForceFrontXAxis = true  → Apply JointPost (-90°, -90°, 0°) for +X Forward conversion
-	// bForceFrontXAxis = false → Identity (using -Y Forward, no additional rotation needed)
+	// JointOrientationMatrix는 ConvertScene()에서 한 번 설정되고
+	// 모든 애니메이션 변환에서 재사용됨
 	//
-	// UE5 applies JointOrientationMatrix ONLY when bForceFrontXAxis is enabled
-	FbxAMatrix JointPostMatrix = FFbxDataConverter::GetJointPostConversionMatrix(bForceFrontXAxis);
+	// NodeTransform = NodeTransform * Parser.JointOrientationMatrix
+	// ParentTransform = ParentTransform * Parser.JointOrientationMatrix
 
 	// Get global transform at this time
 	FbxAMatrix GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(BoneNode, KeyTime);
-	GlobalTransform = GlobalTransform * JointPostMatrix;
+	GlobalTransform = GlobalTransform * JointOrientationMatrix;
 
 	// Compute local transform relative to parent
 	FbxAMatrix LocalTransform;
 	if (ParentNode)
 	{
 		FbxAMatrix ParentGlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(ParentNode, KeyTime);
-		// Apply JointPostConversionMatrix to parent as well (same flag)
-		ParentGlobalTransform = ParentGlobalTransform * JointPostMatrix;
+		// Apply JointOrientationMatrix to parent as well
+		ParentGlobalTransform = ParentGlobalTransform * JointOrientationMatrix;
 		LocalTransform = ParentGlobalTransform.Inverse() * GlobalTransform;
 	}
 	else
