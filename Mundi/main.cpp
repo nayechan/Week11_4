@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "EditorEngine.h"
+#include "ExceptionHandler.h"
 
 #if defined(_MSC_VER) && defined(_DEBUG)
 #   define _CRTDBG_MAP_ALLOC
@@ -19,7 +20,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     if (!GEngine.Startup(hInstance))
         return -1;
-
+    FExceptionHandler Ex;
     GEngine.MainLoop();
     GEngine.Shutdown();
 
