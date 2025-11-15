@@ -685,7 +685,7 @@
     <ClCompile Include="Source\Slate\ThumbnailManager.cpp" />
     <ClCompile Include="Source\Slate\Windows\SConsolePanel.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
-  <ClCompile Include="Generated\FTestTransform.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UTestComponent.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
+  <ClCompile Include="Generated\FTestTransform.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UTestComponent.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\FAnimState.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UAnimStateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UCharacterAnimInstance.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UCharacterStateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1464,7 +1464,7 @@
     <ClInclude Include="Source\Slate\Windows\SConsolePanel.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
-  <ClInclude Include="Generated\FTestTransform.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UTestComponent.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
+  <ClInclude Include="Generated\FTestTransform.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UTestComponent.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\FAnimState.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UAnimStateMachine.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UCharacterAnimInstance.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UCharacterStateMachine.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

@@ -39,6 +39,11 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// 하위 클래스에서 Super::NativeUpdateAnimation() 호출 후 커스텀 로직 추가
 }
 
+void UAnimInstance::GetAnimationPose(FPoseContext& OutPose)
+{
+	OutPose.BoneTransforms.Empty();
+}
+
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
 	if (!OwnerComponent)

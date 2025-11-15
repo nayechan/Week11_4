@@ -28,6 +28,9 @@ public:
 	// 업데이트 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	// 포즈 추출
+	virtual void GetAnimationPose(struct FPoseContext& OutPose) override;
+
 private:
 	class UAnimSequence* CurrentSequence = nullptr;
 	bool bIsPlaying = false;

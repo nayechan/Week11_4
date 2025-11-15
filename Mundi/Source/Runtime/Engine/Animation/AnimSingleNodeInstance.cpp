@@ -74,3 +74,15 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// Notify 트리거
 	TriggerAnimNotifies(DeltaSeconds);
 }
+
+void UAnimSingleNodeInstance::GetAnimationPose(FPoseContext& OutPose)
+{
+	if (!CurrentSequence)
+	{
+		OutPose.BoneTransforms.Empty();
+		return;
+	}
+
+	FAnimExtractContext Context(CurrentTime, bLooping);
+	CurrentSequence->GetAnimationPose(OutPose, Context);
+}

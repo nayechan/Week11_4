@@ -20,6 +20,9 @@ public:
 	// 전체 애니메이션 파이프라인을 정의
 	void UpdateAnimation(float DeltaSeconds);
 
+	// 포즈 추출 (하위 클래스에서 구현)
+	virtual void GetAnimationPose(struct FPoseContext& OutPose);
+
 	// ========================================
 	// 확장 포인트 (하위 클래스에서 오버라이드)
 	// ========================================
