@@ -28,6 +28,8 @@ public:
 
 	virtual void GetAnimationPose(struct FPoseContext& OutPose) override;
 
+	virtual void GetActiveAnimations(TArray<class UAnimSequence*>& OutAnimations) const override;
+
 protected:
 	virtual void UpdateMovementVariables();
 	virtual void UpdateStateMachine();

@@ -15,6 +15,9 @@ public:
     UPROPERTY(LuaReadWrite)
     TMap<FName, FAnimState> States;
 
+    // Phase 2: Transition Rules
+    TArray<FAnimTransition> Transitions;
+
     void AddState(FName StateName, class UAnimSequence* Animation, bool bLoop = true, float PlayRate = 1.0f);
     void SetInitialState(FName StateName);
 
@@ -22,6 +25,16 @@ public:
     class UAnimSequence* GetCurrentAnimation() const;
     bool IsTransitioning() const { return bIsTransitioning; }
     float GetTransitionAlpha() const { return TransitionAlpha; }
+
+    // Transition 중 활성 애니메이션
+    class UAnimSequence* GetFromAnimation() const;
+    class UAnimSequence* GetToAnimation() const;
+
+    // Phase 2: Transition APIs
+    void AddTransition(FName From, FName To, float BlendDuration = 0.3f);
+    void AddTransitionWithCondition(FName From, FName To, float Blend, std::function<bool()> Condition);
+    FAnimTransition* FindTransition(FName From, FName To);
+    void CheckAutoTransitions();
 
     void TransitionTo(FName NewState);
 

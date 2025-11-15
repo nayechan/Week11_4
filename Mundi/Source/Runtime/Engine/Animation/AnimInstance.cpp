@@ -47,11 +47,26 @@ void UAnimInstance::GetAnimationPose(FPoseContext& OutPose)
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
 	if (!OwnerComponent)
-	{
 		return;
-	}
 
-	// TODO: 현재 재생 중인 애니메이션의 Notify 체크
-	// TODO: PreviousTime ~ CurrentTime 범위의 Notify 트리거
-	// TODO: OwnerComponent->HandleAnimNotify() 호출
+	// 활성 애니메이션 목록 가져오기
+	TArray<UAnimSequence*> ActiveAnimations;
+	GetActiveAnimations(ActiveAnimations);
+
+	// 각 애니메이션의 Notify 트리거
+	for (UAnimSequence* Anim : ActiveAnimations)
+	{
+		if (!Anim)
+			continue;
+
+		// PreviousTime ~ CurrentTime 범위의 Notify 찾기
+		TArray<FAnimNotifyEvent> TriggeredNotifies;
+		Anim->GetAnimNotifiesInRange(PreviousTime, CurrentTime, TriggeredNotifies);
+
+		// 각 Notify 트리거
+		for (const FAnimNotifyEvent& Notify : TriggeredNotifies)
+		{
+			OwnerComponent->HandleAnimNotify(Notify);
+		}
+	}
 }

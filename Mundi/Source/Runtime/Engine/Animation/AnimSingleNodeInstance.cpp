@@ -86,3 +86,12 @@ void UAnimSingleNodeInstance::GetAnimationPose(FPoseContext& OutPose)
 	FAnimExtractContext Context(CurrentTime, bLooping);
 	CurrentSequence->GetAnimationPose(OutPose, Context);
 }
+
+void UAnimSingleNodeInstance::GetActiveAnimations(TArray<UAnimSequence*>& OutAnimations) const
+{
+	OutAnimations.Empty();
+	if (CurrentSequence)
+	{
+		OutAnimations.Add(CurrentSequence);
+	}
+}

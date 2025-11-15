@@ -58,3 +58,30 @@ void UCharacterAnimInstance::GetAnimationPose(FPoseContext& OutPose)
 		OutPose.BoneTransforms.Empty();
 	}
 }
+
+void UCharacterAnimInstance::GetActiveAnimations(TArray<UAnimSequence*>& OutAnimations) const
+{
+	OutAnimations.Empty();
+
+	if (!StateMachine)
+		return;
+
+	if (StateMachine->IsTransitioning())
+	{
+		// Transition 중: From과 To 애니메이션 둘 다 추가
+		UAnimSequence* FromAnim = StateMachine->GetFromAnimation();
+		UAnimSequence* ToAnim = StateMachine->GetToAnimation();
+
+		if (FromAnim)
+			OutAnimations.Add(FromAnim);
+		if (ToAnim)
+			OutAnimations.Add(ToAnim);
+	}
+	else
+	{
+		// 일반 재생: 현재 애니메이션만
+		UAnimSequence* CurrentAnim = StateMachine->GetCurrentAnimation();
+		if (CurrentAnim)
+			OutAnimations.Add(CurrentAnim);
+	}
+}

@@ -41,6 +41,18 @@ UAnimSequence* UAnimStateMachine::GetCurrentAnimation() const
     }
 }
 
+UAnimSequence* UAnimStateMachine::GetFromAnimation() const
+{
+    const FAnimState* State = States.Find(FromState);
+    return State ? State->Animation : nullptr;
+}
+
+UAnimSequence* UAnimStateMachine::GetToAnimation() const
+{
+    const FAnimState* State = States.Find(ToState);
+    return State ? State->Animation : nullptr;
+}
+
 void UAnimStateMachine::TransitionTo(FName NewState)
 {
     if (!States.Contains(NewState))
@@ -56,15 +68,69 @@ void UAnimStateMachine::TransitionTo(FName NewState)
 
     float BlendDuration = 0.3f;
 
-    const FAnimState* FromStatePtr = States.Find(CurrentState);
-    const FAnimState* ToStatePtr = States.Find(NewState);
-
-    if (FromStatePtr && ToStatePtr)
+    // Phase 2: 먼저 Transition 배열에서 찾기
+    FAnimTransition* Trans = FindTransition(CurrentState, NewState);
+    if (Trans)
     {
-        BlendDuration = (FromStatePtr->BlendOutTime + ToStatePtr->BlendInTime) * 0.5f;
+        BlendDuration = Trans->BlendDuration;
+    }
+    else
+    {
+        // Fallback: State의 BlendIn/Out 사용 (Phase 1 방식)
+        const FAnimState* FromStatePtr = States.Find(CurrentState);
+        const FAnimState* ToStatePtr = States.Find(NewState);
+        if (FromStatePtr && ToStatePtr)
+        {
+            BlendDuration = (FromStatePtr->BlendOutTime + ToStatePtr->BlendInTime) * 0.5f;
+        }
     }
 
     StartTransition(CurrentState, NewState, BlendDuration);
+}
+
+void UAnimStateMachine::AddTransition(FName From, FName To, float BlendDuration)
+{
+    FAnimTransition Trans;
+    Trans.FromState = From;
+    Trans.ToState = To;
+    Trans.BlendDuration = BlendDuration;
+    Trans.Condition = nullptr;
+    Transitions.Add(Trans);
+}
+
+void UAnimStateMachine::AddTransitionWithCondition(FName From, FName To, float Blend, std::function<bool()> Condition)
+{
+    FAnimTransition Trans;
+    Trans.FromState = From;
+    Trans.ToState = To;
+    Trans.BlendDuration = Blend;
+    Trans.Condition = Condition;
+    Transitions.Add(Trans);
+}
+
+FAnimTransition* UAnimStateMachine::FindTransition(FName From, FName To)
+{
+    for (auto& Trans : Transitions)
+    {
+        if (Trans.FromState == From && Trans.ToState == To)
+            return &Trans;
+    }
+    return nullptr;
+}
+
+void UAnimStateMachine::CheckAutoTransitions()
+{
+    for (auto& Trans : Transitions)
+    {
+        if (Trans.FromState == CurrentState && Trans.Condition)
+        {
+            if (Trans.Condition())
+            {
+                TransitionTo(Trans.ToState);
+                break;  // 첫 번째 만족하는 전환만
+            }
+        }
+    }
 }
 
 void UAnimStateMachine::StartTransition(FName From, FName To, float Duration)
@@ -116,6 +182,12 @@ void UAnimStateMachine::Update(float DeltaTime)
     ProcessState();
 
     UpdateTransition(DeltaTime);
+
+    // Phase 2: 자동 전환 체크 (Transition 중이 아닐 때만)
+    if (!bIsTransitioning)
+    {
+        CheckAutoTransitions();
+    }
 }
 
 void UAnimStateMachine::GetBlendedPose(float DeltaTime, FPoseContext& OutPose)

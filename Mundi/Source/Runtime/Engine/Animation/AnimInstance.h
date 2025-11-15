@@ -23,6 +23,10 @@ public:
 	// 포즈 추출 (하위 클래스에서 구현)
 	virtual void GetAnimationPose(struct FPoseContext& OutPose);
 
+	// 활성 애니메이션 목록 (Notify 트리거링용)
+	// Transition 중이면 여러 개, 아니면 하나 반환
+	virtual void GetActiveAnimations(TArray<class UAnimSequence*>& OutAnimations) const {}
+
 	// ========================================
 	// 확장 포인트 (하위 클래스에서 오버라이드)
 	// ========================================

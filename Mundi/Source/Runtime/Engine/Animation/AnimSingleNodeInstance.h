@@ -31,6 +31,9 @@ public:
 	// 포즈 추출
 	virtual void GetAnimationPose(struct FPoseContext& OutPose) override;
 
+	// 활성 애니메이션
+	virtual void GetActiveAnimations(TArray<class UAnimSequence*>& OutAnimations) const override;
+
 private:
 	class UAnimSequence* CurrentSequence = nullptr;
 	bool bIsPlaying = false;
