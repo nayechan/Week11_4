@@ -16,7 +16,7 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
 	// Notify 트리거링
-	void TriggerAnimNotifies(float DeltaSeconds);
+	virtual void TriggerAnimNotifies(float DeltaSeconds);
 
 	// 현재 시간 접근자
 	float GetCurrentTime() const { return CurrentTime; }

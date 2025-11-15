@@ -369,6 +369,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Slate\Widgets\PropertyRenderer.cpp" />
     <ClCompile Include="Source\Slate\Windows\ContentBrowserWindow.cpp" />
     <ClCompile Include="Source\Slate\Windows\SSkeletalMeshViewerWindow.cpp" />
+    <ClCompile Include="Source\Slate\Windows\SAnimSequenceViewerWindow.cpp" />
     <ClCompile Include="Source\Slate\ThumbnailManager.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -761,6 +762,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Slate\Widgets\PropertyRenderer.h" />
     <ClInclude Include="Source\Slate\Windows\ContentBrowserWindow.h" />
     <ClInclude Include="Source\Slate\Windows\SSkeletalMeshViewerWindow.h" />
+    <ClInclude Include="Source\Slate\Windows\SAnimSequenceViewerWindow.h" />
     <ClInclude Include="Source\Slate\ThumbnailManager.h" />
     <ClInclude Include="ThirdParty\DirectXTK\include\Audio.h" />
     <ClInclude Include="ThirdParty\DirectXTK\include\BufferHelpers.h" />

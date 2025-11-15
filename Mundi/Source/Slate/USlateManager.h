@@ -5,6 +5,7 @@
 #include "Windows/SSplitterH.h"
 #include "Windows/SViewportWindow.h"
 #include "Windows/SSkeletalMeshViewerWindow.h"
+#include "Windows/SAnimSequenceViewerWindow.h"
 
 class SSceneIOWindow; // 새로 추가할 UI
 class SDetailsWindow;
@@ -82,6 +83,12 @@ public:
     void CloseSkeletalMeshViewer();
     bool IsSkeletalMeshViewerOpen() const { return SkeletalViewerWindow != nullptr; }
 
+    // Animation Sequence Viewer (detached window)
+    void OpenAnimSequenceViewer();
+    void OpenAnimSequenceViewerWithFile(const char* FilePath);
+    void CloseAnimSequenceViewer();
+    bool IsAnimSequenceViewerOpen() const { return AnimSequenceViewerWindow != nullptr; }
+
 private:
     FRect Rect; // 이전엔 SWindow로부터 상속받던 영역 정보
 
@@ -128,6 +135,9 @@ private:
 
     // Detached skeletal mesh viewer window
     SSkeletalMeshViewerWindow* SkeletalViewerWindow = nullptr;
+
+    // Detached animation sequence viewer window
+    SAnimSequenceViewerWindow* AnimSequenceViewerWindow = nullptr;
 
     // Content Browser (Bottom panel overlay with animation)
     UContentBrowserWindow* ContentBrowserWindow = nullptr;

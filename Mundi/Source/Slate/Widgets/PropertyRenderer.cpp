@@ -1184,6 +1184,27 @@ bool UPropertyRenderer::RenderAnimSequenceProperty(const FProperty& Prop, void* 
 		}
 	}
 
+	// Animation Sequence Viewer 버튼
+	if (ImGui::Button("Anim Viewer"))
+	{
+		if (!USlateManager::GetInstance().IsAnimSequenceViewerOpen())
+		{
+			// Open viewer with the currently selected animation if available
+			if (!CurrentPath.empty())
+			{
+				USlateManager::GetInstance().OpenAnimSequenceViewerWithFile(CurrentPath.c_str());
+			}
+			else
+			{
+				USlateManager::GetInstance().OpenAnimSequenceViewer();
+			}
+		}
+		else
+		{
+			USlateManager::GetInstance().CloseAnimSequenceViewer();
+		}
+	}
+
 	ImGui::SetNextItemWidth(240);
 	if (ImGui::Combo(Prop.Name, &SelectedIdx, &ItemsGetter, (void*)&CachedAnimSequenceItems, static_cast<int>(CachedAnimSequenceItems.size())))
 	{

@@ -226,6 +226,46 @@ void USlateManager::CloseSkeletalMeshViewer()
     SkeletalViewerWindow = nullptr;
 }
 
+void USlateManager::OpenAnimSequenceViewer()
+{
+    if (AnimSequenceViewerWindow)
+        return;
+
+    AnimSequenceViewerWindow = new SAnimSequenceViewerWindow();
+
+    // Open as a detached window at a default size and position
+    const float toolbarHeight = 50.0f;
+    const float availableHeight = Rect.GetHeight() - toolbarHeight;
+    const float w = Rect.GetWidth() * 0.7f;
+    const float h = availableHeight * 0.75f;
+    const float x = Rect.Left + (Rect.GetWidth() - w) * 0.5f;
+    const float y = Rect.Top + toolbarHeight + (availableHeight - h) * 0.5f;
+    AnimSequenceViewerWindow->Initialize(x, y, w, h, World, Device);
+}
+
+void USlateManager::OpenAnimSequenceViewerWithFile(const char* FilePath)
+{
+    // 뷰어가 이미 열려있으면 그냥 사용, 아니면 새로 열기
+    if (!AnimSequenceViewerWindow)
+    {
+        OpenAnimSequenceViewer();
+    }
+
+    // Load the animation into the viewer
+    if (AnimSequenceViewerWindow && FilePath && FilePath[0] != '\0')
+    {
+        AnimSequenceViewerWindow->LoadAnimation(FilePath);
+        UE_LOG("Opening AnimSequenceViewer with file: %s", FilePath);
+    }
+}
+
+void USlateManager::CloseAnimSequenceViewer()
+{
+    if (!AnimSequenceViewerWindow) return;
+    delete AnimSequenceViewerWindow;
+    AnimSequenceViewerWindow = nullptr;
+}
+
 void USlateManager::SwitchLayout(EViewportLayoutMode NewMode)
 {
     if (NewMode == CurrentMode) return;
@@ -334,10 +374,15 @@ void USlateManager::Render()
         ImGui::PopStyleVar(3);
     }
 
-    // Render detached viewer on top
+    // Render detached viewers on top
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnRender();
+    }
+
+    if (AnimSequenceViewerWindow)
+    {
+        AnimSequenceViewerWindow->OnRender();
     }
 }
 
@@ -346,6 +391,11 @@ void USlateManager::RenderAfterUI()
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnRenderViewport();
+    }
+
+    if (AnimSequenceViewerWindow)
+    {
+        AnimSequenceViewerWindow->OnRenderViewport();
     }
 }
 
@@ -366,6 +416,11 @@ void USlateManager::Update(float DeltaSeconds)
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnUpdate(DeltaSeconds);
+    }
+
+    if (AnimSequenceViewerWindow)
+    {
+        AnimSequenceViewerWindow->OnUpdate(DeltaSeconds);
     }
 
     // Content Browser 애니메이션 업데이트
@@ -396,6 +451,22 @@ void USlateManager::Update(float DeltaSeconds)
 
 void USlateManager::ProcessInput()
 {
+    // Keyboard shortcuts
+    // Ctrl+Shift+B: Open/Toggle Animation Sequence Viewer
+    if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_B))
+    {
+        if (!IsAnimSequenceViewerOpen())
+        {
+            OpenAnimSequenceViewer();
+            UE_LOG("Opening AnimSequenceViewer via Ctrl+Shift+B shortcut");
+        }
+        else
+        {
+            CloseAnimSequenceViewer();
+            UE_LOG("Closing AnimSequenceViewer via Ctrl+Shift+B shortcut");
+        }
+    }
+
     const FVector2D MousePosition = INPUT.GetMousePosition();
 
     if (SkeletalViewerWindow && SkeletalViewerWindow->Rect.Contains(MousePosition))
@@ -473,7 +544,13 @@ void USlateManager::ProcessInput()
 
 void USlateManager::OnMouseMove(FVector2D MousePos)
 {
-    // Route to detached viewer if hovered
+    // Route to detached viewers if hovered
+    if (AnimSequenceViewerWindow && AnimSequenceViewerWindow->IsHover(MousePos))
+    {
+        AnimSequenceViewerWindow->OnMouseMove(MousePos);
+        return;
+    }
+
     if (SkeletalViewerWindow && SkeletalViewerWindow->IsHover(MousePos))
     {
         SkeletalViewerWindow->OnMouseMove(MousePos);
@@ -492,6 +569,12 @@ void USlateManager::OnMouseMove(FVector2D MousePos)
 
 void USlateManager::OnMouseDown(FVector2D MousePos, uint32 Button)
 {
+    if (AnimSequenceViewerWindow && AnimSequenceViewerWindow->Rect.Contains(MousePos))
+    {
+        AnimSequenceViewerWindow->OnMouseDown(MousePos, Button);
+        return;
+    }
+
     if (SkeletalViewerWindow && SkeletalViewerWindow->Rect.Contains(MousePos))
     {
         SkeletalViewerWindow->OnMouseDown(MousePos, Button);
@@ -531,6 +614,12 @@ void USlateManager::OnMouseUp(FVector2D MousePos, uint32 Button)
     {
         INPUT.SetCursorVisible(true);
         INPUT.ReleaseCursor();
+    }
+
+    if (AnimSequenceViewerWindow && AnimSequenceViewerWindow->Rect.Contains(MousePos))
+    {
+        AnimSequenceViewerWindow->OnMouseUp(MousePos, Button);
+        // do not return; still allow panels to finish mouse up
     }
 
     if (SkeletalViewerWindow && SkeletalViewerWindow->Rect.Contains(MousePos))
@@ -612,6 +701,12 @@ void USlateManager::Shutdown()
     {
         delete SkeletalViewerWindow;
         SkeletalViewerWindow = nullptr;
+    }
+
+    if (AnimSequenceViewerWindow)
+    {
+        delete AnimSequenceViewerWindow;
+        AnimSequenceViewerWindow = nullptr;
     }
 }
 

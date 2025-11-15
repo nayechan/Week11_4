@@ -28,6 +28,9 @@ public:
 	// 업데이트 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
+	// Notify 트리거링 구현
+	virtual void TriggerAnimNotifies(float DeltaSeconds) override;
+
 private:
 	class UAnimSequence* CurrentSequence = nullptr;
 	bool bIsPlaying = false;
