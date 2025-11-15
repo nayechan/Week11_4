@@ -267,6 +267,13 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Editor\FbxDataConverter.cpp" />
+    <ClCompile Include="Source\Editor\FbxConvert.cpp" />
+    <ClCompile Include="Source\Editor\FbxHelper.cpp" />
+    <ClCompile Include="Source\Editor\FbxMaterial.cpp" />
+    <ClCompile Include="Source\Editor\FbxAnimation.cpp" />
+    <ClCompile Include="Source\Editor\FbxScene.cpp" />
+    <ClCompile Include="Source\Editor\FbxMesh.cpp" />
+    <ClCompile Include="Source\Editor\FbxParser.cpp" />
     <ClCompile Include="Source\Editor\FbxLoader.cpp" />
     <ClCompile Include="Source\Runtime\AssetManagement\SkeletalMesh.cpp" />
     <ClCompile Include="Source\Runtime\Core\Misc\ExceptionHandler.cpp" />
@@ -679,6 +686,13 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h" />
     <ClInclude Include="Source\Editor\FbxDataConverter.h" />
+    <ClInclude Include="Source\Editor\FbxConvert.h" />
+    <ClInclude Include="Source\Editor\FbxHelper.h" />
+    <ClInclude Include="Source\Editor\FbxMaterial.h" />
+    <ClInclude Include="Source\Editor\FbxAnimation.h" />
+    <ClInclude Include="Source\Editor\FbxScene.h" />
+    <ClInclude Include="Source\Editor\FbxMesh.h" />
+    <ClInclude Include="Source\Editor\FbxParser.h" />
     <ClInclude Include="Source\Editor\FbxLoader.h" />
     <ClInclude Include="Source\Editor\PlatformProcess.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\SkeletalMesh.h" />
