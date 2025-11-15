@@ -221,6 +221,16 @@ void FFbxAnimation::ExtractCurveData(
 	FbxScene* Scene = BoneNode->GetScene();
 	FbxNode* ParentNode = BoneNode->GetParent();
 
+	// Determine if this is a Root Joint (UE5 Pattern)
+	// Root Joint: ParentIndex == -1 in Skeleton
+	int32 BoneIndex = OutTrack.BoneTreeIndex;
+	bool bIsRootJoint = (TargetSkeleton->Bones[BoneIndex].ParentIndex == -1);
+
+	if (bShowDebug)
+	{
+		UE_LOG("         Is Root Joint: %s", bIsRootJoint ? "YES" : "NO");
+	}
+
 	// Reserve space for animation tracks
 	OutTrack.InternalTrack.PosKeys.Reserve(AllKeyTimes.Num());
 	OutTrack.InternalTrack.RotKeys.Reserve(AllKeyTimes.Num());
@@ -235,7 +245,7 @@ void FFbxAnimation::ExtractCurveData(
 		FVector Position, Scale;
 		FQuat Rotation;
 		EvaluateLocalTransformAtTime(BoneNode, ParentNode, Scene, KeyTime, JointOrientationMatrix,
-									  Position, Rotation, Scale);
+									  bIsRootJoint, Position, Rotation, Scale);
 
 		// NaN/Inf 검증
 		ValidateTransform(Position, Rotation, Scale, KeyTime);
@@ -345,7 +355,7 @@ TArray<FbxAnimCurve*> FFbxAnimation::CollectUniqueKeyTimes(
  * EvaluateLocalTransformAtTime
  *
  * 특정 시간에서 본의 로컬 변환 계산
- * UE5 패턴: EvaluateGlobalTransform + 부모 역변환 + JointOrientationMatrix 적용
+ * UE5 패턴: EvaluateGlobalTransform + 부모 역변환 + JointOrientationMatrix 조건부 적용
  */
 void FFbxAnimation::EvaluateLocalTransformAtTime(
 	FbxNode* BoneNode,
@@ -353,20 +363,22 @@ void FFbxAnimation::EvaluateLocalTransformAtTime(
 	FbxScene* Scene,
 	FbxTime KeyTime,
 	const FbxAMatrix& JointOrientationMatrix,
+	bool bIsRootJoint,
 	FVector& OutPosition,
 	FQuat& OutRotation,
 	FVector& OutScale)
 {
 	// ========================================
-	// UE5 Pattern: JointOrientationMatrix 사용
+	// UE5 Pattern: JointOrientationMatrix 조건부 적용
 	// ========================================
 	// UE5 Reference: FbxAnimation.cpp Line 516, 528
 	//
-	// JointOrientationMatrix는 ConvertScene()에서 한 번 설정되고
-	// 모든 애니메이션 변환에서 재사용됨
+	// 핵심: Root Joint의 Parent에는 JointOrientationMatrix를 적용하지 않음!
 	//
-	// NodeTransform = NodeTransform * Parser.JointOrientationMatrix
-	// ParentTransform = ParentTransform * Parser.JointOrientationMatrix
+	// Child Transform = ChildGlobal * JointOrientationMatrix (항상)
+	// Parent Transform = ParentGlobal * JointOrientationMatrix (Root가 아닐 때만!)
+	//
+	// 이유: Root Joint의 Parent는 Scene Root이므로 좌표계 변환 불필요
 
 	// Get global transform at this time
 	FbxAMatrix GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(BoneNode, KeyTime);
@@ -377,8 +389,13 @@ void FFbxAnimation::EvaluateLocalTransformAtTime(
 	if (ParentNode)
 	{
 		FbxAMatrix ParentGlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(ParentNode, KeyTime);
-		// Apply JointOrientationMatrix to parent as well
-		ParentGlobalTransform = ParentGlobalTransform * JointOrientationMatrix;
+
+		// UE5 Pattern: Root Joint의 Parent에는 JointOrientationMatrix 적용 안 함!
+		if (!bIsRootJoint)
+		{
+			ParentGlobalTransform = ParentGlobalTransform * JointOrientationMatrix;
+		}
+
 		LocalTransform = ParentGlobalTransform.Inverse() * GlobalTransform;
 	}
 	else

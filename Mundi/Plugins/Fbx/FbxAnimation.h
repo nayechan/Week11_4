@@ -122,6 +122,7 @@ private:
 	 * @param Scene - FBX Scene (AnimationEvaluator 사용)
 	 * @param KeyTime - 평가할 시간
 	 * @param JointOrientationMatrix - Joint 변환 행렬 (애니메이션 본 변환용)
+	 * @param bIsRootJoint - Root Joint 여부 (Parent에 JointOrientationMatrix 적용 여부 결정)
 	 * @param OutPosition - 출력 위치 (Y-Flip 적용됨)
 	 * @param OutRotation - 출력 회전 (Y-Flip 적용됨)
 	 * @param OutScale - 출력 스케일
@@ -132,6 +133,7 @@ private:
 		FbxScene* Scene,
 		FbxTime KeyTime,
 		const FbxAMatrix& JointOrientationMatrix,
+		bool bIsRootJoint,
 		FVector& OutPosition,
 		FQuat& OutRotation,
 		FVector& OutScale);
