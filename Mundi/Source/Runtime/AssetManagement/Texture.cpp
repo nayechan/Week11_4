@@ -39,8 +39,38 @@ void UTexture::Load(const FString& InFilePath, ID3D11Device* InDevice, bool bSRG
 		{
 			FString DDSCachePath = FTextureConverter::GetDDSCachePath(InFilePath);
 
-			// 캐시 유효성 검사
-			if (FTextureConverter::ShouldRegenerateDDS(InFilePath, DDSCachePath))
+			// 캐시 유효성 검사 (.fbm 텍스처는 FBX 타임스탬프 기준)
+			bool bShouldRegenerate = false;
+			FString NormalizedPath = NormalizePath(InFilePath);
+			bool bIsFbmTexture = NormalizedPath.find(".fbm") != FString::npos;
+
+			if (bIsFbmTexture)
+			{
+				// .fbm 폴더에서 원본 FBX 파일 찾기
+				// 예: "Data/Fbx/James.fbm/texture.png" -> "Data/Fbx/James.fbx"
+				namespace fs = std::filesystem;
+				fs::path TexturePath(UTF8ToWide(NormalizedPath));
+				fs::path FbmDir = TexturePath.parent_path();
+				fs::path FbxPath = FbmDir.parent_path() / (FbmDir.stem().wstring() + L".fbx");
+
+				if (fs::exists(FbxPath))
+				{
+					FString FbxPathStr = WideToUTF8(FbxPath.wstring());
+					bShouldRegenerate = FTextureConverter::ShouldRegenerateDDS_Fbm(
+						InFilePath, DDSCachePath, FbxPathStr);
+				}
+				else
+				{
+					UE_LOG("[UTexture] Warning: Could not find FBX file for .fbm texture: %s", InFilePath.c_str());
+					bShouldRegenerate = FTextureConverter::ShouldRegenerateDDS(InFilePath, DDSCachePath);
+				}
+			}
+			else
+			{
+				bShouldRegenerate = FTextureConverter::ShouldRegenerateDDS(InFilePath, DDSCachePath);
+			}
+
+			if (bShouldRegenerate)
 			{
 				UE_LOG("[UTexture] Converting texture to DDS: %s", InFilePath.c_str());
 

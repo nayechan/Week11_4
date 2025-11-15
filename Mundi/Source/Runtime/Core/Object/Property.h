@@ -23,6 +23,7 @@ enum class EPropertyType : uint8
 	ScriptFile,
 	Sound,
 	Curve,
+	AnimSequence,   // UAnimSequence* 타입 (리소스 선택 UI)
 	// 추후 추가될 프로퍼티들은 직접 해줘야함.
 	Count			// 요소 개수, 항상 마지막!
 };

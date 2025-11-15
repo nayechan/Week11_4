@@ -27,7 +27,7 @@ public:
 	// 특정 시간의 본 트랜스폼 가져오기 (보간)
 	FTransform GetBoneTransformAtTime(int32 BoneIndex, float Time) const;
 
-	// 본 애니메이션 트랙 접근자 (팀원2가 사용)
+	// 본 애니메이션 트랙 접근자
 	const TArray<FBoneAnimationTrack>& GetBoneAnimationTracks() const { return BoneAnimationTracks; }
 
 	// 본 트랙 추가 (FBX Loader가 사용)
@@ -38,7 +38,7 @@ public:
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
 private:
-	// 본별 애니메이션 트랙 (발제 문서 구조)
+	// 본별 애니메이션 트랙
 	TArray<FBoneAnimationTrack> BoneAnimationTracks;
 
 	// FBX Loader가 데이터를 채울 수 있도록
