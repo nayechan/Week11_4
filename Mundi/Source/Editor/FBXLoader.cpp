@@ -1532,7 +1532,7 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 	// 1. 경로 정규화
 	FString NormalizedPath = NormalizePath(FilePath);
 
-	// 2. 캐시 확인 (기존 LoadFbxMesh 패턴)
+	// 2. 이미 로드된 리소스 확인
 	for (TObjectIterator<UAnimSequence> It; It; ++It)
 	{
 		UAnimSequence* AnimSeq = *It;
@@ -1543,55 +1543,158 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 		}
 	}
 
-	// 3. UE5 방식: 단일 FbxScene 공유
-	bool bNewlyLoaded = false;
-	FbxScene* Scene = GetOrLoadFbxScene(NormalizedPath, bNewlyLoaded);
-	if (!Scene)
+	UAnimSequence* AnimSeq = nullptr;
+
+#ifdef USE_OBJ_CACHE
+	// 3. 캐시 파일 경로 설정
+	FString CachePathStr = ConvertDataPathToCachePath(NormalizedPath);
+	const FString AnimBinPath = CachePathStr + ".anim.bin";
+
+	// 캐시 디렉토리 생성
+	std::filesystem::path CacheFileDirPath(AnimBinPath);
+	if (CacheFileDirPath.has_parent_path())
 	{
-		UE_LOG("Error: Failed to load FBX scene for animation: %s", NormalizedPath.c_str());
-		return nullptr;
+		std::filesystem::create_directories(CacheFileDirPath.parent_path());
 	}
 
-	// 4. AnimStack 확인
-	int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
-	if (AnimStackCount == 0)
+	bool bLoadedFromCache = false;
+
+	// 4. 캐시 유효성 검사
+	bool bShouldRegenerate = true;
+	bool bCacheExists = std::filesystem::exists(UTF8ToWide(AnimBinPath));
+
+	if (bCacheExists)
 	{
-		UE_LOG("Error: No animation data found in FBX file: %s", NormalizedPath.c_str());
-		// Scene은 캐시에서 관리되므로 Destroy하지 않음
-		return nullptr;
+		try
+		{
+			auto binTime = std::filesystem::last_write_time(UTF8ToWide(AnimBinPath));
+			auto fbxTime = std::filesystem::last_write_time(UTF8ToWide(NormalizedPath));
+
+			if (fbxTime <= binTime)
+			{
+				bShouldRegenerate = false;
+			}
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			UE_LOG("Filesystem error during animation cache validation: %s. Forcing regeneration.", e.what());
+			bShouldRegenerate = true;
+		}
 	}
 
-	UE_LOG("Found %d animation stack(s) in FBX file", AnimStackCount);
+	// 5. 캐시에서 로드 시도
+	if (!bShouldRegenerate)
+	{
+		try
+		{
+			AnimSeq = NewObject<UAnimSequence>();
+			AnimSeq->SetFilePath(NormalizedPath);
 
-	// 8. UAnimSequence 생성
-	UAnimSequence* AnimSeq = NewObject<UAnimSequence>();
-	AnimSeq->SetFilePath(NormalizedPath);
+			FWindowsBinReader Reader(AnimBinPath);
+			if (!Reader.IsOpen())
+			{
+				throw std::runtime_error("Failed to open animation cache file.");
+			}
 
-	// 9. Skeleton 할당 (중요! 이것이 없으면 GetAnimationPose에서 실패)
-	AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
+			Reader << *AnimSeq;
+			Reader.Close();
 
-	// 10. 첫 번째 AnimStack 로드 (대부분의 FBX는 1개만 있음)
-	FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
-	UE_LOG("========================================");
-	UE_LOG("[ANIMATION] Loading from FBX: %s", NormalizedPath.c_str());
-	UE_LOG("[ANIMATION] Animation stack name: %s", AnimStack->GetName());
-	UE_LOG("========================================");
+			// Skeleton 포인터는 바이너리 캐시에 저장되지 않으므로 역직렬화 후 설정
+			AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
 
-	LoadAnimationFromStack(AnimStack, TargetSkeleton, AnimSeq);
+			bLoadedFromCache = true;
+			UE_LOG("Successfully loaded animation '%s' from cache.", NormalizedPath.c_str());
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG("Error loading animation from cache: %s. Regenerating...", e.what());
 
-	// 11. Scene 정리 - UE5 방식: Scene은 캐시에서 관리하므로 Destroy하지 않음
-	// (GetOrLoadFbxScene에서 캐싱된 Scene을 재사용)
+			// 손상된 캐시 삭제
+			if (std::filesystem::exists(UTF8ToWide(AnimBinPath)))
+			{
+				std::filesystem::remove(UTF8ToWide(AnimBinPath));
+			}
 
-	// 12. 리소스 매니저에 등록
+			if (AnimSeq)
+			{
+				delete AnimSeq;
+				AnimSeq = nullptr;
+			}
+
+			bLoadedFromCache = false;
+			bShouldRegenerate = true;
+		}
+	}
+#endif
+
+	// 6. 캐시가 없거나 유효하지 않으면 FBX에서 로드
+	if (!AnimSeq)
+	{
+		// FbxScene 로드
+		bool bNewlyLoaded = false;
+		FbxScene* Scene = GetOrLoadFbxScene(NormalizedPath, bNewlyLoaded);
+		if (!Scene)
+		{
+			UE_LOG("Error: Failed to load FBX scene for animation: %s", NormalizedPath.c_str());
+			return nullptr;
+		}
+
+		// AnimStack 확인
+		int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
+		if (AnimStackCount == 0)
+		{
+			UE_LOG("Error: No animation data found in FBX file: %s", NormalizedPath.c_str());
+			return nullptr;
+		}
+
+		UE_LOG("Found %d animation stack(s) in FBX file", AnimStackCount);
+
+		// UAnimSequence 생성
+		AnimSeq = NewObject<UAnimSequence>();
+		AnimSeq->SetFilePath(NormalizedPath);
+		AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
+
+		// 첫 번째 AnimStack 로드
+		FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
+		UE_LOG("========================================");
+		UE_LOG("[ANIMATION] Loading from FBX: %s", NormalizedPath.c_str());
+		UE_LOG("[ANIMATION] Animation stack name: %s", AnimStack->GetName());
+		UE_LOG("========================================");
+
+		LoadAnimationFromStack(AnimStack, TargetSkeleton, AnimSeq);
+
+		UE_LOG("========================================");
+		UE_LOG("[ANIMATION] Load complete for: %s", NormalizedPath.c_str());
+		UE_LOG("[ANIMATION] Result: %d frames, %d bone tracks, %d total keys",
+			   AnimSeq->NumberOfFrames,
+			   AnimSeq->GetBoneAnimationTracks().Num(),
+			   AnimSeq->NumberOfKeys);
+		UE_LOG("========================================");
+
+#ifdef USE_OBJ_CACHE
+		// 7. 캐시 저장
+		try
+		{
+			FWindowsBinWriter Writer(AnimBinPath);
+			if (!Writer.IsOpen())
+			{
+				throw std::runtime_error("Failed to open animation cache for writing.");
+			}
+
+			Writer << *AnimSeq;
+			Writer.Close();
+
+			UE_LOG("Animation cache saved: %s", AnimBinPath.c_str());
+		}
+		catch (const std::exception& e)
+		{
+			UE_LOG("Warning: Failed to save animation cache: %s", e.what());
+		}
+#endif
+	}
+
+	// 8. 리소스 매니저에 등록
 	UResourceManager::GetInstance().Add<UAnimSequence>(NormalizedPath, AnimSeq);
-
-	UE_LOG("========================================");
-	UE_LOG("[ANIMATION] Load complete for: %s", NormalizedPath.c_str());
-	UE_LOG("[ANIMATION] Result: %d frames, %d bone tracks, %d total keys",
-		   AnimSeq->NumberOfFrames,
-		   AnimSeq->GetBoneAnimationTracks().Num(),
-		   AnimSeq->NumberOfKeys);
-	UE_LOG("========================================");
 
 	return AnimSeq;
 }

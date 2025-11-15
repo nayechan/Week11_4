@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "Vector.h"
 #include "UEContainer.h"
+#include "Archive.h"
+#include "Name.h"
 
 // 프레임 레이트 구조체
 struct FFrameRate
@@ -23,6 +25,14 @@ struct FFrameRate
 	float AsSeconds(int32 FrameNumber) const
 	{
 		return static_cast<float>(FrameNumber) / AsDecimal();
+	}
+
+	// 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FFrameRate& Data)
+	{
+		Ar << Data.Numerator;
+		Ar << Data.Denominator;
+		return Ar;
 	}
 };
 
@@ -48,6 +58,24 @@ struct FRawAnimSequenceTrack
 		if (!ScaleKeys.IsEmpty()) MaxKeys = FMath::Max(MaxKeys, ScaleKeys.Num());
 		return MaxKeys;
 	}
+
+	// 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FRawAnimSequenceTrack& Data)
+	{
+		if (Ar.IsSaving())
+		{
+			Serialization::WriteArray(Ar, Data.PosKeys);
+			Serialization::WriteArray(Ar, Data.RotKeys);
+			Serialization::WriteArray(Ar, Data.ScaleKeys);
+		}
+		else if (Ar.IsLoading())
+		{
+			Serialization::ReadArray(Ar, Data.PosKeys);
+			Serialization::ReadArray(Ar, Data.RotKeys);
+			Serialization::ReadArray(Ar, Data.ScaleKeys);
+		}
+		return Ar;
+	}
 };
 
 // 본별 애니메이션 트랙 (발제 문서 기준)
@@ -60,6 +88,27 @@ struct FBoneAnimationTrack
 	FBoneAnimationTrack() = default;
 	FBoneAnimationTrack(const FName& InName, int32 InBoneIndex)
 		: Name(InName), BoneTreeIndex(InBoneIndex) {}
+
+	// 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FBoneAnimationTrack& Data)
+	{
+		if (Ar.IsSaving())
+		{
+			FString NameStr = Data.Name.ToString();
+			Serialization::WriteString(Ar, NameStr);
+			Ar << Data.BoneTreeIndex;
+			Ar << Data.InternalTrack;
+		}
+		else if (Ar.IsLoading())
+		{
+			FString NameStr;
+			Serialization::ReadString(Ar, NameStr);
+			Data.Name = FName(NameStr);
+			Ar << Data.BoneTreeIndex;
+			Ar << Data.InternalTrack;
+		}
+		return Ar;
+	}
 };
 
 // AnimNotify 이벤트 (발제 문서 요구사항)

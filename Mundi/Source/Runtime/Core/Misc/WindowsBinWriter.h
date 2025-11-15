@@ -13,6 +13,12 @@ public:
     }
     ~FWindowsBinWriter() { Close(); }
 
+    // 파일이 성공적으로 열렸는지 확인하는 메서드
+    bool IsOpen() const
+    {
+        return File.is_open();
+    }
+
     void Serialize(void* Data, int64 Length) override
     {
         File.write(reinterpret_cast<char*>(Data), Length);
