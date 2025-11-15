@@ -176,6 +176,36 @@ bool FTextureConverter::ShouldRegenerateDDS(
 	return SourceTime > DDSTime;
 }
 
+bool FTextureConverter::ShouldRegenerateDDS_Fbm(
+	const FString& SourcePath,
+	const FString& DDSPath,
+	const FString& FbxPath)
+{
+	namespace fs = std::filesystem;
+
+	// DDS 캐시 존재 여부 확인
+	fs::path DDSFile(UTF8ToWide(DDSPath));
+	fs::path FbxFile(UTF8ToWide(FbxPath));
+
+	if (!fs::exists(DDSFile))
+	{
+		return true; // 캐시가 없으면 재생성
+	}
+
+	if (!fs::exists(FbxFile))
+	{
+		return false; // FBX가 없으면 기존 캐시 사용
+	}
+
+	// .fbm 텍스처는 매번 추출되므로 텍스처 파일 타임스탬프가 아닌
+	// 원본 FBX 파일의 타임스탬프를 기준으로 판단
+	auto FbxTime = fs::last_write_time(FbxFile);
+	auto DDSTime = fs::last_write_time(DDSFile);
+
+	// FBX가 캐시보다 최신이면 재생성
+	return FbxTime > DDSTime;
+}
+
 FString FTextureConverter::GetDDSCachePath(const FString& SourcePath)
 {
 	// 1. 원본 경로 정규화 (백슬래시 -> 슬래시)

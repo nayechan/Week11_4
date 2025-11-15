@@ -44,6 +44,20 @@ public:
 	);
 
 	/**
+	 * @brief .fbm 폴더의 embedded 텍스처에 대한 DDS 캐시 재생성 필요 여부 확인
+	 * @param SourcePath 원본 텍스처 파일 경로 (.fbm 폴더 내)
+	 * @param DDSPath 캐시된 DDS 파일 경로
+	 * @param FbxPath 원본 FBX 파일 경로 (타임스탬프 기준용)
+	 * @return 캐시가 유효하지 않거나 없으면 true
+	 * @note .fbm 텍스처는 매번 추출되므로 FBX 파일의 타임스탬프를 기준으로 판단
+	 */
+	static bool ShouldRegenerateDDS_Fbm(
+		const FString& SourcePath,
+		const FString& DDSPath,
+		const FString& FbxPath
+	);
+
+	/**
 	 * @brief 주어진 원본 텍스처에 대한 DDS 캐시 경로 생성
 	 * @param SourcePath 원본 텍스처 파일 경로
 	 * @return Data/TextureCache/에 생성된 캐시 경로

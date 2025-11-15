@@ -16,39 +16,39 @@ void UAnimSequence::GetAnimationPose(FPoseContext& OutPose, const FAnimExtractCo
 	const int32 NumBones = Skeleton->Bones.Num();
 	OutPose.SetNumBones(NumBones);
 
-	// 현재는 빈 구현: 모든 본을 identity transform으로 설정
-	// TODO: Context.CurrentTime에 맞춰 실제 애니메이션 트랙에서 보간
-
-	// 각 본에 대해 애니메이션 적용
+	// 모든 본에 대해 애니메이션 트랙에서 현재 시간의 트랜스폼 추출
 	for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 	{
-		if (BoneIndex < BoneAnimationTracks.Num())
-		{
-			OutPose.BoneTransforms[BoneIndex] = GetBoneTransformAtTime(BoneIndex, Context.CurrentTime);
-		}
-		else
-		{
-			OutPose.BoneTransforms[BoneIndex] = FTransform();
-		}
+		OutPose.BoneTransforms[BoneIndex] = GetBoneTransformAtTime(BoneIndex, Context.CurrentTime);
 	}
 }
 
 FTransform UAnimSequence::GetBoneTransformAtTime(int32 BoneIndex, float Time) const
 {
-	// 인덱스 범위 체크
-	if (BoneIndex < 0 || BoneIndex >= BoneAnimationTracks.Num())
+	// 스켈레톤 범위 체크
+	if (!Skeleton || BoneIndex < 0 || BoneIndex >= Skeleton->Bones.Num())
 	{
 		return FTransform();
 	}
 
-	const FBoneAnimationTrack& Track = BoneAnimationTracks[BoneIndex];
-	const FRawAnimSequenceTrack& RawTrack = Track.InternalTrack;
+	// BoneAnimationTracks 배열에서 BoneTreeIndex로 매칭되는 트랙 찾기
+	const FBoneAnimationTrack* Track = nullptr;
+	for (const FBoneAnimationTrack& T : BoneAnimationTracks)
+	{
+		if (T.BoneTreeIndex == BoneIndex)
+		{
+			Track = &T;
+			break;
+		}
+	}
 
-	// 빈 트랙이면 identity
-	if (RawTrack.IsEmpty())
+	// 애니메이션 트랙이 없으면 identity (T-Pose 유지)
+	if (!Track || Track->InternalTrack.IsEmpty())
 	{
 		return FTransform();
 	}
+
+	const FRawAnimSequenceTrack& RawTrack = Track->InternalTrack;
 
 	// 각 컴포넌트 보간
 	FVector Position = InterpolatePosition(RawTrack.PosKeys, Time);

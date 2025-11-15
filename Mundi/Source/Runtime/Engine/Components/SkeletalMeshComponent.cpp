@@ -8,9 +8,20 @@
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
     // 테스트용 기본 메시 설정
-    SetSkeletalMesh(GDataDir + "/Test.fbx"); 
+    // SetSkeletalMesh(GDataDir + "/Test.fbx");
 }
 
+void USkeletalMeshComponent::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // PIE 모드 시작 시 AnimationData가 설정되어 있으면 자동으로 반복 재생
+    if (AnimationData)
+    {
+        PlayAnimation(AnimationData, true);
+        UE_LOG("USkeletalMeshComponent::BeginPlay - Auto-playing animation: %s", AnimationData->GetName().c_str());
+    }
+}
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
