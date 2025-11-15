@@ -19,7 +19,8 @@ CreateConstantBuffer(&TYPE##Buffer, sizeof(TYPE));
 		ConstantBufferUpdate(TYPE##Buffer, Data);\
 	}
 #define DECLARE_GET_CONSTANT_BUFFER_FUNC(TYPE) \
-	ID3D11Buffer* GetConstantBuffer(const TYPE& Data) \
+	template<>	\
+	ID3D11Buffer* GetConstantBuffer<TYPE>() \
 	{\
 		return ConstantBufferGet(TYPE##Buffer);\
 	}
@@ -91,6 +92,9 @@ public:
 	static HRESULT CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMeshData* Mesh, ID3D11Buffer** OutBuffer);
 
 	CONSTANT_BUFFER_LIST(DECLARE_UPDATE_CONSTANT_BUFFER_FUNC)
+	// 상수 버퍼 스택 생성 없이 얻기 위한 템플릿 함수, DECLARE_GET_CONSTNAT_BUFFER_FUNC보다 먼저 정의되어야함.
+	template<typename T>
+	ID3D11Buffer* GetConstantBuffer() {}
 	CONSTANT_BUFFER_LIST(DECLARE_GET_CONSTANT_BUFFER_FUNC)
 	CONSTANT_BUFFER_LIST(DECLARE_SET_CONSTANT_BUFFER_FUNC)
 	CONSTANT_BUFFER_LIST(DECLARE_SET_UPDATE_CONSTANT_BUFFER_FUNC)

@@ -280,6 +280,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\BoneAnchorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Fade.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug_StandAlone|x64'">true</ExcludedFromBuild>
@@ -350,6 +351,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaObjectProxy.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaArrayProxy.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaMapProxy.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Scripting\LuaStructProxy.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaManager.cpp" />
     <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.cpp" />
@@ -514,7 +516,9 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\UAnimSequence.generated.cpp" />
     <ClCompile Include="Generated\UAnimSequenceBase.generated.cpp" />
     <ClCompile Include="Generated\UAnimSingleNodeInstance.generated.cpp" />
-  <ClCompile Include="Generated\UResourceBase.generated.cpp" /><ClCompile Include="Generated\UStaticMesh.generated.cpp" /></ItemGroup>
+    <ClCompile Include="Generated\UResourceBase.generated.cpp" />
+    <ClCompile Include="Generated\UStaticMesh.generated.cpp" />
+  <ClCompile Include="Generated\FTestTransform.generated.cpp" /><ClCompile Include="Generated\UTestComponent.generated.cpp" /></ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -686,6 +690,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequence.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequenceBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
     <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h" />
@@ -693,6 +698,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Components\MovementComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\ProjectileMovementComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\RotatingMovementComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\TestComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\BoxComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\BoneAnchorComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\ShapeComponent.h" />
@@ -722,6 +728,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaObjectProxyHelpers.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaArrayProxy.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaMapProxy.h" />
+    <ClInclude Include="Source\Runtime\Engine\Scripting\LuaStructProxy.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaCoroutineScheduler.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaManager.h" />
     <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.h" />
@@ -803,6 +810,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\AssetManagement\Triangle.h" />
     <ClInclude Include="Source\Runtime\Core\Containers\UEContainer.h" />
     <ClInclude Include="Source\Runtime\Core\Math\Vector.h" />
+    <ClInclude Include="Source\Runtime\Core\Math\TestTransform.h" />
     <ClInclude Include="Source\Runtime\Core\Memory\MemoryManager.h" />
     <ClInclude Include="Source\Runtime\Core\Memory\PlatformTime.h" />
     <ClInclude Include="Source\Runtime\Core\Misc\Archive.h" />
@@ -907,7 +915,10 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UAnimSequence.generated.h" />
     <ClInclude Include="Generated\UAnimSequenceBase.generated.h" />
     <ClInclude Include="Generated\UAnimSingleNodeInstance.generated.h" />
-  <ClInclude Include="Generated\UResourceBase.generated.h" /><ClInclude Include="Generated\UStaticMesh.generated.h" /></ItemGroup>
+    <ClInclude Include="Generated\UResourceBase.generated.h" />
+    <ClInclude Include="Generated\UStaticMesh.generated.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
+  <ClInclude Include="Generated\FTestTransform.generated.h" /><ClInclude Include="Generated\UTestComponent.generated.h" /></ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />

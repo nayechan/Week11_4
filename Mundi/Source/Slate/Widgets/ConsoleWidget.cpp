@@ -52,6 +52,9 @@ void UConsoleWidget::Initialize()
 	HelpCommandList.Add("STAT NONE");
 	HelpCommandList.Add("STAT LIGHT");
 	HelpCommandList.Add("STAT SHADOW");
+	HelpCommandList.Add("STAT SKINNING");
+	HelpCommandList.Add("CPU SKINNING");
+	HelpCommandList.Add("GPU SKINNING");
 
 	// Add welcome messages
 	AddLog("=== Console Widget Initialized ===");
@@ -359,6 +362,7 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 		AddLog("- STAT DECAL");
 		AddLog("- STAT ALL");
 		AddLog("- STAT LIGHT");
+		AddLog("- STAT SKINNING");
 		AddLog("- STAT NONE");
 	}
 	else if (Stricmp(command_line, "STAT FPS") == 0)
@@ -385,6 +389,22 @@ void UConsoleWidget::ExecCommand(const char* command_line)
 	{
 		UStatsOverlayD2D::Get().ToggleTileCulling();
 		AddLog("STAT LIGHT TOGGLED");
+	}
+	else if (Stricmp(command_line, "STAT Skinning") == 0)
+	{
+		UStatsOverlayD2D::Get().ToggleSkinningProfile();
+		AddLog("STAT SKINNING TOGGLED");
+	}
+	// 대소문자 구별 안 함.
+	else if (Stricmp(command_line, "CPU SkInNinG") == 0)
+	{
+		GEngine.GetRenderer()->SetGpuSkinning(false);
+		AddLog("CPU SKINNING On");
+	}
+	else if (Stricmp(command_line, "GPU SkINNinG") == 0)
+	{
+		GEngine.GetRenderer()->SetGpuSkinning(true);
+		AddLog("GPU SKINNING On");
 	}
 	else if (Stricmp(command_line, "STAT ALL") == 0)
 	{

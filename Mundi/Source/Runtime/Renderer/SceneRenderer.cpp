@@ -1297,6 +1297,8 @@ void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, b
 	ID3D11SamplerState* ShadowSampler = RHIDevice->GetSamplerState(RHI_Sampler_Index::Shadow);
 	ID3D11SamplerState* VSMSampler = RHIDevice->GetSamplerState(RHI_Sampler_Index::VSM);
 
+	FGpuProfiler::BeginFrame(RHIDevice->GetDeviceContext());
+	FGpuProfiler::TimeStampStart(RHIDevice->GetDeviceContext());
 	// 정렬된 리스트 순회
 	for (const FMeshBatchElement& Batch : InMeshBatches)
 	{
@@ -1421,15 +1423,18 @@ void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, b
 		if (Batch.SkinnedMeshComponent)
 		{
 			const TArray<FMatrix>& SkinningMatrices = Batch.SkinnedMeshComponent->GetFinalSkinningMatrices();
+			TIME_PROFILE(SkinningTimeCPU)
 			// 기존의 구조체 전달 방식은 SkinningMatrix같은 대용량 버퍼를 전달하기에 적합하지 않음(힙에서 스택으로 64KB 복사됨)
 			// 그래서 따로 만듦.
-			RHIDevice->ConstantBufferUpdateForMatrixArray(RHIDevice->GetConstantBuffer(FSkinningMatrixBufferType()), SkinningMatrices, 5, true, false);
+			RHIDevice->ConstantBufferUpdateForMatrixArray(RHIDevice->GetConstantBuffer<FSkinningMatrixBufferType>(), SkinningMatrices, 5, true, false);
+			TIME_PROFILE_END(SkinningTimeCPU)
 		}
 
 		// 5. 드로우 콜 실행
 		RHIDevice->GetDeviceContext()->DrawIndexed(Batch.IndexCount, Batch.StartIndex, Batch.BaseVertexIndex);
 	}
-
+	FGpuProfiler::TimeStampEnd(RHIDevice->GetDeviceContext());
+	FGpuProfiler::EndFrame(RHIDevice->GetDeviceContext());
 	// 루프 종료 후 리스트 비우기 (옵션)
 	if (bClearListAfterDraw)
 	{

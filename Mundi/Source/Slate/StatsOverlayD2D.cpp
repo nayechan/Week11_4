@@ -98,7 +98,7 @@ static void DrawTextBlock(
 
 void UStatsOverlayD2D::Draw()
 {
-	if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking && !bShowDecal && !bShowTileCulling && !bShowLights && !bShowShadow) || !SwapChain)
+	if (!bInitialized || (!bShowFPS && !bShowMemory && !bShowPicking && !bShowDecal && !bShowTileCulling && !bShowLights && !bShowShadow && !bShowSkinningProfile) || !SwapChain)
 		return;
 
 	ID2D1Factory1* D2dFactory = nullptr;
@@ -373,6 +373,22 @@ void UStatsOverlayD2D::Draw()
 
 		NextY += shadowPanelHeight + Space;
 	}
+
+	if (bShowSkinningProfile)
+	{
+		wchar_t Buf[512];
+		swprintf_s(Buf, L"CPU Skinning Time : %.3fms\n \
+						  GPU Mesh Draw Time : %.3fms",
+			FScopeCycleCounter::GetTimeProfile("SkinningTimeCPU").Milliseconds,
+			FScopeCycleCounter::GetTimeProfile("MeshDrawTimeInGpu").Milliseconds);
+		const float SkinningProfileHeight = 100.0f;
+		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + SkinningProfileHeight);
+		DrawTextBlock(
+			D2dCtx, Dwrite, Buf, rc, 16.0f,
+			D2D1::ColorF(0, 0, 0, 0.6f),
+			D2D1::ColorF(D2D1::ColorF::Aquamarine));
+		NextY += SkinningProfileHeight + Space;
+	}
 	
 	D2dCtx->EndDraw();
 	D2dCtx->SetTarget(nullptr);
@@ -454,7 +470,17 @@ void UStatsOverlayD2D::SetShowShadow(bool b)
 	bShowShadow = b;
 }
 
+void UStatsOverlayD2D::SetShowSkinningProfile(bool bInShowSkinningProfile)
+{
+	bShowSkinningProfile = bInShowSkinningProfile;
+}
+
 void UStatsOverlayD2D::ToggleShadow()
 {
 	bShowShadow = !bShowShadow;
+}
+
+void UStatsOverlayD2D::ToggleSkinningProfile()
+{
+	bShowSkinningProfile = !bShowSkinningProfile;
 }

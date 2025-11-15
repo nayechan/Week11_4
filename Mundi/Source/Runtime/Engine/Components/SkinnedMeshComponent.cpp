@@ -2,6 +2,7 @@
 #include "SkinnedMeshComponent.h"
 #include "MeshBatchElement.h"
 #include "SceneView.h"
+#include "PlatformTime.h"
 
 USkinnedMeshComponent::USkinnedMeshComponent() : SkeletalMesh(nullptr)
 {
@@ -50,9 +51,11 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
 
    if (bSkinningMatricesDirty && !GEngine.GetRenderer()->IsGpuSkinning())
    {
+      TIME_PROFILE(SkinningTimeCPU)
       PerformSkinning();
-      bSkinningMatricesDirty = false;
       SkeletalMesh->UpdateVertexBuffer(SkinnedVertices, VertexBuffer);
+      TIME_PROFILE_END(SkinningTimeCPU)
+      bSkinningMatricesDirty = false;
    }
 
     const TArray<FGroupInfo>& MeshGroupInfos = SkeletalMesh->GetMeshGroupInfo();
