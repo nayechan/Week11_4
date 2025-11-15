@@ -5,6 +5,7 @@
 #include "FAudioDevice.h"
 #include "FbxLoader.h"
 #include "PlatformTime.h"
+#include "ExceptionHandler.h"
 #include <ObjManager.h>
 
 
@@ -321,7 +322,7 @@ void UEditorEngine::MainLoop()
 
             bChangedPieToEditor = false;
         }
-
+       // CauseCrash();
         Tick(DeltaSeconds);
         Render();
         
