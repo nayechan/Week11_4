@@ -3,6 +3,7 @@
 #include "LuaObjectProxyHelpers.h"
 #include "LuaArrayProxy.h"
 #include "LuaMapProxy.h"
+#include "LuaStructProxy.h"
 #include "ObjectFactory.h"  // For GUObjectArray
 
 TMap<UClass*, FBoundClassDesc> GBoundClasses;
@@ -104,6 +105,20 @@ sol::object LuaObjectProxy::Index(sol::this_state LuaState, LuaObjectProxy& Self
     case EPropertyType::Map:
     {
         return sol::make_object(LuaView, LuaMapProxy(Self.Instance, Property));
+    }
+
+    // Struct types (USTRUCT) - return LuaStructProxy for recursive access
+    case EPropertyType::Struct:
+    {
+        UStruct* StructType = UStruct::FindStruct(FName(Property->StructTypeName));
+        if (!StructType)
+        {
+            UE_LOG("[Lua][error] Unknown struct type: %s", Property->StructTypeName);
+            return sol::nil;
+        }
+
+        void* StructInstance = (char*)Self.Instance + Property->Offset;
+        return sol::make_object(LuaView, LuaStructProxy(StructInstance, StructType));
     }
 
     default: return sol::nil;
@@ -314,6 +329,11 @@ void LuaObjectProxy::NewIndex(LuaObjectProxy& Self, const char* Key, sol::object
         *ArrayPtr = std::move(NewArray);
         break;
     }
+
+    // Struct types - cannot replace entire struct, only modify fields
+    case EPropertyType::Struct:
+        UE_LOG("[Lua][warning] Cannot assign to struct property '%s' directly. Modify its fields instead.", Key);
+        break;
 
     default:
         break;
