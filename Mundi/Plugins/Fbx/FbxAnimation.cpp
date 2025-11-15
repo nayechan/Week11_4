@@ -14,6 +14,125 @@
 // ========================================
 
 /**
+ * HasAnimationData
+ *
+ * AnimStack이 실제 애니메이션 데이터를 가지고 있는지 검증
+ * UE5 패턴: FBX Scene hierarchy를 직접 traverse하여 animation curve 확인
+ * Skeleton bone name matching 사용하지 않음 (mesh FBX와 anim FBX의 naming이 다를 수 있음)
+ */
+bool FFbxAnimation::HasAnimationData(
+	FbxAnimStack* AnimStack,
+	const FSkeleton* Skeleton,
+	FbxScene* Scene)
+{
+	if (!AnimStack || !Scene)
+	{
+		return false;
+	}
+
+	// AnimLayer 가져오기 (보통 첫 번째)
+	int32 LayerCount = AnimStack->GetMemberCount<FbxAnimLayer>();
+	if (LayerCount == 0)
+	{
+		return false;
+	}
+
+	FbxAnimLayer* AnimLayer = AnimStack->GetMember<FbxAnimLayer>(0);
+	if (!AnimLayer)
+	{
+		return false;
+	}
+
+	// UE5 Pattern: FBX Scene hierarchy를 재귀적으로 traverse
+	// Scene->FindNodeByName()으로 skeleton bone 찾기 대신,
+	// FBX Scene의 모든 노드를 직접 순회하며 animation curve 검증
+	return HasAnimationDataRecursive(Scene->GetRootNode(), AnimStack, AnimLayer);
+}
+
+/**
+ * HasAnimationDataRecursive
+ *
+ * FBX Scene hierarchy를 재귀적으로 순회하며 애니메이션 데이터 검증
+ * UE5 Pattern: FbxAnimation.cpp Line 404-466 참조
+ */
+bool FFbxAnimation::HasAnimationDataRecursive(
+	FbxNode* Node,
+	FbxAnimStack* AnimStack,
+	FbxAnimLayer* AnimLayer)
+{
+	if (!Node)
+	{
+		return false;
+	}
+
+	// ========================================
+	// Method 1: Check explicit animation curves (curve-based animation)
+	// ========================================
+	// UE5 Pattern: Query LclTranslation/LclRotation/LclScaling curves directly
+	bool bHasCurves = false;
+
+	// Translation curves (X, Y, Z)
+	if (Node->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, false) ||
+		Node->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false) ||
+		Node->LclTranslation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, false))
+	{
+		bHasCurves = true;
+	}
+
+	// Rotation curves (X, Y, Z)
+	if (!bHasCurves)
+	{
+		if (Node->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, false) ||
+			Node->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false) ||
+			Node->LclRotation.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, false))
+		{
+			bHasCurves = true;
+		}
+	}
+
+	// Scale curves (X, Y, Z)
+	if (!bHasCurves)
+	{
+		if (Node->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_X, false) ||
+			Node->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Y, false) ||
+			Node->LclScaling.GetCurve(AnimLayer, FBXSDK_CURVENODE_COMPONENT_Z, false))
+		{
+			bHasCurves = true;
+		}
+	}
+
+	if (bHasCurves)
+	{
+		return true;  // Animation curves found!
+	}
+
+	// ========================================
+	// Method 2: Fallback for baked animation (Mixamo style)
+	// ========================================
+	// GetAnimationInterval works for both curve-based AND baked animation
+	FbxTimeSpan AnimatedInterval(FBXSDK_TIME_INFINITE, FBXSDK_TIME_MINUS_INFINITE);
+	Node->GetAnimationInterval(AnimatedInterval, AnimStack);
+
+	if (AnimatedInterval.GetDuration() > FbxTime(0))
+	{
+		return true;  // Baked animation detected!
+	}
+
+	// ========================================
+	// Recurse to children
+	// ========================================
+	for (int i = 0; i < Node->GetChildCount(); ++i)
+	{
+		if (HasAnimationDataRecursive(Node->GetChild(i), AnimStack, AnimLayer))
+		{
+			return true;  // Child has animation!
+		}
+	}
+
+	return false;  // No animation found in this subtree
+}
+
+/**
  * ExtractAnimation
  *
  * FBX AnimStack에서 애니메이션 데이터를 추출하여 UAnimSequence로 변환

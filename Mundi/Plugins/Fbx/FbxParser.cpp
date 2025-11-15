@@ -167,20 +167,51 @@ UAnimSequence* FFbxParser::LoadFbxAnimation(const FString& FilePath, const FSkel
 
 	UE_LOG("Found %d animation stack(s) in FBX file", AnimStackCount);
 
-	// 3. UAnimSequence 생성
+	// 3. 모든 AnimStack을 검증하여 첫 번째 valid stack 찾기
+	FbxAnimStack* ValidAnimStack = nullptr;
+	int32 ValidAnimStackIndex = -1;
+
+	for (int32 i = 0; i < AnimStackCount; i++)
+	{
+		FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(i);
+		UE_LOG("  AnimStack[%d]: '%s'", i, AnimStack->GetName());
+
+		// AnimStack이 애니메이션 데이터를 가지고 있는지 검증
+		if (FFbxAnimation::HasAnimationData(AnimStack, TargetSkeleton, Scene))
+		{
+			UE_LOG("    -> HAS ANIMATION DATA - Using this stack");
+			ValidAnimStack = AnimStack;
+			ValidAnimStackIndex = i;
+			break;  // 첫 번째 valid stack 사용
+		}
+		else
+		{
+			UE_LOG("    -> EMPTY (no animation curves) - Skipping");
+		}
+	}
+
+	// 4. Valid AnimStack이 없으면 에러
+	if (!ValidAnimStack)
+	{
+		UE_LOG("Error: All AnimStacks are empty (no animation curves found)");
+		return nullptr;
+	}
+
+	UE_LOG("Selected AnimStack[%d]: '%s'", ValidAnimStackIndex, ValidAnimStack->GetName());
+
+	// 5. UAnimSequence 생성
 	UAnimSequence* AnimSeq = NewObject<UAnimSequence>();
 	AnimSeq->SetFilePath(FilePath);
 	AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
 
-	// 4. 첫 번째 AnimStack 로드
-	FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
+	// 6. 선택된 AnimStack 로드
 	UE_LOG("========================================");
 	UE_LOG("[ANIMATION] FFbxParser: Loading from FBX: %s", FilePath.c_str());
-	UE_LOG("[ANIMATION] Animation stack name: %s", AnimStack->GetName());
+	UE_LOG("[ANIMATION] Animation stack name: %s", ValidAnimStack->GetName());
 	UE_LOG("========================================");
 
-	// 5. 애니메이션 추출 (Phase 4: FFbxAnimation)
-	FFbxAnimation::ExtractAnimation(AnimStack, TargetSkeleton, AnimSeq, JointOrientationMatrix);
+	// 7. 애니메이션 추출 (Phase 4: FFbxAnimation)
+	FFbxAnimation::ExtractAnimation(ValidAnimStack, TargetSkeleton, AnimSeq, JointOrientationMatrix);
 
 	UE_LOG("========================================");
 	UE_LOG("[ANIMATION] FFbxParser: Load complete");
