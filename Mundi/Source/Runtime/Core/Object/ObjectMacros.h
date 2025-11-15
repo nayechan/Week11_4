@@ -26,6 +26,14 @@
 #define UCLASS(...)
 #endif
 
+// 구조체 메타데이터 마커
+// 사용법: USTRUCT(DisplayName="트랜스폼", Description="위치, 회전, 크기 정보")
+// 참고: USTRUCT도 UCLASS와 동일하게 GENERATED_REFLECTION_BODY() 매크로를 사용합니다.
+//       코드 생성기가 .generated.h 파일에서 적절한 코드를 생성합니다.
+#ifndef USTRUCT
+#define USTRUCT(...)
+#endif
+
 // ===== 타입 자동 감지 템플릿 =====
 
 // 기본 타입 감지 템플릿
@@ -100,13 +108,47 @@ struct TPropertyTypeTraits
 //     ADD_PROPERTY_RANGE(float, Intensity, "Light", 0.0f, 100.0f, true)
 // END_PROPERTIES()
 
-// StaticRegisterProperties 함수 시작
+// StaticRegisterProperties 함수 시작 (UCLASS용)
 #define BEGIN_PROPERTIES(ClassName) \
 	void ClassName::StaticRegisterProperties() \
 	{ \
 		UClass* Class = StaticClass(); \
+		using ThisClass_t = ClassName; \
 
-// StaticRegisterProperties 함수 종료
+// StaticRegisterProperties 함수 시작 (USTRUCT용)
+// 사용법:
+// BEGIN_STRUCT_PROPERTIES(FTransform)
+//     ADD_PROPERTY(FVector, Location, "Transform", true, "위치")
+//     ADD_PROPERTY(FVector, Rotation, "Transform", true, "회전")
+// END_PROPERTIES()
+//
+// ===== 설계 노트: 매크로 재사용을 위한 Duck Typing =====
+//
+// 중요: 변수 이름을 의도적으로 'Class'로 유지합니다!
+//
+// 이유:
+// - 모든 ADD_PROPERTY 계열 매크로(약 20개)가 'Class->' 접두사를 사용합니다
+// - UStruct*를 Struct로 명명하면 모든 매크로를 복제해야 합니다 (140줄 중복)
+// - UStruct는 UClass와 동일한 인터페이스를 제공합니다:
+//   * AddProperty(const FProperty&) 메서드
+//   * Properties 멤버 (TArray<FProperty>)
+//   * GetAllProperties() 메서드
+//
+// 따라서 변수 이름만 통일하면 타입이 달라도 모든 매크로가 작동합니다.
+// 이것이 "Duck Typing" 원리입니다:
+// "오리처럼 걷고, 오리처럼 꽥꽥거리면, 그것은 오리다"
+//
+// 제한 사항:
+// - MARK_AS_SPAWNABLE/COMPONENT는 사용 불가 (UClass 전용 필드)
+// - 코드 생성기(property_generator.py)가 struct는 MARK 매크로를 생성하지 않음
+//
+#define BEGIN_STRUCT_PROPERTIES(StructName) \
+	void StructName::StaticRegisterProperties() \
+	{ \
+		UStruct* Class = StaticStruct(); \
+		using ThisClass_t = StructName; \
+
+// StaticRegisterProperties 함수 종료 (UCLASS/USTRUCT 공통)
 #define END_PROPERTIES() \
 	}
 
@@ -131,6 +173,7 @@ struct TPropertyTypeTraits
 		FProperty Prop; \
 		Prop.Name = #VarName; \
 		Prop.Type = TPropertyTypeTraits<VarType>::GetType(); \
+		Prop.StructTypeName = #VarType; \
 		Prop.Offset = offsetof(ThisClass_t, VarName); \
 		Prop.Category = CategoryName; \
 		Prop.MinValue = MinVal; \

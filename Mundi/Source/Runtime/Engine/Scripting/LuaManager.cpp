@@ -3,6 +3,7 @@
 #include "LuaObjectProxy.h"  // Changed from LuaComponentProxy.h
 #include "LuaArrayProxy.h"
 #include "LuaMapProxy.h"
+#include "LuaStructProxy.h"
 #include "GameObject.h"
 #include "ObjectIterator.h"
 #include "CameraActor.h"
@@ -380,6 +381,7 @@ void FLuaManager::RegisterComponentProxy(sol::state& Lua) {
     // Register container proxies
     LuaArrayProxy::RegisterLua(Lua);
     LuaMapProxy::RegisterLua(Lua);
+    LuaStructProxy::RegisterLua(Lua);
 }
 
 void FLuaManager::ExposeAllComponentsToLua()

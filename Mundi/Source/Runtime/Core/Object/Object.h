@@ -152,6 +152,85 @@ public:
     }
 };
 
+// ===== UStruct: 구조체 리플렉션 메타데이터 =====
+// USTRUCT() 매크로로 선언된 구조체의 런타임 타입 정보를 저장합니다.
+//
+// UClass와의 차이점:
+// - 상속 관계 없음 (Super 포인터 없음)
+// - 동적 생성 불가 (ObjectFactory 등록 없음)
+// - 런타임 특성 없음 (bIsSpawnable, bIsComponent 등 없음)
+// - 순수 데이터 컨테이너로서의 리플렉션만 지원
+//
+// UClass와의 공통점 (인터페이스 호환성):
+// - AddProperty(), GetAllProperties() 등 동일한 메서드 시그니처
+// - Properties 배열 동일한 타입
+// - BEGIN_STRUCT_PROPERTIES 매크로에서 모든 ADD_PROPERTY 매크로 재사용 가능
+//
+// 사용 예시:
+//   USTRUCT(DisplayName="트랜스폼")
+//   struct FTransform {
+//       GENERATED_REFLECTION_BODY()
+//       UPROPERTY(EditAnywhere) FVector Location;
+//   };
+struct UStruct
+{
+	const char* Name = nullptr;
+	SIZE_T Size = 0;
+
+	// 리플렉션 시스템
+	TArray<FProperty> Properties;
+	const char* DisplayName = nullptr;
+	const char* Description = nullptr;
+
+	constexpr UStruct() = default;
+	constexpr UStruct(const char* n, SIZE_T z) : Name(n), Size(z) {}
+
+	// ===== 전역 구조체 레지스트리 =====
+	static TArray<UStruct*>& GetAllStructs()
+	{
+		static TArray<UStruct*> AllStructs;
+		return AllStructs;
+	}
+
+	static void SignUpStruct(UStruct* InStruct)
+	{
+		if (InStruct)
+		{
+			GetAllStructs().emplace_back(InStruct);
+		}
+	}
+
+	static UStruct* FindStruct(const FName& InStructName)
+	{
+		for (UStruct* Struct : GetAllStructs())
+		{
+			if (Struct && Struct->Name == InStructName)
+			{
+				return Struct;
+			}
+		}
+		return nullptr;
+	}
+
+	// ===== 프로퍼티 관리 =====
+	// 주의: UClass와 동일한 시그니처 유지 (매크로 재사용을 위해)
+	void AddProperty(const FProperty& Property)
+	{
+		Properties.Add(Property);
+	}
+
+	const TArray<FProperty>& GetProperties() const
+	{
+		return Properties;
+	}
+
+	// 구조체는 상속이 없으므로 GetAllProperties()는 GetProperties()와 동일
+	const TArray<FProperty>& GetAllProperties() const
+	{
+		return Properties;
+	}
+};
+
 class UObject
 {
 public:

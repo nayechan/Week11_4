@@ -35,6 +35,7 @@ struct FProperty
 	EPropertyType Type = EPropertyType::Unknown;  // 프로퍼티 타입
 	EPropertyType InnerType = EPropertyType::Unknown; // TArray<T>의 'T' 또는 TMap<K,V>의 'V'
 	EPropertyType KeyType = EPropertyType::Unknown;   // TMap<K,V>의 'K'
+	const char* StructTypeName = nullptr;    // Struct 타입 이름 (예: "FTestTransform")
 	size_t Offset = 0;                       // 클래스 인스턴스 내 오프셋
 	const char* Category = nullptr;          // UI 카테고리
 	float MinValue = 0.0f;                   // 범위 최소값

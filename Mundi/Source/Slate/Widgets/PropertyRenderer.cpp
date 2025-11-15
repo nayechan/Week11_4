@@ -631,9 +631,26 @@ bool UPropertyRenderer::RenderObjectPtrProperty(const FProperty& Prop, void* Ins
 
 bool UPropertyRenderer::RenderStructProperty(const FProperty& Prop, void* Instance)
 {
-	// Struct는 읽기 전용으로 표시
-	// FVector, FLinearColor 등 주요 타입은 이미 별도로 처리됨
-	ImGui::Text("%s: [Struct]", Prop.Name);
+	UStruct* StructType = UStruct::FindStruct(Prop.StructTypeName);
+
+	// 구조체 타입을 찾을 수 없는 경우 에러 표시
+	if (!StructType)
+	{
+		ImGui::Text("%s: [Unknown Struct: %s]", Prop.Name, Prop.StructTypeName);
+		return false;
+	}
+
+	void* StructPtr = (char*)Instance + Prop.Offset;
+
+	if (ImGui::TreeNode(Prop.Name))
+	{
+		for (const auto& InnerProp : StructType->GetAllProperties())
+		{
+			RenderProperty(InnerProp, StructPtr);
+		}
+		ImGui::TreePop();
+	}
+
 	return false;
 }
 
