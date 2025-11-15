@@ -137,9 +137,26 @@ struct FAnimExtractContext
 };
 
 // 포즈 데이터 컨테이너
+// Unreal의 애니메이션 그래프는 트리 구조:
+//   AnimInstance (Root)
+//     └─> StateMachine
+//           ├─> State "Idle" -> SequencePlayer (Idle.fbx)
+//           ├─> State "Walk" -> SequencePlayer (Walk.fbx)
+//           └─> State "Run"  -> BlendSpace
+//
+// Evaluate 시 트리를 재귀적으로 순회하며 FPoseContext를 전달:
+//   1. AnimInstance가 FPoseContext 생성
+//   2. RootNode->Evaluate(PoseContext) 호출
+//   3. 각 노드가 자식 노드를 Evaluate하며 결과를 PoseContext에 누적
+//   4. 최종적으로 Root로 돌아온 PoseContext에는 모든 결과 포함
 struct FPoseContext
 {
 	TArray<FTransform> BoneTransforms;  // 모든 본의 로컬 트랜스폼
+
+	// 트리 순회 중 각 노드가 발생시킨 Notify 수집
+	// 예: StateMachine -> State -> SequencePlayer 순회하며
+	//     각 노드가 자신의 Notify를 이 배열에 Append
+	TArray<FAnimNotifyEvent> AnimNotifies;
 
 	FPoseContext() = default;
 

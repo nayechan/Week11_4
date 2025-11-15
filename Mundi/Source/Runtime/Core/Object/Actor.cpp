@@ -11,6 +11,7 @@
 #include "World.h"
 #include "PrimitiveComponent.h"
 #include "GameObject.h"
+#include "AnimationTypes.h"
 
 	/*BEGIN_PROPERTIES(AActor)
 	ADD_PROPERTY(FName, ObjectName, "[액터]", true, "액터의 이름입니다")
@@ -783,4 +784,12 @@ void AActor::UnregisterComponentTree(USceneComponent* SceneComp)
 		UnregisterComponentTree(Child);
 	}
 	SceneComp->UnregisterComponent();
+}
+
+void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+	// 기본 구현: 로그 출력
+	UE_LOG("AActor::HandleAnimNotify - Notify: %s at %.2f",
+	       Notify.NotifyName.ToString().c_str(),
+	       Notify.TriggerTime);
 }
