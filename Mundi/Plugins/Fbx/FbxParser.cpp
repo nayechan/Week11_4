@@ -91,7 +91,8 @@ FSkeletalMeshData* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMate
 	MeshData->GroupInfos.Add(FGroupInfo());
 
 	// 5. 스켈레톤 추출 (Phase 5: FFbxScene)
-	FFbxScene::ExtractSkeleton(RootNode, *MeshData, BoneToIndex);
+	// Blender FBX는 "Armature" dummy node를 스킵하도록 bCreatorIsBlender 전달
+	FFbxScene::ExtractSkeleton(Scene, RootNode, *MeshData, BoneToIndex, bCreatorIsBlender);
 
 	// 6. 메시 추출 (Phase 6: FFbxMesh)
 	for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
@@ -276,6 +277,22 @@ FbxScene* FFbxParser::LoadFbxScene(const FString& FilePath, bool& bOutNewlyLoade
 		return nullptr;
 	}
 
+	// 3.5. Blender FBX 감지 (UE5 Pattern: FbxAPI.cpp:181-187)
+	// Example creator string: "Blender (stable FBX IO) - 2.78 (sub 0) - 3.7.7"
+	// Blender FBX는 "Armature" dummy node를 root joint 부모로 포함하며,
+	// 이 노드는 100x scale + 90° rotation을 가짐 (meter→cm + Z-up→Y-up 변환)
+	bCreatorIsBlender = false;
+	FbxIOFileHeaderInfo* FileHeaderInfo = SDKImporter->GetFileHeaderInfo();
+	if (FileHeaderInfo && FileHeaderInfo->mCreator.Buffer())
+	{
+		FString CreatorString(FileHeaderInfo->mCreator.Buffer());
+		// StartsWith 체크 (대소문자 구분)
+		bCreatorIsBlender = (CreatorString.find("Blender") == 0);
+
+		UE_LOG("[FFbxParser] FBX Creator: %s", CreatorString.c_str());
+		UE_LOG("[FFbxParser] Blender FBX: %s", bCreatorIsBlender ? "YES" : "NO");
+	}
+
 	// 4. FbxScene 생성 및 Import
 	FbxScene* Scene = FbxScene::Create(SDKManager, "Shared Scene");
 	SDKImporter->Import(Scene);
@@ -287,14 +304,17 @@ FbxScene* FFbxParser::LoadFbxScene(const FString& FilePath, bool& bOutNewlyLoade
 	ConvertScene(Scene, bForceFrontXAxis);
 
 	// 6. 단위 변환 (meter로 변환)
+	// UE5 Pattern: Always convert to ensure consistency regardless of source unit
 	FbxSystemUnit SceneSystemUnit = Scene->GetGlobalSettings().GetSystemUnit();
 	double ScaleFactor = SceneSystemUnit.GetScaleFactor();
 
-	if (ScaleFactor != 100.0)
-	{
-		FbxSystemUnit::m.ConvertScene(Scene);
-		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after unit conversion
-	}
+	UE_LOG("[FFbxParser] FBX Unit System: scale factor = %.2f (1.0 = cm, 100.0 = m)", ScaleFactor);
+
+	// ALWAYS convert to meters for consistency (Blender, Mixamo, Maya all standardized)
+	FbxSystemUnit::m.ConvertScene(Scene);
+	Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after unit conversion
+
+	UE_LOG("[FFbxParser] FBX Unit converted to meters");
 
 	// 7. 삼각화
 	FbxGeometryConverter GeometryConverter(SDKManager);

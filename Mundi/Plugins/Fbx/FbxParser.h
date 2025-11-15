@@ -72,6 +72,16 @@ public:
 	 */
 	void Reset();
 
+	/**
+	 * IsCreatorBlender
+	 *
+	 * FBX 파일이 Blender에서 생성되었는지 확인
+	 * Blender FBX는 "Armature" dummy node에 특별한 처리 필요
+	 *
+	 * @return Blender 생성 여부
+	 */
+	bool IsCreatorBlender() const { return bCreatorIsBlender; }
+
 	// ========================================
 	// Public Member Variable (UE5 Pattern)
 	// ========================================
@@ -100,6 +110,21 @@ private:
 
 	FbxManager* SDKManager;
 	FbxImporter* SDKImporter;
+
+	// ========================================
+	// FBX 파일 메타데이터
+	// ========================================
+
+	/**
+	 * bCreatorIsBlender
+	 *
+	 * FBX 파일이 Blender에서 생성되었는지 여부
+	 * Blender FBX는 "Armature" dummy node를 포함하며 특별한 처리 필요
+	 *
+	 * UE5 Pattern: InterchangeFbxParser::bCreatorIsBlender
+	 * Location: FbxAPI.cpp:187
+	 */
+	bool bCreatorIsBlender = false;
 
 	// ========================================
 	// Scene 캐싱 구조
