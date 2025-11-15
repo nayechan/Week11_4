@@ -91,7 +91,8 @@ FSkeletalMeshData* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMate
 	MeshData->GroupInfos.Add(FGroupInfo());
 
 	// 5. 스켈레톤 추출 (Phase 5: FFbxScene)
-	FFbxScene::ExtractSkeleton(RootNode, *MeshData, BoneToIndex);
+	// Blender FBX는 "Armature" dummy node를 스킵하도록 bCreatorIsBlender 전달
+	FFbxScene::ExtractSkeleton(Scene, RootNode, *MeshData, BoneToIndex, bCreatorIsBlender);
 
 	// 6. 메시 추출 (Phase 6: FFbxMesh)
 	for (int Index = 0; Index < RootNode->GetChildCount(); Index++)
@@ -167,20 +168,51 @@ UAnimSequence* FFbxParser::LoadFbxAnimation(const FString& FilePath, const FSkel
 
 	UE_LOG("Found %d animation stack(s) in FBX file", AnimStackCount);
 
-	// 3. UAnimSequence 생성
+	// 3. 모든 AnimStack을 검증하여 첫 번째 valid stack 찾기
+	FbxAnimStack* ValidAnimStack = nullptr;
+	int32 ValidAnimStackIndex = -1;
+
+	for (int32 i = 0; i < AnimStackCount; i++)
+	{
+		FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(i);
+		UE_LOG("  AnimStack[%d]: '%s'", i, AnimStack->GetName());
+
+		// AnimStack이 애니메이션 데이터를 가지고 있는지 검증
+		if (FFbxAnimation::HasAnimationData(AnimStack, TargetSkeleton, Scene))
+		{
+			UE_LOG("    -> HAS ANIMATION DATA - Using this stack");
+			ValidAnimStack = AnimStack;
+			ValidAnimStackIndex = i;
+			break;  // 첫 번째 valid stack 사용
+		}
+		else
+		{
+			UE_LOG("    -> EMPTY (no animation curves) - Skipping");
+		}
+	}
+
+	// 4. Valid AnimStack이 없으면 에러
+	if (!ValidAnimStack)
+	{
+		UE_LOG("Error: All AnimStacks are empty (no animation curves found)");
+		return nullptr;
+	}
+
+	UE_LOG("Selected AnimStack[%d]: '%s'", ValidAnimStackIndex, ValidAnimStack->GetName());
+
+	// 5. UAnimSequence 생성
 	UAnimSequence* AnimSeq = NewObject<UAnimSequence>();
 	AnimSeq->SetFilePath(FilePath);
 	AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
 
-	// 4. 첫 번째 AnimStack 로드
-	FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
+	// 6. 선택된 AnimStack 로드
 	UE_LOG("========================================");
 	UE_LOG("[ANIMATION] FFbxParser: Loading from FBX: %s", FilePath.c_str());
-	UE_LOG("[ANIMATION] Animation stack name: %s", AnimStack->GetName());
+	UE_LOG("[ANIMATION] Animation stack name: %s", ValidAnimStack->GetName());
 	UE_LOG("========================================");
 
-	// 5. 애니메이션 추출 (Phase 4: FFbxAnimation)
-	FFbxAnimation::ExtractAnimation(AnimStack, TargetSkeleton, AnimSeq, JointOrientationMatrix);
+	// 7. 애니메이션 추출 (Phase 4: FFbxAnimation)
+	FFbxAnimation::ExtractAnimation(ValidAnimStack, TargetSkeleton, AnimSeq, JointOrientationMatrix);
 
 	UE_LOG("========================================");
 	UE_LOG("[ANIMATION] FFbxParser: Load complete");
@@ -245,6 +277,22 @@ FbxScene* FFbxParser::LoadFbxScene(const FString& FilePath, bool& bOutNewlyLoade
 		return nullptr;
 	}
 
+	// 3.5. Blender FBX 감지 (UE5 Pattern: FbxAPI.cpp:181-187)
+	// Example creator string: "Blender (stable FBX IO) - 2.78 (sub 0) - 3.7.7"
+	// Blender FBX는 "Armature" dummy node를 root joint 부모로 포함하며,
+	// 이 노드는 100x scale + 90° rotation을 가짐 (meter→cm + Z-up→Y-up 변환)
+	bCreatorIsBlender = false;
+	FbxIOFileHeaderInfo* FileHeaderInfo = SDKImporter->GetFileHeaderInfo();
+	if (FileHeaderInfo && FileHeaderInfo->mCreator.Buffer())
+	{
+		FString CreatorString(FileHeaderInfo->mCreator.Buffer());
+		// StartsWith 체크 (대소문자 구분)
+		bCreatorIsBlender = (CreatorString.find("Blender") == 0);
+
+		UE_LOG("[FFbxParser] FBX Creator: %s", CreatorString.c_str());
+		UE_LOG("[FFbxParser] Blender FBX: %s", bCreatorIsBlender ? "YES" : "NO");
+	}
+
 	// 4. FbxScene 생성 및 Import
 	FbxScene* Scene = FbxScene::Create(SDKManager, "Shared Scene");
 	SDKImporter->Import(Scene);
@@ -256,14 +304,17 @@ FbxScene* FFbxParser::LoadFbxScene(const FString& FilePath, bool& bOutNewlyLoade
 	ConvertScene(Scene, bForceFrontXAxis);
 
 	// 6. 단위 변환 (meter로 변환)
+	// UE5 Pattern: Always convert to ensure consistency regardless of source unit
 	FbxSystemUnit SceneSystemUnit = Scene->GetGlobalSettings().GetSystemUnit();
 	double ScaleFactor = SceneSystemUnit.GetScaleFactor();
 
-	if (ScaleFactor != 100.0)
-	{
-		FbxSystemUnit::m.ConvertScene(Scene);
-		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after unit conversion
-	}
+	UE_LOG("[FFbxParser] FBX Unit System: scale factor = %.2f (1.0 = cm, 100.0 = m)", ScaleFactor);
+
+	// ALWAYS convert to meters for consistency (Blender, Mixamo, Maya all standardized)
+	FbxSystemUnit::m.ConvertScene(Scene);
+	Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after unit conversion
+
+	UE_LOG("[FFbxParser] FBX Unit converted to meters");
 
 	// 7. 삼각화
 	FbxGeometryConverter GeometryConverter(SDKManager);

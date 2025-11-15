@@ -22,6 +22,28 @@ struct FSkeleton;
 struct FFbxAnimation
 {
 	/**
+	 * HasAnimationData
+	 *
+	 * AnimStack이 실제 애니메이션 데이터를 가지고 있는지 검증
+	 * Mixamo FBX처럼 empty AnimStack이 있는 경우 fallback 처리용
+	 *
+	 * @param AnimStack - 검증할 FBX AnimStack
+	 * @param Skeleton - 타겟 스켈레톤 (본 이름 매칭용)
+	 * @param Scene - FBX Scene (본 노드 검색용)
+	 * @return 어떤 본이라도 애니메이션 커브를 가지고 있으면 true
+	 *
+	 * 검증 방법:
+	 * 1. Skeleton의 모든 본을 순회
+	 * 2. 각 본의 FbxNode를 Scene에서 검색
+	 * 3. Translation/Rotation/Scale 커브 존재 여부 확인
+	 * 4. 어떤 본이라도 커브가 있으면 true 반환
+	 */
+	static bool HasAnimationData(
+		FbxAnimStack* AnimStack,
+		const FSkeleton* Skeleton,
+		FbxScene* Scene);
+
+	/**
 	 * ExtractAnimation
 	 *
 	 * FBX AnimStack에서 애니메이션 데이터를 추출하여 UAnimSequence로 변환
@@ -97,6 +119,27 @@ struct FFbxAnimation
 
 private:
 	/**
+	 * HasAnimationDataRecursive
+	 *
+	 * FBX Scene hierarchy를 재귀적으로 순회하며 애니메이션 데이터 검증
+	 * UE5 패턴: Skeleton bone name matching 대신 FbxNode hierarchy 직접 탐색
+	 *
+	 * @param Node - 현재 검사 중인 FBX 노드
+	 * @param AnimStack - 검증할 AnimStack
+	 * @param AnimLayer - 애니메이션 레이어
+	 * @return 이 노드 또는 자식 노드 중 하나라도 애니메이션 데이터가 있으면 true
+	 *
+	 * 검증 방법:
+	 * 1. 현재 노드의 LclTranslation/LclRotation/LclScaling 커브 확인 (curve-based)
+	 * 2. Fallback: GetAnimationInterval() 사용 (baked animation 지원)
+	 * 3. 모든 자식 노드에 대해 재귀 호출
+	 */
+	static bool HasAnimationDataRecursive(
+		FbxNode* Node,
+		FbxAnimStack* AnimStack,
+		FbxAnimLayer* AnimLayer);
+
+	/**
 	 * CollectUniqueKeyTimes
 	 *
 	 * 모든 애니메이션 커브에서 unique한 KeyTime 수집
@@ -122,6 +165,7 @@ private:
 	 * @param Scene - FBX Scene (AnimationEvaluator 사용)
 	 * @param KeyTime - 평가할 시간
 	 * @param JointOrientationMatrix - Joint 변환 행렬 (애니메이션 본 변환용)
+	 * @param bIsRootJoint - Root Joint 여부 (Parent에 JointOrientationMatrix 적용 여부 결정)
 	 * @param OutPosition - 출력 위치 (Y-Flip 적용됨)
 	 * @param OutRotation - 출력 회전 (Y-Flip 적용됨)
 	 * @param OutScale - 출력 스케일
@@ -132,6 +176,7 @@ private:
 		FbxScene* Scene,
 		FbxTime KeyTime,
 		const FbxAMatrix& JointOrientationMatrix,
+		bool bIsRootJoint,
 		FVector& OutPosition,
 		FQuat& OutRotation,
 		FVector& OutScale);
