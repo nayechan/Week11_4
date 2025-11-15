@@ -37,6 +37,9 @@ public:
     virtual void EndPlay();   // Override 시 Super::EndPlay() 권장
     virtual void Destroy();
 
+    // 애니메이션 Notify 핸들링 (발제 문서 구조)
+    virtual void HandleAnimNotify(const struct FAnimNotifyEvent& Notify);
+
     void SetTag(const FString& InTag) { Tag = InTag; }
     const FString& GetTag() const { return Tag; }
 

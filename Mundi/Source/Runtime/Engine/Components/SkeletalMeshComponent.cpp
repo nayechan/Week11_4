@@ -267,9 +267,10 @@ void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
     AActor* Owner = GetOwner();
     if (Owner)
     {
-        // Actor의 HandleAnimNotify 호출 (발제 문서 구조)
-        // TODO: AActor에 HandleAnimNotify 가상 함수 추가 필요
-        UE_LOG("AnimNotify: %s at time %.2f", Notify.NotifyName.ToString().c_str(), Notify.TriggerTime);
+        // Forward to Actor's HandleAnimNotify (specification pattern)
+        Owner->HandleAnimNotify(Notify);
+        UE_LOG("AnimNotify: %s at time %.2f (forwarded to Owner)",
+               Notify.NotifyName.ToString().c_str(), Notify.TriggerTime);
     }
 }
 

@@ -162,3 +162,18 @@ enum class EAnimationMode : uint8
 	AnimationSingleNode,   // 단일 애니메이션 재생
 	AnimationLuaScript,    // Lua 스크립트 기반 애니메이션
 };
+
+// ───────────────────────────────────────────────────────────────
+// Common Notify Names (발제 문서 템플릿 기준)
+// switch(Notify.NotifyName) { case NAME_Shoot: ... }
+// ───────────────────────────────────────────────────────────────
+#define NAME_Shoot     FName("Shoot")
+#define NAME_Footstep  FName("Footstep")
+#define NAME_Attack    FName("Attack")
+#define NAME_Impact    FName("Impact")
+#define NAME_Jump      FName("Jump")
+#define NAME_Land      FName("Land")
+#define NAME_Reload    FName("Reload")
+#define NAME_Swing     FName("Swing")
+#define NAME_Hit       FName("Hit")
+#define NAME_Die       FName("Die")

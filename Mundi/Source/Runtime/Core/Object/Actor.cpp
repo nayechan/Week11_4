@@ -1,5 +1,6 @@
 ﻿#include "pch.h"
 #include "Actor.h"
+#include "Source/Runtime/Engine/Animation/AnimationTypes.h"
 #include "SceneComponent.h"
 #include "ObjectFactory.h"
 #include "MeshComponent.h"
@@ -98,6 +99,52 @@ void AActor::Destroy()
 	MarkPendingDestroy();
 
 	World->AddPendingKillActor(this);
+}
+
+void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+	// 기본 구현: 비어있음
+	// 파생 클래스에서 오버라이드하여 구현
+	//
+	// ────────────────────────────────────────────────────────
+	// 예시: ACharacter 클래스에서 HandleAnimNotify 오버라이드
+	// ────────────────────────────────────────────────────────
+	// void ACharacter::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+	// {
+	//     // NAME_ 매크로를 사용한 switch-case 패턴
+	//     if (Notify.NotifyName == NAME_Shoot)
+	//     {
+	//         TriggerFire();
+	//     }
+	//     else if (Notify.NotifyName == NAME_Footstep)
+	//     {
+	//         PlayFootstepSound();
+	//         SpawnFootstepParticle();
+	//     }
+	//     else if (Notify.NotifyName == NAME_Attack)
+	//     {
+	//         EnableWeaponCollision();
+	//     }
+	//     else if (Notify.NotifyName == NAME_Impact)
+	//     {
+	//         // NotifyData를 파싱하여 추가 정보 활용
+	//         float ImpactForce = 100.0f;
+	//         if (!Notify.NotifyData.empty())
+	//             ImpactForce = std::stof(Notify.NotifyData);
+	//
+	//         ApplyImpact(ImpactForce);
+	//     }
+	//     else if (Notify.NotifyName == NAME_Reload)
+	//     {
+	//         PlayReloadEffect();
+	//         RefillAmmo();
+	//     }
+	//     else
+	//     {
+	//         // 부모 클래스 호출 (필요한 경우)
+	//         Super::HandleAnimNotify(Notify);
+	//     }
+	// }
 }
 
 void AActor::SetRootComponent(USceneComponent* InRoot)
