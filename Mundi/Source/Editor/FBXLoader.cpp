@@ -3,6 +3,7 @@
 #pragma warning(disable: 4244) // Disable double to float conversion warning for FBX SDK
 #include "ObjectFactory.h"
 #include "FbxLoader.h"
+#include "FbxDataConverter.h"  // Week10 Migration: Y-Flip and coordinate conversion utilities
 #include "fbxsdk/fileio/fbxiosettings.h"
 #include "fbxsdk/scene/geometry/fbxcluster.h"
 #include "ObjectIterator.h"
@@ -158,31 +159,94 @@ FbxScene* UFbxLoader::GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewly
 	Importer->Import(Scene);
 	Importer->Destroy();
 
-	// 단위 변환 (중요: DeepConvertScene 전에 수행)
+	// ========================================
+	// PHASE 2: Week10 Migration - Coordinate System Conversion
+	// ========================================
+
+	// ========================================
+	// UE5 Pattern: Coordinate System Conversion
+	// ========================================
+	// Unreal Engine uses -Y as forward axis by default to mimic Maya/Max behavior
+	// This way, models facing +X in DCC tools will face +X in engine
+	//
+	// Reference: UE5 Engine\Source\Editor\UnrealEd\Private\Fbx\FbxMainImport.cpp Line 1528-1563
+	//
+	// Quote from UE5 source:
+	// "we use -Y as forward axis here when we import. This is odd considering our
+	//  forward axis is technically +X but this is to mimic Maya/Max behavior where
+	//  if you make a model facing +X facing, when you import that mesh, you want
+	//  +X facing in engine."
+
+	// Default: -Y Forward (matches Maya/Max workflow)
+	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
+
+	// bForceFrontXAxis option: use +X Forward instead (default: false in UE5)
+	bool bForceFrontXAxis = false;  // UE5 default: false
+
+	if (bForceFrontXAxis)
+	{
+		FrontVector = FbxAxisSystem::eParityEven;  // +X Forward
+		UE_LOG("[Scene Cache] bForceFrontXAxis = true, using +X Forward");
+	}
+	else
+	{
+		UE_LOG("[Scene Cache] bForceFrontXAxis = false (default), using -Y Forward");
+	}
+
+	// Target coordinate system: Z-Up, Right-Handed, with dynamic Front vector
+	FbxAxisSystem UnrealImportAxis(
+		FbxAxisSystem::eZAxis,           // Up: Z
+		FrontVector,                     // Front: -Y (default) or +X (if bForceFrontXAxis)
+		FbxAxisSystem::eRightHanded      // Right-Handed intermediate stage
+	);
+
+	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
+
+	// Store bForceFrontXAxis in cached scene for later use (LoadMesh, Animation)
+	CachedScene.bForceFrontXAxis = bForceFrontXAxis;
+
+	if (SourceSetup != UnrealImportAxis)
+	{
+		// Log source axis system for debugging
+		int SourceUpSign, SourceFrontSign;
+		FbxAxisSystem::EUpVector SourceUp = SourceSetup.GetUpVector(SourceUpSign);
+		FbxAxisSystem::EFrontVector SourceFront = SourceSetup.GetFrontVector(SourceFrontSign);
+		FbxAxisSystem::ECoordSystem SourceCoord = SourceSetup.GetCoorSystem();
+
+		UE_LOG("[Scene Cache] Source Axis System: Up=%d (sign=%d), Front=%d (sign=%d), Coord=%d",
+			(int)SourceUp, SourceUpSign, (int)SourceFront, SourceFrontSign, (int)SourceCoord);
+		UE_LOG("[Scene Cache] Converting coordinate system to Z-Up, %s, Right-Handed",
+			bForceFrontXAxis ? "+X Forward" : "-Y Forward");
+
+		// UE5 Pattern: Remove all FBX roots before conversion
+		FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
+
+		// CHANGED: DeepConvertScene → ConvertScene
+		// ConvertScene only transforms Scene Graph, NOT vertex data
+		// This prevents double-transformation bug (100x scale issue)
+		UnrealImportAxis.ConvertScene(Scene);
+		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after conversion
+	}
+	else
+	{
+		UE_LOG("[Scene Cache] Source already matches target axis system, no conversion needed");
+	}
+
+	// Unit Conversion AFTER Coordinate Conversion (Week10 order)
 	FbxSystemUnit SceneSystemUnit = Scene->GetGlobalSettings().GetSystemUnit();
 	double ScaleFactor = SceneSystemUnit.GetScaleFactor();
 	UE_LOG("[Scene Cache] FBX Scene Unit Scale Factor: %.2f (1.0=cm, 100.0=m)", ScaleFactor);
 
-	// m(미터) 기준으로 통일
+	// Convert to meters (m)
 	if (ScaleFactor != 100.0)
 	{
 		UE_LOG("[Scene Cache] Converting units to meters (from %.2f)...", ScaleFactor);
 		FbxSystemUnit::m.ConvertScene(Scene);
-		Scene->GetAnimationEvaluator()->Reset();
+		Scene->GetAnimationEvaluator()->Reset();  // Reset evaluator after unit conversion
 	}
 	else
 	{
 		UE_LOG("[Scene Cache] Already in meters, no unit conversion needed");
-	}
-
-	// 좌표계 변환
-	FbxAxisSystem UnrealImportAxis(FbxAxisSystem::eZAxis, FbxAxisSystem::eParityEven, FbxAxisSystem::eLeftHanded);
-	FbxAxisSystem SourceSetup = Scene->GetGlobalSettings().GetAxisSystem();
-
-	if (SourceSetup != UnrealImportAxis)
-	{
-		UE_LOG("[Scene Cache] Converting coordinate system to Z-Up Left-Handed");
-		UnrealImportAxis.DeepConvertScene(Scene);
 	}
 
 	// 삼각화
@@ -355,7 +419,7 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	// FbxSurfaceMaterial : 진짜 머티리얼 , FbxGeometryElementMaterial : 인덱싱용, 폴리곤이 어떤 머티리얼 슬롯을 쓰는지 알려줌
 	TMap<FbxSurfaceMaterial*, int32> MaterialToIndex;
 
-	// 머티리얼마다 정점 Index를 할당해 줄 것임. 머티리얼 정렬을 해놔야 렌더링 비용이 적게 드니까. 
+	// 머티리얼마다 정점 Index를 할당해 줄 것임. 머티리얼 정렬을 해놔야 렌더링 비용이 적게 드니까.
 	// 최종적으로 이 맵의 Array들을 합쳐서 MeshData.Indices에 저장하고 GroupInfos를 채워줄 것임.
 	TMap<int32, TArray<uint32>> MaterialGroupIndexList;
 
@@ -375,7 +439,7 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 		{
 			LoadMeshFromNode(RootNode->GetChild(Index), *MeshData, MaterialGroupIndexList, BoneToIndex, MaterialToIndex, Scene);
 		}
-		
+
 		// 여러 루트 본이 있으면 가상 루트 생성
 		EnsureSingleRootBone(*MeshData);
 	}
@@ -619,33 +683,49 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 		{
 			FbxCluster* Cluster = ((FbxSkin*)InMesh->GetDeformer(0, FbxDeformer::eSkin))->GetCluster(Index);
 
-			if (Index == 0)
-			{
-				// 클러스터를 담고 있는 Node의(Mesh) Fbx Scene World Transform, 한 번만 구해도 되고 
-				// 정점을 Fbx Scene World 좌표계로 저장하기 위해 사용(아티스트 의도를 그대로 반영 가능, 서브메시를 단일메시로 처리 가능)
-				// 모든 SkeletalMesh는 Scene World 원점을 기준으로 제작되어야함
-				Cluster->GetTransformMatrix(FbxSceneWorld);
-				FbxSceneWorldInverseTranspose = FbxSceneWorld.Inverse().Transpose();
-			}
+			// NOTE: FbxSceneWorld is now computed using ComputeSkeletalMeshTotalMatrix()
+			// instead of Cluster->GetTransformMatrix() for correct GeometricTransform handling
+			// (See Phase 3 modification below)
+
 			int IndexCount = Cluster->GetControlPointIndicesCount();
 			// 클러스터가 영향을 주는 ControlPointIndex를 구함.
 			int* Indices = Cluster->GetControlPointIndices();
 			double* Weights = Cluster->GetControlPointWeights();
-            // Bind Pose, Inverse Bind Pose 저장.
-            // UE5 방식: AnimationEvaluator를 사용하여 Time 0에서의 Global Transform 가져오기
-            // 이렇게 하면 ConvertScene이 적용된 값을 사용하여 Animation과 일관성 확보
-            FbxNode* BoneNode = Cluster->GetLink();
-            FbxAMatrix BoneBindGlobal = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(BoneNode, FBXSDK_TIME_ZERO);
-            FbxAMatrix BoneBindGlobalInv = BoneBindGlobal.Inverse();
-            // FbxMatrix는 128바이트, FMatrix는 64바이트라서 memcpy쓰면 안 됨. 원소 단위로 복사합니다.
-            for (int Row = 0; Row < 4; Row++)
-            {
-                for (int Col = 0; Col < 4; Col++)
-                {
-                    MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].BindPose.M[Row][Col] = static_cast<float>(BoneBindGlobal[Row][Col]);
-                    MeshData.Skeleton.Bones[BoneToIndex[Cluster->GetLink()]].InverseBindPose.M[Row][Col] = static_cast<float>(BoneBindGlobalInv[Row][Col]);
-                }
-            }
+
+			// ========================================
+			// PHASE 3: Week10 Migration - Cluster-based Bind Pose
+			// ========================================
+
+			// CRITICAL: Use Cluster TransformLinkMatrix (Skinning Bind Pose)
+			// NOT AnimationEvaluator Time 0 (Scene Pose) - they can differ!
+			FbxNode* BoneNode = Cluster->GetLink();
+
+			// Get TransformLinkMatrix from Cluster (actual skinning bind pose)
+			FbxAMatrix TransformLinkMatrix;
+			Cluster->GetTransformLinkMatrix(TransformLinkMatrix);
+
+			// ========================================
+			// UE5 Pattern: Conditional JointPostConversionMatrix
+			// ========================================
+			// Reference: UE5 FbxMainImport.cpp Line 1559-1562
+			//
+			// bForceFrontXAxis = true  → Apply JointPost (-90°, -90°, 0°) for +X Forward conversion
+			// bForceFrontXAxis = false → Identity (using -Y Forward, no additional rotation needed)
+			//
+			// UE5 applies JointOrientationMatrix ONLY when bForceFrontXAxis is enabled
+			FbxAMatrix JointPostMatrix = FFbxDataConverter::GetJointPostConversionMatrix(CachedScene.bForceFrontXAxis);
+			TransformLinkMatrix = TransformLinkMatrix * JointPostMatrix;
+
+			// Convert to Mundi FMatrix with Y-Flip (Right-Handed → Left-Handed)
+			FMatrix GlobalBindPoseMatrix = FFbxDataConverter::ConvertFbxMatrixWithYAxisFlip(TransformLinkMatrix);
+
+			// Calculate Inverse Bind Pose with Y-Flip
+			FbxAMatrix InverseBindMatrix = TransformLinkMatrix.Inverse();
+			FMatrix InverseBindPoseMatrix = FFbxDataConverter::ConvertFbxMatrixWithYAxisFlip(InverseBindMatrix);
+
+			// Store in Skeleton
+			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].BindPose = GlobalBindPoseMatrix;
+			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].InverseBindPose = InverseBindPoseMatrix;
 
 
 			for (int ControlPointIndex = 0; ControlPointIndex < IndexCount; ControlPointIndex++)
@@ -664,6 +744,17 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 	bIsUniformScale = ((FMath::Abs(ScaleOfSceneWorld[0] - ScaleOfSceneWorld[1]) < 0.001f) &&
 		(FMath::Abs(ScaleOfSceneWorld[0] - ScaleOfSceneWorld[2]) < 0.001f));
 
+
+	// ========================================
+	// UE5 Pattern: Use TotalMatrix instead of Cluster TransformMatrix
+	// ========================================
+	// CRITICAL: Compute TotalMatrix (GlobalTransform * GeometricTransform)
+	// This includes pivot, rotation offset, and scaling offset from DCC tools
+	// Reference: UE5 FbxSkeletalMeshImport.cpp Line 1607, 1624-1625
+	FbxNode* MeshNode = InMesh->GetNode();
+	FbxNode* RootNode = Scene->GetRootNode();
+	FbxSceneWorld = ComputeSkeletalMeshTotalMatrix(MeshNode, RootNode);
+	FbxSceneWorldInverseTranspose = FbxSceneWorld.Inverse().Transpose();
 
 	// 로드는 TriangleList를 가정하고 할 것임. 
 	// TriangleStrip은 한번 만들면 편집이 사실상 불가능함, Fbx같은 호환성이 중요한 모델링 포멧이 유연성 부족한 모델을 저장할 이유도 없고
@@ -706,9 +797,12 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 			// 폴리곤 인덱스와 폴리곤 내에서의 vertexIndex로 ControlPointIndex 얻어냄
 			int ControlPointIndex = InMesh->GetPolygonVertex(PolygonIndex, VertexIndex);
 
+			// ========================================
+			// PHASE 4: Week10 Migration - Vertex Position Y-Flip
+			// ========================================
 			const FbxVector4& Position = FbxSceneWorld.MultT(ControlPoints[ControlPointIndex]);
-			//const FbxVector4& Position = ControlPoints[ControlPointIndex];
-			SkinnedVertex.Position = FVector(Position.mData[0], Position.mData[1], Position.mData[2]);
+			// Apply Y-Flip for Right-Handed → Left-Handed conversion
+			SkinnedVertex.Position = FFbxDataConverter::ConvertPos(Position);
 
 
 			if (ControlPointToBoneWeight.Contains(ControlPointIndex))
@@ -810,7 +904,8 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 				{
 					const FbxVector4& Normal = Normals->GetDirectArray().GetAt(MappingIndex);
 					FbxVector4 NormalWorld = FbxSceneWorldInverseTranspose.MultT(FbxVector4(Normal.mData[0], Normal.mData[1], Normal.mData[2], 0.0f));
-					SkinnedVertex.Normal = FVector(NormalWorld.mData[0], NormalWorld.mData[1], NormalWorld.mData[2]);
+					// PHASE 4: Apply Y-Flip to normal (Right-Handed → Left-Handed)
+					SkinnedVertex.Normal = FFbxDataConverter::ConvertDir(NormalWorld);
 				}
 				break;
 				case FbxGeometryElement::eIndexToDirect:
@@ -818,7 +913,8 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 					int Id = Normals->GetIndexArray().GetAt(MappingIndex);
 					const FbxVector4& Normal = Normals->GetDirectArray().GetAt(Id);
 					FbxVector4 NormalWorld = FbxSceneWorldInverseTranspose.MultT(FbxVector4(Normal.mData[0], Normal.mData[1], Normal.mData[2], 0.0f));
-					SkinnedVertex.Normal = FVector(NormalWorld.mData[0], NormalWorld.mData[1], NormalWorld.mData[2]);
+					// PHASE 4: Apply Y-Flip to normal (Right-Handed → Left-Handed)
+					SkinnedVertex.Normal = FFbxDataConverter::ConvertDir(NormalWorld);
 				}
 				break;
 				default:
@@ -851,7 +947,9 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 				{
 					const FbxVector4& Tangent = Tangents->GetDirectArray().GetAt(MappingIndex);
 					FbxVector4 TangentWorld = FbxSceneWorld.MultT(FbxVector4(Tangent.mData[0], Tangent.mData[1], Tangent.mData[2], 0.0f));
-					SkinnedVertex.Tangent = FVector4(TangentWorld.mData[0], TangentWorld.mData[1], TangentWorld.mData[2], Tangent.mData[3]);
+					// PHASE 4: Apply Y-Flip to tangent (Right-Handed → Left-Handed), preserve W (handedness)
+					FVector TangentConverted = FFbxDataConverter::ConvertDir(TangentWorld);
+					SkinnedVertex.Tangent = FVector4(TangentConverted.X, TangentConverted.Y, TangentConverted.Z, Tangent.mData[3]);
 				}
 				break;
 				case FbxGeometryElement::eIndexToDirect:
@@ -859,7 +957,9 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
 					int Id = Tangents->GetIndexArray().GetAt(MappingIndex);
 					const FbxVector4& Tangent = Tangents->GetDirectArray().GetAt(Id);
 					FbxVector4 TangentWorld = FbxSceneWorld.MultT(FbxVector4(Tangent.mData[0], Tangent.mData[1], Tangent.mData[2], 0.0f));
-					SkinnedVertex.Tangent = FVector4(TangentWorld.mData[0], TangentWorld.mData[1], TangentWorld.mData[2], Tangent.mData[3]);
+					// PHASE 4: Apply Y-Flip to tangent (Right-Handed → Left-Handed), preserve W (handedness)
+					FVector TangentConverted = FFbxDataConverter::ConvertDir(TangentWorld);
+					SkinnedVertex.Tangent = FVector4(TangentConverted.X, TangentConverted.Y, TangentConverted.Z, Tangent.mData[3]);
 				}
 				break;
 				default:
@@ -1064,6 +1164,30 @@ void UFbxLoader::LoadMesh(FbxMesh* InMesh, FSkeletalMeshData& MeshData, TMap<int
             V.Tangent = FVector4(Tangent.X, Tangent.Y, Tangent.Z, Handedness);
         }
     }
+
+	// ========================================
+	// PHASE 4: Week10 Migration - Index Reversal (CCW → CW)
+	// ========================================
+	//
+	// CRITICAL: Y-Flip does NOT change winding order!
+	// After Y-Flip, triangles are still CCW (Counter-Clockwise).
+	// But Mundi Engine uses CW (Clockwise) as Front Face (D3D11 default).
+	//
+	// Why Index Reversal is needed:
+	// - Unreal Engine sets FrontCounterClockwise = TRUE, so CCW remains front face
+	// - Mundi Engine uses FrontCounterClockwise = FALSE (default), so CW is front face
+	// - Therefore, we MUST reverse indices to flip winding order from CCW to CW
+	//
+	// Reverse triangle indices: [v0, v1, v2] → [v2, v1, v0]
+	for (auto& Elem : MaterialGroupIndexList)
+	{
+		TArray<uint32>& GroupIndexList = Elem.second;
+		for (int32 i = 0; i < GroupIndexList.Num(); i += 3)
+		{
+			// Swap first and third vertex indices
+			std::swap(GroupIndexList[i], GroupIndexList[i + 2]);
+		}
+	}
 }
 
 
@@ -1200,6 +1324,40 @@ FbxString UFbxLoader::GetAttributeTypeName(FbxNodeAttribute* InAttribute)
 	default: return "unknown";
 	}*/
 	return "test";
+}
+
+// ========================================
+// UE5 Pattern: ComputeSkeletalMeshTotalMatrix
+// ========================================
+FbxAMatrix UFbxLoader::ComputeSkeletalMeshTotalMatrix(FbxNode* MeshNode, FbxNode* RootNode)
+{
+	// 1. Extract GeometricTransform (Pivot, Rotation Offset, Scaling Offset)
+	// These transforms are baked into the mesh vertices by DCC tools (Maya, Max, Blender)
+	FbxVector4 GeometricTranslation = MeshNode->GetGeometricTranslation(FbxNode::eSourcePivot);
+	FbxVector4 GeometricRotation = MeshNode->GetGeometricRotation(FbxNode::eSourcePivot);
+	FbxVector4 GeometricScaling = MeshNode->GetGeometricScaling(FbxNode::eSourcePivot);
+
+	FbxAMatrix GeometryTransform;
+	GeometryTransform.SetT(GeometricTranslation);
+	GeometryTransform.SetR(GeometricRotation);
+	GeometryTransform.SetS(GeometricScaling);
+
+	// 2. Get GlobalTransform (World-space transform of the mesh node)
+	FbxAMatrix GlobalTransform = CachedScene.Scene->GetAnimationEvaluator()
+		->GetNodeGlobalTransform(MeshNode);
+
+	// 3. Compute TotalMatrix = GlobalTransform * GeometryTransform
+	// This combines both the scene graph transform and the geometric transform
+	FbxAMatrix TotalMatrix = GlobalTransform * GeometryTransform;
+
+	return TotalMatrix;
+
+	// NOTE: UE5 also supports optional Pivot Baking (bBakePivotInVertex)
+	// For now, we use the basic implementation above.
+	// If pivot baking is needed, add:
+	//   FbxVector4 RotationPivot = MeshNode->GetRotationPivot(FbxNode::eSourcePivot);
+	//   FbxVector4 ScalingPivot = MeshNode->GetScalingPivot(FbxNode::eSourcePivot);
+	//   ... (additional pivot matrix computation)
 }
 
 void UFbxLoader::EnsureSingleRootBone(FSkeletalMeshData& MeshData)
@@ -1575,14 +1733,32 @@ void UFbxLoader::ExtractBoneCurve(FbxNode* BoneNode,
 	{
 		const FbxTime& KeyTime = AllKeyTimes[KeyIndex];
 
-		// Get global transform at this time (ConvertScene has already been applied to Scene Graph!)
+		// ========================================
+		// PHASE 4: Week10 Migration - Animation Y-Flip and JointPostConversion
+		// ========================================
+
+		// Get global transform at this time
 		FbxAMatrix GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(BoneNode, KeyTime);
+
+		// ========================================
+		// UE5 Pattern: Conditional JointPostConversionMatrix for Animation
+		// ========================================
+		// Reference: UE5 FbxMainImport.cpp Line 1559-1562
+		//
+		// bForceFrontXAxis = true  → Apply JointPost (-90°, -90°, 0°) for +X Forward conversion
+		// bForceFrontXAxis = false → Identity (using -Y Forward, no additional rotation needed)
+		//
+		// UE5 applies JointOrientationMatrix ONLY when bForceFrontXAxis is enabled
+		FbxAMatrix JointPostMatrix = FFbxDataConverter::GetJointPostConversionMatrix(CachedScene.bForceFrontXAxis);
+		GlobalTransform = GlobalTransform * JointPostMatrix;
 
 		// Compute local transform relative to parent
 		FbxAMatrix LocalTransform;
 		if (ParentNode)
 		{
 			FbxAMatrix ParentGlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(ParentNode, KeyTime);
+			// Apply JointPostConversionMatrix to parent as well (same flag)
+			ParentGlobalTransform = ParentGlobalTransform * JointPostMatrix;
 			LocalTransform = ParentGlobalTransform.Inverse() * GlobalTransform;
 		}
 		else
@@ -1591,31 +1767,18 @@ void UFbxLoader::ExtractBoneCurve(FbxNode* BoneNode,
 			LocalTransform = GlobalTransform;
 		}
 
-		// Extract Position from local transform
+		// Extract Position with Y-Flip (Right-Handed → Left-Handed)
 		FbxVector4 Translation = LocalTransform.GetT();
-		FVector Position(
-			static_cast<float>(Translation[0]),
-			static_cast<float>(Translation[1]),
-			static_cast<float>(Translation[2])
-		);
+		FVector Position = FFbxDataConverter::ConvertPos(Translation);
 
-		// Extract Rotation from local transform
+		// Extract Rotation with Y-Flip (Right-Handed → Left-Handed)
 		FbxQuaternion FbxQuat = LocalTransform.GetQ();
-		FQuat Rotation(
-			static_cast<float>(FbxQuat[0]),  // X
-			static_cast<float>(FbxQuat[1]),  // Y
-			static_cast<float>(FbxQuat[2]),  // Z
-			static_cast<float>(FbxQuat[3])   // W
-		);
+		FQuat Rotation = FFbxDataConverter::ConvertRotation(FbxQuat);
 		Rotation.Normalize();
 
-		// Extract Scale from local transform
+		// Extract Scale (NO Y-Flip needed for scale)
 		FbxVector4 Scaling = LocalTransform.GetS();
-		FVector Scale(
-			static_cast<float>(Scaling[0]),
-			static_cast<float>(Scaling[1]),
-			static_cast<float>(Scaling[2])
-		);
+		FVector Scale = FFbxDataConverter::ConvertScale(Scaling);
 
 		// Debug logging for first keyframe of first 4 bones
 		if (bShowDebug && KeyIndex == 0)

@@ -52,6 +52,11 @@ private:
 
 	void EnsureSingleRootBone(FSkeletalMeshData& MeshData);
 
+	// UE5 Pattern: Compute TotalMatrix for skeletal mesh vertices
+	// TotalMatrix = GlobalTransform * GeometryTransform
+	// This includes pivot, rotation offset, and scaling offset from DCC tools
+	FbxAMatrix ComputeSkeletalMeshTotalMatrix(FbxNode* MeshNode, FbxNode* RootNode);
+
 	// Scene 캐싱 및 관리
 	FbxScene* GetOrLoadFbxScene(const FString& FilePath, bool& bOutNewlyLoaded);
 	void ClearCachedScene();
@@ -62,6 +67,7 @@ private:
 		FbxScene* Scene = nullptr;
 		FString FilePath;
 		bool bConverted = false;
+		bool bForceFrontXAxis = false;  // UE5 Pattern: false = -Y Forward (default), true = +X Forward
 	};
 
 	FCachedFbxScene CachedScene;
