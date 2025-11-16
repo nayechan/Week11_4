@@ -27,6 +27,10 @@ public:
 	// 시간 범위 내의 Notify 가져오기
 	void GetAnimNotifiesInRange(float StartTime, float EndTime, TArray<FAnimNotifyEvent>& OutNotifies) const;
 
+	// Notify 추가 (C++ 테스트용)
+	void AddNotify(float TriggerTime, const FName& NotifyName, const FString& NotifyData = "");
+	void AddNotify(const FAnimNotifyEvent& Notify);
+
 	// 애니메이션 길이 반환
 	virtual float GetPlayLength() const override { return SequenceLength; }
 

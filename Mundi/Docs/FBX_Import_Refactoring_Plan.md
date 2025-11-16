@@ -14,29 +14,39 @@
 - Difficult to maintain, test, and extend
 - Easy to make mistakes when applying UE5 patterns (e.g., forgotten BindPose matrices in multi-mesh attempt)
 
-### UE5's Solution
-- Distributes ~6000 lines across 6+ specialized classes
+### Mundi's Refactoring Approach
+- Distributes ~2500 lines across 6+ specialized classes
 - Each class has a single, well-defined responsibility
-- Uses Payload Context pattern for lazy loading
+- **Immediate loading** (no payload pattern - simplified for Mundi's needs)
 - Template-based coordinate conversion
-- Strategy pattern allows swapping FBX SDK for alternatives (ufbx)
+- Direct implementation (no interface abstraction - easier to maintain)
 
 ### Target Architecture
 
 ```
 Mundi/Source/Editor/FBX/
 ├── FbxConvert.h/.cpp        # Coordinate conversion utilities (~200 lines)
-├── FbxHelper.h/.cpp         # Naming and ID generation (~300 lines)
+├── FbxHelper.h/.cpp         # Naming utilities (~200 lines)
 ├── FbxMaterial.h/.cpp       # Material/texture extraction (~300 lines)
-├── FbxAnimation.h/.cpp      # Animation processing (~400 lines)
+├── FbxAnimation.h/.cpp      # Animation extraction (~400 lines)
 ├── FbxScene.h/.cpp          # Scene hierarchy and skeleton (~500 lines)
-├── FbxMesh.h/.cpp           # Mesh extraction and skinning (~800 lines)
-├── FbxAPI.h/.cpp            # FFbxParser implementation (~400 lines)
-├── IFbxParser.h             # Abstract interface
-└── PayloadContexts.h        # Payload context definitions
+├── FbxMesh.h/.cpp           # Mesh extraction (~800 lines)
+└── FbxParser.h/.cpp         # Orchestration and immediate loading (~400 lines)
 
 Mundi/Source/Editor/
-└── FBXLoader.h/.cpp         # Thin wrapper using FFbxParser
+└── FBXLoader.h/.cpp         # Thin wrapper with .bin/.anim.bin caching
+```
+
+**Architecture Flow**:
+```
+UFbxLoader (thin wrapper, .bin/.anim.bin caching)
+└── FFbxParser (orchestration, immediate loading)
+    ├── FFbxConvert (coordinate conversion)
+    ├── FFbxHelper (naming utilities)
+    ├── FFbxMaterial (material extraction)
+    ├── FFbxAnimation (animation extraction)
+    ├── FFbxScene (scene/skeleton extraction)
+    └── FFbxMesh (mesh extraction)
 ```
 
 ---
@@ -53,12 +63,13 @@ Mundi/Source/Editor/
 - Matrix conversion (M[1][1] preserved - critical!)
 - Scene-level axis/unit conversion
 
-**FFbxHelper** (~300 lines)
+**FFbxHelper** (~200 lines)
 - Mesh name/ID generation
 - Node hierarchy name generation
 - FBX namespace handling
 - Name clash resolution
 - Material name sanitization
+- **NOTE**: FPayloadContextBase removed (no payload pattern in Mundi)
 
 **FFbxMaterial** (443 lines)
 - Texture extraction and node creation
@@ -67,13 +78,13 @@ Mundi/Source/Editor/
 - Texture path resolution
 - Material instance creation
 
-**FFbxAnimation** (1191 lines)
+**FFbxAnimation** (~400 lines)
 - Skeletal bone animation extraction
 - Morph target animation curves
 - Rigid body animation
 - Custom property animation
 - Animation curve baking
-- Animation payload contexts
+- **Immediate extraction**: Returns UAnimSequence* directly
 
 **FFbxScene** (1312 lines)
 - Scene hierarchy traversal
@@ -83,7 +94,7 @@ Mundi/Source/Editor/
 - Geometric transform extraction
 - Recursive node processing
 
-**FFbxMesh** (2388 lines)
+**FFbxMesh** (~800 lines)
 - Mesh discovery and node creation
 - Vertex/triangle extraction
 - Skinning data extraction (clusters, weights)
@@ -93,11 +104,12 @@ Mundi/Source/Editor/
 - Bind pose matrix calculation
 - Material slot handling
 
-**FFbxParser** (466 lines)
+**FFbxParser** (~400 lines)
 - FBX SDK initialization and management
-- Scene loading and conversion
+- Scene loading with immediate data extraction
 - Orchestrates all specialized classes
-- Provides high-level import API
+- **Direct loading API**: LoadFbxMesh(), LoadFbxAnimation()
+- Manages FbxScene* caching (SDK-level, not payload)
 - Handles cleanup and lifecycle
 
 ### Key Architectural Patterns
@@ -105,40 +117,31 @@ Mundi/Source/Editor/
 #### 1. Single Responsibility Principle
 Each class has ONE clear job. No mixing of concerns.
 
-#### 2. Payload Context Pattern
+#### 2. Immediate Loading Pattern
 ```cpp
-// During scene traversal, create lightweight context
-TSharedPtr<FMeshPayloadContext> Context = MakeShared<FMeshPayloadContext>();
-Context->Mesh = FbxMesh;
-Context->SDKScene = SDKScene;
-PayloadContexts.Add(PayloadKey, Context);
-
-// Later, when mesh is actually needed (lazy loading)
-if (TSharedPtr<FPayloadContextBase> Context = PayloadContexts.Find(PayloadKey))
+// FFbxParser loads data immediately, no deferred payload system
+class FFbxParser
 {
-    Context->FetchMeshPayload(Parser, Transform, OutMeshDescription);
-}
+public:
+    // 직접 메시를 로드하고 반환 (페이로드 시스템 없음)
+    USkeletalMesh* LoadFbxMesh(const FString& FilePath);
+
+    // 직접 애니메이션을 로드하고 반환
+    UAnimSequence* LoadFbxAnimation(const FString& FilePath, const FSkeleton* Skeleton);
+
+private:
+    // FbxScene* 캐싱 (SDK 레벨, 메시와 애니메이션 임포트 간 공유)
+    FCachedFbxScene CachedScene;
+};
 ```
 
 **Benefits**:
-- Memory efficient (don't load all meshes at once)
-- Supports multi-threaded import
-- Allows progressive loading
-- Clean separation of structure vs data
+- Simpler architecture, easier to understand
+- Direct method calls, no indirection
+- Still allows FbxScene* caching for mesh+animation imports
+- Reduces complexity while maintaining functionality
 
-#### 3. Strategy Pattern
-```cpp
-IFbxParser (Abstract Interface)
-├── FFbxParser (FBX SDK implementation)
-└── FUfbxParser (ufbx library implementation)
-```
-
-**Benefits**:
-- Can swap FBX SDK for alternatives
-- Easier to test with mock implementations
-- Future-proof for new libraries
-
-#### 4. Template-Based Conversion
+#### 3. Template-Based Conversion
 ```cpp
 template<typename VectorType>
 static VectorType ConvertPos(const FbxVector4& FbxVector)
@@ -171,17 +174,22 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 **Estimated Size**: ~200 lines
 
 **Tasks**:
-1. Create `FFbxConvert` class with static methods
+1. Create `FFbxConvert` struct (not class) with static methods
 2. Move functions from `FbxDataConverter`:
    - `ConvertPos()` - Position conversion (Y-Flip)
    - `ConvertDir()` - Direction conversion (Y-Flip + normalize)
    - `ConvertRotation()` - Quaternion conversion (Y/W negation)
    - `ConvertScale()` - Scale conversion (no Y-Flip)
    - `ConvertFbxMatrixWithYAxisFlip()` - Matrix conversion (preserve M[1][1]!)
-   - `GetJointPostConversionMatrix()` - Joint post-conversion
 3. Make template-based for future precision support
 4. Update `FBXLoader.cpp` to use `FFbxConvert::` instead of `FFbxDataConverter::`
 5. Add comprehensive comments explaining Y-Flip logic
+
+**Important Note**:
+- `JointOrientationMatrix` is NOT a function in FFbxConvert
+- It's a **member variable** of `FFbxParser` (FbxAMatrix JointOrientationMatrix)
+- It's set during `ConvertScene()` based on bForceFrontXAxis flag
+- Access it as: `Parser.JointOrientationMatrix` (not a function call)
 
 **Success Criteria**:
 - ✅ Build succeeds
@@ -203,10 +211,10 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 - `Source/Editor/FBX/FbxHelper.h`
 - `Source/Editor/FBX/FbxHelper.cpp`
 
-**Estimated Size**: ~300 lines
+**Estimated Size**: ~200 lines
 
 **Tasks**:
-1. Create `FFbxHelper` class with static methods
+1. Create `FFbxHelper` struct (not class) with static methods
 2. Move naming functions from `FBXLoader`:
    - Mesh name generation
    - Mesh unique ID generation
@@ -217,6 +225,9 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
    - `GetFbxObjectName()` - Sanitize object names
    - `ManageNamespace()` - Handle FBX namespaces
 4. Update `FBXLoader.cpp` to use `FFbxHelper::`
+5. **IMPORTANT**: Do NOT add FPayloadContextBase
+   - Payload context pattern is removed from this refactoring
+   - FFbxHelper contains ONLY naming and utility functions
 
 **Success Criteria**:
 - ✅ Build succeeds
@@ -278,15 +289,15 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 **Tasks**:
 1. Create `FFbxAnimation` class
 2. Move functions from `FBXLoader`:
-   - `LoadAnimationFromStack()` → `FFbxAnimation::ExtractAnimationStack()`
+   - `LoadAnimationFromStack()` → `FFbxAnimation::ExtractAnimation()`
+   - Method signature: `UAnimSequence* ExtractAnimation(FbxScene* Scene, const FSkeleton* Skeleton)`
    - `ExtractBoneAnimationTracks()` → `FFbxAnimation::ExtractBoneCurves()`
    - `ExtractBoneCurve()` → `FFbxAnimation::ExtractCurveData()`
 3. Add animation collection methods:
    - `AddSkeletalTransformAnimation()` - Bone animation
    - `AddMorphTargetAnimation()` - Morph target curves (future)
    - `AddRigidAnimation()` - Rigid body animation (future)
-4. Create `FAnimationPayloadContext` for deferred animation loading
-5. Update `FBXLoader.cpp` to use `FFbxAnimation`
+4. Update `FBXLoader.cpp` to use `FFbxAnimation`
 
 **Success Criteria**:
 - ✅ Build succeeds
@@ -298,6 +309,22 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 - Import animated FBX (verify animation plays correctly)
 - Import FBX with multiple animation takes (verify all takes)
 - Import FBX with bone hierarchy (verify all bones animate)
+
+**Important Notes**:
+
+**Animation Caching Architecture**:
+- **Binary caching** (.anim.bin files) stays in UFbxLoader (asset serialization layer)
+- **FFbxAnimation** provides immediate extraction: `ExtractAnimation(FbxScene*, Skeleton*)`
+- **No payload pattern**: Animation is extracted and returned directly
+- When .anim.bin cache is valid, FFbxAnimation is bypassed entirely
+
+**Caching Flow**:
+```
+UFbxLoader::LoadFbxAnimation(FilePath, Skeleton)
+├── Check .anim.bin cache (asset-level)
+├── If valid → Return cached UAnimSequence*
+└── If invalid → FFbxAnimation::ExtractAnimation() → Save to cache
+```
 
 ---
 
@@ -314,7 +341,8 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 **Tasks**:
 1. Create `FFbxScene` class
 2. Move functions from `FBXLoader`:
-   - `LoadSkeletonFromNode()` → `FFbxScene::AddSkeletonHierarchy()`
+   - `LoadSkeletonFromNode()` → `FFbxScene::ExtractSkeleton()`
+   - Method signature: `void ExtractSkeleton(FbxNode* RootNode, FSkeleton& OutSkeleton)`
    - Recursive node traversal logic
    - Joint detection logic
 3. Add scene processing methods:
@@ -322,8 +350,7 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
    - `AddHierarchyRecursively()` - Recursive traversal
    - `CreateTransformNode()` - Create scene nodes
    - `ValidateBindPose()` - Validate skeleton bind pose
-4. Create `FSkeletonPayloadContext` for deferred skeleton building
-5. Update `FBXLoader.cpp` to use `FFbxScene`
+4. Update `FBXLoader.cpp` to use `FFbxScene`
 
 **Success Criteria**:
 - ✅ Build succeeds
@@ -351,17 +378,20 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 **Tasks**:
 1. Create `FFbxMesh` class
 2. Move functions from `FBXLoader`:
-   - `LoadMeshFromNode()` → `FFbxMesh::AddAllMeshes()`
+   - `LoadMeshFromNode()` → `FFbxMesh::DiscoverMeshNodes()`
    - `LoadMesh()` → `FFbxMesh::ExtractMeshData()`
+   - Method signature: `void ExtractMeshData(FbxMesh* InMesh, FSkeletalMeshData& OutMeshData, const FbxAMatrix& Transform)`
    - Skinning extraction logic
    - Material slot handling
 3. Add mesh processing methods:
-   - `AddAllMeshes()` - Discover all mesh nodes in scene
+   - `DiscoverMeshNodes()` - Discover all mesh nodes in scene
    - `ExtractSkinnedMeshNodeJoints()` - Extract skinning data
-   - `FillSkinnedMeshData()` - Fill skeletal mesh data
-   - `FillStaticMeshData()` - Fill static mesh data (future)
-   - `ExtractMorphTargets()` - Extract morph targets (future)
-4. Create `FMeshPayloadContext` for deferred mesh loading
+
+4. **Note on FMeshDescriptionImporter** (UE5 pattern):
+   - UE5 uses this as intermediate layer, but it's tied to FMeshDescription struct
+   - For Mundi, we extract directly to FSkeletalMeshData
+   - If needed later, create similar helper but NOT in this refactoring
+
 5. **CRITICAL**: Ensure Bone BindPose matrices are set correctly
    ```cpp
    // Lines 682-732 in current FBXLoader.cpp
@@ -374,6 +404,7 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
        MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].InverseBindPose = InverseBindPoseMatrix;
    }
    ```
+
 6. Update `FBXLoader.cpp` to use `FFbxMesh`
 
 **Success Criteria**:
@@ -391,35 +422,21 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 
 ---
 
-### Phase 7: Create FFbxParser Facade
+### Phase 7: Create FFbxParser Orchestrator
 
-**Goal**: Create clean public API and orchestration layer
+**Goal**: Create orchestration layer with immediate loading API
 
 **Files to Create**:
-- `Source/Editor/FBX/IFbxParser.h` (interface)
-- `Source/Editor/FBX/FbxAPI.h`
-- `Source/Editor/FBX/FbxAPI.cpp`
-- `Source/Editor/FBX/PayloadContexts.h`
+- `Source/Editor/FBX/FbxParser.h`
+- `Source/Editor/FBX/FbxParser.cpp`
 
-**Estimated Size**: ~400 lines
+**Estimated Size**: ~400 lines (single implementation, no interface)
 
 **Tasks**:
-1. Create `IFbxParser` abstract interface
-   ```cpp
-   class IFbxParser
-   {
-   public:
-       virtual ~IFbxParser() = default;
-       virtual bool LoadFbxFile(const FString& FilePath) = 0;
-       virtual FSkeletalMeshData* FetchMeshPayload(const FString& PayloadKey) = 0;
-       virtual UAnimSequence* FetchAnimationPayload(const FString& PayloadKey) = 0;
-       virtual void Reset() = 0;
-   };
-   ```
 
-2. Create `FFbxParser` implementation
+1. Create `FFbxParser` class (NO interface, direct implementation)
    ```cpp
-   class FFbxParser : public IFbxParser
+   class FFbxParser
    {
    private:
        FFbxScene SceneProcessor;
@@ -431,75 +448,139 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
        FbxScene* SDKScene;
        FbxImporter* SDKImporter;
 
-       TMap<FString, TSharedPtr<FPayloadContextBase>> PayloadContexts;
+       // FbxScene* 캐싱 (메시와 애니메이션 임포트 간 공유)
+       FCachedFbxScene CachedScene;
 
    public:
-       bool LoadFbxFile(const FString& FilePath) override;
-       FSkeletalMeshData* FetchMeshPayload(const FString& PayloadKey) override;
-       UAnimSequence* FetchAnimationPayload(const FString& PayloadKey) override;
-       void Reset() override;
+       // IMPORTANT: JointOrientationMatrix is a public member variable (UE5 pattern)
+       FbxAMatrix JointOrientationMatrix;  // Set during ConvertScene()
+
+       // 직접 로딩 API (페이로드 패턴 없음)
+       USkeletalMesh* LoadFbxMesh(const FString& FilePath);
+       UAnimSequence* LoadFbxAnimation(const FString& FilePath, const FSkeleton* Skeleton);
+
+       void Reset();
    };
    ```
 
-3. Create payload context base classes:
+2. Implement immediate loading methods:
    ```cpp
-   class FPayloadContextBase
+   USkeletalMesh* FFbxParser::LoadFbxMesh(const FString& FilePath)
    {
-   public:
-       virtual ~FPayloadContextBase() = default;
-   };
+       // FbxScene* 캐싱 활용
+       if (!CachedScene.IsValid(FilePath))
+       {
+           LoadFbxScene(FilePath);  // SDK 초기화 + 씬 로드
+       }
 
-   class FMeshPayloadContext : public FPayloadContextBase
+       // 즉시 메시 데이터 추출
+       FSkeletalMeshData MeshData;
+       MeshProcessor.ExtractMeshData(CachedScene.Scene, MeshData);
+
+       // USkeletalMesh 생성 및 반환
+       return CreateSkeletalMeshFromData(MeshData);
+   }
+
+   UAnimSequence* FFbxParser::LoadFbxAnimation(const FString& FilePath, const FSkeleton* Skeleton)
    {
-   public:
-       FbxMesh* Mesh;
-       FbxScene* SDKScene;
-       FbxNode* MeshNode;
+       // FbxScene* 캐싱 활용 (메시 임포트 후 애니메이션 로드 시)
+       if (!CachedScene.IsValid(FilePath))
+       {
+           LoadFbxScene(FilePath);
+       }
 
-       FSkeletalMeshData* FetchMeshPayload(FFbxParser* Parser);
-   };
-
-   class FAnimationPayloadContext : public FPayloadContextBase
-   {
-   public:
-       FbxAnimStack* AnimStack;
-       FbxScene* SDKScene;
-
-       UAnimSequence* FetchAnimationPayload(FFbxParser* Parser, const FSkeleton* TargetSkeleton);
-   };
+       // 즉시 애니메이션 추출
+       return AnimationProcessor.ExtractAnimation(CachedScene.Scene, Skeleton);
+   }
    ```
+
+3. **Remove ALL payload context code**:
+   - No `FPayloadContextBase`
+   - No `FMeshPayloadContext`
+   - No `FAnimationPayloadContext`
+   - No `TMap<FString, TSharedPtr<FPayloadContextBase>> PayloadContexts`
+   - No `FetchMeshPayload()` or `FetchAnimationPayload()` methods
 
 4. Refactor `UFbxLoader` to be thin wrapper:
    ```cpp
    class UFbxLoader : public UObject
    {
    private:
-       TUniquePtr<IFbxParser> Parser;
+       TUniquePtr<FFbxParser> Parser;
 
    public:
        UFbxLoader() : Parser(MakeUnique<FFbxParser>()) {}
 
        USkeletalMesh* LoadFbxMesh(const FString& FilePath)
        {
-           Parser->LoadFbxFile(FilePath);
-           return Parser->FetchMeshPayload("DefaultMesh");
+           // Asset-level cache check (.bin file)
+           if (USkeletalMesh* Cached = CheckMeshCache(FilePath))
+               return Cached;
+
+           // 직접 로드 (페이로드 시스템 없음)
+           USkeletalMesh* Mesh = Parser->LoadFbxMesh(FilePath);
+
+           // Save to cache
+           SaveMeshCache(FilePath, Mesh);
+           return Mesh;
        }
 
        UAnimSequence* LoadFbxAnimation(const FString& FilePath, const FSkeleton* Skeleton)
        {
-           Parser->LoadFbxFile(FilePath);
-           return Parser->FetchAnimationPayload("DefaultAnim", Skeleton);
+           // Asset-level cache check (.anim.bin file)
+           if (UAnimSequence* Cached = CheckAnimationCache(FilePath))
+               return Cached;
+
+           // 직접 로드
+           UAnimSequence* Anim = Parser->LoadFbxAnimation(FilePath, Skeleton);
+
+           // Save to cache
+           SaveAnimationCache(FilePath, Anim);
+           return Anim;
        }
    };
    ```
 
-5. Remove manual scene caching from `UFbxLoader` (let upper layers handle)
+5. **Implement FbxScene* caching in FFbxParser** (SDK-level, not asset-level)
+   ```cpp
+   struct FCachedFbxScene
+   {
+       FString FilePath;
+       FbxScene* Scene;
+       uint64 Timestamp;
+
+       bool IsValid(const FString& InFilePath) const
+       {
+           return FilePath == InFilePath && Scene != nullptr;
+       }
+   };
+   ```
+
+6. **Clarify caching layer architecture**:
+   ```
+   // ============================================
+   // Layer 1: Asset Serialization (UFbxLoader)
+   // ============================================
+   - Mesh caching: .bin files (timestamp-based invalidation)
+   - Animation caching: .anim.bin files (timestamp-based invalidation)
+   - Purpose: Skip entire FBX parsing + extraction pipeline
+
+   // ============================================
+   // Layer 2: FBX SDK Management (FFbxParser)
+   // ============================================
+   - In-memory FbxScene* caching (temporary, single scene)
+   - Purpose: Share FbxScene between mesh and animation import
+   - Lifetime: Until different file loaded or parser destroyed
+   - NO payload pattern, immediate extraction
+   ```
 
 **Success Criteria**:
 - ✅ Build succeeds
 - ✅ `UFbxLoader` is now a thin wrapper (~200 lines)
 - ✅ All FBX SDK management is in `FFbxParser`
-- ✅ Clean separation between interface and implementation
+- ✅ Clean orchestration of specialized classes
+- ✅ No payload contexts, immediate loading only
+- ✅ FbxScene* caching works correctly
 
 **Testing**:
 - Import skeletal mesh (verify works through new API)
@@ -540,6 +621,25 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 
 ### Code Style
 
+**IMPORTANT: Korean Comment Policy**
+- **All code comments MUST be written in Korean (한국어)**
+- This applies to:
+  - File-level documentation comments
+  - Class/struct documentation comments
+  - Method/function documentation comments
+  - Inline comments explaining logic
+  - Step-by-step process comments
+- Exception: UE5 pattern references and technical terms can use English within Korean comments
+- Example:
+  ```cpp
+  /**
+   * FFbxConvert
+   *
+   * UE5 스타일의 FBX 데이터 변환 유틸리티 (템플릿 기반 정밀도 지원)
+   * 좌표계 변환(오른손 → 왼손)을 Y-Flip 방식으로 처리
+   */
+  ```
+
 **Header File Template**:
 ```cpp
 #pragma once
@@ -551,18 +651,18 @@ static VectorType ConvertPos(const FbxVector4& FbxVector)
 /**
  * FFbxClassName
  *
- * [Brief description of responsibility]
+ * [클래스 역할에 대한 간단한 설명]
  *
- * UE5 Pattern: [Which UE5 class this corresponds to]
+ * UE5 Pattern: [대응하는 UE5 클래스]
  * Location: Engine/Plugins/Interchange/Runtime/Source/Parsers/Fbx/Private/[FileName].cpp
  */
 class FFbxClassName
 {
 public:
-    // Public API methods
+    // Public API 메서드
 
 private:
-    // Private helper methods
+    // Private 헬퍼 메서드
 };
 ```
 
@@ -571,13 +671,13 @@ private:
 /**
  * ExtractMeshData
  *
- * Extracts vertex, triangle, and material data from FbxMesh.
+ * FbxMesh에서 정점, 삼각형, 머티리얼 데이터를 추출
  *
  * UE5 Pattern: FMeshDescriptionImporter::FillSkinnedMeshDescriptionFromFbxMesh
  * Location: FbxMesh.cpp:1847
  *
- * @param InMesh - FBX mesh node to extract data from
- * @param OutMeshData - Output skeletal mesh data structure
+ * @param InMesh - 데이터를 추출할 FBX 메시 노드
+ * @param OutMeshData - 출력 스켈레탈 메시 데이터 구조
  * @param Transform - TotalMatrix (GlobalTransform * GeometryTransform)
  */
 void ExtractMeshData(FbxMesh* InMesh, FSkeletalMeshData& OutMeshData, const FbxAMatrix& Transform);
@@ -585,12 +685,12 @@ void ExtractMeshData(FbxMesh* InMesh, FSkeletalMeshData& OutMeshData, const FbxA
 
 **Critical Sections**:
 ```cpp
-// CRITICAL: Must set Bone BindPose matrices here!
-// Without this, GPU skinning will fail and meshes will be invisible.
+// 중요: 여기서 Bone BindPose 행렬을 반드시 설정해야 함!
+// 이것 없이는 GPU 스키닝이 실패하고 메시가 보이지 않음.
 // UE5 Pattern: FbxSkeletalMeshImport.cpp:2156-2189
 for (int Index = 0; Index < Skin->GetClusterCount(); Index++)
 {
-    // ... extract BindPose
+    // ... BindPose 추출
 }
 ```
 
@@ -635,8 +735,9 @@ for (int Index = 0; Index < Skin->GetClusterCount(); Index++)
     FbxAMatrix TransformLinkMatrix;
     Cluster->GetTransformLinkMatrix(TransformLinkMatrix);
 
-    // Apply JointPostConversionMatrix if needed
-    FbxAMatrix JointPostMatrix = FFbxConvert::GetJointPostConversionMatrix(bForceFrontXAxis);
+    // Apply JointOrientationMatrix (from Parser, set during ConvertScene)
+    // IMPORTANT: JointOrientationMatrix is a member variable, NOT a function!
+    FbxAMatrix& JointPostMatrix = Parser.JointOrientationMatrix;
     FbxAMatrix GlobalBindPoseMatrix = TransformLinkMatrix * JointPostMatrix;
     FbxAMatrix InverseBindPoseMatrix = GlobalBindPoseMatrix.Inverse();
 
@@ -723,11 +824,11 @@ for (int32 Index : MeshIndices)
 - [ ] New features can be added to appropriate class
 
 ### Extensibility
-- [ ] Can add ufbx implementation by implementing IFbxParser
-- [ ] Can add payload pattern for lazy loading (foundation in place)
-- [ ] Can add multi-threading support (payload contexts are thread-safe)
 - [ ] Can add morph targets by extending FFbxMesh
 - [ ] Can add static mesh import by extending FFbxMesh
+- [ ] Can add alternative parser (ufbx) if needed in future (would require new design)
+- [ ] FbxScene* caching allows efficient mesh+animation imports from same file
+- [ ] Modular design allows easy addition of new extraction features
 
 ---
 
@@ -735,13 +836,17 @@ for (int32 Index : MeshIndices)
 
 ### UE5 Source Files
 - `C:\Dev\UE5\UnrealEngine\Engine\Plugins\Interchange\Runtime\Source\Parsers\Fbx\`
-  - `Private/FbxAPI.h/.cpp` - Parser implementation
+  - `Private/FbxAPI.h/.cpp` - Parser implementation (uses IFbxParser interface and payload pattern)
   - `Private/FbxScene.h/.cpp` - Scene hierarchy
   - `Private/FbxMesh.h/.cpp` - Mesh extraction
   - `Private/FbxAnimation.h/.cpp` - Animation extraction
   - `Private/FbxMaterial.h/.cpp` - Material/texture
   - `Private/FbxConvert.h/.cpp` - Coordinate conversion
   - `Private/FbxHelper.h/.cpp` - Utilities
+
+**Note**: UE5's Interchange plugin uses payload contexts for lazy loading and IFbxParser
+interface for plugin architecture. Mundi's refactoring adopts the modularization
+(FFbxConvert, FFbxHelper, etc.) but NOT the payload/interface patterns for simplicity.
 
 ### Mundi Current Files
 - `Mundi/Source/Editor/FBXLoader.h/.cpp` - Current monolithic implementation
@@ -756,7 +861,37 @@ for (int32 Index : MeshIndices)
 
 ## Revision History
 
-- **2025-11-15**: Initial document creation
+- **2025-11-16 (v2.0)**: Removed lazy loading (payload) features for simplified architecture
+  - **REMOVED**: FPayloadContextBase, FMeshPayloadContext, FAnimationPayloadContext
+  - **REMOVED**: IFbxParser interface pattern (Strategy pattern)
+  - **REMOVED**: LoadFbxFile() + FetchPayload() separation pattern
+  - **CHANGED**: To immediate loading API (LoadFbxMesh, LoadFbxAnimation return directly)
+  - **KEPT**: All code modularization (FFbxConvert, FFbxHelper, FFbxMaterial, FFbxAnimation, FFbxScene, FFbxMesh, FFbxParser)
+  - **KEPT**: FbxScene* caching in FFbxParser (SDK-level, not payload-based)
+  - Updated all phase descriptions to reflect direct loading
+  - Simplified architecture: easier implementation and maintenance
+  - Preserved all critical sections (BindPose, M[1][1], coordinate system)
+  - Preserved Korean comment policy and testing checklist
+
+- **2025-11-15 (v1.2)**: Corrected UE5 implementation details (accuracy 90% → 99%)
+  - **CRITICAL FIX**: Removed `GetJointPostConversionMatrix()` function (does not exist in UE5)
+    - Updated Phase 1: JointOrientationMatrix is a member variable of FFbxParser, not a function
+    - Updated Known Pitfalls: Changed code examples to use `Parser.JointOrientationMatrix`
+  - Updated Phase 1, 2: FFbxConvert and FFbxHelper are `struct`, not `class`
+  - Updated Phase 2: Added note that FPayloadContextBase is defined in FbxHelper.h
+  - Updated Phase 6: Added FMeshDescriptionImporter helper class documentation
+  - Updated Phase 7: Removed PayloadContexts.h file creation (contexts are co-located)
+  - Updated Phase 7: Added JointOrientationMatrix as public member variable in FFbxParser
+  - Verified against actual UE5 source code in C:\Dev\UE5\UnrealEngine\Engine\Plugins\Interchange
+
+- **2025-11-15 (v1.1)**: Updated for animation caching
+  - Added clarification in Phase 4: Animation caching vs FFbxAnimation separation
+  - Updated Phase 7 task 5: Clarified SDK-level vs asset-level caching
+  - Added Phase 7 task 6: Caching layer architecture diagram
+  - Reflected newly added .anim.bin caching implementation (commit 28b3730e)
+  - Animation caching stays in UFbxLoader, FbxScene* caching moves to FFbxParser
+
+- **2025-11-15 (v1.0)**: Initial document creation
   - Analyzed UE5 Interchange plugin architecture
   - Defined 7-phase refactoring plan
   - Documented known pitfalls and success criteria

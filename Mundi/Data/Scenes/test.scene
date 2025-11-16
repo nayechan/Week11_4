@@ -1,9 +1,11 @@
 {
   "Actors" : {
-    "858" : {
+    "862" : {
+      "CurrentState" : "Invalid",
       "ObjectName" : "APlayerCameraManager_2",
       "OwnedComponents" : [{
-          "Id" : 859,
+          "CurrentState" : "Invalid",
+          "Id" : 863,
           "ObjectName" : "USceneComponent_3",
           "ParentId" : 0,
           "RelativeLocation" : [0.000000, 0.000000, 0.000000],
@@ -15,57 +17,66 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 859,
+      "RootComponentId" : 863,
       "Tag" : "",
       "Type" : "APlayerCameraManager",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "866" : {
-      "ObjectName" : "빈 액터_0",
+    "870" : {
+      "CurrentState" : "Invalid",
+      "ObjectName" : "애니메이션 Notify 테스트 액터_0",
       "OwnedComponents" : [{
-          "Id" : 867,
-          "ObjectName" : "USceneComponent_4",
+          "CurrentState" : "Invalid",
+          "Id" : 871,
+          "MaterialSlots" : [{
+              "Type" : "None"
+            }, {
+              "AssetPath" : "mn_ppnn_02_dres",
+              "CurrentState" : "Invalid",
+              "Type" : "UMaterial"
+            }, {
+              "AssetPath" : "mn_ppnn_02-1_skin",
+              "CurrentState" : "Invalid",
+              "Type" : "UMaterial"
+            }, {
+              "AssetPath" : "fase",
+              "CurrentState" : "Invalid",
+              "Type" : "UMaterial"
+            }, {
+              "AssetPath" : "hair",
+              "CurrentState" : "Invalid",
+              "Type" : "UMaterial"
+            }, {
+              "AssetPath" : "wings",
+              "CurrentState" : "Invalid",
+              "Type" : "UMaterial"
+            }],
+          "ObjectName" : "USkeletalMeshComponent_1",
           "ParentId" : 0,
           "RelativeLocation" : [1.532815, -1.532815, 1.173166],
           "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
           "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "Type" : "USceneComponent",
+          "SkeletalMesh" : "Data/Fbx/ninave.fbx",
+          "Type" : "USkeletalMeshComponent",
+          "bBlockComponent" : false,
+          "bCastShadows" : true,
+          "bGenerateOverlapEvents" : true,
           "bHiddenInGame" : false,
           "bIsActive" : true,
           "bIsVisible" : true,
-          "bTickEnabled" : true
-        }, {
-          "Id" : 869,
-          "Intensity" : 50.000000,
-          "Message" : "Hello from UTestComponent!",
-          "ObjectName" : "UTestComponent_1",
-          "ParentId" : 867,
-          "RelativeLocation" : [0.000000, 0.000000, 0.000000],
-          "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
-          "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "Type" : "UTestComponent",
-          "bEnabled" : true,
-          "bHiddenInGame" : false,
-          "bIsActive" : true,
-          "bIsVisible" : true,
-          "bTickEnabled" : true
-        }, {
-          "ObjectName" : "ULuaScriptComponent_1",
-          "ScriptFilePath" : "Data/Scripts/TestStructAccess.lua",
-          "Type" : "ULuaScriptComponent",
-          "bHiddenInGame" : false,
-          "bIsActive" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 867,
+      "RootComponentId" : 871,
+      "SkeletalMeshComponent" : "",
       "Tag" : "",
-      "Type" : "AEmptyActor",
+      "Type" : "ATestAnimNotifyActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     }
   },
-  "NextUUID" : 871,
+  "CurrentState" : "Invalid",
+  "NextUUID" : 872,
   "PerspectiveCamera" : {
     "FOV" : [60.000000],
     "FarClip" : [2000.000000],

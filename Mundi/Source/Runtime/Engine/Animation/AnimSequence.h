@@ -2,7 +2,7 @@
 #include "AnimSequenceBase.h"
 #include "UAnimSequence.generated.h"
 
-UCLASS(DisplayName="애니메이션 시퀀스", Description="키프레임 애니메이션 데이터")
+UCLASS(DisplayName = "애니메이션 시퀀스", Description = "키프레임 애니메이션 데이터")
 class UAnimSequence : public UAnimSequenceBase
 {
 public:

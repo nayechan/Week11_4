@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "AnimInstance.h"
 #include "UAnimSingleNodeInstance.generated.h"
 
@@ -28,12 +28,16 @@ public:
 	// 업데이트 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-	// Notify 트리거링 구현
-	virtual void TriggerAnimNotifies(float DeltaSeconds) override;
+	// 포즈 추출
+	virtual void GetAnimationPose(struct FPoseContext& OutPose) override;
 
 private:
 	class UAnimSequence* CurrentSequence = nullptr;
 	bool bIsPlaying = false;
 	bool bLooping = false;
 	float PlayRate = 1.0f;
+
+	// Unreal 방식: 자체 Internal Time 관리
+	float InternalTime = 0.0f;
+	float PreviousInternalTime = 0.0f;
 };
