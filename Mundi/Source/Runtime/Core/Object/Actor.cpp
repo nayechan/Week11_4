@@ -832,11 +832,3 @@ void AActor::UnregisterComponentTree(USceneComponent* SceneComp)
 	}
 	SceneComp->UnregisterComponent();
 }
-
-void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
-{
-	// 기본 구현: 로그 출력
-	UE_LOG("AActor::HandleAnimNotify - Notify: %s at %.2f",
-	       Notify.NotifyName.ToString().c_str(),
-	       Notify.TriggerTime);
-}

@@ -286,6 +286,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\AnimSequenceViewer\AnimSequenceViewerBootstrap.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
@@ -719,6 +720,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
+    <ClInclude Include="Source\Runtime\Engine\AnimSequenceViewer\AnimSequenceViewerState.h" />
+    <ClInclude Include="Source\Runtime\Engine\AnimSequenceViewer\AnimSequenceViewerBootstrap.h" />
     <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h" />

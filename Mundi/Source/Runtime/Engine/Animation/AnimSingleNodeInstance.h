@@ -25,6 +25,10 @@ public:
 	bool IsLooping() const { return bLooping; }
 	float GetPlayRate() const { return PlayRate; }
 
+	// 시간 접근자 (Viewer용)
+	float GetCurrentTime() const { return InternalTime; }
+	void SetCurrentTime(float NewTime);
+
 	// 업데이트 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 

@@ -1,6 +1,6 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "SAnimSequenceViewerWindow.h"
-#include "Source/Runtime/Engine/AnimSequenceViewer/AnimSequenceViewerState.h"  // 명시적으로 추가
+#include "Source/Runtime/Engine/AnimSequenceViewer/AnimSequenceViewerState.h"
 #include "Source/Runtime/Engine/AnimSequenceViewer/AnimSequenceViewerBootstrap.h"
 #include "FViewport.h"
 #include "FViewportClient.h"
@@ -11,10 +11,10 @@
 #include "Source/Runtime/Engine/Animation/AnimSingleNodeInstance.h"
 #include "Source/Runtime/Engine/Animation/AnimationTypes.h"
 #include "Source/Runtime/AssetManagement/SkeletalMesh.h"
+#include "Source/Editor/FBXLoader.h"
 #include "Source/Editor/PlatformProcess.h"
 #include "USlateManager.h"
 #include "ResourceManager.h"
-#include "Plugins/Fbx/FBXLoader.h"
 #include "GlobalConsole.h"
 #include <fstream>
 
@@ -269,19 +269,16 @@ void SAnimSequenceViewerWindow::OnRenderViewport()
 // ========================================
 // Asset Browser
 // ========================================
-void SAnimSequenceViewerWindow::RenderAssetBrowser(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::RenderAssetBrowser()
 {
-    if (!State)
-        return;
-
-    ImGui::BeginChild("AssetBrowser", ImVec2(0, State->TopPanelHeight), false);
+    ImGui::BeginChild("AssetBrowser", ImVec2(0, TopPanelHeight), false);
 
     ImGui::Text("Animation Asset");
     ImGui::Spacing();
 
     // Animation path input
     ImGui::PushItemWidth(-150.0f);
-    ImGui::InputTextWithHint("##AnimPath", "Browse for FBX animation file...", State->AnimPathBuffer, sizeof(State->AnimPathBuffer));
+    ImGui::InputTextWithHint("##AnimPath", "Browse for FBX animation file...", AnimPathBuffer, sizeof(AnimPathBuffer));
     ImGui::PopItemWidth();
 
     ImGui::SameLine();
@@ -293,7 +290,7 @@ void SAnimSequenceViewerWindow::RenderAssetBrowser(AnimSequenceViewerState* Stat
         if (!widePath.empty())
         {
             std::string s = widePath.string();
-            strncpy_s(State->AnimPathBuffer, s.c_str(), sizeof(State->AnimPathBuffer) - 1);
+            strncpy_s(AnimPathBuffer, s.c_str(), sizeof(AnimPathBuffer) - 1);
         }
     }
 
@@ -302,7 +299,7 @@ void SAnimSequenceViewerWindow::RenderAssetBrowser(AnimSequenceViewerState* Stat
     // Load button
     if (ImGui::Button("Load", ImVec2(70, 0)))
     {
-        FString Path = State->AnimPathBuffer;
+        FString Path = AnimPathBuffer;
         if (!Path.empty())
         {
             LoadAnimation(Path);
@@ -312,26 +309,26 @@ void SAnimSequenceViewerWindow::RenderAssetBrowser(AnimSequenceViewerState* Stat
     ImGui::SameLine();
 
     // Save button
-    if (State->CurrentAnimation)
+    if (CurrentAnimation)
     {
         if (ImGui::Button("Save", ImVec2(70, 0)))
         {
-            SaveAnimation(State);
+            SaveAnimation();
         }
     }
 
     // Display current animation info
-    if (State->CurrentAnimation)
+    if (CurrentAnimation)
     {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
-        ImGui::Text("Loaded: %s", State->LoadedAnimPath.c_str());
-        ImGui::Text("Length: %.2fs", State->AnimationLength);
-        ImGui::Text("Frames: %d", State->CurrentAnimation->NumberOfFrames);
-        ImGui::Text("Frame Rate: %.2f fps", State->CurrentAnimation->FrameRate.AsDecimal());
-        ImGui::Text("Notifies: %d", State->CurrentAnimation->Notifies.Num());
+        ImGui::Text("Loaded: %s", LoadedAnimPath.c_str());
+        ImGui::Text("Length: %.2fs", AnimationLength);
+        ImGui::Text("Frames: %d", CurrentAnimation->NumberOfFrames);
+        ImGui::Text("Frame Rate: %.2f fps", CurrentAnimation->FrameRate.AsDecimal());
+        ImGui::Text("Notifies: %d", CurrentAnimation->Notifies.Num());
     }
     else
     {
@@ -345,11 +342,8 @@ void SAnimSequenceViewerWindow::RenderAssetBrowser(AnimSequenceViewerState* Stat
 // ========================================
 // Viewport Panel
 // ========================================
-void SAnimSequenceViewerWindow::RenderViewportPanel(AnimSequenceViewerState* State, float Height)
+void SAnimSequenceViewerWindow::RenderViewportPanel(float Height)
 {
-    if (!State)
-        return;
-
     ImGui::BeginChild("ViewportPanel", ImVec2(0, Height), true, ImGuiWindowFlags_NoScrollbar);
 
     ImVec2 childPos = ImGui::GetWindowPos();
@@ -357,11 +351,11 @@ void SAnimSequenceViewerWindow::RenderViewportPanel(AnimSequenceViewerState* Sta
     ImVec2 rectMin = childPos;
     ImVec2 rectMax(childPos.x + childSize.x, childPos.y + childSize.y);
 
-    State->ViewportRect.Left = rectMin.x;
-    State->ViewportRect.Top = rectMin.y;
-    State->ViewportRect.Right = rectMax.x;
-    State->ViewportRect.Bottom = rectMax.y;
-    State->ViewportRect.UpdateMinMax();
+    ViewportRect.Left = rectMin.x;
+    ViewportRect.Top = rectMin.y;
+    ViewportRect.Right = rectMax.x;
+    ViewportRect.Bottom = rectMax.y;
+    ViewportRect.UpdateMinMax();
 
     ImGui::EndChild();
 }
@@ -369,26 +363,23 @@ void SAnimSequenceViewerWindow::RenderViewportPanel(AnimSequenceViewerState* Sta
 // ========================================
 // Timeline Controls
 // ========================================
-void SAnimSequenceViewerWindow::RenderTimelineControls(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::RenderTimelineControls()
 {
-    if (!State)
-        return;
-
     ImGui::BeginGroup();
 
     // Play/Pause button
-    if (State->bIsPlaying)
+    if (bIsPlaying)
     {
         if (ImGui::Button("Pause", ImVec2(60, 30)))
         {
-            PauseAnimation(State);
+            PauseAnimation();
         }
     }
     else
     {
         if (ImGui::Button("Play", ImVec2(60, 30)))
         {
-            PlayAnimation(State);
+            PlayAnimation();
         }
     }
 
@@ -397,7 +388,7 @@ void SAnimSequenceViewerWindow::RenderTimelineControls(AnimSequenceViewerState* 
     // Stop button
     if (ImGui::Button("Stop", ImVec2(60, 30)))
     {
-        StopAnimation(State);
+        StopAnimation();
     }
 
     ImGui::SameLine();
@@ -407,7 +398,7 @@ void SAnimSequenceViewerWindow::RenderTimelineControls(AnimSequenceViewerState* 
     // Step backward
     if (ImGui::Button("<", ImVec2(30, 30)))
     {
-        StepBackward(State);
+        StepBackward();
     }
 
     ImGui::SameLine();
@@ -415,7 +406,7 @@ void SAnimSequenceViewerWindow::RenderTimelineControls(AnimSequenceViewerState* 
     // Step forward
     if (ImGui::Button(">", ImVec2(30, 30)))
     {
-        StepForward(State);
+        StepForward();
     }
 
     ImGui::SameLine();
@@ -426,11 +417,11 @@ void SAnimSequenceViewerWindow::RenderTimelineControls(AnimSequenceViewerState* 
     ImGui::Text("Speed:");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(100);
-    if (ImGui::DragFloat("##PlayRate", &State->PlayRate, 0.05f, 0.1f, 5.0f, "%.2fx"))
+    if (ImGui::DragFloat("##PlayRate", &PlayRate, 0.05f, 0.1f, 5.0f, "%.2fx"))
     {
-        if (State->PreviewComponent && State->PreviewComponent->AnimInstance)
+        if (PreviewComponent && PreviewComponent->AnimInstance)
         {
-            Cast<UAnimSingleNodeInstance>(State->PreviewComponent->AnimInstance)->SetPlayRate(State->PlayRate);
+            Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance)->SetPlayRate(PlayRate);
         }
     }
 
@@ -439,64 +430,63 @@ void SAnimSequenceViewerWindow::RenderTimelineControls(AnimSequenceViewerState* 
     ImGui::SameLine();
 
     // Loop checkbox
-    if (ImGui::Checkbox("Loop", &State->bLooping))
+    if (ImGui::Checkbox("Loop", &bLooping))
     {
         // If already playing, restart with new loop setting
-        if (State->bIsPlaying && State->PreviewComponent && State->PreviewComponent->AnimInstance)
+        if (bIsPlaying && PreviewComponent && PreviewComponent->AnimInstance)
         {
-            Cast<UAnimSingleNodeInstance>(State->PreviewComponent->AnimInstance)->Play(State->bLooping);
+            Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance)->Play(bLooping);
         }
     }
 
     ImGui::EndGroup();
 
     // Frame/Time info
-    if (State->CurrentAnimation)
+    if (CurrentAnimation)
     {
-        float CurrentTime = GetCurrentAnimTime(State);
-        int32 CurrentFrame = State->CurrentAnimation->FrameRate.AsFrameNumber(CurrentTime);
-        int32 TotalFrames = State->CurrentAnimation->NumberOfFrames;
+        int32 CurrentFrame = CurrentAnimation->FrameRate.AsFrameNumber(CurrentTime);
+        int32 TotalFrames = CurrentAnimation->NumberOfFrames;
 
         ImGui::Text("Frame: %d / %d", CurrentFrame, TotalFrames);
         ImGui::SameLine();
-        ImGui::Text("  |  Time: %.2fs / %.2fs", CurrentTime, State->AnimationLength);
+        ImGui::Text("  |  Time: %.2fs / %.2fs", CurrentTime, AnimationLength);
     }
 }
 
 // ========================================
 // Timeline Scrubber
 // ========================================
-void SAnimSequenceViewerWindow::RenderTimelineScrubber(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::RenderTimelineScrubber()
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.2f, 0.2f, 0.25f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(1.0f, 0.6f, 0.2f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(1.0f, 0.8f, 0.4f, 1.0f));
 
-    float sliderTime = GetCurrentAnimTime(State);
-    if (ImGui::SliderFloat("##Timeline", &sliderTime, 0.0f, State->AnimationLength, "%.3fs"))
+    float sliderTime = CurrentTime;
+    if (ImGui::SliderFloat("##Timeline", &sliderTime, 0.0f, AnimationLength, "%.3fs"))
     {
-        SeekToTime(State, sliderTime);
+        SeekToTime(sliderTime);
     }
 
     ImGui::PopStyleColor(3);
 
     // Save timeline rect for notify rendering
-    State->TimelineRect = FRect(
+    TimelineRect = FRect(
         ImGui::GetItemRectMin().x, ImGui::GetItemRectMin().y,
         ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y
     );
-    State->TimelineRect.UpdateMinMax();
+    TimelineRect.UpdateMinMax();
 }
 
 // ========================================
 // Notify Track Rendering
 // ========================================
-void SAnimSequenceViewerWindow::RenderNotifyTrack(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::RenderNotifyTrack()
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
     ImGui::Text("Anim Notifies:");
@@ -511,26 +501,26 @@ void SAnimSequenceViewerWindow::RenderNotifyTrack(AnimSequenceViewerState* State
     DrawList->AddRect(TrackMin, TrackMax, IM_COL32(60, 60, 70, 255));
 
     // Render notify markers
-    TArray<FAnimNotifyEvent>& Notifies = State->CurrentAnimation->Notifies;
+    TArray<FAnimNotifyEvent>& Notifies = CurrentAnimation->Notifies;
     for (int32 i = 0; i < Notifies.Num(); ++i)
     {
         const FAnimNotifyEvent& Notify = Notifies[i];
 
         // Time to pixel position
-        float NormalizedTime = (State->AnimationLength > 0.0f) ? (Notify.TriggerTime / State->AnimationLength) : 0.0f;
+        float NormalizedTime = (AnimationLength > 0.0f) ? (Notify.TriggerTime / AnimationLength) : 0.0f;
         float XPos = TrackMin.x + (TrackSize.x * NormalizedTime);
 
         if (Notify.Duration > 0.0f)
         {
             // Duration notify - render as rect
             float EndTime = Notify.TriggerTime + Notify.Duration;
-            float NormalizedEndTime = (State->AnimationLength > 0.0f) ? (EndTime / State->AnimationLength) : 0.0f;
+            float NormalizedEndTime = (AnimationLength > 0.0f) ? (EndTime / AnimationLength) : 0.0f;
             float XEndPos = TrackMin.x + (TrackSize.x * NormalizedEndTime);
 
             ImVec2 RectMin(XPos, TrackMin.y + 10);
             ImVec2 RectMax(XEndPos, TrackMax.y - 10);
 
-            ImU32 Color = (State->SelectedNotifyIndex == i)
+            ImU32 Color = (SelectedNotifyIndex == i)
                 ? IM_COL32(100, 200, 255, 200)
                 : IM_COL32(80, 150, 200, 150);
 
@@ -548,7 +538,7 @@ void SAnimSequenceViewerWindow::RenderNotifyTrack(AnimSequenceViewerState* State
             ImVec2 Center(XPos, TrackMin.y + TrackSize.y * 0.5f);
             float Size = 8.0f;
 
-            ImU32 Color = (State->SelectedNotifyIndex == i)
+            ImU32 Color = (SelectedNotifyIndex == i)
                 ? IM_COL32(255, 180, 50, 255)
                 : IM_COL32(200, 140, 40, 255);
 
@@ -577,42 +567,42 @@ void SAnimSequenceViewerWindow::RenderNotifyTrack(AnimSequenceViewerState* State
             float MouseXDist = std::abs(MousePos.x - XPos);
             if (MouseXDist < 15.0f && MousePos.y >= TrackMin.y && MousePos.y <= TrackMax.y)
             {
-                State->SelectedNotifyIndex = i;
-                State->DraggingNotifyIndex = i;
-                State->bIsDraggingNotify = false;  // 클릭만 했을 때는 아직 드래그 아님
+                SelectedNotifyIndex = i;
+                DraggingNotifyIndex = i;
+                bIsDraggingNotify = false;  // 클릭만 했을 때는 아직 드래그 아님
             }
         }
     }
 
     // 드래그 처리 (모든 Notify 렌더링 후)
-    if (State->DraggingNotifyIndex >= 0 && ImGui::IsMouseDragging(0, 5.0f))
+    if (DraggingNotifyIndex >= 0 && ImGui::IsMouseDragging(0, 5.0f))
     {
-        State->bIsDraggingNotify = true;
+        bIsDraggingNotify = true;
 
         // 마우스 X 위치를 시간으로 변환
         ImVec2 MousePos = ImGui::GetIO().MousePos;
         float NormalizedX = (MousePos.x - TrackMin.x) / TrackSize.x;
-        float NewTime = FMath::Clamp(NormalizedX * State->AnimationLength, 0.0f, State->AnimationLength);
+        float NewTime = FMath::Clamp(NormalizedX * AnimationLength, 0.0f, AnimationLength);
 
         // 드래그 중인 Notify의 시간 업데이트 (아직 정렬 안 함)
-        if (State->DraggingNotifyIndex < Notifies.Num())
+        if (DraggingNotifyIndex < Notifies.Num())
         {
-            Notifies[State->DraggingNotifyIndex].TriggerTime = NewTime;
+            Notifies[DraggingNotifyIndex].TriggerTime = NewTime;
         }
     }
 
     // 드래그 종료 시 정렬
-    if (State->bIsDraggingNotify && ImGui::IsMouseReleased(0))
+    if (bIsDraggingNotify && ImGui::IsMouseReleased(0))
     {
-        SortNotifies(State);
-        State->bIsDraggingNotify = false;
-        State->DraggingNotifyIndex = -1;
+        SortNotifies();
+        bIsDraggingNotify = false;
+        DraggingNotifyIndex = -1;
         UE_LOG("Notify drag completed");
     }
 
     // Save notify track rect
-    State->NotifyTrackRect = FRect(TrackMin.x, TrackMin.y, TrackMax.x, TrackMax.y);
-    State->NotifyTrackRect.UpdateMinMax();
+    NotifyTrackRect = FRect(TrackMin.x, TrackMin.y, TrackMax.x, TrackMax.y);
+    NotifyTrackRect.UpdateMinMax();
 
     // Dummy to reserve space
     ImGui::Dummy(ImVec2(0, TrackSize.y));
@@ -620,62 +610,62 @@ void SAnimSequenceViewerWindow::RenderNotifyTrack(AnimSequenceViewerState* State
     // Add/Remove buttons
     if (ImGui::Button("+ Add Notify"))
     {
-        AddNotify(State, GetCurrentAnimTime(State), FName("NewNotify"));
+        AddNotify(CurrentTime, FName("NewNotify"));
     }
 
     ImGui::SameLine();
 
-    if (State->SelectedNotifyIndex >= 0 && ImGui::Button("- Remove Notify"))
+    if (SelectedNotifyIndex >= 0 && ImGui::Button("- Remove Notify"))
     {
-        RemoveNotify(State, State->SelectedNotifyIndex);
-        State->SelectedNotifyIndex = -1;
+        RemoveNotify(SelectedNotifyIndex);
+        SelectedNotifyIndex = -1;
     }
 }
 
 // ========================================
 // Notify Properties Panel
 // ========================================
-void SAnimSequenceViewerWindow::RenderNotifyProperties(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::RenderNotifyProperties()
 {
-    if (!State || State->SelectedNotifyIndex < 0 || !State->CurrentAnimation)
+    if (SelectedNotifyIndex < 0 || !CurrentAnimation)
         return;
 
-    if (State->SelectedNotifyIndex >= State->CurrentAnimation->Notifies.Num())
+    if (SelectedNotifyIndex >= CurrentAnimation->Notifies.Num())
     {
-        State->SelectedNotifyIndex = -1;
+        SelectedNotifyIndex = -1;
         return;
     }
 
-    FAnimNotifyEvent& Notify = State->CurrentAnimation->Notifies[State->SelectedNotifyIndex];
+    FAnimNotifyEvent& Notify = CurrentAnimation->Notifies[SelectedNotifyIndex];
 
     // 새로운 Notify 선택 시 LastEditedTriggerTime 초기화
     static int32 LastSelectedIndex = -1;
-    if (LastSelectedIndex != State->SelectedNotifyIndex)
+    if (LastSelectedIndex != SelectedNotifyIndex)
     {
-        State->LastEditedTriggerTime = Notify.TriggerTime;
-        LastSelectedIndex = State->SelectedNotifyIndex;
+        LastEditedTriggerTime = Notify.TriggerTime;
+        LastSelectedIndex = SelectedNotifyIndex;
     }
 
     ImGui::Text("Selected Notify Properties");
     ImGui::Spacing();
 
     // Name
-    strncpy_s(State->NotifyNameBuffer, Notify.NotifyName.ToString().c_str(), sizeof(State->NotifyNameBuffer) - 1);
-    if (ImGui::InputText("Name", State->NotifyNameBuffer, sizeof(State->NotifyNameBuffer)))
+    strncpy_s(NotifyNameBuffer, Notify.NotifyName.ToString().c_str(), sizeof(NotifyNameBuffer) - 1);
+    if (ImGui::InputText("Name", NotifyNameBuffer, sizeof(NotifyNameBuffer)))
     {
-        Notify.NotifyName = FName(State->NotifyNameBuffer);
+        Notify.NotifyName = FName(NotifyNameBuffer);
     }
 
     // Trigger time
     float TriggerTime = Notify.TriggerTime;
-    if (ImGui::DragFloat("Trigger Time", &TriggerTime, 0.01f, 0.0f, State->AnimationLength))
+    if (ImGui::DragFloat("Trigger Time", &TriggerTime, 0.01f, 0.0f, AnimationLength))
     {
-        Notify.TriggerTime = FMath::Clamp(TriggerTime, 0.0f, State->AnimationLength);
+        Notify.TriggerTime = FMath::Clamp(TriggerTime, 0.0f, AnimationLength);
     }
 
     // Duration
     float Duration = Notify.Duration;
-    if (ImGui::DragFloat("Duration", &Duration, 0.01f, 0.0f, State->AnimationLength))
+    if (ImGui::DragFloat("Duration", &Duration, 0.01f, 0.0f, AnimationLength))
     {
         Notify.Duration = FMath::Max(0.0f, Duration);
     }
@@ -689,18 +679,18 @@ void SAnimSequenceViewerWindow::RenderNotifyProperties(AnimSequenceViewerState* 
     }
 
     // Properties 편집 후 정렬 (TriggerTime이 변경되었을 수 있음)
-    if (TriggerTime != State->LastEditedTriggerTime)
+    if (TriggerTime != LastEditedTriggerTime)
     {
-        SortNotifies(State);
-        State->LastEditedTriggerTime = TriggerTime;
+        SortNotifies();
+        LastEditedTriggerTime = TriggerTime;
 
         // 정렬 후 현재 Notify의 새 인덱스 찾기 (Name과 Time으로 식별)
-        for (int32 i = 0; i < State->CurrentAnimation->Notifies.Num(); ++i)
+        for (int32 i = 0; i < CurrentAnimation->Notifies.Num(); ++i)
         {
-            if (std::abs(State->CurrentAnimation->Notifies[i].TriggerTime - TriggerTime) < 0.001f &&
-                State->CurrentAnimation->Notifies[i].NotifyName == Notify.NotifyName)
+            if (std::abs(CurrentAnimation->Notifies[i].TriggerTime - TriggerTime) < 0.001f &&
+                CurrentAnimation->Notifies[i].NotifyName == Notify.NotifyName)
             {
-                State->SelectedNotifyIndex = i;
+                SelectedNotifyIndex = i;
                 break;
             }
         }
@@ -712,79 +702,55 @@ void SAnimSequenceViewerWindow::RenderNotifyProperties(AnimSequenceViewerState* 
 // ========================================
 void SAnimSequenceViewerWindow::LoadAnimation(const FString& Path)
 {
-    // Use ActiveState for public API
-    if (!ActiveState)
-        return;
-
-    if (Path.empty() || !ActiveState->PreviewActor || !ActiveState->PreviewComponent)
+    if (Path.empty() || !PreviewActor || !PreviewComponent)
         return;
 
     // Try to load mesh first if not already loaded
-    USkeletalMesh* Mesh = ActiveState->PreviewComponent->GetSkeletalMesh();
-    if (!Mesh)
+    if (!PreviewComponent->GetSkeletalMesh())
     {
         UE_LOG("No skeletal mesh loaded. Attempting to load mesh from same FBX file...");
-        Mesh = UResourceManager::GetInstance().Load<USkeletalMesh>(Path);
-        if (Mesh && ActiveState->PreviewActor)
+        USkeletalMesh* Mesh = UResourceManager::GetInstance().Load<USkeletalMesh>(Path);
+        if (Mesh && PreviewActor)
         {
-            ActiveState->PreviewActor->SetSkeletalMesh(Path);
+            PreviewActor->SetSkeletalMesh(Path);
             UE_LOG("Auto-loaded skeletal mesh from: %s", Path.c_str());
         }
     }
 
-    if (!Mesh)
+    // Get target skeleton
+    const FSkeleton* TargetSkeleton = nullptr;
+    if (PreviewComponent->GetSkeletalMesh())
     {
-        UE_LOG("Cannot load animation without skeletal mesh");
-        return;
+        TargetSkeleton = PreviewComponent->GetSkeletalMesh()->GetSkeleton();
     }
 
-    // Check if already loaded in ResourceManager
-    UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(Path);
-
-    if (!Anim)
-    {
-        // Get skeleton from mesh for bone matching
-        const FSkeleton* Skeleton = Mesh->GetSkeleton();
-        if (!Skeleton)
-        {
-            UE_LOG("Skeletal mesh has no skeleton data");
-            return;
-        }
-
-        // Load from FBX using FbxLoader
-        UFbxLoader& FbxLoader = UFbxLoader::GetInstance();
-        Anim = FbxLoader.LoadFbxAnimation(Path, Skeleton);
-
-        if (Anim)
-        {
-            // Register in ResourceManager for future use
-            UResourceManager::GetInstance().Add<UAnimSequence>(Path, Anim);
-        }
-    }
+    // Load animation
+    UAnimSequence* Anim = UFbxLoader::GetInstance().LoadFbxAnimation(Path, TargetSkeleton);
 
     if (Anim)
     {
-        ActiveState->CurrentAnimation = Anim;
-        ActiveState->LoadedAnimPath = Path;
-        ActiveState->AnimationLength = Anim->GetPlayLength();
+        CurrentAnimation = Anim;
+        LoadedAnimPath = Path;
+        AnimationLength = Anim->GetPlayLength();
 
         // Set animation on component
-        if (ActiveState->PreviewComponent)
+        if (PreviewComponent)
         {
-            ActiveState->PreviewComponent->PlayAnimation(Anim, ActiveState->bLooping);
+            PreviewComponent->PlayAnimation(Anim, bLooping);
 
             // Update play rate
-            if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(ActiveState->PreviewComponent->AnimInstance))
+            if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance))
             {
-                AnimInstance->SetPlayRate(ActiveState->PlayRate);
+                AnimInstance->SetPlayRate(PlayRate);
             }
         }
 
-        // Reset play state
-        ActiveState->bIsPlaying = false;
+        // Reset time
+        CurrentTime = 0.0f;
+        bIsPlaying = false;
 
         UE_LOG("SAnimSequenceViewerWindow: Loaded animation from %s", Path.c_str());
-        UE_LOG("Animation: %.2fs, %d frames, %d notifies", ActiveState->AnimationLength, Anim->NumberOfFrames, Anim->Notifies.Num());
+        UE_LOG("Animation: %.2fs, %d frames, %d notifies", AnimationLength, Anim->NumberOfFrames, Anim->Notifies.Num());
     }
     else
     {
@@ -795,116 +761,118 @@ void SAnimSequenceViewerWindow::LoadAnimation(const FString& Path)
 // ========================================
 // Playback Control Functions
 // ========================================
-void SAnimSequenceViewerWindow::PlayAnimation(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::PlayAnimation()
 {
-    if (!State || !State->PreviewComponent || !State->CurrentAnimation)
+    if (!PreviewComponent || !CurrentAnimation)
         return;
 
-    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(State->PreviewComponent->AnimInstance))
+    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance))
     {
-        AnimInstance->Play(State->bLooping);
-        State->bIsPlaying = true;
+        AnimInstance->Play(bLooping);
+        bIsPlaying = true;
     }
 }
 
-void SAnimSequenceViewerWindow::PauseAnimation(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::PauseAnimation()
 {
-    if (!State || !State->PreviewComponent)
+    if (!PreviewComponent)
         return;
 
-    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(State->PreviewComponent->AnimInstance))
+    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance))
     {
         AnimInstance->Pause();
-        State->bIsPlaying = false;
+        bIsPlaying = false;
     }
 }
 
-void SAnimSequenceViewerWindow::StopAnimation(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::StopAnimation()
 {
-    if (!State || !State->PreviewComponent)
+    if (!PreviewComponent)
         return;
 
-    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(State->PreviewComponent->AnimInstance))
+    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance))
     {
         AnimInstance->Stop();
-        State->bIsPlaying = false;
+        bIsPlaying = false;
+        CurrentTime = 0.0f;
     }
 }
 
-void SAnimSequenceViewerWindow::SeekToTime(AnimSequenceViewerState* State, float Time)
+void SAnimSequenceViewerWindow::SeekToTime(float Time)
 {
-    if (!State || !State->PreviewComponent || !State->CurrentAnimation)
+    if (!PreviewComponent || !CurrentAnimation)
         return;
 
-    float ClampedTime = FMath::Clamp(Time, 0.0f, State->AnimationLength);
+    CurrentTime = FMath::Clamp(Time, 0.0f, AnimationLength);
 
-    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(State->PreviewComponent->AnimInstance))
+    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(PreviewComponent->AnimInstance))
     {
         // 내부 시간 설정
-        AnimInstance->SetCurrentTime(ClampedTime);
+        AnimInstance->SetCurrentTime(CurrentTime);
 
         // 포즈 즉시 업데이트
-        // ForceRecomputePose를 호출하면 다음 틱에서 포즈가 재계산됨
-        State->PreviewComponent->ForceRecomputePose();
+        // TickAnimation(0.0f)을 호출하면:
+        // - bIsPlaying이 false이므로 시간은 업데이트 안 됨
+        // - GetAnimationPose()로 현재 시간의 포즈만 가져옴
+        // - CurrentLocalSpacePose 업데이트 및 스키닝 적용
+        PreviewComponent->TickAnimation(0.0f);
     }
 }
 
-void SAnimSequenceViewerWindow::SeekToFrame(AnimSequenceViewerState* State, int32 Frame)
+void SAnimSequenceViewerWindow::SeekToFrame(int32 Frame)
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
-    float Time = State->CurrentAnimation->FrameRate.AsSeconds(Frame);
-    SeekToTime(State, Time);
+    float Time = CurrentAnimation->FrameRate.AsSeconds(Frame);
+    SeekToTime(Time);
 }
 
-void SAnimSequenceViewerWindow::StepForward(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::StepForward()
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
-    float CurrentTime = GetCurrentAnimTime(State);
-    int32 CurrentFrame = State->CurrentAnimation->FrameRate.AsFrameNumber(CurrentTime);
-    int32 NextFrame = FMath::Min(CurrentFrame + 1, State->CurrentAnimation->NumberOfFrames - 1);
-    SeekToFrame(State, NextFrame);
+    int32 CurrentFrame = CurrentAnimation->FrameRate.AsFrameNumber(CurrentTime);
+    int32 NextFrame = FMath::Min(CurrentFrame + 1, CurrentAnimation->NumberOfFrames - 1);
+    SeekToFrame(NextFrame);
 }
 
-void SAnimSequenceViewerWindow::StepBackward(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::StepBackward()
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
-    float CurrentTime = GetCurrentAnimTime(State);
-    int32 CurrentFrame = State->CurrentAnimation->FrameRate.AsFrameNumber(CurrentTime);
+    int32 CurrentFrame = CurrentAnimation->FrameRate.AsFrameNumber(CurrentTime);
     int32 PrevFrame = FMath::Max(0, CurrentFrame - 1);
-    SeekToFrame(State, PrevFrame);
+    SeekToFrame(PrevFrame);
 }
 
 // ========================================
 // Notify Editing Functions
 // ========================================
-void SAnimSequenceViewerWindow::AddNotify(AnimSequenceViewerState* State, float Time, const FName& NotifyName)
+void SAnimSequenceViewerWindow::AddNotify(float Time, const FName& NotifyName)
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
     FAnimNotifyEvent NewNotify;
-    NewNotify.TriggerTime = FMath::Clamp(Time, 0.0f, State->AnimationLength);
+    NewNotify.TriggerTime = FMath::Clamp(Time, 0.0f, AnimationLength);
     NewNotify.Duration = 0.0f;
     NewNotify.NotifyName = NotifyName;
 
-    State->CurrentAnimation->Notifies.Add(NewNotify);
+    CurrentAnimation->Notifies.Add(NewNotify);
 
     // 정렬 후 추가된 Notify의 새 인덱스 찾기
-    SortNotifies(State);
+    SortNotifies();
 
     // 방금 추가한 Notify를 선택 상태로 만들기
-    for (int32 i = 0; i < State->CurrentAnimation->Notifies.Num(); ++i)
+    for (int32 i = 0; i < CurrentAnimation->Notifies.Num(); ++i)
     {
-        if (State->CurrentAnimation->Notifies[i].TriggerTime == NewNotify.TriggerTime &&
-            State->CurrentAnimation->Notifies[i].NotifyName == NewNotify.NotifyName)
+        if (CurrentAnimation->Notifies[i].TriggerTime == NewNotify.TriggerTime &&
+            CurrentAnimation->Notifies[i].NotifyName == NewNotify.NotifyName)
         {
-            State->SelectedNotifyIndex = i;
+            SelectedNotifyIndex = i;
             break;
         }
     }
@@ -912,37 +880,37 @@ void SAnimSequenceViewerWindow::AddNotify(AnimSequenceViewerState* State, float 
     UE_LOG("Added notify '%s' at time %.2f", NotifyName.ToString().c_str(), Time);
 }
 
-void SAnimSequenceViewerWindow::RemoveNotify(AnimSequenceViewerState* State, int32 Index)
+void SAnimSequenceViewerWindow::RemoveNotify(int32 Index)
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
-    if (Index >= 0 && Index < State->CurrentAnimation->Notifies.Num())
+    if (Index >= 0 && Index < CurrentAnimation->Notifies.Num())
     {
-        State->CurrentAnimation->Notifies.RemoveAt(Index);
+        CurrentAnimation->Notifies.RemoveAt(Index);
         UE_LOG("Removed notify at index %d", Index);
     }
 }
 
-void SAnimSequenceViewerWindow::UpdateNotifyTime(AnimSequenceViewerState* State, int32 Index, float NewTime)
+void SAnimSequenceViewerWindow::UpdateNotifyTime(int32 Index, float NewTime)
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
-    if (Index >= 0 && Index < State->CurrentAnimation->Notifies.Num())
+    if (Index >= 0 && Index < CurrentAnimation->Notifies.Num())
     {
-        State->CurrentAnimation->Notifies[Index].TriggerTime = FMath::Clamp(NewTime, 0.0f, State->AnimationLength);
-        SortNotifies(State);  // 시간 변경 후 정렬
+        CurrentAnimation->Notifies[Index].TriggerTime = FMath::Clamp(NewTime, 0.0f, AnimationLength);
+        SortNotifies();  // 시간 변경 후 정렬
     }
 }
 
-void SAnimSequenceViewerWindow::SortNotifies(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::SortNotifies()
 {
-    if (!State || !State->CurrentAnimation)
+    if (!CurrentAnimation)
         return;
 
     // TriggerTime 순서로 정렬 (람다 사용)
-    std::sort(State->CurrentAnimation->Notifies.begin(), State->CurrentAnimation->Notifies.end(),
+    std::sort(CurrentAnimation->Notifies.begin(), CurrentAnimation->Notifies.end(),
         [](const FAnimNotifyEvent& A, const FAnimNotifyEvent& B) {
             return A.TriggerTime < B.TriggerTime;
         });
@@ -951,50 +919,37 @@ void SAnimSequenceViewerWindow::SortNotifies(AnimSequenceViewerState* State)
 // ========================================
 // Helper Functions
 // ========================================
-float SAnimSequenceViewerWindow::GetCurrentAnimTime(AnimSequenceViewerState* InState) const
+float SAnimSequenceViewerWindow::TimeToPixel(float Time) const
 {
-    if (!InState || !InState->PreviewComponent)
-        return 0.0f;
+    if (AnimationLength <= 0.0f)
+        return TimelineRect.Left;
 
-    if (UAnimSingleNodeInstance* AnimInstance = Cast<UAnimSingleNodeInstance>(InState->PreviewComponent->AnimInstance))
-    {
-        return AnimInstance->GetCurrentTime();
-    }
-
-    return 0.0f;
+    float NormalizedTime = Time / AnimationLength;
+    return TimelineRect.Left + (TimelineRect.GetWidth() * NormalizedTime);
 }
 
-float SAnimSequenceViewerWindow::TimeToPixel(AnimSequenceViewerState* InState, float Time) const
+float SAnimSequenceViewerWindow::PixelToTime(float PixelX) const
 {
-    if (!InState || InState->AnimationLength <= 0.0f)
-        return InState ? InState->TimelineRect.Left : 0.0f;
-
-    float NormalizedTime = Time / InState->AnimationLength;
-    return InState->TimelineRect.Left + (InState->TimelineRect.GetWidth() * NormalizedTime);
-}
-
-float SAnimSequenceViewerWindow::PixelToTime(AnimSequenceViewerState* InState, float PixelX) const
-{
-    if (!InState || InState->TimelineRect.GetWidth() <= 0.0f)
+    if (TimelineRect.GetWidth() <= 0.0f)
         return 0.0f;
 
-    float NormalizedX = (PixelX - InState->TimelineRect.Left) / InState->TimelineRect.GetWidth();
-    return FMath::Clamp(NormalizedX * InState->AnimationLength, 0.0f, InState->AnimationLength);
+    float NormalizedX = (PixelX - TimelineRect.Left) / TimelineRect.GetWidth();
+    return FMath::Clamp(NormalizedX * AnimationLength, 0.0f, AnimationLength);
 }
 
 // ========================================
 // Save Animation
 // ========================================
-void SAnimSequenceViewerWindow::SaveAnimation(AnimSequenceViewerState* State)
+void SAnimSequenceViewerWindow::SaveAnimation()
 {
-    if (!State || !State->CurrentAnimation || State->LoadedAnimPath.empty())
+    if (!CurrentAnimation || LoadedAnimPath.empty())
     {
         UE_LOG("Cannot save animation: No animation loaded");
         return;
     }
 
     // Save as JSON
-    FString JsonPath = State->LoadedAnimPath;
+    FString JsonPath = LoadedAnimPath;
     // Replace .fbx with .anim.json
     size_t dotPos = JsonPath.rfind('.');
     if (dotPos != std::string::npos)
@@ -1007,8 +962,8 @@ void SAnimSequenceViewerWindow::SaveAnimation(AnimSequenceViewerState* State)
     }
 
     // Serialize to JSON
-    JSON JsonData = JSON::Make(JSON::Class::Object);
-    State->CurrentAnimation->Serialize(false, JsonData);
+    JSON JsonData;
+    CurrentAnimation->Serialize(false, JsonData);
 
     // Write to file
     std::ofstream OutFile(JsonPath);

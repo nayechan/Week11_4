@@ -1,37 +1,7 @@
 ﻿#pragma once
 #include "Vector.h"
 
-struct FRect
-{
-    float Left;
-    float Top;
-    float Right;
-    float Bottom;
-
-    FVector2D Min; // 좌상단 (Left, Top)
-    FVector2D Max; // 우하단 (Right, Bottom)
-
-    FRect() : Left(0), Top(0), Right(0), Bottom(0), Min(0, 0), Max(0, 0) {}
-    FRect(float InLeft, float InTop, float InRight, float InBottom)
-        : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom)
-        , Min(InLeft, InTop), Max(InRight, InBottom) {}
-
-    float GetWidth() const { return Right - Left; }
-    float GetHeight() const { return Bottom - Top; }
-
-    bool Contains(FVector2D P) const
-    {
-        // swindow 내부 영역은 보수적으로 검사해서 스플리터와 겹치지 않게 처리
-        return (P.X > Left && P.X < Right &&
-            P.Y > Top && P.Y < Bottom);
-    }
-
-    void UpdateMinMax()
-    {
-        Min.X = Left; Min.Y = Top;
-        Max.X = Right; Max.Y = Bottom;
-    }
-};
+// FRect는 pch.h에 정의되어 있음
 
 class SWindow
 {

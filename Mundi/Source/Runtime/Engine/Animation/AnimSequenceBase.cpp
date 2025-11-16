@@ -62,28 +62,40 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	if (bInIsLoading)
 	{
 		// SequenceLength, RateScale 로드
-		if (InOutHandle.contains("SequenceLength"))
-			SequenceLength = InOutHandle["SequenceLength"];
-		if (InOutHandle.contains("RateScale"))
-			RateScale = InOutHandle["RateScale"];
+		if (InOutHandle.hasKey("SequenceLength"))
+		{
+			const JSON& Value = InOutHandle.at("SequenceLength");
+			SequenceLength = static_cast<float>(Value.ToFloat());
+		}
+		if (InOutHandle.hasKey("RateScale"))
+		{
+			const JSON& Value = InOutHandle.at("RateScale");
+			RateScale = static_cast<float>(Value.ToFloat());
+		}
 
 		// Notifies 로드
-		if (InOutHandle.contains("Notifies"))
+		if (InOutHandle.hasKey("Notifies"))
 		{
-			auto& NotifiesArray = InOutHandle["Notifies"];
-			Notifies.Empty();
-			for (auto& NotifyJson : NotifiesArray)
+			const JSON& NotifiesArray = InOutHandle.at("Notifies");
+			if (NotifiesArray.JSONType() == JSON::Class::Array)
 			{
-				FAnimNotifyEvent Notify;
-				if (NotifyJson.contains("TriggerTime"))
-					Notify.TriggerTime = NotifyJson["TriggerTime"];
-				if (NotifyJson.contains("Duration"))
-					Notify.Duration = NotifyJson["Duration"];
-				if (NotifyJson.contains("NotifyName"))
-					Notify.NotifyName = FName(NotifyJson["NotifyName"].get<std::string>());
-				if (NotifyJson.contains("NotifyData"))
-					Notify.NotifyData = NotifyJson["NotifyData"].get<std::string>();
-				Notifies.Add(Notify);
+				Notifies.Empty();
+				for (size_t i = 0; i < NotifiesArray.size(); ++i)
+				{
+					const JSON& NotifyJson = NotifiesArray.at(i);
+					FAnimNotifyEvent Notify;
+
+					if (NotifyJson.hasKey("TriggerTime"))
+						Notify.TriggerTime = static_cast<float>(NotifyJson.at("TriggerTime").ToFloat());
+					if (NotifyJson.hasKey("Duration"))
+						Notify.Duration = static_cast<float>(NotifyJson.at("Duration").ToFloat());
+					if (NotifyJson.hasKey("NotifyName"))
+						Notify.NotifyName = FName(NotifyJson.at("NotifyName").ToString());
+					if (NotifyJson.hasKey("NotifyData"))
+						Notify.NotifyData = NotifyJson.at("NotifyData").ToString();
+
+					Notifies.Add(Notify);
+				}
 			}
 		}
 	}
@@ -94,15 +106,15 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		InOutHandle["RateScale"] = RateScale;
 
 		// Notifies 저장
-		JSON NotifiesArray = JSON::array();
+		JSON NotifiesArray = JSON::Make(JSON::Class::Array);
 		for (const FAnimNotifyEvent& Notify : Notifies)
 		{
-			JSON NotifyJson;
+			JSON NotifyJson = JSON::Make(JSON::Class::Object);
 			NotifyJson["TriggerTime"] = Notify.TriggerTime;
 			NotifyJson["Duration"] = Notify.Duration;
 			NotifyJson["NotifyName"] = Notify.NotifyName.ToString();
 			NotifyJson["NotifyData"] = Notify.NotifyData;
-			NotifiesArray.push_back(NotifyJson);
+			NotifiesArray.append(NotifyJson);
 		}
 		InOutHandle["Notifies"] = NotifiesArray;
 	}

@@ -1,5 +1,6 @@
 #pragma once
 #include "SWindow.h"
+#include "Source/Runtime/Engine/AnimSequenceViewer/AnimSequenceViewerState.h"
 
 class FViewport;
 class FViewportClient;
@@ -12,13 +13,14 @@ struct FAnimNotifyEvent;
 
 // Animation Sequence Viewer Window
 // 애니메이션 시퀀스를 로드하고 재생하며, 타임라인과 Notify를 편집할 수 있는 에디터 윈도우
+// SkeletalMeshViewer의 ViewerState 패턴을 따름
 class SAnimSequenceViewerWindow : public SWindow
 {
 public:
     SAnimSequenceViewerWindow();
     virtual ~SAnimSequenceViewerWindow();
 
-    bool Initialize(float StartX, float StartY, float Width, float Height, UWorld* InWorld, ID3D11Device* InDevice);
+    bool Initialize(float StartX, float StartY, float Width, float Height, ID3D11Device* InDevice);
 
     // SWindow overrides
     virtual void OnRender() override;
@@ -29,11 +31,12 @@ public:
 
     void OnRenderViewport();
 
-    // 애니메이션 로드
-    void LoadAnimation(const FString& Path);
+    // Accessors (active tab)
+    FViewport* GetViewport() const { return ActiveState ? ActiveState->Viewport : nullptr; }
+    FViewportClient* GetViewportClient() const { return ActiveState ? ActiveState->Client : nullptr; }
 
-    // 애니메이션 저장
-    void SaveAnimation();
+    // 애니메이션 로드 (외부에서 호출 가능)
+    void LoadAnimation(const FString& Path);
 
     // 윈도우 상태
     bool IsOpen() const { return bIsOpen; }
@@ -41,68 +44,48 @@ public:
 
 private:
     // === UI 렌더링 함수 ===
-    void RenderAssetBrowser();
-    void RenderViewportPanel(float Height);
-    void RenderTimelineControls();
-    void RenderTimelineScrubber();
-    void RenderNotifyTrack();
-    void RenderNotifyProperties();
+    void RenderAssetBrowser(AnimSequenceViewerState* State);
+    void RenderViewportPanel(AnimSequenceViewerState* State, float Height);
+    void RenderTimelineControls(AnimSequenceViewerState* State);
+    void RenderTimelineScrubber(AnimSequenceViewerState* State);
+    void RenderNotifyTrack(AnimSequenceViewerState* State);
+    void RenderNotifyProperties(AnimSequenceViewerState* State);
 
     // === 재생 제어 함수 ===
-    void PlayAnimation();
-    void PauseAnimation();
-    void StopAnimation();
-    void StepForward();   // 다음 프레임
-    void StepBackward();  // 이전 프레임
-    void SeekToTime(float Time);
-    void SeekToFrame(int32 Frame);
+    void PlayAnimation(AnimSequenceViewerState* State);
+    void PauseAnimation(AnimSequenceViewerState* State);
+    void StopAnimation(AnimSequenceViewerState* State);
+    void StepForward(AnimSequenceViewerState* State);
+    void StepBackward(AnimSequenceViewerState* State);
+    void SeekToTime(AnimSequenceViewerState* State, float Time);
+    void SeekToFrame(AnimSequenceViewerState* State, int32 Frame);
 
     // === Notify 편집 함수 ===
-    void AddNotify(float Time, const FName& NotifyName);
-    void RemoveNotify(int32 Index);
-    void UpdateNotifyTime(int32 Index, float NewTime);
+    void AddNotify(AnimSequenceViewerState* State, float Time, const FName& NotifyName);
+    void RemoveNotify(AnimSequenceViewerState* State, int32 Index);
+    void UpdateNotifyTime(AnimSequenceViewerState* State, int32 Index, float NewTime);
+    void SortNotifies(AnimSequenceViewerState* State);
+
+    // === 애니메이션 저장 ===
+    void SaveAnimation(AnimSequenceViewerState* State);
 
     // === 헬퍼 함수 ===
-    float TimeToPixel(float Time) const;
-    float PixelToTime(float PixelX) const;
+    float TimeToPixel(AnimSequenceViewerState* InState, float Time) const;
+    float PixelToTime(AnimSequenceViewerState* InState, float PixelX) const;
+    float GetCurrentAnimTime(AnimSequenceViewerState* InState) const;
+
+    // === 탭 관리 ===
+    void OpenNewTab(const char* Name = "AnimViewer");
+    void CloseTab(int Index);
 
 private:
-    // === 뷰포트 & 월드 ===
-    UWorld* World = nullptr;
+    // === 탭별 상태 (ViewerState 패턴) ===
+    AnimSequenceViewerState* ActiveState = nullptr;
+    TArray<AnimSequenceViewerState*> Tabs;
+    int ActiveTabIndex = -1;
+
+    // === 초기화용 (Bootstrap에 전달) ===
     ID3D11Device* Device = nullptr;
-    FViewport* Viewport = nullptr;
-    FViewportClient* ViewportClient = nullptr;
-
-    // === 프리뷰 액터 ===
-    ASkeletalMeshActor* PreviewActor = nullptr;
-    USkeletalMeshComponent* PreviewComponent = nullptr;
-
-    // === 애니메이션 데이터 ===
-    UAnimSequence* CurrentAnimation = nullptr;
-    FString LoadedAnimPath;
-    char AnimPathBuffer[260] = {0};
-
-    // === 재생 제어 상태 ===
-    bool bIsPlaying = false;
-    bool bLooping = true;
-    float PlayRate = 1.0f;
-    float CurrentTime = 0.0f;
-    float AnimationLength = 0.0f;
-
-    // === Notify 편집 상태 ===
-    int32 SelectedNotifyIndex = -1;
-    bool bEditingNotify = false;
-    char NotifyNameBuffer[64] = {0};
-    float NotifyTriggerTime = 0.0f;
-    float NotifyDuration = 0.0f;
-
-    // === UI 레이아웃 ===
-    FRect ViewportRect;      // 뷰포트 영역
-    FRect TimelineRect;      // 타임라인 슬라이더 영역
-    FRect NotifyTrackRect;   // Notify 트랙 영역
-
-    float TopPanelHeight = 150.0f;      // 상단 패널 (Asset Browser)
-    float BottomPanelHeight = 250.0f;   // 하단 패널 (Timeline + Notify)
 
     // === 윈도우 상태 ===
     bool bIsOpen = true;

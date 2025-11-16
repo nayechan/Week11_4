@@ -49,6 +49,36 @@
 
 // Core Project Headers
 #include "Vector.h"
+
+// FRect 정의 (전역으로 사용)
+#ifndef FRECT_DEFINED
+#define FRECT_DEFINED
+struct FRect
+{
+    float Left, Top, Right, Bottom;
+    FVector2D Min, Max;
+
+    FRect() : Left(0), Top(0), Right(0), Bottom(0), Min(0, 0), Max(0, 0) {}
+    FRect(float InLeft, float InTop, float InRight, float InBottom)
+        : Left(InLeft), Top(InTop), Right(InRight), Bottom(InBottom)
+        , Min(InLeft, InTop), Max(InRight, InBottom) {}
+
+    float GetWidth() const { return Right - Left; }
+    float GetHeight() const { return Bottom - Top; }
+
+    bool Contains(FVector2D P) const
+    {
+        return (P.X > Left && P.X < Right && P.Y > Top && P.Y < Bottom);
+    }
+
+    void UpdateMinMax()
+    {
+        Min.X = Left; Min.Y = Top;
+        Max.X = Right; Max.Y = Bottom;
+    }
+};
+#endif
+
 #include "ResourceData.h"
 #include "VertexData.h"
 #include "UEContainer.h"

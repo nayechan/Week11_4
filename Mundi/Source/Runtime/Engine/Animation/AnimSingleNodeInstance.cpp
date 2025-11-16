@@ -39,6 +39,16 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 	PlayRate = FMath::Max(0.1f, InPlayRate); // 최소 0.1x
 }
 
+void UAnimSingleNodeInstance::SetCurrentTime(float NewTime)
+{
+	if (!CurrentSequence)
+		return;
+
+	const float AnimLength = CurrentSequence->GetPlayLength();
+	PreviousInternalTime = InternalTime;
+	InternalTime = FMath::Clamp(NewTime, 0.0f, AnimLength);
+}
+
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	// Unreal 방식: DeltaTime만 받아서 InternalTime 업데이트
@@ -88,21 +98,4 @@ void UAnimSingleNodeInstance::GetAnimationPose(FPoseContext& OutPose)
 	TArray<FAnimNotifyEvent> Notifies;
 	CurrentSequence->GetAnimNotifiesInRange(PreviousInternalTime, InternalTime, Notifies);
 	OutPose.AnimNotifies.Append(Notifies);
-}
-
-void UAnimSingleNodeInstance::TriggerAnimNotifies(float DeltaSeconds)
-{
-	if (!CurrentSequence || !OwnerComponent)
-		return;
-
-	// PreviousTime ~ CurrentTime 범위의 Notify 가져오기
-	TArray<FAnimNotifyEvent> TriggeredNotifies;
-	CurrentSequence->GetAnimNotifiesInRange(PreviousTime, CurrentTime, TriggeredNotifies);
-
-	// 각 Notify 트리거
-	for (const FAnimNotifyEvent& Notify : TriggeredNotifies)
-	{
-		OwnerComponent->HandleAnimNotify(Notify);
-		UE_LOG("AnimNotify Triggered: %s at time %.2f", Notify.NotifyName.ToString().c_str(), Notify.TriggerTime);
-	}
 }

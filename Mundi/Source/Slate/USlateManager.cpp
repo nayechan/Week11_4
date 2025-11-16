@@ -240,7 +240,7 @@ void USlateManager::OpenAnimSequenceViewer()
     const float h = availableHeight * 0.75f;
     const float x = Rect.Left + (Rect.GetWidth() - w) * 0.5f;
     const float y = Rect.Top + toolbarHeight + (availableHeight - h) * 0.5f;
-    AnimSequenceViewerWindow->Initialize(x, y, w, h, World, Device);
+    AnimSequenceViewerWindow->Initialize(x, y, w, h, Device);
 }
 
 void USlateManager::OpenAnimSequenceViewerWithFile(const char* FilePath)
