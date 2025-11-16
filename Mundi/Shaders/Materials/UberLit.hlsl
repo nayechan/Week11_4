@@ -176,7 +176,16 @@ PS_INPUT mainVS(VS_INPUT Input)
     float3 worldNormal = normalize(mul(Input.Normal, (float3x3) WorldInverseTranspose));
     Out.Normal = worldNormal;
     float3 Tangent = normalize(mul(Input.Tangent.xyz, (float3x3) WorldMatrix));
-    float3 BiTangent = normalize(cross(Tangent, worldNormal) * Input.Tangent.w);
+    float3 BiTangent = cross(worldNormal, Tangent);  // 기본 Right-handed
+
+    // Tangent.w가 유효하면 handedness 적용
+    if (abs(Input.Tangent.w) > 0.01f)
+    {
+        BiTangent *= Input.Tangent.w;
+    }
+
+    BiTangent = normalize(BiTangent);
+
     row_major float3x3 TBN;
     TBN._m00_m01_m02 = Tangent;
     TBN._m10_m11_m12 = BiTangent;
@@ -487,12 +496,13 @@ PS_OUTPUT mainPS(PS_INPUT Input)
 
 #elif LIGHTING_MODEL_PHONG
     // Phong Shading: 픽셀별 디퓨즈와 스페큘러 조명 계산 (Blinn-Phong)
-    float3 normal = normalize(Input.Normal);
-    if(bHasNormalTexture)
+    float3 normal = normalize(Input.Normal);  // 기본값: vertex normal
+
+    if(bHasNormalTexture)  // Normal Texture가 있을 때만 TBN 사용
     {
-        normal = g_NormalTexColor.Sample(g_Sample2, uv);
-        normal = normal * 2.0f - 1.0f;
-        normal = normalize(mul(normal, Input.TBN));
+        float3 tangentNormal = g_NormalTexColor.Sample(g_Sample2, uv).xyz;
+        tangentNormal = tangentNormal * 2.0f - 1.0f;
+        normal = normalize(mul(tangentNormal, Input.TBN));
     }
     float3 viewDir = normalize(CameraPosition - Input.WorldPos);
     float4 baseColor = Input.Color;
