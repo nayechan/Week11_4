@@ -23,6 +23,10 @@ protected:
     UPROPERTY()
     USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
 
+    // 테스트에 사용할 베이스 애니메이션 (에디터에서 설정)
+    UPROPERTY(EditAnywhere, Category="Animation", Tooltip="테스트에 사용할 애니메이션")
+    class UAnimSequence* TestAnimSequence = nullptr;
+
     // State Machine 테스트용
     float ElapsedTime = 0.0f;
     bool bTransitionedToWalk = false;

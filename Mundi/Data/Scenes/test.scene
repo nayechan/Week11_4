@@ -1,12 +1,80 @@
 {
   "Actors" : {
-    "862" : {
+    "871" : {
       "CurrentState" : "Invalid",
-      "ObjectName" : "APlayerCameraManager_2",
+      "ObjectName" : "ADirectionalLightActor_2",
+      "OwnedComponents" : [{
+          "CascadedAreaColorDebugValue" : 0.000000,
+          "CascadedAreaShadowDebugValue" : -1,
+          "CascadedCount" : 4,
+          "CascadedLinearBlendingValue" : 0.500000,
+          "CascadedOverlapValue" : 0.200000,
+          "CurrentState" : "Invalid",
+          "Id" : 872,
+          "Intensity" : 1.000000,
+          "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+          "ObjectName" : "UDirectionalLightComponent_2",
+          "ParentId" : 0,
+          "RelativeLocation" : [0.000000, 0.000000, 0.000000],
+          "RelativeRotationEuler" : [-62.900280, 16.769619, -62.900280],
+          "RelativeScale" : [1.000000, 1.000000, 1.000000],
+          "ShadowBias" : 0.000010,
+          "ShadowResolutionScale" : 2048,
+          "ShadowSharpen" : 0.500000,
+          "ShadowSlopeBias" : 0.000010,
+          "Temperature" : 6500.000000,
+          "Type" : "UDirectionalLightComponent",
+          "bCascaded" : true,
+          "bCastShadows" : true,
+          "bHiddenInGame" : false,
+          "bIsActive" : true,
+          "bIsVisible" : true,
+          "bTickEnabled" : true
+        }],
+      "RootComponentId" : 872,
+      "Tag" : "",
+      "Type" : "ADirectionalLightActor",
+      "bActorHiddenInGame" : false,
+      "bActorIsActive" : true
+    },
+    "873" : {
+      "CurrentState" : "Invalid",
+      "ObjectName" : "AAmbientLightActor_2",
       "OwnedComponents" : [{
           "CurrentState" : "Invalid",
-          "Id" : 863,
-          "ObjectName" : "USceneComponent_3",
+          "Id" : 874,
+          "Intensity" : 0.100000,
+          "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+          "ObjectName" : "UAmbientLightComponent_2",
+          "ParentId" : 0,
+          "RelativeLocation" : [0.000000, 0.000000, 0.000000],
+          "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
+          "RelativeScale" : [1.000000, 1.000000, 1.000000],
+          "ShadowBias" : 0.000010,
+          "ShadowResolutionScale" : 1024,
+          "ShadowSharpen" : 0.500000,
+          "ShadowSlopeBias" : 0.000010,
+          "Temperature" : 6500.000000,
+          "Type" : "UAmbientLightComponent",
+          "bCastShadows" : true,
+          "bHiddenInGame" : false,
+          "bIsActive" : true,
+          "bIsVisible" : true,
+          "bTickEnabled" : true
+        }],
+      "RootComponentId" : 874,
+      "Tag" : "",
+      "Type" : "AAmbientLightActor",
+      "bActorHiddenInGame" : false,
+      "bActorIsActive" : true
+    },
+    "878" : {
+      "CurrentState" : "Invalid",
+      "ObjectName" : "APlayerCameraManager_3",
+      "OwnedComponents" : [{
+          "CurrentState" : "Invalid",
+          "Id" : 879,
+          "ObjectName" : "USceneComponent_4",
           "ParentId" : 0,
           "RelativeLocation" : [0.000000, 0.000000, 0.000000],
           "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
@@ -17,66 +85,15 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 863,
+      "RootComponentId" : 879,
       "Tag" : "",
       "Type" : "APlayerCameraManager",
-      "bActorHiddenInGame" : false,
-      "bActorIsActive" : true
-    },
-    "870" : {
-      "CurrentState" : "Invalid",
-      "ObjectName" : "애니메이션 Notify 테스트 액터_0",
-      "OwnedComponents" : [{
-          "CurrentState" : "Invalid",
-          "Id" : 871,
-          "MaterialSlots" : [{
-              "Type" : "None"
-            }, {
-              "AssetPath" : "mn_ppnn_02_dres",
-              "CurrentState" : "Invalid",
-              "Type" : "UMaterial"
-            }, {
-              "AssetPath" : "mn_ppnn_02-1_skin",
-              "CurrentState" : "Invalid",
-              "Type" : "UMaterial"
-            }, {
-              "AssetPath" : "fase",
-              "CurrentState" : "Invalid",
-              "Type" : "UMaterial"
-            }, {
-              "AssetPath" : "hair",
-              "CurrentState" : "Invalid",
-              "Type" : "UMaterial"
-            }, {
-              "AssetPath" : "wings",
-              "CurrentState" : "Invalid",
-              "Type" : "UMaterial"
-            }],
-          "ObjectName" : "USkeletalMeshComponent_1",
-          "ParentId" : 0,
-          "RelativeLocation" : [1.532815, -1.532815, 1.173166],
-          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-          "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "SkeletalMesh" : "Data/Fbx/ninave.fbx",
-          "Type" : "USkeletalMeshComponent",
-          "bBlockComponent" : false,
-          "bCastShadows" : true,
-          "bGenerateOverlapEvents" : true,
-          "bHiddenInGame" : false,
-          "bIsActive" : true,
-          "bIsVisible" : true,
-          "bTickEnabled" : true
-        }],
-      "RootComponentId" : 871,
-      "SkeletalMeshComponent" : "",
-      "Tag" : "",
-      "Type" : "ATestAnimNotifyActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     }
   },
   "CurrentState" : "Invalid",
-  "NextUUID" : 872,
+  "NextUUID" : 883,
   "PerspectiveCamera" : {
     "FOV" : [60.000000],
     "FarClip" : [2000.000000],

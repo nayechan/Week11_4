@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Property.h"
 #include "Color.h"
+#include "TSubclassOf.h"
 #include <type_traits>
 
 // ===== 코드 생성 마커 매크로 (순환 include 방지를 위해 최상단에 정의) =====
@@ -64,10 +65,22 @@ struct TPropertyTypeTraits
 			return EPropertyType::FString;
 		else if constexpr (std::is_same_v<T, FName>)
 			return EPropertyType::FName;
+		else if constexpr (std::is_same_v<T, UClass*>)
+			return EPropertyType::UClass;  // UClass* 타입 (클래스 선택 UI)
 		else if constexpr (std::is_pointer_v<T>)
 			return EPropertyType::ObjectPtr;  // UObject* 및 파생 타입 (UStaticMesh*, UTexture* 포함)
 		else
 			return EPropertyType::Struct;
+	}
+};
+
+// TSubclassOf<T> 특수화
+template<typename T>
+struct TPropertyTypeTraits<TSubclassOf<T>>
+{
+	static constexpr EPropertyType GetType()
+	{
+		return EPropertyType::UClass;  // TSubclassOf도 UClass로 처리
 	}
 };
 

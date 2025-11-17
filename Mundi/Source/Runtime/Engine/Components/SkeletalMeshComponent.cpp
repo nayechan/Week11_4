@@ -15,17 +15,29 @@ void USkeletalMeshComponent::BeginPlay()
 {
     Super::BeginPlay();
 
-    // AnimationMode가 이미 설정되어 있으면 (예: AnimationLuaScript) 자동 재생 스킵
-    // 이는 Actor에서 커스텀 AnimInstance를 설정한 경우입니다
-    if (AnimationMode != EAnimationMode::AnimationSingleNode)
+    // AnimClass가 설정되어 있으면 AnimInstance 자동 생성
+    if (AnimClass && !AnimInstance)
     {
-        return;
-    }
+        // TSubclassOf<UAnimInstance>에서 UClass* 가져오기
+        UClass* Class = AnimClass.Get();
 
-    // PIE 모드 시작 시 AnimationData가 설정되어 있으면 자동으로 반복 재생
-    if (AnimationData)
-    {
-        PlayAnimation(AnimationData, true);
+        // UClass로부터 객체 생성
+        UObject* NewObj = NewObject(Class);
+
+        // UAnimInstance로 Cast (타입 안전성이 보장되지만 방어적 코딩)
+        AnimInstance = Cast<UAnimInstance>(NewObj);
+
+        if (AnimInstance)
+        {
+            AnimInstance->OwnerComponent = this;
+            UE_LOG("USkeletalMeshComponent::BeginPlay - Created AnimInstance: %s", Class->Name);
+        }
+        else
+        {
+            // Cast 실패 - 이론상 발생하지 않아야 함 (TSubclassOf가 타입 보장)
+            UE_LOG("USkeletalMeshComponent::BeginPlay - Failed to cast %s to UAnimInstance", Class->Name);
+            ObjectFactory::DeleteObject(NewObj); // 생성된 객체 삭제
+        }
     }
 }
 
@@ -174,79 +186,14 @@ void USkeletalMeshComponent::UpdateFinalSkinningMatrices()
 
 // Animation Section Implementation
 
-void USkeletalMeshComponent::PlayAnimation(UAnimSequence* NewAnimToPlay, bool bLooping)
-{
-    if (!NewAnimToPlay)
-    {
-        UE_LOG("USkeletalMeshComponent::PlayAnimation - Null animation");
-        return;
-    }
-
-    SetAnimationMode(EAnimationMode::AnimationSingleNode);
-    SetAnimation(NewAnimToPlay);
-    Play(bLooping);
-
-    UE_LOG("USkeletalMeshComponent::PlayAnimation - %s", NewAnimToPlay->GetName().c_str());
-}
-
-void USkeletalMeshComponent::StopAnimation()
-{
-    if (AnimInstance)
-    {
-        UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
-        if (SingleNode)
-        {
-            SingleNode->Stop();
-        }
-    }
-
-    UE_LOG("USkeletalMeshComponent::StopAnimation");
-}
-
-void USkeletalMeshComponent::SetAnimationMode(EAnimationMode InMode)
-{
-    AnimationMode = InMode;
-
-    // 모드에 맞는 AnimInstance 생성
-    if (AnimationMode == EAnimationMode::AnimationSingleNode)
-    {
-        if (!AnimInstance || !Cast<UAnimSingleNodeInstance>(AnimInstance))
-        {
-            // 새 SingleNode 인스턴스 생성
-            AnimInstance = NewObject<UAnimSingleNodeInstance>();
-            AnimInstance->OwnerComponent = this;
-        }
-    }
-}
-
-void USkeletalMeshComponent::SetAnimation(UAnimSequence* InAnim)
-{
-    AnimationData = InAnim;
-
-    UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
-    if (SingleNode)
-    {
-        SingleNode->SetAnimationAsset(InAnim);
-    }
-}
-
 void USkeletalMeshComponent::SetAnimInstance(UAnimInstance* InAnimInstance)
 {
     if (InAnimInstance)
     {
         AnimInstance = InAnimInstance;
-        AnimInstance->OwnerComponent = this;  // ⭐ OwnerComponent 설정 (friend 클래스로 접근 가능)
+        AnimInstance->OwnerComponent = this;
 
         UE_LOG("USkeletalMeshComponent::SetAnimInstance - %s", InAnimInstance->GetClass()->Name);
-    }
-}
-
-void USkeletalMeshComponent::Play(bool bLooping)
-{
-    UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
-    if (SingleNode)
-    {
-        SingleNode->Play(bLooping);
     }
 }
 

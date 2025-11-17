@@ -40,6 +40,7 @@ private:
 	static bool RenderSpotLightShadowMap(class FLightManager* LightManager, class ULightComponent* LightComp, ID3D11ShaderResourceView* AtlasSRV);
 	static bool RenderSkeletalMeshProperty(const FProperty& Prop, void* Instance);
 	static bool RenderAnimSequenceProperty(const FProperty& Prop, void* Instance);
+	static bool RenderUClassProperty(const FProperty& Prop, void* Instance);
 	static bool RenderStaticMeshProperty(const FProperty& Prop, void* Instance);
 	static bool RenderMaterialProperty(const FProperty& Prop, void* Instance);
 	static bool RenderMaterialArrayProperty(const FProperty& Prop, void* Instance);
