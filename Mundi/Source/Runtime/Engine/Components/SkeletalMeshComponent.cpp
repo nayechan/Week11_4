@@ -4,6 +4,7 @@
 #include "AnimSingleNodeInstance.h"
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
+#include "ResourceManager.h"
 
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
@@ -15,28 +16,63 @@ void USkeletalMeshComponent::BeginPlay()
 {
     Super::BeginPlay();
 
-    // AnimClass가 설정되어 있으면 AnimInstance 자동 생성
-    if (AnimClass && !AnimInstance)
+    // AnimInstance 자동 생성
+    if (!AnimInstance)
     {
-        // TSubclassOf<UAnimInstance>에서 UClass* 가져오기
-        UClass* Class = AnimClass.Get();
+        UClass* Class = nullptr;
 
-        // UClass로부터 객체 생성
-        UObject* NewObj = NewObject(Class);
-
-        // UAnimInstance로 Cast (타입 안전성이 보장되지만 방어적 코딩)
-        AnimInstance = Cast<UAnimInstance>(NewObj);
-
-        if (AnimInstance)
+        if (AnimClass)
         {
-            AnimInstance->OwnerComponent = this;
-            UE_LOG("USkeletalMeshComponent::BeginPlay - Created AnimInstance: %s", Class->Name);
+            // AnimClass가 설정되어 있으면 해당 클래스 사용
+            Class = AnimClass.Get();
         }
         else
         {
-            // Cast 실패 - 이론상 발생하지 않아야 함 (TSubclassOf가 타입 보장)
-            UE_LOG("USkeletalMeshComponent::BeginPlay - Failed to cast %s to UAnimInstance", Class->Name);
-            ObjectFactory::DeleteObject(NewObj); // 생성된 객체 삭제
+            // AnimClass가 없으면 기본으로 AnimSingleNodeInstance 사용
+            Class = UAnimSingleNodeInstance::StaticClass();
+            UE_LOG("USkeletalMeshComponent::BeginPlay - No AnimClass, using default AnimSingleNodeInstance");
+        }
+
+        if (Class)
+        {
+            // UClass로부터 객체 생성
+            UObject* NewObj = NewObject(Class);
+
+            // UAnimInstance로 Cast (타입 안전성이 보장되지만 방어적 코딩)
+            AnimInstance = Cast<UAnimInstance>(NewObj);
+
+            if (AnimInstance)
+            {
+                AnimInstance->OwnerComponent = this;
+                AnimInstance->InitializeAnimation();
+                UE_LOG("USkeletalMeshComponent::BeginPlay - Created AnimInstance: %s", Class->Name);
+
+                // SkeletalMesh가 이미 로드되어 있으면 AnimSequence 자동 할당 (AnimSingleNodeInstance인 경우)
+                if (SkeletalMesh)
+                {
+                    UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
+                    if (SingleNode)
+                    {
+                        FString MeshPath = SkeletalMesh->GetFilePath();
+                        auto& ResourceManager = UResourceManager::GetInstance();
+                        UAnimSequence* AnimSeq = ResourceManager.Get<UAnimSequence>(MeshPath);
+
+                        if (AnimSeq)
+                        {
+                            SingleNode->SetAnimationAsset(AnimSeq);
+                            SingleNode->Play(true); // Loop 재생
+                            UE_LOG("USkeletalMeshComponent::BeginPlay - Auto-assigned AnimSequence from existing mesh: %s (Length: %.2fs)",
+                                MeshPath.c_str(), AnimSeq->SequenceLength);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Cast 실패 - 이론상 발생하지 않아야 함 (TSubclassOf가 타입 보장)
+                UE_LOG("USkeletalMeshComponent::BeginPlay - Failed to cast %s to UAnimInstance", Class->Name);
+                ObjectFactory::DeleteObject(NewObj); // 생성된 객체 삭제
+            }
         }
     }
 }
@@ -79,10 +115,43 @@ void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
                 LocalBindMatrix = ThisBone.BindPose * ParentInverseBindPose;
             }
             // 계산된 로컬 행렬을 로컬 트랜스폼으로 변환
-            CurrentLocalSpacePose[i] = FTransform(LocalBindMatrix); 
+            CurrentLocalSpacePose[i] = FTransform(LocalBindMatrix);
         }
-        
-        ForceRecomputePose(); 
+
+        ForceRecomputePose();
+
+        // FBX 로드 시 AnimSequence 자동 설정 (AnimSingleNodeInstance인 경우)
+        if (AnimInstance)
+        {
+            UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
+            if (SingleNode)
+            {
+                // 같은 경로의 AnimSequence 찾기
+                auto& ResourceManager = UResourceManager::GetInstance();
+                UAnimSequence* AnimSeq = ResourceManager.Get<UAnimSequence>(PathFileName);
+
+                if (AnimSeq)
+                {
+                    SingleNode->SetAnimationAsset(AnimSeq);
+                    SingleNode->Play(true); // Loop 재생
+                    UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - Auto-assigned AnimSequence: %s (Length: %.2fs)",
+                        PathFileName.c_str(), AnimSeq->SequenceLength);
+                }
+                else
+                {
+                    UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - AnimSequence not found in cache: %s", PathFileName.c_str());
+                }
+            }
+            else
+            {
+                UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - AnimInstance is not AnimSingleNodeInstance (Type: %s)",
+                    AnimInstance->GetClass()->Name);
+            }
+        }
+        else
+        {
+            UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - AnimInstance is nullptr (called before BeginPlay?)");
+        }
     }
     else
     {

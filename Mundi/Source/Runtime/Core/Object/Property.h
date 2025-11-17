@@ -25,6 +25,7 @@ enum class EPropertyType : uint8
 	Curve,
 	AnimSequence,   // UAnimSequence* 타입 (리소스 선택 UI)
 	UClass,         // UClass* 타입 (클래스 선택 UI)
+	Enum,           // enum class 타입 (콤보박스 UI)
 	// 추후 추가될 프로퍼티들은 직접 해줘야함.
 	Count			// 요소 개수, 항상 마지막!
 };
@@ -36,7 +37,7 @@ struct FProperty
 	EPropertyType Type = EPropertyType::Unknown;  // 프로퍼티 타입
 	EPropertyType InnerType = EPropertyType::Unknown; // TArray<T>의 'T' 또는 TMap<K,V>의 'V'
 	EPropertyType KeyType = EPropertyType::Unknown;   // TMap<K,V>의 'K'
-	const char* StructTypeName = nullptr;    // Struct 타입 이름 (예: "FTestTransform")
+	const char* TypeName = nullptr;          // Struct/Enum 타입 이름 (예: "FTestTransform", "EAnimationMode")
 	size_t Offset = 0;                       // 클래스 인스턴스 내 오프셋
 	const char* Category = nullptr;          // UI 카테고리
 	float MinValue = 0.0f;                   // 범위 최소값

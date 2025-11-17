@@ -73,6 +73,12 @@ void UAnimStateMachine::TransitionTo(FName NewState)
         return;
     }
 
+    // 이미 전환 중이면 무시 (UE5 패턴)
+    if (bIsTransitioning)
+    {
+        return;
+    }
+
     float BlendDuration = 0.3f;
 
     // Phase 2: 먼저 Transition 배열에서 찾기
@@ -213,12 +219,32 @@ void UAnimStateMachine::Update(float DeltaTime)
         {
             FromStatePtr->PreviousInternalTime = FromStatePtr->InternalTime;
             FromStatePtr->InternalTime += DeltaTime * FromStatePtr->PlayRate;
+
+            // Loop 처리 (UE5 패턴)
+            if (FromStatePtr->bLoop && FromStatePtr->Animation)
+            {
+                float SequenceLength = FromStatePtr->Animation->SequenceLength;
+                if (SequenceLength > 0.0f && FromStatePtr->InternalTime >= SequenceLength)
+                {
+                    FromStatePtr->InternalTime = fmod(FromStatePtr->InternalTime, SequenceLength);
+                }
+            }
         }
 
         if (ToStatePtr)
         {
             ToStatePtr->PreviousInternalTime = ToStatePtr->InternalTime;
             ToStatePtr->InternalTime += DeltaTime * ToStatePtr->PlayRate;
+
+            // Loop 처리 (UE5 패턴)
+            if (ToStatePtr->bLoop && ToStatePtr->Animation)
+            {
+                float SequenceLength = ToStatePtr->Animation->SequenceLength;
+                if (SequenceLength > 0.0f && ToStatePtr->InternalTime >= SequenceLength)
+                {
+                    ToStatePtr->InternalTime = fmod(ToStatePtr->InternalTime, SequenceLength);
+                }
+            }
         }
     }
     else
@@ -229,6 +255,29 @@ void UAnimStateMachine::Update(float DeltaTime)
         {
             CurrentStatePtr->PreviousInternalTime = CurrentStatePtr->InternalTime;
             CurrentStatePtr->InternalTime += DeltaTime * CurrentStatePtr->PlayRate;
+
+            // Loop 처리 (UE5 패턴)
+            if (CurrentStatePtr->bLoop && CurrentStatePtr->Animation)
+            {
+                float SequenceLength = CurrentStatePtr->Animation->SequenceLength;
+                if (SequenceLength > 0.0f && CurrentStatePtr->InternalTime >= SequenceLength)
+                {
+                    CurrentStatePtr->InternalTime = fmod(CurrentStatePtr->InternalTime, SequenceLength);
+                }
+            }
+
+            // 디버그: InternalTime 출력
+            static float LogTimer = 0.0f;
+            LogTimer += DeltaTime;
+            if (LogTimer >= 0.5f) // 0.5초마다 로그
+            {
+                UE_LOG("StateMachine: State='%s', InternalTime=%.2fs, bLoop=%d, Animation=%p",
+                    CurrentState.ToString().c_str(),
+                    CurrentStatePtr->InternalTime,
+                    CurrentStatePtr->bLoop ? 1 : 0,
+                    CurrentStatePtr->Animation);
+                LogTimer = 0.0f;
+            }
         }
     }
 

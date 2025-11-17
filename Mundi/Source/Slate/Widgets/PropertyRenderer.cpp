@@ -18,6 +18,8 @@
 #include "PlatformProcess.h"
 #include "SkeletalMeshComponent.h"
 #include "USlateManager.h"
+#include "AnimationTypes.h"
+#include "AnimationTypes.generated.h"
 
 // Disable warnings for third-party ImGui curve library
 #pragma warning(push)
@@ -117,6 +119,10 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 
 	case EPropertyType::UClass:
 		bChanged = RenderUClassProperty(Property, ObjectInstance);
+		break;
+
+	case EPropertyType::Enum:
+		bChanged = RenderEnumProperty(Property, ObjectInstance);
 		break;
 
 	case EPropertyType::StaticMesh:
@@ -635,12 +641,12 @@ bool UPropertyRenderer::RenderObjectPtrProperty(const FProperty& Prop, void* Ins
 
 bool UPropertyRenderer::RenderStructProperty(const FProperty& Prop, void* Instance)
 {
-	UStruct* StructType = UStruct::FindStruct(Prop.StructTypeName);
+	UStruct* StructType = UStruct::FindStruct(Prop.TypeName);
 
 	// 구조체 타입을 찾을 수 없는 경우 에러 표시
 	if (!StructType)
 	{
-		ImGui::Text("%s: [Unknown Struct: %s]", Prop.Name, Prop.StructTypeName);
+		ImGui::Text("%s: [Unknown Struct: %s]", Prop.Name, Prop.TypeName);
 		return false;
 	}
 
@@ -1307,6 +1313,66 @@ bool UPropertyRenderer::RenderUClassProperty(const FProperty& Prop, void* Instan
 		ImGui::EndTooltip();
 	}
 
+	return false;
+}
+
+bool UPropertyRenderer::RenderEnumProperty(const FProperty& Prop, void* Instance)
+{
+	// TypeName에서 enum 타입 이름 확인
+	if (!Prop.TypeName)
+	{
+		ImGui::Text("[Error: No TypeName]");
+		return false;
+	}
+
+	// TODO: 현재는 EAnimationMode만 처리, 향후 확장 필요
+	if (strcmp(Prop.TypeName, "EAnimationMode") == 0)
+	{
+		EAnimationMode* EnumPtr = Prop.GetValuePtr<EAnimationMode>(Instance);
+		if (!EnumPtr) return false;
+
+		// 현재 값을 문자열로 변환
+		const char* CurrentValueStr = EAnimationMode_Meta::ToString(*EnumPtr);
+
+		// Combo에 표시할 항목들
+		const char* Items[] = {
+			"AnimationClass",
+			"AnimationSingleNode",
+			"None"
+		};
+		int ItemCount = 3;
+
+		// 현재 선택된 인덱스 찾기
+		int SelectedIdx = 0;
+		for (int i = 0; i < ItemCount; ++i)
+		{
+			if (strcmp(Items[i], CurrentValueStr) == 0)
+			{
+				SelectedIdx = i;
+				break;
+			}
+		}
+
+		// Combo 렌더링
+		ImGui::SetNextItemWidth(240);
+		if (ImGui::Combo(Prop.Name, &SelectedIdx, Items, ItemCount))
+		{
+			// 선택된 문자열을 enum 값으로 변환
+			*EnumPtr = EAnimationMode_Meta::FromString(Items[SelectedIdx]);
+			return true;
+		}
+
+		// 툴팁 표시
+		if (ImGui::IsItemHovered() && Prop.Tooltip)
+		{
+			ImGui::SetTooltip("%s", Prop.Tooltip);
+		}
+
+		return false;
+	}
+
+	// 지원하지 않는 enum 타입
+	ImGui::Text("[Unsupported Enum: %s]", Prop.TypeName);
 	return false;
 }
 

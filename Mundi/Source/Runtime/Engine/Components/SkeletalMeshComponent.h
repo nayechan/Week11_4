@@ -6,6 +6,7 @@
 // 전방 선언
 class UAnimInstance;
 struct FAnimNotifyEvent;
+enum class EAnimationMode : uint8;  // AnimationTypes.h에 정의됨
 
 UCLASS(DisplayName="스켈레탈 메시 컴포넌트", Description="스켈레탈 메시를 렌더링하는 컴포넌트입니다")
 class USkeletalMeshComponent : public USkinnedMeshComponent
@@ -22,11 +23,16 @@ public:
 
 // Animation Section
 public:
+    // 애니메이션 모드 (UE5 방식)
+    UPROPERTY(EditAnywhere, Category="Animation", Tooltip="애니메이션 모드 선택")
+    EAnimationMode AnimationMode = EAnimationMode::AnimationSingleNode;
+
     // 애니메이션 인스턴스 클래스 (에디터에서 선택)
     UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animation", Tooltip="애니메이션 인스턴스 클래스")
     TSubclassOf<UAnimInstance> AnimClass;
 
     // 애니메이션 인스턴스 (런타임 생성)
+    UPROPERTY(LuaReadWrite, Category="Animation")
     UAnimInstance* AnimInstance = nullptr;
 
     // AnimInstance 설정 (런타임에서 수동 설정 시 사용)

@@ -12,9 +12,21 @@ public:
 	UCharacterAnimInstance() = default;
 	virtual ~UCharacterAnimInstance() = default;
 
+	// 애니메이션 시퀀스들
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animations", Tooltip="Idle 상태 애니메이션")
+	class UAnimSequence* IdleAnimation = nullptr;
+
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animations", Tooltip="Walk 상태 애니메이션")
+	class UAnimSequence* WalkAnimation = nullptr;
+
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animations", Tooltip="Run 상태 애니메이션")
+	class UAnimSequence* RunAnimation = nullptr;
+
+	// State Machine
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="State Machine")
 	UAnimStateMachine* StateMachine = nullptr;
 
+	// 게임플레이 변수들
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Movement")
 	float Speed = 0.0f;
 
@@ -23,6 +35,8 @@ public:
 
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Combat")
 	bool bIsCombatMode = false;
+
+	virtual void NativeInitializeAnimation() override;
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 

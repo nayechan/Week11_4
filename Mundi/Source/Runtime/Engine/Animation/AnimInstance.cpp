@@ -5,6 +5,39 @@
 #include "GlobalConsole.h"
 
 // ========================================
+// 초기화 파이프라인
+// ========================================
+
+void UAnimInstance::InitializeAnimation()
+{
+	// ========================================
+	// 애니메이션 초기화 파이프라인 (Unreal 방식)
+	// ========================================
+
+	// 1. C++ 네이티브 초기화 (하위 클래스에서 오버라이드)
+	//    StateMachine 생성, State/Transition 추가 등
+	NativeInitializeAnimation();
+
+	// 2. TODO: Lua 스크립트 초기화 (향후 구현)
+	// LuaInitializeAnimation();
+}
+
+// ========================================
+// C++ 네이티브 초기화 (오버라이드 가능)
+// ========================================
+
+void UAnimInstance::NativeInitializeAnimation()
+{
+	// Unreal 방식: 기본 구현은 비어있음
+	// 하위 클래스(예: CharacterAnimInstance)에서:
+	// 1. Super::NativeInitializeAnimation() 호출 (선택)
+	// 2. StateMachine 생성 및 초기화
+	// 3. States 추가 (각 State에 AnimSequence 연결)
+	// 4. Transitions 추가 (조건 및 블렌드 시간 설정)
+	// 5. 초기 상태 설정
+}
+
+// ========================================
 // 메인 업데이트 파이프라인
 // ========================================
 

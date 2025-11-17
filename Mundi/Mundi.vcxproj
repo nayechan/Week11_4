@@ -952,7 +952,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UAnimStateMachine.generated.h" />
     <ClInclude Include="Generated\UCharacterAnimInstance.generated.h" />
     <ClInclude Include="Generated\UCharacterStateMachine.generated.h" />
-  <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h" /></ItemGroup>
+  <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h" /><ClInclude Include="Generated\AnimationTypes.generated.h" /></ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />

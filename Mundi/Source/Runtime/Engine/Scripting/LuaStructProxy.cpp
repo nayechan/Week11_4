@@ -62,10 +62,10 @@ sol::object LuaStructProxy::Index(sol::this_state LuaState, LuaStructProxy& Self
 	// Nested struct access (recursive) - 재귀적 구조체 접근
 	case EPropertyType::Struct:
 	{
-		UStruct* NestedStructType = UStruct::FindStruct(FName(Property->StructTypeName));
+		UStruct* NestedStructType = UStruct::FindStruct(FName(Property->TypeName));
 		if (!NestedStructType)
 		{
-			UE_LOG("[Lua][error] Unknown struct type: %s", Property->StructTypeName);
+			UE_LOG("[Lua][error] Unknown struct type: %s", Property->TypeName);
 			return sol::nil;
 		}
 

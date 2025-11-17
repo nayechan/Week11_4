@@ -41,6 +41,7 @@ private:
 	static bool RenderSkeletalMeshProperty(const FProperty& Prop, void* Instance);
 	static bool RenderAnimSequenceProperty(const FProperty& Prop, void* Instance);
 	static bool RenderUClassProperty(const FProperty& Prop, void* Instance);
+	static bool RenderEnumProperty(const FProperty& Prop, void* Instance);
 	static bool RenderStaticMeshProperty(const FProperty& Prop, void* Instance);
 	static bool RenderMaterialProperty(const FProperty& Prop, void* Instance);
 	static bool RenderMaterialArrayProperty(const FProperty& Prop, void* Instance);

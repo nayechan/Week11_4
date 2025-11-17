@@ -3,6 +3,7 @@
 #include "UEContainer.h"
 #include "Archive.h"
 #include "Name.h"
+#include "ObjectMacros.h"
 
 // 프레임 레이트 구조체
 struct FFrameRate
@@ -174,8 +175,10 @@ struct FPoseContext
 };
 
 // 애니메이션 모드 열거형
+UENUM()
 enum class EAnimationMode : uint8
 {
-	AnimationSingleNode,   // 단일 애니메이션 재생
-	AnimationLuaScript,    // Lua 스크립트 기반 애니메이션
+	AnimationClass,        // AnimClass 사용 (C++ 또는 Lua AnimInstance)
+	AnimationSingleNode,   // 단일 AnimSequence 직접 재생
+	None                   // RefPose (T-Pose)
 };

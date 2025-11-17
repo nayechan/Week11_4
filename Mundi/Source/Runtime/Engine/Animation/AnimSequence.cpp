@@ -50,6 +50,9 @@ FTransform UAnimSequence::GetBoneTransformAtTime(int32 BoneIndex, float Time) co
 
 	const FRawAnimSequenceTrack& RawTrack = Track->InternalTrack;
 
+	// Time은 StateMachine::Update()에서 이미 Loop 처리됨 (UE5 패턴)
+	// 여기서는 받은 Time을 그대로 사용
+
 	// 각 컴포넌트 보간
 	FVector Position = InterpolatePosition(RawTrack.PosKeys, Time);
 	FQuat Rotation = InterpolateRotation(RawTrack.RotKeys, Time);

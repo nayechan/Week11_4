@@ -13,6 +13,14 @@ public:
 	virtual ~UAnimInstance() = default;
 
 	// ========================================
+	// 초기화 파이프라인
+	// ========================================
+
+	// 최종 초기화 함수 (OwnerComponent 설정 후 1회 호출)
+	// Native + Lua 초기화를 순차적으로 실행
+	void InitializeAnimation();
+
+	// ========================================
 	// 메인 업데이트 파이프라인
 	// ========================================
 
@@ -28,9 +36,16 @@ public:
 	// 확장 포인트 (하위 클래스에서 오버라이드)
 	// ========================================
 
+	// C++ 네이티브 초기화 로직
+	// 하위 클래스에서 Super::NativeInitializeAnimation() 호출 후 커스텀 로직 구현
+	virtual void NativeInitializeAnimation();
+
 	// C++ 네이티브 업데이트 로직
 	// 하위 클래스에서 Super::NativeUpdateAnimation() 호출 후 커스텀 로직 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
+
+	// TODO: Lua 스크립트 초기화 (향후 구현)
+	// virtual void LuaInitializeAnimation();
 
 	// TODO: Lua 스크립트 업데이트 (향후 구현)
 	// virtual void LuaUpdateAnimation(float DeltaSeconds);
