@@ -4,6 +4,7 @@
 #include "SkeletalMeshComponent.h"
 #include "SkeletalMesh.h"
 #include "AnimSequence.h"
+#include "AnimationTypes.h"
 #include "ResourceManager.h"
 #include "GlobalConsole.h"
 
@@ -41,14 +42,25 @@ void FSkeletalMeshComponentCustomization::CustomizeDetails(UObject* Object)
 		}
 	}
 
-	// 필터 델리게이트 생성
-	FOnShouldFilterAsset FilterDelegate;
-	FilterDelegate.Bind([this](const FString& AssetPath) -> bool {
+	// 애셋 필터 델리게이트 생성 (AnimToPlay의 애니메이션 필터링)
+	FOnShouldFilterAsset AssetFilterDelegate;
+	AssetFilterDelegate.Bind([this](const FString& AssetPath) -> bool {
 		return OnShouldFilterAnimAsset(AssetPath);
 	});
 
+	// 프로퍼티 필터 델리게이트 생성 (AnimToPlay 프로퍼티 표시 여부 결정)
+	FOnShouldFilterProperty PropertyFilterDelegate;
+	PropertyFilterDelegate.Bind([SkelComp](const FString& PropertyName) -> bool {
+		// AnimToPlay는 AnimationSingleNode 모드일 때만 표시
+		if (PropertyName == "AnimToPlay")
+		{
+			return SkelComp->AnimationMode != EAnimationMode::AnimationSingleNode;
+		}
+		return false;  // 다른 프로퍼티는 모두 표시
+	});
+
 	// PropertyRenderer 정적 메서드로 필터와 함께 프로퍼티 렌더링 요청
-	UPropertyRenderer::RenderPropertiesWithCustomization(SkelComp, FilterDelegate);
+	UPropertyRenderer::RenderPropertiesWithCustomization(SkelComp, AssetFilterDelegate, PropertyFilterDelegate);
 }
 
 bool FSkeletalMeshComponentCustomization::OnShouldFilterAnimAsset(const FString& AssetPath)

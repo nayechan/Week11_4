@@ -2149,7 +2149,8 @@ bool UPropertyRenderer::RenderTransformProperty(const FProperty& Prop, void* Ins
 
 void UPropertyRenderer::RenderPropertiesWithCustomization(
 	UObject* Object,
-	FOnShouldFilterAsset& FilterDelegate)
+	FOnShouldFilterAsset& AssetFilterDelegate,
+	FOnShouldFilterProperty& PropertyFilterDelegate)
 {
 	if (!Object)
 		return;
@@ -2165,6 +2166,17 @@ void UPropertyRenderer::RenderPropertiesWithCustomization(
 	{
 		if (Prop.bIsEditAnywhere)
 		{
+			// 프로퍼티 필터링 체크
+			if (PropertyFilterDelegate.IsBound())
+			{
+				bool bShouldFilter = PropertyFilterDelegate.Execute(FString(Prop.Name));
+				if (bShouldFilter)
+				{
+					// 필터링된 프로퍼티는 건너뜀
+					continue;
+				}
+			}
+
 			FString CategoryName = Prop.Category ? Prop.Category : "Default";
 			int32* IndexPtr = CategoryIndexMap.Find(CategoryName);
 
@@ -2196,9 +2208,9 @@ void UPropertyRenderer::RenderPropertiesWithCustomization(
 			ImGui::PushID(Prop);
 
 			// AnimSequence 타입이면 필터와 함께 렌더링
-			if (Prop->Type == EPropertyType::AnimSequence && FilterDelegate.IsBound())
+			if (Prop->Type == EPropertyType::AnimSequence && AssetFilterDelegate.IsBound())
 			{
-				RenderAnimSequencePropertyWithFilter(*Prop, Object, FilterDelegate);
+				RenderAnimSequencePropertyWithFilter(*Prop, Object, AssetFilterDelegate);
 			}
 			else
 			{
