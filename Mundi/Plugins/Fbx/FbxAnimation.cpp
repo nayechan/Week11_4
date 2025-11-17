@@ -488,6 +488,31 @@ void FFbxAnimation::EvaluateLocalTransformAtTime(
 	FVector& OutScale)
 {
 	// ========================================
+	// Blender Armature 부모 노드 건너뛰기
+	// ========================================
+	// Blender FBX는 스켈레톤 루트의 부모로 "Armature" eNull 노드를 export함.
+	// 이 Armature 노드는 단위 변환을 위한 애니메이션 커브 (Scale: 1→100, Rotation)를 포함.
+	// 이러한 변환이 본에 적용되는 것을 방지하기 위해 Armature 노드를 건너뜀.
+	//
+	// 패턴: FbxScene.cpp:ExtractSkeletonRecursive()와 동일한 감지 로직 사용
+	if (ParentNode && bIsRootJoint)
+	{
+		// 부모가 Blender Armature 노드인지 확인
+		FString ParentName(ParentNode->GetName());
+		FbxNode* GrandParent = ParentNode->GetParent();
+
+		bool bParentIsBlenderArmature =
+			(GrandParent == nullptr || GrandParent == Scene->GetRootNode()) &&
+			(_stricmp(ParentName.c_str(), "armature") == 0);
+
+		if (bParentIsBlenderArmature)
+		{
+			// Armature 노드 건너뛰기: 루트 조인트가 부모가 없는 것처럼 처리
+			ParentNode = nullptr;
+		}
+	}
+
+	// ========================================
 	// UE5 Pattern: JointOrientationMatrix 조건부 적용
 	// ========================================
 	// UE5 Reference: FbxAnimation.cpp Line 516, 528
