@@ -37,6 +37,14 @@ public:
 	// 직렬화 (JSON)
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
 
+	// 파일 저장/로드 (전체 데이터 - BoneAnimationTracks 포함, 큰 파일)
+	bool SaveToFile(const FString& FilePath);
+	bool LoadFromFile(const FString& FilePath);
+
+	// Notify 데이터만 저장/로드 (가벼운 파일, 추천)
+	bool SaveNotifyData(const FString& FilePath);
+	bool LoadNotifyData(const FString& FilePath);
+
 	// 바이너리 직렬화 (캐싱용)
 	friend FArchive& operator<<(FArchive& Ar, UAnimSequence& Anim)
 	{

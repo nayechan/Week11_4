@@ -89,6 +89,22 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// SequenceLength, RateScale 직렬화
 		FJsonSerializer::ReadFloat(InOutHandle, "SequenceLength", SequenceLength, 0.0f, false);
 		FJsonSerializer::ReadFloat(InOutHandle, "RateScale", RateScale, 1.0f, false);
+
+		// NotifyTracks 로드
+		JSON TracksJson;
+		if (FJsonSerializer::ReadArray(InOutHandle, "NotifyTracks", TracksJson, nullptr, false))
+		{
+			NotifyTracks.clear();
+			for (uint32 i = 0; i < static_cast<uint32>(TracksJson.size()); ++i)
+			{
+				JSON TrackJson = TracksJson.at(i);
+				FNotifyTrack Track;
+				FJsonSerializer::ReadInt32(TrackJson, "ID", Track.ID, 0, false);
+				FJsonSerializer::ReadString(TrackJson, "Name", Track.Name, "", false);
+				NotifyTracks.Add(Track);
+			}
+		}
+		FJsonSerializer::ReadInt32(InOutHandle, "NextTrackID", NextTrackID, 1, false);
 	}
 	else
 	{
@@ -109,5 +125,17 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// SequenceLength, RateScale 직렬화
 		InOutHandle["SequenceLength"] = SequenceLength;
 		InOutHandle["RateScale"] = RateScale;
+
+		// NotifyTracks 저장
+		JSON TracksArray = JSON::Make(JSON::Class::Array);
+		for (const FNotifyTrack& Track : NotifyTracks)
+		{
+			JSON TrackJson;
+			TrackJson["ID"] = Track.ID;
+			TrackJson["Name"] = Track.Name;
+			TracksArray.append(TrackJson);
+		}
+		InOutHandle["NotifyTracks"] = TracksArray;
+		InOutHandle["NextTrackID"] = NextTrackID;
 	}
 }

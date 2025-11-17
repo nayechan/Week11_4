@@ -15,6 +15,15 @@ public:
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션|Notify]", Tooltip="애니메이션 알림 이벤트")
 	TArray<FAnimNotifyEvent> Notifies;
 
+	// Notify 트랙 정보 (UI 레이아웃용)
+	struct FNotifyTrack
+	{
+		int32 ID;
+		FString Name;
+	};
+	TArray<FNotifyTrack> NotifyTracks;
+	int32 NextTrackID = 1;
+
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="애니메이션 길이 (초)")
 	float SequenceLength = 0.0f;
 
