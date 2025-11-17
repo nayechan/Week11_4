@@ -96,6 +96,7 @@ void SAnimSequenceEditorWindow::OnRender()
 {
     if (!bIsOpen)
     {
+        bShouldRenderViewport = false;
         return;
     }
 
@@ -114,7 +115,15 @@ void SAnimSequenceEditorWindow::OnRender()
         bRequestFocus = false;
     }
 
-    if (ImGui::Begin("Animation Sequence Editor", &bIsOpen, flags))
+    bool windowAppeared = ImGui::Begin("Animation Sequence Editor", &bIsOpen, flags);
+
+    // Check if window is visible, not collapsed, and not fully occluded
+    bool isCollapsed = ImGui::IsWindowCollapsed();
+
+    // Only render viewport if window is visible and not collapsed
+    bShouldRenderViewport = windowAppeared && !isCollapsed;
+
+    if (windowAppeared)
     {
         // Render tab bar
         if (ImGui::BeginTabBar("AnimEditorTabs", ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable))
@@ -154,6 +163,11 @@ void SAnimSequenceEditorWindow::OnRender()
             ImGui::Text("No active editor state.");
         }
     }
+    else
+    {
+        bShouldRenderViewport = false;
+    }
+
     ImGui::End();
 }
 
@@ -1833,6 +1847,16 @@ void SAnimSequenceEditorWindow::OnUpdate(float DeltaSeconds)
 
 void SAnimSequenceEditorWindow::OnRenderViewport()
 {
+    // If window is closed, collapsed, or not visible, hide the viewport by resizing to 0
+    if (!bIsOpen || !bShouldRenderViewport)
+    {
+        if (ActiveState && ActiveState->Viewport)
+        {
+            ActiveState->Viewport->Resize(0, 0, 0, 0);
+        }
+        return;
+    }
+
     if (ActiveState && ActiveState->Viewport && CenterRect.GetWidth() > 0 && CenterRect.GetHeight() > 0)
     {
         const uint32 NewStartX = static_cast<uint32>(CenterRect.Left);

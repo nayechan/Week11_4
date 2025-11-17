@@ -58,6 +58,7 @@ void SSkeletalMeshViewerWindow::OnRender()
     // If window is closed, don't render
     if (!bIsOpen)
     {
+        bShouldRenderViewport = false;
         return;
     }
 
@@ -75,10 +76,17 @@ void SSkeletalMeshViewerWindow::OnRender()
     {
         ImGui::SetNextWindowFocus();
     }
-    bool bViewerVisible = false;
-    if (ImGui::Begin("Skeletal Mesh Viewer", &bIsOpen, flags))
+
+    bool windowAppeared = ImGui::Begin("Skeletal Mesh Viewer", &bIsOpen, flags);
+
+    // Check if window is visible, not collapsed, and not fully occluded
+    bool isCollapsed = ImGui::IsWindowCollapsed();
+
+    // Only render viewport if window is visible and not collapsed
+    bShouldRenderViewport = windowAppeared && !isCollapsed;
+
+    if (windowAppeared)
     {
-        bViewerVisible = true;
         // Render tab bar and switch active state
         if (ImGui::BeginTabBar("SkeletalViewerTabs", ImGuiTabBarFlags_AutoSelectNewTabs | ImGuiTabBarFlags_Reorderable))
         {
@@ -377,9 +385,9 @@ void SSkeletalMeshViewerWindow::OnRender()
         }
         else
         {
-
             ImGui::EndChild();
             ImGui::PopStyleVar(2);
+            bShouldRenderViewport = false;
             ImGui::End();
             return;
         }
@@ -536,18 +544,17 @@ void SSkeletalMeshViewerWindow::OnRender()
         // Pop the ItemSpacing style
         ImGui::PopStyleVar(2);
     }
-    ImGui::End();
-
-    // If collapsed or not visible, clear the center rect so we don't render a floating viewport
-    if (!bViewerVisible)
+    else
     {
-        CenterRect = FRect(0, 0, 0, 0);
-        CenterRect.UpdateMinMax();
+        bShouldRenderViewport = false;
     }
+
+    ImGui::End();
 
     // If window was closed via X button, notify the manager to clean up
     if (!bIsOpen)
     {
+        bShouldRenderViewport = false;
         USlateManager::GetInstance().CloseSkeletalMeshViewer();
     }
 
@@ -691,6 +698,16 @@ void SSkeletalMeshViewerWindow::OnMouseUp(FVector2D MousePos, uint32 Button)
 
 void SSkeletalMeshViewerWindow::OnRenderViewport()
 {
+    // If window is closed, collapsed, or not visible, hide the viewport by resizing to 0
+    if (!bIsOpen || !bShouldRenderViewport)
+    {
+        if (ActiveState && ActiveState->Viewport)
+        {
+            ActiveState->Viewport->Resize(0, 0, 0, 0);
+        }
+        return;
+    }
+
     if (ActiveState && ActiveState->Viewport && CenterRect.GetWidth() > 0 && CenterRect.GetHeight() > 0)
     {
         // Calculate visible viewport area (clip to screen bounds)

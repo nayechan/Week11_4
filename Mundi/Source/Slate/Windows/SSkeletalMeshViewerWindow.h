@@ -64,6 +64,7 @@ private:
     bool bIsOpen = true;
 
     bool bBoneChanged = false;
+    bool bShouldRenderViewport = false;  // Set to true only when window is visible and not occluded
 
 
     UTexture* IconPause = nullptr;

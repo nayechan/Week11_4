@@ -75,6 +75,7 @@ private:
     bool bInitialPlacementDone = false;
     bool bRequestFocus = false;
     bool bIsOpen = true;
+    bool bShouldRenderViewport = false;  // Set to true only when window is visible and not occluded
 
     // Icons for playback controls
     UTexture* IconPause = nullptr;
