@@ -210,7 +210,7 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     SLATE.Initialize(RHIDevice.GetDevice(), GWorld, ScreenRect);
 
     // 최근에 사용한 레벨 불러오기를 시도합니다.
-    GWorld->TryLoadLastUsedLevel();
+    //GWorld->TryLoadLastUsedLevel();
 
     FGpuProfiler::Initialize(RHIDevice.GetDevice());
     bRunning = true;
