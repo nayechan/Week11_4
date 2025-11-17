@@ -322,6 +322,10 @@ void UEditorEngine::MainLoop()
 
             bChangedPieToEditor = false;
         }
+        if (FCrasher::IsCrashMode())
+        {
+            FCrasher::CauseCrash();
+        }
        // CauseCrash();
         Tick(DeltaSeconds);
         Render();

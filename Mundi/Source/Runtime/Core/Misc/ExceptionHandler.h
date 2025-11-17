@@ -14,3 +14,13 @@ public:
 private:
 
 };
+
+class FCrasher
+{
+public:
+	static void CauseCrash();
+	static void StartRandomCrash();
+	static bool IsCrashMode();
+private:
+	static bool bIsCrashMode;
+};
