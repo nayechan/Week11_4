@@ -9,10 +9,6 @@ ATestAnimNotifyActor::ATestAnimNotifyActor()
     // SkeletalMeshComponent 생성
     SkeletalMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent");
     SkeletalMeshComponent->SetOwner(this);
-
-    // BeginPlay 전에 미리 AnimationMode 설정 (중요!)
-    // 이렇게 해야 SkeletalMeshComponent::BeginPlay()에서 자동 재생을 스킵합니다
-    SkeletalMeshComponent->AnimationMode = EAnimationMode::AnimationLuaScript;
 }
 
 void ATestAnimNotifyActor::BeginPlay()
@@ -32,14 +28,14 @@ void ATestAnimNotifyActor::BeginPlay()
         return;
     }
 
-    // 현재 재생 중인 AnimationData 가져오기 (Base Animation)
-    UAnimSequence* BaseAnim = SkeletalMeshComponent->AnimationData;
-
-    if (!BaseAnim)
+    // 테스트 애니메이션 확인
+    if (!TestAnimSequence)
     {
-        UE_LOG("[WARNING] TestAnimNotifyActor: No AnimSequence assigned! Please assign animation in editor.");
+        UE_LOG("[WARNING] TestAnimNotifyActor: TestAnimSequence not assigned! Please assign animation in editor.");
         return;
     }
+
+    UAnimSequence* BaseAnim = TestAnimSequence;
 
     UE_LOG("TestAnimNotifyActor: Found Base AnimSequence: %s", BaseAnim->GetName().c_str());
     UE_LOG("TestAnimNotifyActor: Animation Length: %.2fs", BaseAnim->SequenceLength);
@@ -85,7 +81,6 @@ void ATestAnimNotifyActor::BeginPlay()
 
     // 7. AnimInstance를 SkeletalMeshComponent에 설정
     SkeletalMeshComponent->SetAnimInstance(CharAnimInst);  // ⭐ OwnerComponent 자동 설정
-    SkeletalMeshComponent->AnimationMode = EAnimationMode::AnimationLuaScript;  // Custom AnimInstance 사용
 
     UE_LOG("TestAnimNotifyActor: State Machine initialized with 3 states (Idle/Walk/Run)");
 }

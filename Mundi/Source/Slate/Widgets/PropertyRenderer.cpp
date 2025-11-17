@@ -115,6 +115,10 @@ bool UPropertyRenderer::RenderProperty(const FProperty& Property, void* ObjectIn
 		bChanged = RenderAnimSequenceProperty(Property, ObjectInstance);
 		break;
 
+	case EPropertyType::UClass:
+		bChanged = RenderUClassProperty(Property, ObjectInstance);
+		break;
+
 	case EPropertyType::StaticMesh:
 		bChanged = RenderStaticMeshProperty(Property, ObjectInstance);
 		break;
@@ -1206,6 +1210,100 @@ bool UPropertyRenderer::RenderAnimSequenceProperty(const FProperty& Prop, void* 
 	{
 		ImGui::BeginTooltip();
 		ImGui::TextUnformatted(CurrentPath.c_str());
+		ImGui::EndTooltip();
+	}
+
+	return false;
+}
+
+bool UPropertyRenderer::RenderUClassProperty(const FProperty& Prop, void* Instance)
+{
+	UClass** ClassPtr = Prop.GetValuePtr<UClass*>(Instance);
+	if (!ClassPtr) return false;
+
+	// 현재 선택된 클래스 이름
+	const char* CurrentClassName = (*ClassPtr) ? (*ClassPtr)->Name : "None";
+
+	// BaseClass 필터링 (TSubclassOf<T>에서 자동 설정됨)
+	UClass* BaseClass = nullptr;
+	auto BaseClassIt = Prop.Metadata.find("BaseClass");
+	if (BaseClassIt != Prop.Metadata.end() && !BaseClassIt->second.empty())
+	{
+		BaseClass = UClass::FindClass(BaseClassIt->second);
+	}
+
+	// 모든 등록된 클래스 가져오기
+	TArray<UClass*> AllClasses = UClass::GetAllClasses();
+
+	// Combo용 아이템 리스트 생성 (None + 필터링된 클래스)
+	TArray<const char*> ClassNames;
+	TArray<UClass*> FilteredClasses;  // 필터링된 클래스 목록 (인덱스 매핑용)
+
+	ClassNames.Add("None");
+
+	for (UClass* Class : AllClasses)
+	{
+		if (Class && Class->Name)
+		{
+			// BaseClass가 설정되어 있으면 필터링 적용
+			if (!BaseClass || Class->IsChildOf(BaseClass))
+			{
+				ClassNames.Add(Class->Name);
+				FilteredClasses.Add(Class);
+			}
+		}
+	}
+
+	// 현재 선택된 인덱스 찾기
+	int SelectedIdx = 0; // 기본값 "None"
+	for (int i = 0; i < static_cast<int>(ClassNames.Num()); ++i)
+	{
+		if (strcmp(ClassNames[i], CurrentClassName) == 0)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	// Combo 렌더링
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, ClassNames.data(), static_cast<int>(ClassNames.Num())))
+	{
+		if (SelectedIdx == 0)
+		{
+			// "None" 선택
+			*ClassPtr = nullptr;
+		}
+		else
+		{
+			// 클래스 선택 (인덱스 조정: ClassNames[1] = FilteredClasses[0])
+			int ClassIndex = SelectedIdx - 1;
+			if (ClassIndex >= 0 && ClassIndex < FilteredClasses.Num())
+			{
+				*ClassPtr = FilteredClasses[ClassIndex];
+			}
+		}
+		return true;
+	}
+
+	// 툴팁 표시
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		if (*ClassPtr)
+		{
+			ImGui::Text("Class: %s", (*ClassPtr)->Name);
+			if ((*ClassPtr)->Super)
+			{
+				ImGui::Text("Parent: %s", (*ClassPtr)->Super->Name);
+			}
+		}
+		// BaseClass 필터링 정보 표시
+		if (BaseClass)
+		{
+			ImGui::Separator();
+			ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Filtered: %s and subclasses", BaseClass->Name);
+		}
 		ImGui::EndTooltip();
 	}
 
