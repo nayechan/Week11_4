@@ -617,6 +617,24 @@ void SSkeletalMeshViewerWindow::OnUpdate(float DeltaSeconds)
     if (!ActiveState || !ActiveState->Viewport)
         return;
 
+    // Space key toggles animation play/pause
+    if (ActiveState->bViewAnimation && ImGui::IsKeyPressed(ImGuiKey_Space, false))
+    {
+        UAnimInstance* AnimInstance = ActiveState->PreviewActor->GetSkeletalMeshComponent()->AnimInstance;
+        if (AnimInstance)
+        {
+            UAnimSingleNodeInstance* AnimSingleNodeInstance = static_cast<UAnimSingleNodeInstance*>(AnimInstance);
+            if (AnimSingleNodeInstance->IsPlaying())
+            {
+                AnimSingleNodeInstance->Pause();
+            }
+            else
+            {
+                AnimSingleNodeInstance->Play(ActiveState->bLoopAnimation);
+            }
+        }
+    }
+
     // Tick the preview world so editor actors (e.g., gizmo) update visibility/state
     if (ActiveState->World)
     {
@@ -812,97 +830,342 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
         return;
     }
     UAnimSingleNodeInstance* AnimSingleNodeInstance = static_cast<UAnimSingleNodeInstance*>(AnimInstance);
-   
-    UAnimSequence* AnimSequence = AnimSingleNodeInstance->GetAnimSequence();
-   
 
-    const float NotifyAspect = 0.3f;
+    UAnimSequence* AnimSequence = AnimSingleNodeInstance->GetAnimSequence();
+
+
+    const float NotifyAspect = 0.25f;
     ImVec2 ContentAvail = ImGui::GetContentRegionAvail();
     float NotifyWidth = ContentAvail.x * NotifyAspect;
     float BottomHeight = ContentAvail.y;
     float BottomWidth = ContentAvail.x * (1 - NotifyAspect);
+
+    // Left Panel - Animation Info
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("NotifyPanel", ImVec2(NotifyWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("AnimInfoPanel", ImVec2(NotifyWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
-    const char* NotifyHeaderText = "Notify Panel";
-    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(NotifyHeaderText).x) * 0.5f);
-    ImGui::Text(NotifyHeaderText);
-    ImGui::PopStyleColor();
-    ImGui::EndChild();
-    
-    ImGui::SameLine(0, 0);
-    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("BottomPanel", ImVec2(BottomWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
-    ImGui::PopStyleVar();
-
-    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
-    const char* AnimSequenceHeaderText = "Animation Sequence Viewer";
-    float TextWidth = ImGui::CalcTextSize(AnimSequenceHeaderText).x;
-    float WindowWidth = ImGui::GetWindowWidth();
-    ImGui::SetCursorPosX((WindowWidth - TextWidth) * 0.5f);
-    ImGui::Text(AnimSequenceHeaderText);
+    const char* InfoHeaderText = "Animation Info";
+    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(InfoHeaderText).x) * 0.5f);
+    ImGui::Text(InfoHeaderText);
     ImGui::PopStyleColor();
 
-    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+    ImGui::Spacing();
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
     ImGui::Separator();
     ImGui::PopStyleColor();
-    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+    ImGui::Spacing();
+
+    // Animation Info Display
+    float CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
+    const float AnimationLength = AnimSequence->GetPlayLength();
+    int CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
+    float CurrentFPS = AnimSequence->NumberOfFrames / AnimationLength;
+
+    USkeletalMesh* CurrentMesh = ActiveState->CurrentMesh;
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.95f, 1.0f, 1.0f));
+    ImGui::Text("Frame:");
+    ImGui::SameLine();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.85f, 1.0f, 1.0f));
+
+    // Extract filename from path
+    FString animPath = ActiveState->AnimationPathBuffer;
+    size_t lastSlash = animPath.find_last_of("/\\");
+    FString animName = (lastSlash != FString::npos) ? animPath.substr(lastSlash + 1) : animPath;
+    ImGui::Text("%s", animName.c_str());
+    ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+    ImGui::Text("LOD: 0");
+
+    ImGui::Spacing();
+    ImGui::Text("Animation LOD: 0.95");
+
+    ImGui::Spacing();
+    ImGui::Text("Frame Count: %d / %d", CurrentFrame, AnimSequence->NumberOfFrames);
+
+    if (CurrentMesh)
+    {
+        ImGui::Spacing();
+        // Note: You may need to add vertex/triangle count to USkeletalMesh
+        ImGui::Text("Vertices: N/A");
+
+        ImGui::Spacing();
+        ImGui::Text("UV Sets: 1");
+    }
+
+    ImGui::Spacing();
+    ImGui::Text("Framerate: %.0f fps", CurrentFPS);
+
+    ImGui::PopStyleColor();
+
+    ImGui::EndChild();
+
+    ImGui::SameLine(0, 0);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+    ImGui::BeginChild("TimelinePanel", ImVec2(BottomWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+
+    float WindowWidth = ImGui::GetWindowWidth();
+    float WindowHeight = ImGui::GetWindowHeight();
+    // Reuse variables from AnimInfoPanel - already declared above
+    CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
+    CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
 
     ImDrawList* DrawList = ImGui::GetWindowDrawList();
 
+    // Layout: Left side = Notify tracks + controls, Right side = Timeline
+    const float LeftControlWidth = 200.0f;
+    const float RightTimelineWidth = WindowWidth - LeftControlWidth;
+
+    // === LEFT SIDE: Notify Tracks + Playback Controls ===
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+    ImGui::BeginChild("LeftControlArea", ImVec2(LeftControlWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
+
+    // Top part: Notify Tracks
+    float controlsHeight = 80.0f; // Height for playback controls
+    float tracksHeight = WindowHeight - controlsHeight - 10.0f;
+
+    ImGui::BeginChild("NotifyTracks", ImVec2(LeftControlWidth, tracksHeight), true);
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
+    ImGui::Text("Notifies");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+
+    // Notify track list (placeholder for now)
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
+    ImGui::Selectable("Notify Track 1", false);
+    ImGui::Selectable("Notify Track 2", false);
+    ImGui::Selectable("Notify Track 3", false);
+    ImGui::PopStyleColor();
+
+    ImGui::EndChild();
+
+    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+
+    // Bottom part: Playback Controls
+    ImGui::BeginChild("PlaybackControls", ImVec2(LeftControlWidth, controlsHeight), false);
+
+    // Playback Controls - Compact style
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.22f, 0.25f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.33f, 0.38f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.17f, 0.20f, 1.0f));
+
+    float buttonSize = 24.0f;
+    float spacing = 2.0f;
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
+
+    // Align to left with small margin
+    ImGui::SetCursorPosX(5.0f);
+    ImGui::SetCursorPosY(10.0f);
+
+    // First Frame
+    if (ImGui::Button(u8"\u23EE##First", ImVec2(buttonSize, buttonSize)))
+    {
+        AnimSingleNodeInstance->Pause();
+        AnimSingleNodeInstance->SetInteralTime(0.0f);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("First Frame");
+
+    ImGui::SameLine();
+
+    // Previous Frame
+    if (ImGui::Button(u8"\u25C0##Prev", ImVec2(buttonSize, buttonSize)))
+    {
+        AnimSingleNodeInstance->Pause();
+        float frameTime = AnimationLength / AnimSequence->NumberOfFrames;
+        float newTime = std::max(0.0f, CurrentInternalTime - frameTime);
+        AnimSingleNodeInstance->SetInteralTime(newTime);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Previous Frame");
+
+    ImGui::SameLine();
+
+    // Stop
+    if (ImGui::Button(u8"\u23F9##Stop", ImVec2(buttonSize, buttonSize)))
+    {
+        AnimSingleNodeInstance->Pause();
+        AnimSingleNodeInstance->SetInteralTime(0.0f);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Stop");
+
+    ImGui::SameLine();
+
+    // Play/Pause
+    if (AnimSingleNodeInstance->IsPlaying())
+    {
+        bBoneChanged = true;
+        if (ImGui::Button(u8"\u23F8##Pause", ImVec2(buttonSize, buttonSize)))
+        {
+            AnimSingleNodeInstance->Pause();
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Pause");
+    }
+    else
+    {
+        if (ImGui::Button(u8"\u25B6##Play", ImVec2(buttonSize, buttonSize)))
+        {
+            AnimSingleNodeInstance->Play(ActiveState->bLoopAnimation);
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Play");
+    }
+
+    ImGui::SameLine();
+
+    // Next Frame
+    if (ImGui::Button(u8"\u25B6##Next", ImVec2(buttonSize, buttonSize)))
+    {
+        AnimSingleNodeInstance->Pause();
+        float frameTime = AnimationLength / AnimSequence->NumberOfFrames;
+        float newTime = std::min(AnimationLength, CurrentInternalTime + frameTime);
+        AnimSingleNodeInstance->SetInteralTime(newTime);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Next Frame");
+
+    ImGui::SameLine();
+
+    // Last Frame
+    if (ImGui::Button(u8"\u23ED##Last", ImVec2(buttonSize, buttonSize)))
+    {
+        AnimSingleNodeInstance->Pause();
+        AnimSingleNodeInstance->SetInteralTime(AnimationLength);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Last Frame");
+
+    ImGui::SameLine();
+
+    // Loop Toggle
+    ImGui::PushStyleColor(ImGuiCol_Button, ActiveState->bLoopAnimation ?
+        ImVec4(0.15f, 0.50f, 0.35f, 1.0f) : ImVec4(0.20f, 0.22f, 0.25f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ActiveState->bLoopAnimation ?
+        ImVec4(0.20f, 0.60f, 0.45f, 1.0f) : ImVec4(0.30f, 0.33f, 0.38f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ActiveState->bLoopAnimation ?
+        ImVec4(0.10f, 0.40f, 0.25f, 1.0f) : ImVec4(0.15f, 0.17f, 0.20f, 1.0f));
+    if (ImGui::Button(u8"\u21BB##Loop", ImVec2(buttonSize, buttonSize)))
+    {
+        ActiveState->bLoopAnimation = !ActiveState->bLoopAnimation;
+        if (AnimSingleNodeInstance->IsPlaying())
+        {
+            AnimSingleNodeInstance->Play(ActiveState->bLoopAnimation);
+        }
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(ActiveState->bLoopAnimation ? "Loop: ON" : "Loop: OFF");
+    ImGui::PopStyleColor(6);
+
+    ImGui::PopStyleVar();
+
+    // Speed control (next line)
+    ImGui::SetCursorPosX(5.0f);
+    ImGui::Dummy(ImVec2(0.0f, 2.0f));
+
+    float playRate = AnimSingleNodeInstance->GetPlayRate();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
+
+    ImGui::SetCursorPosX(5.0f);
+    ImGui::PushItemWidth(70.0f);
+
+    const char* speedOptions[] = { "x0.1", "x0.25", "x0.5", "x1.0", "x1.5", "x2.0", "x3.0" };
+    const float speedValues[] = { 0.1f, 0.25f, 0.5f, 1.0f, 1.5f, 2.0f, 3.0f };
+    int currentSpeedIndex = 3; // Default to 1.0x
+
+    // Find current speed index
+    for (int i = 0; i < 7; ++i)
+    {
+        if (fabs(playRate - speedValues[i]) < 0.01f)
+        {
+            currentSpeedIndex = i;
+            break;
+        }
+    }
+
+    char speedLabel[16];
+    sprintf_s(speedLabel, "x%.2f", playRate);
+
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.18f, 0.20f, 0.23f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.18f, 0.20f, 0.23f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.28f, 0.32f, 1.0f));
+
+    if (ImGui::BeginCombo("##Speed", speedLabel, ImGuiComboFlags_NoArrowButton))
+    {
+        for (int i = 0; i < 7; ++i)
+        {
+            bool isSelected = (currentSpeedIndex == i);
+            if (ImGui::Selectable(speedOptions[i], isSelected))
+            {
+                AnimSingleNodeInstance->SetPlayRate(speedValues[i]);
+            }
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::PopStyleColor(4);
+    ImGui::PopItemWidth();
+
+    ImGui::EndChild(); // PlaybackControls
+    ImGui::EndChild(); // LeftControlArea
+    ImGui::PopStyleVar();
+
+    // === RIGHT SIDE: Timeline + Notify Display ===
+    ImGui::SameLine(0, 0);
+    ImGui::BeginChild("TimelineArea", ImVec2(RightTimelineWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
+
+    // Timeline with frame markers
     ImVec2 TimeLineStartPos = ImGui::GetCursorScreenPos();
-    ImVec2 CurrentRegionAvail = ImGui::GetContentRegionAvail();
-    float TimeLineWidth = CurrentRegionAvail.x;
-    float TimeLineHeight = 50.0f;
+    float TimeLineWidth = RightTimelineWidth - 20.0f;
+    float TimeLineHeight = WindowHeight - 60.0f; // Leave space for bottom info
+    TimeLineStartPos.x += 10.0f;
+    TimeLineStartPos.y += 10.0f;
     ImVec2 TimeLineEndPos = ImVec2(TimeLineStartPos.x + TimeLineWidth, TimeLineStartPos.y + TimeLineHeight);
-    DrawList->AddRectFilled(TimeLineStartPos, TimeLineStartPos + CurrentRegionAvail, IM_COL32(20, 20, 20, 255));
 
-    DrawList->AddLine(
-        TimeLineStartPos,
-        ImVec2(TimeLineEndPos.x, TimeLineStartPos.y),
-        IM_COL32(100, 100, 100, 255), 1.0f);
-    DrawList->AddLine(
-        ImVec2(TimeLineStartPos.x, TimeLineEndPos.y),
-        TimeLineEndPos,
-        IM_COL32(100, 100, 100, 255), 1.0f);
+    // Background
+    DrawList->AddRectFilled(TimeLineStartPos, TimeLineEndPos, IM_COL32(25, 25, 28, 255));
 
-    int FrameStep = 10;
+    // Timeline border
+    DrawList->AddRect(TimeLineStartPos, TimeLineEndPos, IM_COL32(60, 60, 65, 255), 0.0f, 0, 1.0f);
+
+    // Draw frame markers with labels
+    int FrameStep = 5;
+    if (AnimSequence->NumberOfFrames > 100) FrameStep = 10;
+    if (AnimSequence->NumberOfFrames > 200) FrameStep = 20;
+
     for (int Frame = 0; Frame <= AnimSequence->NumberOfFrames; Frame += FrameStep)
     {
         float Xpos = TimeLineStartPos.x + (Frame / (float)AnimSequence->NumberOfFrames) * TimeLineWidth;
 
+        // Vertical line
         DrawList->AddLine(
             ImVec2(Xpos, TimeLineStartPos.y),
             ImVec2(Xpos, TimeLineEndPos.y),
-            IM_COL32(100, 100, 100, 255), 1.0f
+            IM_COL32(50, 50, 55, 255), 1.0f
         );
-    }
-    FrameStep = 2;
-    for (int Frame = 0; Frame <= AnimSequence->NumberOfFrames; Frame += FrameStep)
-    {
-        float Xpos = TimeLineStartPos.x + (Frame / (float)AnimSequence->NumberOfFrames) * TimeLineWidth;
 
-        DrawList->AddLine(
-            ImVec2(Xpos, TimeLineEndPos.y),
-            ImVec2(Xpos, TimeLineEndPos.y - 10.0f),
-            IM_COL32(100, 100, 100, 255), 1.0f
-        );
+        // Frame number at top
+        char frameLabel[16];
+        sprintf_s(frameLabel, "%d", Frame);
+        ImVec2 labelSize = ImGui::CalcTextSize(frameLabel);
+        DrawList->AddText(ImVec2(Xpos - labelSize.x * 0.5f, TimeLineStartPos.y + 2.0f), IM_COL32(150, 150, 155, 255), frameLabel);
     }
 
-    float CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
-    const float AnimationLength = AnimSequence->GetPlayLength();
-    
+    // Draw playhead (green vertical line)
     float HeadPosX = TimeLineStartPos.x + (CurrentInternalTime / AnimationLength) * TimeLineWidth;
-    float HeadWidth = 15.0f;
+    DrawList->AddLine(
+        ImVec2(HeadPosX, TimeLineStartPos.y),
+        ImVec2(HeadPosX, TimeLineEndPos.y),
+        IM_COL32(80, 200, 120, 255), 2.0f);
 
-    DrawList->AddRectFilled(
-        ImVec2(HeadPosX - HeadWidth * 0.5f, TimeLineStartPos.y),
-        ImVec2(HeadPosX + HeadWidth * 0.5f, TimeLineEndPos.y),
-        IM_COL32(50, 50, 255, 255));
-
+    // Playhead draggable area
     ImGui::SetCursorScreenPos(TimeLineStartPos);
     ImGui::InvisibleButton("##TimeLineHeadButton", ImVec2(TimeLineWidth, TimeLineHeight));
     if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
@@ -915,31 +1178,20 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
         AnimSingleNodeInstance->Pause();
         AnimSingleNodeInstance->SetInteralTime(CurrentInternalTime);
     }
-    
 
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
-    if (AnimSingleNodeInstance->IsPlaying())
-    {
-        bBoneChanged = true;
-        ImGui::SetCursorPosX((WindowWidth - IconSize.x) * 0.5f);
-        if (ImGui::ImageButton("##AnimPause", IconPause->GetShaderResourceView(), IconSize))
-        {
-            AnimSingleNodeInstance->Pause();
-        }
-    }
-    else
-    {
-        ImGui::SetCursorPosX((WindowWidth - IconSize.x) * 0.5f);
-        if (ImGui::ImageButton("##AnimResume", IconResume->GetShaderResourceView(), IconSize))
-        {
-            AnimSingleNodeInstance->Play(true);
-        }
-    }
+    // Bottom info bar
+    ImGui::SetCursorScreenPos(ImVec2(TimeLineStartPos.x, TimeLineEndPos.y + 10.0f));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
 
-    ImGui::PopStyleColor(3);
-    ImGui::EndChild();
+    char frameInfo[64];
+    sprintf_s(frameInfo, "%d        0        %d", CurrentFrame, AnimSequence->NumberOfFrames);
+    ImGui::Text("%s", frameInfo);
+
+    ImGui::PopStyleColor();
+
+    ImGui::EndChild(); // TimelineArea
+
+    ImGui::EndChild(); // TimelinePanel
 }
 
 void SSkeletalMeshViewerWindow::LoadSkeletalMesh(const FString& Path)

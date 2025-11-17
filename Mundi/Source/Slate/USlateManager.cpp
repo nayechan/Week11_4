@@ -460,6 +460,19 @@ void USlateManager::ProcessInput()
         ToggleContentBrowser();
     }
 
+    // Ctrl + Shift + V로 Skeletal Mesh Viewer 토글
+    if (ImGui::IsKeyPressed(ImGuiKey_V) && ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeyShift)
+    {
+        if (SkeletalViewerWindow)
+        {
+            CloseSkeletalMeshViewer();
+        }
+        else
+        {
+            OpenSkeletalMeshViewer();
+        }
+    }
+
     // ESC closes the Skeletal Mesh Viewer if open
     if (ImGui::IsKeyPressed(ImGuiKey_Escape) && SkeletalViewerWindow)
     {

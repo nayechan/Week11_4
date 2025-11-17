@@ -34,4 +34,5 @@ public:
     bool bBoneRotationEditing = false;
 
     bool bViewAnimation = false;
+    bool bLoopAnimation = true;  // Default to looping animation
 };
