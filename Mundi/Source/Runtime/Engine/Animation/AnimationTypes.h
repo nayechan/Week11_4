@@ -119,6 +119,7 @@ struct FAnimNotifyEvent
 	float Duration = 0.0f;         // 지속 시간 (0 = 순간 이벤트)
 	FName NotifyName;              // Notify 이름 (예: "Footstep", "Shoot")
 	FString NotifyData;            // 추가 데이터 (JSON 등)
+	int32 TrackIndex = 0;          // 노티파이가 속한 트랙 인덱스
 
 	FAnimNotifyEvent() = default;
 	FAnimNotifyEvent(float InTime, const FName& InName)

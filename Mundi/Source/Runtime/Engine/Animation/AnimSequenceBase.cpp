@@ -59,6 +59,55 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 {
 	Super::Serialize(bInIsLoading, InOutHandle);
 
-	// TODO: Notifies 직렬화
-	// TODO: SequenceLength, RateScale 직렬화
+	// Notifies 직렬화
+	if (bInIsLoading)
+	{
+		// Load notifies from JSON
+		JSON NotifiesJson;
+		if (FJsonSerializer::ReadArray(InOutHandle, "Notifies", NotifiesJson, nullptr, false))
+		{
+			Notifies.clear();
+			for (uint32 i = 0; i < static_cast<uint32>(NotifiesJson.size()); ++i)
+			{
+				JSON NotifyJson = NotifiesJson.at(i);
+
+				FAnimNotifyEvent Notify;
+				FJsonSerializer::ReadFloat(NotifyJson, "TriggerTime", Notify.TriggerTime, 0.0f, false);
+				FJsonSerializer::ReadFloat(NotifyJson, "Duration", Notify.Duration, 0.0f, false);
+
+				FString NotifyNameStr;
+				FJsonSerializer::ReadString(NotifyJson, "NotifyName", NotifyNameStr, "", false);
+				Notify.NotifyName = FName(NotifyNameStr.c_str());
+
+				FJsonSerializer::ReadString(NotifyJson, "NotifyData", Notify.NotifyData, "", false);
+				FJsonSerializer::ReadInt32(NotifyJson, "TrackIndex", Notify.TrackIndex, 0, false);
+
+				Notifies.Add(Notify);
+			}
+		}
+
+		// SequenceLength, RateScale 직렬화
+		FJsonSerializer::ReadFloat(InOutHandle, "SequenceLength", SequenceLength, 0.0f, false);
+		FJsonSerializer::ReadFloat(InOutHandle, "RateScale", RateScale, 1.0f, false);
+	}
+	else
+	{
+		// Save notifies to JSON
+		JSON NotifiesArray = JSON::Make(JSON::Class::Array);
+		for (const FAnimNotifyEvent& Notify : Notifies)
+		{
+			JSON NotifyJson;
+			NotifyJson["TriggerTime"] = Notify.TriggerTime;
+			NotifyJson["Duration"] = Notify.Duration;
+			NotifyJson["NotifyName"] = Notify.NotifyName.ToString();
+			NotifyJson["NotifyData"] = Notify.NotifyData;
+			NotifyJson["TrackIndex"] = Notify.TrackIndex;
+			NotifiesArray.append(NotifyJson);
+		}
+		InOutHandle["Notifies"] = NotifiesArray;
+
+		// SequenceLength, RateScale 직렬화
+		InOutHandle["SequenceLength"] = SequenceLength;
+		InOutHandle["RateScale"] = RateScale;
+	}
 }

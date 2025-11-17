@@ -119,11 +119,15 @@ void SSkeletalMeshViewerWindow::OnRender()
         float centerWidth = totalWidth - leftWidth - rightWidth;
         float centerHeight = totalHeight;
 
+        // Ensure viewport dimensions are at least 1 pixel (prevent zero/negative)
+        centerWidth = FMath::Max(centerWidth, 1.0f);
+
         if (ActiveState && ActiveState->bViewAnimation)
         {
             centerHeight = totalHeight - BottomHeight;
-
         }
+
+        centerHeight = FMath::Max(centerHeight, 1.0f);
 
         // Remove spacing between panels
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -769,10 +773,15 @@ void SSkeletalMeshViewerWindow::OnRenderViewport()
 {
     if (ActiveState && ActiveState->Viewport && CenterRect.GetWidth() > 0 && CenterRect.GetHeight() > 0)
     {
-        const uint32 NewStartX = static_cast<uint32>(CenterRect.Left);
-        const uint32 NewStartY = static_cast<uint32>(CenterRect.Top);
-        const uint32 NewWidth  = static_cast<uint32>(CenterRect.Right - CenterRect.Left);
-        const uint32 NewHeight = static_cast<uint32>(CenterRect.Bottom - CenterRect.Top);
+        // Calculate visible viewport area (clip to screen bounds)
+        // If viewport goes off-screen, only render the visible portion
+        const float VisibleLeft = FMath::Max(0.0f, CenterRect.Left);
+        const float VisibleTop = FMath::Max(0.0f, CenterRect.Top);
+
+        const uint32 NewStartX = static_cast<uint32>(VisibleLeft);
+        const uint32 NewStartY = static_cast<uint32>(VisibleTop);
+        const uint32 NewWidth  = static_cast<uint32>(FMath::Max(1.0f, CenterRect.Right - VisibleLeft));
+        const uint32 NewHeight = static_cast<uint32>(FMath::Max(1.0f, CenterRect.Bottom - VisibleTop));
         ActiveState->Viewport->Resize(NewStartX, NewStartY, NewWidth, NewHeight);
 
         // 본 오버레이 재구축
@@ -834,85 +843,22 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     UAnimSequence* AnimSequence = AnimSingleNodeInstance->GetAnimSequence();
 
 
-    const float NotifyAspect = 0.25f;
     ImVec2 ContentAvail = ImGui::GetContentRegionAvail();
-    float NotifyWidth = ContentAvail.x * NotifyAspect;
     float BottomHeight = ContentAvail.y;
-    float BottomWidth = ContentAvail.x * (1 - NotifyAspect);
+    float BottomWidth = ContentAvail.x;
 
-    // Left Panel - Animation Info
-    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("AnimInfoPanel", ImVec2(NotifyWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
-    ImGui::PopStyleVar();
-
-    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
-    const char* InfoHeaderText = "Animation Info";
-    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(InfoHeaderText).x) * 0.5f);
-    ImGui::Text(InfoHeaderText);
-    ImGui::PopStyleColor();
-
-    ImGui::Spacing();
-    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
-    ImGui::Separator();
-    ImGui::PopStyleColor();
-    ImGui::Spacing();
-
-    // Animation Info Display
-    float CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
-    const float AnimationLength = AnimSequence->GetPlayLength();
-    int CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
-    float CurrentFPS = AnimSequence->NumberOfFrames / AnimationLength;
-
-    USkeletalMesh* CurrentMesh = ActiveState->CurrentMesh;
-
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.95f, 1.0f, 1.0f));
-    ImGui::Text("Frame:");
-    ImGui::SameLine();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.85f, 1.0f, 1.0f));
-
-    // Extract filename from path
-    FString animPath = ActiveState->AnimationPathBuffer;
-    size_t lastSlash = animPath.find_last_of("/\\");
-    FString animName = (lastSlash != FString::npos) ? animPath.substr(lastSlash + 1) : animPath;
-    ImGui::Text("%s", animName.c_str());
-    ImGui::PopStyleColor();
-
-    ImGui::Spacing();
-    ImGui::Text("LOD: 0");
-
-    ImGui::Spacing();
-    ImGui::Text("Animation LOD: 0.95");
-
-    ImGui::Spacing();
-    ImGui::Text("Frame Count: %d / %d", CurrentFrame, AnimSequence->NumberOfFrames);
-
-    if (CurrentMesh)
-    {
-        ImGui::Spacing();
-        // Note: You may need to add vertex/triangle count to USkeletalMesh
-        ImGui::Text("Vertices: N/A");
-
-        ImGui::Spacing();
-        ImGui::Text("UV Sets: 1");
-    }
-
-    ImGui::Spacing();
-    ImGui::Text("Framerate: %.0f fps", CurrentFPS);
-
-    ImGui::PopStyleColor();
-
-    ImGui::EndChild();
-
-    ImGui::SameLine(0, 0);
+    // Timeline Panel
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
     ImGui::BeginChild("TimelinePanel", ImVec2(BottomWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
     float WindowWidth = ImGui::GetWindowWidth();
     float WindowHeight = ImGui::GetWindowHeight();
-    // Reuse variables from AnimInfoPanel - already declared above
-    CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
-    CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
+
+    // Animation timing variables
+    float CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
+    const float AnimationLength = AnimSequence->GetPlayLength();
+    int CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
 
     ImDrawList* DrawList = ImGui::GetWindowDrawList();
 
@@ -929,17 +875,183 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     float tracksHeight = WindowHeight - controlsHeight - 10.0f;
 
     ImGui::BeginChild("NotifyTracks", ImVec2(LeftControlWidth, tracksHeight), true);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
-    ImGui::Text("Notifies");
-    ImGui::PopStyleColor();
-    ImGui::Separator();
 
-    // Notify track list (placeholder for now)
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.6f, 0.6f, 1.0f));
-    ImGui::Selectable("Notify Track 1", false);
-    ImGui::Selectable("Notify Track 2", false);
-    ImGui::Selectable("Notify Track 3", false);
+    // Initialize default track if empty
+    TArray<ViewerState::NotifyTrack>& NotifyTracks = ActiveState->NotifyTracks;
+    if (NotifyTracks.Num() == 0)
+    {
+        ViewerState::NotifyTrack DefaultTrack;
+        DefaultTrack.ID = ActiveState->NextTrackID++;
+        DefaultTrack.Name = "Track 1";
+        NotifyTracks.Add(DefaultTrack);
+    }
+
+    TArray<FAnimNotifyEvent>& Notifies = AnimSequence->Notifies;
+    static int SelectedNotifyIndex = -1;
+
+    // Header matching timeline
+    const float HeaderHeight = 25.0f;
+    const float TrackHeight = 28.0f;
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
+    ImGui::Text("Tracks");
     ImGui::PopStyleColor();
+    ImGui::Dummy(ImVec2(0, HeaderHeight - 20.0f)); // Spacer to match timeline header
+
+    // Rename Track state (shared between context menu and popup)
+    static int RenameTrackID = -1;
+    static bool bOpenRenamePopup = false;
+
+    // Edit Notify state
+    static bool bOpenEditNotifyPopup = false;
+
+    // Track list with fixed heights matching timeline lanes
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.9f, 1.0f, 1.0f));
+
+    static int DraggedTrackIndex = -1;
+
+    for (int i = 0; i < NotifyTracks.Num(); i++)
+    {
+        const ViewerState::NotifyTrack& Track = NotifyTracks[i];
+        bool isSelected = (Track.ID == ActiveState->SelectedNotifyTrackID);
+        char label[128];
+        sprintf_s(label, "%s##Track%d", Track.Name.c_str(), Track.ID);
+
+        // Fixed height selectable to match timeline lane
+        ImVec2 selectableSize(LeftControlWidth - 20.0f, TrackHeight);
+        if (ImGui::Selectable(label, isSelected, 0, selectableSize))
+        {
+            ActiveState->SelectedNotifyTrackID = Track.ID;
+        }
+
+        // Drag source (allow reordering tracks)
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        {
+            ImGui::SetDragDropPayload("TRACK_REORDER", &i, sizeof(int));
+            ImGui::Text("Moving: %s", Track.Name.c_str());
+            DraggedTrackIndex = i;
+            ImGui::EndDragDropSource();
+        }
+
+        // Drop target (accept dropped track)
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("TRACK_REORDER"))
+            {
+                int sourceIdx = *(const int*)payload->Data;
+                int targetIdx = i;
+
+                if (sourceIdx != targetIdx && sourceIdx >= 0 && sourceIdx < NotifyTracks.Num())
+                {
+                    // Reorder tracks
+                    ViewerState::NotifyTrack temp = NotifyTracks[sourceIdx];
+                    NotifyTracks.RemoveAt(sourceIdx);
+                    NotifyTracks.Insert(temp, targetIdx);
+                    DraggedTrackIndex = -1;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        // Context menu for track
+        ImGui::PushID(Track.ID);
+        if (ImGui::BeginPopupContextItem("TrackContextMenu"))
+        {
+            if (ImGui::MenuItem("Rename Track"))
+            {
+                RenameTrackID = Track.ID;
+                bOpenRenamePopup = true;
+            }
+            if (ImGui::MenuItem("Delete Track"))
+            {
+                // Delete all notifies in this track
+                for (int j = Notifies.Num() - 1; j >= 0; j--)
+                {
+                    if (Notifies[j].TrackIndex == Track.ID)
+                    {
+                        Notifies.RemoveAt(j);
+                    }
+                }
+                // Remove track from array
+                NotifyTracks.RemoveAt(i);
+                if (ActiveState->SelectedNotifyTrackID == Track.ID)
+                {
+                    ActiveState->SelectedNotifyTrackID = NotifyTracks.Num() > 0 ? NotifyTracks[0].ID : -1;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+    }
+    ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+
+    // Open rename popup if flagged
+    if (bOpenRenamePopup)
+    {
+        ImGui::OpenPopup("RenameTrackPopup");
+        bOpenRenamePopup = false;
+    }
+
+    // Rename Track Popup (outside the loop)
+    static char RenameBuffer[64] = "";
+    if (ImGui::BeginPopup("RenameTrackPopup"))
+    {
+        ImGui::Text("Rename Track");
+        ImGui::Separator();
+
+        if (ImGui::IsWindowAppearing())
+        {
+            // Find track name by ID
+            for (int i = 0; i < NotifyTracks.Num(); i++)
+            {
+                if (NotifyTracks[i].ID == RenameTrackID)
+                {
+                    strcpy_s(RenameBuffer, NotifyTracks[i].Name.c_str());
+                    break;
+                }
+            }
+        }
+
+        bool bPressedEnter = ImGui::InputText("Name", RenameBuffer, sizeof(RenameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("OK", ImVec2(120, 0)) || bPressedEnter)
+        {
+            // Find and update track by ID
+            for (int i = 0; i < NotifyTracks.Num(); i++)
+            {
+                if (NotifyTracks[i].ID == RenameTrackID)
+                {
+                    NotifyTracks[i].Name = RenameBuffer;
+                    break;
+                }
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    // Add track button
+    if (ImGui::Button("Add Track", ImVec2(LeftControlWidth - 20.0f, 0)))
+    {
+        ViewerState::NotifyTrack NewTrack;
+        NewTrack.ID = ActiveState->NextTrackID++;
+        char newTrackName[64];
+        sprintf_s(newTrackName, "Track %d", NewTrack.ID);
+        NewTrack.Name = newTrackName;
+        NotifyTracks.Add(NewTrack);
+    }
 
     ImGui::EndChild();
 
@@ -961,8 +1073,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     ImGui::SetCursorPosX(5.0f);
     ImGui::SetCursorPosY(10.0f);
 
-    // First Frame
-    if (ImGui::Button(u8"\u23EE##First", ImVec2(buttonSize, buttonSize)))
+    // First Frame (|◀)
+    if (ImGui::Button("|\xE2\x97\x80##First", ImVec2(buttonSize, buttonSize)))
     {
         AnimSingleNodeInstance->Pause();
         AnimSingleNodeInstance->SetInteralTime(0.0f);
@@ -972,8 +1084,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
 
     ImGui::SameLine();
 
-    // Previous Frame
-    if (ImGui::Button(u8"\u25C0##Prev", ImVec2(buttonSize, buttonSize)))
+    // Previous Frame (◀)
+    if (ImGui::Button("\xE2\x97\x80##Prev", ImVec2(buttonSize, buttonSize)))
     {
         AnimSingleNodeInstance->Pause();
         float frameTime = AnimationLength / AnimSequence->NumberOfFrames;
@@ -985,8 +1097,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
 
     ImGui::SameLine();
 
-    // Stop
-    if (ImGui::Button(u8"\u23F9##Stop", ImVec2(buttonSize, buttonSize)))
+    // Stop (■)
+    if (ImGui::Button("\xE2\x96\xA0##Stop", ImVec2(buttonSize, buttonSize)))
     {
         AnimSingleNodeInstance->Pause();
         AnimSingleNodeInstance->SetInteralTime(0.0f);
@@ -1000,7 +1112,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     if (AnimSingleNodeInstance->IsPlaying())
     {
         bBoneChanged = true;
-        if (ImGui::Button(u8"\u23F8##Pause", ImVec2(buttonSize, buttonSize)))
+        // Pause (||)
+        if (ImGui::Button("||##Pause", ImVec2(buttonSize, buttonSize)))
         {
             AnimSingleNodeInstance->Pause();
         }
@@ -1009,7 +1122,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     }
     else
     {
-        if (ImGui::Button(u8"\u25B6##Play", ImVec2(buttonSize, buttonSize)))
+        // Play (▶)
+        if (ImGui::Button("\xE2\x96\xB6##Play", ImVec2(buttonSize, buttonSize)))
         {
             AnimSingleNodeInstance->Play(ActiveState->bLoopAnimation);
         }
@@ -1019,8 +1133,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
 
     ImGui::SameLine();
 
-    // Next Frame
-    if (ImGui::Button(u8"\u25B6##Next", ImVec2(buttonSize, buttonSize)))
+    // Next Frame (▶)
+    if (ImGui::Button("\xE2\x96\xB6##Next", ImVec2(buttonSize, buttonSize)))
     {
         AnimSingleNodeInstance->Pause();
         float frameTime = AnimationLength / AnimSequence->NumberOfFrames;
@@ -1032,8 +1146,8 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
 
     ImGui::SameLine();
 
-    // Last Frame
-    if (ImGui::Button(u8"\u23ED##Last", ImVec2(buttonSize, buttonSize)))
+    // Last Frame (▶|)
+    if (ImGui::Button("\xE2\x96\xB6|##Last", ImVec2(buttonSize, buttonSize)))
     {
         AnimSingleNodeInstance->Pause();
         AnimSingleNodeInstance->SetInteralTime(AnimationLength);
@@ -1050,7 +1164,7 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
         ImVec4(0.20f, 0.60f, 0.45f, 1.0f) : ImVec4(0.30f, 0.33f, 0.38f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ActiveState->bLoopAnimation ?
         ImVec4(0.10f, 0.40f, 0.25f, 1.0f) : ImVec4(0.15f, 0.17f, 0.20f, 1.0f));
-    if (ImGui::Button(u8"\u21BB##Loop", ImVec2(buttonSize, buttonSize)))
+    if (ImGui::Button("Loop##Loop", ImVec2(buttonSize * 1.5f, buttonSize)))
     {
         ActiveState->bLoopAnimation = !ActiveState->bLoopAnimation;
         if (AnimSingleNodeInstance->IsPlaying())
@@ -1062,17 +1176,15 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
         ImGui::SetTooltip(ActiveState->bLoopAnimation ? "Loop: ON" : "Loop: OFF");
     ImGui::PopStyleColor(6);
 
-    ImGui::PopStyleVar();
-
-    // Speed control (next line)
-    ImGui::SetCursorPosX(5.0f);
-    ImGui::Dummy(ImVec2(0.0f, 2.0f));
+    // Speed control (same line)
+    ImGui::SameLine();
+    ImGui::Dummy(ImVec2(5.0f, 0.0f)); // Small spacer
+    ImGui::SameLine();
 
     float playRate = AnimSingleNodeInstance->GetPlayRate();
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
 
-    ImGui::SetCursorPosX(5.0f);
-    ImGui::PushItemWidth(70.0f);
+    ImGui::PushItemWidth(60.0f);
 
     const char* speedOptions[] = { "x0.1", "x0.25", "x0.5", "x1.0", "x1.5", "x2.0", "x3.0" };
     const float speedValues[] = { 0.1f, 0.25f, 0.5f, 1.0f, 1.5f, 2.0f, 3.0f };
@@ -1112,6 +1224,7 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
 
     ImGui::PopStyleColor(4);
     ImGui::PopItemWidth();
+    ImGui::PopStyleVar(); // ItemSpacing
 
     ImGui::EndChild(); // PlaybackControls
     ImGui::EndChild(); // LeftControlArea
@@ -1121,21 +1234,23 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     ImGui::SameLine(0, 0);
     ImGui::BeginChild("TimelineArea", ImVec2(RightTimelineWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
 
-    // Timeline with frame markers
+    // Timeline layout
     ImVec2 TimeLineStartPos = ImGui::GetCursorScreenPos();
     float TimeLineWidth = RightTimelineWidth - 20.0f;
-    float TimeLineHeight = WindowHeight - 60.0f; // Leave space for bottom info
     TimeLineStartPos.x += 10.0f;
     TimeLineStartPos.y += 10.0f;
+
+    // Use same heights as left panel
+    float TotalTracksHeight = NotifyTracks.Num() * TrackHeight;
+    float TimeLineHeight = HeaderHeight + TotalTracksHeight;
+
     ImVec2 TimeLineEndPos = ImVec2(TimeLineStartPos.x + TimeLineWidth, TimeLineStartPos.y + TimeLineHeight);
 
     // Background
     DrawList->AddRectFilled(TimeLineStartPos, TimeLineEndPos, IM_COL32(25, 25, 28, 255));
-
-    // Timeline border
     DrawList->AddRect(TimeLineStartPos, TimeLineEndPos, IM_COL32(60, 60, 65, 255), 0.0f, 0, 1.0f);
 
-    // Draw frame markers with labels
+    // Draw frame markers and labels in header
     int FrameStep = 5;
     if (AnimSequence->NumberOfFrames > 100) FrameStep = 10;
     if (AnimSequence->NumberOfFrames > 200) FrameStep = 20;
@@ -1144,47 +1259,454 @@ void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
     {
         float Xpos = TimeLineStartPos.x + (Frame / (float)AnimSequence->NumberOfFrames) * TimeLineWidth;
 
-        // Vertical line
+        // Vertical grid line
         DrawList->AddLine(
-            ImVec2(Xpos, TimeLineStartPos.y),
+            ImVec2(Xpos, TimeLineStartPos.y + HeaderHeight),
             ImVec2(Xpos, TimeLineEndPos.y),
-            IM_COL32(50, 50, 55, 255), 1.0f
+            IM_COL32(40, 40, 45, 255), 1.0f
         );
 
-        // Frame number at top
+        // Frame number
         char frameLabel[16];
         sprintf_s(frameLabel, "%d", Frame);
         ImVec2 labelSize = ImGui::CalcTextSize(frameLabel);
-        DrawList->AddText(ImVec2(Xpos - labelSize.x * 0.5f, TimeLineStartPos.y + 2.0f), IM_COL32(150, 150, 155, 255), frameLabel);
+        DrawList->AddText(ImVec2(Xpos - labelSize.x * 0.5f, TimeLineStartPos.y + 5.0f), IM_COL32(150, 150, 155, 255), frameLabel);
     }
 
-    // Draw playhead (green vertical line)
+    // Dragging state
+    static int DraggingNotifyIndex = -1;
+    static float DragStartTime = 0.0f;
+    static int DragStartTrack = 0;
+    static float DragOffsetX = 0.0f;  // Offset from notify start position to click position
+
+    // Track if any notify was right-clicked (to prevent timeline right-click conflict)
+    static bool bNotifyRightClicked = false;
+    bNotifyRightClicked = false;
+
+    // Draw track lanes
+    for (int trackIdx = 0; trackIdx < NotifyTracks.Num(); trackIdx++)
+    {
+        const ViewerState::NotifyTrack& Track = NotifyTracks[trackIdx];
+        float LaneY = TimeLineStartPos.y + HeaderHeight + trackIdx * TrackHeight;
+
+        // Lane background (alternating colors)
+        ImU32 LaneColor = (trackIdx % 2 == 0) ? IM_COL32(30, 30, 33, 255) : IM_COL32(25, 25, 28, 255);
+        DrawList->AddRectFilled(
+            ImVec2(TimeLineStartPos.x, LaneY),
+            ImVec2(TimeLineEndPos.x, LaneY + TrackHeight),
+            LaneColor
+        );
+
+        // Lane separator
+        DrawList->AddLine(
+            ImVec2(TimeLineStartPos.x, LaneY),
+            ImVec2(TimeLineEndPos.x, LaneY),
+            IM_COL32(50, 50, 55, 255), 1.0f
+        );
+
+        // Draw notifies in this track (skip dragging notify)
+        for (int i = 0; i < Notifies.Num(); i++)
+        {
+            // Skip notify being dragged - will be drawn separately at the end
+            if (DraggingNotifyIndex == i) continue;
+
+            FAnimNotifyEvent& Notify = Notifies[i];
+            if (Notify.TrackIndex != Track.ID) continue;
+
+            float NotifyPosX = TimeLineStartPos.x + (Notify.TriggerTime / AnimationLength) * TimeLineWidth;
+            float NotifyY = LaneY + 8.0f;
+
+            // Notify marker (triangle)
+            ImVec2 p1(NotifyPosX, NotifyY);
+            ImVec2 p2(NotifyPosX - 6.0f, NotifyY + 12.0f);
+            ImVec2 p3(NotifyPosX + 6.0f, NotifyY + 12.0f);
+
+            ImU32 NotifyColor = (i == SelectedNotifyIndex)
+                ? IM_COL32(255, 200, 80, 255)   // Selected
+                : IM_COL32(200, 120, 255, 255); // Normal
+
+            DrawList->AddTriangleFilled(p1, p2, p3, NotifyColor);
+            DrawList->AddTriangle(p1, p2, p3, IM_COL32(255, 255, 255, 180), 1.5f);
+
+            // Duration bar
+            float DurationEndPosX = NotifyPosX;  // Default to marker position
+            if (Notify.Duration > 0.0f)
+            {
+                DurationEndPosX = TimeLineStartPos.x + ((Notify.TriggerTime + Notify.Duration) / AnimationLength) * TimeLineWidth;
+                DrawList->AddRectFilled(
+                    ImVec2(NotifyPosX, NotifyY + 12.0f),
+                    ImVec2(DurationEndPosX, NotifyY + 20.0f),
+                    IM_COL32(200, 120, 255, 120)
+                );
+                DrawList->AddRect(
+                    ImVec2(NotifyPosX, NotifyY + 12.0f),
+                    ImVec2(DurationEndPosX, NotifyY + 20.0f),
+                    IM_COL32(200, 120, 255, 255), 0.0f, 0, 1.5f
+                );
+            }
+
+            // Clickable/draggable area for notify (text will be drawn later on top)
+            // IMPORTANT: Store FString first to avoid dangling pointer from temporary object
+            FString notifyNameStr = Notify.NotifyName.ToString();
+            const char* notifyName = notifyNameStr.c_str();
+            ImVec2 textSize = ImGui::CalcTextSize(notifyName);
+
+            // Calculate button width to include duration bar and text label
+            float textEndX = NotifyPosX + 10.0f + textSize.x + 2.0f;  // Text label end position
+            float buttonRightEdge = FMath::Max(textEndX, DurationEndPosX);  // Whichever is further right
+            float buttonWidth = buttonRightEdge - (NotifyPosX - 10.0f);
+
+            ImGui::SetCursorScreenPos(ImVec2(NotifyPosX - 10.0f, NotifyY - 5.0f));
+            ImGui::PushID(i);
+            ImGui::InvisibleButton("##Notify", ImVec2(buttonWidth, 25.0f));
+
+            bool bItemHovered = ImGui::IsItemHovered();
+            bool bItemActive = ImGui::IsItemActive();
+
+            // Check if this notify was right-clicked
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+            {
+                bNotifyRightClicked = true;
+            }
+
+            // Right click context menu for notify
+            if (ImGui::BeginPopupContextItem("NotifyContextMenu"))
+            {
+                SelectedNotifyIndex = i;
+
+                if (ImGui::MenuItem("Edit Notify"))
+                {
+                    bOpenEditNotifyPopup = true;
+                }
+                if (ImGui::MenuItem("Delete Notify"))
+                {
+                    Notifies.RemoveAt(i);
+                    SelectedNotifyIndex = -1;
+                }
+                ImGui::EndPopup();
+            }
+
+            // Double click to edit (check first to prevent single click action)
+            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && bItemHovered)
+            {
+                SelectedNotifyIndex = i;
+                bOpenEditNotifyPopup = true;
+            }
+            // Start dragging
+            else if (bItemActive && ImGui::IsMouseDragging(ImGuiMouseButton_Left, 2.0f))
+            {
+                DraggingNotifyIndex = i;
+                DragStartTime = Notify.TriggerTime;
+                DragStartTrack = Notify.TrackIndex;
+                // Calculate offset: where did the user click relative to the notify start position?
+                DragOffsetX = ImGui::GetMousePos().x - NotifyPosX;
+            }
+            // Single click (selection only, no timeline seek)
+            else if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+            {
+                SelectedNotifyIndex = i;
+            }
+
+            ImGui::PopID();
+        }
+    }
+
+    // Pass 2: Draw all notify text labels on top using ForegroundDrawList (renders above all widgets)
+    ImDrawList* FgDrawList = ImGui::GetForegroundDrawList();
+    for (int trackIdx = 0; trackIdx < NotifyTracks.Num(); trackIdx++)
+    {
+        const ViewerState::NotifyTrack& Track = NotifyTracks[trackIdx];
+        float LaneY = TimeLineStartPos.y + HeaderHeight + trackIdx * TrackHeight;
+
+        for (int i = 0; i < Notifies.Num(); i++)
+        {
+            // Skip notify being dragged
+            if (DraggingNotifyIndex == i) continue;
+
+            FAnimNotifyEvent& Notify = Notifies[i];
+            if (Notify.TrackIndex != Track.ID) continue;
+
+            float NotifyPosX = TimeLineStartPos.x + (Notify.TriggerTime / AnimationLength) * TimeLineWidth;
+            float NotifyY = LaneY + 8.0f;
+
+            // Draw notify label with background box on top
+            // IMPORTANT: Store FString first to avoid dangling pointer from temporary object
+            FString notifyNameStr = Notify.NotifyName.ToString();
+            const char* notifyName = notifyNameStr.c_str();
+            ImVec2 textSize = ImGui::CalcTextSize(notifyName);
+
+            ImVec2 boxMin(NotifyPosX + 8.0f, NotifyY);
+            ImVec2 boxMax(NotifyPosX + 12.0f + textSize.x, NotifyY + textSize.y + 4.0f);
+
+            ImU32 BoxColor = (i == SelectedNotifyIndex)
+                ? IM_COL32(60, 50, 80, 220)   // Selected
+                : IM_COL32(45, 45, 55, 200);  // Normal
+
+            FgDrawList->AddRectFilled(boxMin, boxMax, BoxColor, 3.0f);
+            FgDrawList->AddRect(boxMin, boxMax, IM_COL32(150, 150, 160, 150), 3.0f, 0, 1.0f);
+
+            FgDrawList->AddText(
+                ImVec2(NotifyPosX + 10.0f, NotifyY + 2.0f),
+                IM_COL32(220, 230, 240, 255),
+                notifyName
+            );
+        }
+    }
+
+    // Draw dragging notify on top of everything
+    if (DraggingNotifyIndex >= 0 && DraggingNotifyIndex < Notifies.Num())
+    {
+        FAnimNotifyEvent& DragNotify = Notifies[DraggingNotifyIndex];
+
+        // Calculate position based on mouse, maintaining click offset
+        ImVec2 MousePos = ImGui::GetMousePos();
+        float NotifyPosX = MousePos.x - DragOffsetX;  // Apply offset to maintain click position
+        float MouseY = MousePos.y - (TimeLineStartPos.y + HeaderHeight);
+        int DragTrackArrayIdx = FMath::Clamp((int)(MouseY / TrackHeight), 0, NotifyTracks.Num() - 1);
+        float NotifyY = TimeLineStartPos.y + HeaderHeight + DragTrackArrayIdx * TrackHeight + 8.0f;
+
+        // Notify marker (triangle) - bright yellow for dragging
+        ImVec2 p1(NotifyPosX, NotifyY);
+        ImVec2 p2(NotifyPosX - 6.0f, NotifyY + 12.0f);
+        ImVec2 p3(NotifyPosX + 6.0f, NotifyY + 12.0f);
+
+        DrawList->AddTriangleFilled(p1, p2, p3, IM_COL32(255, 200, 80, 255));
+        DrawList->AddTriangle(p1, p2, p3, IM_COL32(255, 255, 255, 220), 2.0f);
+
+        // Duration bar
+        if (DragNotify.Duration > 0.0f)
+        {
+            float EndPosX = NotifyPosX + (DragNotify.Duration / AnimationLength) * TimeLineWidth;
+            DrawList->AddRectFilled(
+                ImVec2(NotifyPosX, NotifyY + 12.0f),
+                ImVec2(EndPosX, NotifyY + 20.0f),
+                IM_COL32(255, 200, 80, 150)
+            );
+            DrawList->AddRect(
+                ImVec2(NotifyPosX, NotifyY + 12.0f),
+                ImVec2(EndPosX, NotifyY + 20.0f),
+                IM_COL32(255, 200, 80, 255), 0.0f, 0, 2.0f
+            );
+        }
+
+        // Notify label with background box (use ForegroundDrawList for topmost rendering)
+        // IMPORTANT: Store FString first to avoid dangling pointer from temporary object
+        FString notifyNameStr = DragNotify.NotifyName.ToString();
+        const char* notifyName = notifyNameStr.c_str();
+        ImVec2 textSize = ImGui::CalcTextSize(notifyName);
+
+        // Background box for label (dragging)
+        ImVec2 boxMin(NotifyPosX + 8.0f, NotifyY);
+        ImVec2 boxMax(NotifyPosX + 12.0f + textSize.x, NotifyY + textSize.y + 4.0f);
+
+        FgDrawList->AddRectFilled(boxMin, boxMax, IM_COL32(80, 60, 30, 230), 3.0f);
+        FgDrawList->AddRect(boxMin, boxMax, IM_COL32(255, 200, 80, 200), 3.0f, 0, 1.5f);
+
+        FgDrawList->AddText(
+            ImVec2(NotifyPosX + 10.0f, NotifyY + 2.0f),
+            IM_COL32(255, 255, 255, 255),
+            notifyName
+        );
+
+        // End dragging on mouse release
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            // Apply offset when calculating final position
+            float Ratio = ((MousePos.x - DragOffsetX) - TimeLineStartPos.x) / TimeLineWidth;
+            Ratio = std::clamp(Ratio, 0.0f, 1.0f);
+            DragNotify.TriggerTime = Ratio * AnimationLength;
+            // Convert array index to Track.ID
+            DragNotify.TrackIndex = NotifyTracks[DragTrackArrayIdx].ID;
+
+            SelectedNotifyIndex = DraggingNotifyIndex;
+            DraggingNotifyIndex = -1;
+        }
+    }
+
+    // Draw playhead
     float HeadPosX = TimeLineStartPos.x + (CurrentInternalTime / AnimationLength) * TimeLineWidth;
     DrawList->AddLine(
-        ImVec2(HeadPosX, TimeLineStartPos.y),
+        ImVec2(HeadPosX, TimeLineStartPos.y + HeaderHeight),
         ImVec2(HeadPosX, TimeLineEndPos.y),
         IM_COL32(80, 200, 120, 255), 2.0f);
 
-    // Playhead draggable area
-    ImGui::SetCursorScreenPos(TimeLineStartPos);
-    ImGui::InvisibleButton("##TimeLineHeadButton", ImVec2(TimeLineWidth, TimeLineHeight));
-    if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    // Timeline interaction (InvisibleButton for dragging playhead and right-click)
+    static ImVec2 RightClickPos;
+    static int RightClickTrackID = -1;
+
+    ImGui::SetCursorScreenPos(ImVec2(TimeLineStartPos.x, TimeLineStartPos.y + HeaderHeight));
+    ImGui::InvisibleButton("##Timeline", ImVec2(TimeLineWidth, TotalTracksHeight));
+
+    if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
     {
         float MouseX = ImGui::GetMousePos().x;
         float Ratio = (MouseX - TimeLineStartPos.x) / TimeLineWidth;
         Ratio = std::clamp(Ratio, 0.0f, 1.0f);
-
         CurrentInternalTime = Ratio * AnimationLength;
         AnimSingleNodeInstance->Pause();
         AnimSingleNodeInstance->SetInteralTime(CurrentInternalTime);
     }
 
-    // Bottom info bar
+    // Only open AddNotify popup if no notify was right-clicked and no other popup is open
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right) && !bNotifyRightClicked && !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId))
+    {
+        RightClickPos = ImGui::GetMousePos();
+        // Determine which track was clicked
+        float MouseY = RightClickPos.y - (TimeLineStartPos.y + HeaderHeight);
+        int RightClickArrayIdx = FMath::Clamp((int)(MouseY / TrackHeight), 0, NotifyTracks.Num() - 1);
+        RightClickTrackID = NotifyTracks[RightClickArrayIdx].ID;
+        ImGui::OpenPopup("AddNotifyPopup");
+    }
+
+    // Add Notify Popup
+    static char NotifyNameInput[64] = "NewNotify";
+    static float NotifyDuration = 0.0f;
+
+    if (ImGui::BeginPopup("AddNotifyPopup"))
+    {
+        ImGui::Text("Add Notify");
+        ImGui::Separator();
+        ImGui::InputText("Name", NotifyNameInput, sizeof(NotifyNameInput));
+        ImGui::InputFloat("Duration", &NotifyDuration, 0.01f, 0.1f, "%.2f");
+
+        if (ImGui::Button("Add", ImVec2(80, 0)))
+        {
+            float Ratio = (RightClickPos.x - TimeLineStartPos.x) / TimeLineWidth;
+            Ratio = std::clamp(Ratio, 0.0f, 1.0f);
+            float TriggerTime = Ratio * AnimationLength;
+
+            FAnimNotifyEvent NewNotify;
+            NewNotify.TriggerTime = TriggerTime;
+            NewNotify.Duration = NotifyDuration;
+            NewNotify.NotifyName = FName(NotifyNameInput);
+            NewNotify.TrackIndex = RightClickTrackID;
+
+            AnimSequence->AddNotify(NewNotify);
+
+            // Reset inputs
+            strcpy_s(NotifyNameInput, "NewNotify");
+            NotifyDuration = 0.0f;
+
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(80, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    // Open edit notify popup if flagged
+    if (bOpenEditNotifyPopup)
+    {
+        ImGui::OpenPopup("EditNotifyPopup");
+        bOpenEditNotifyPopup = false;
+    }
+
+    // Edit Notify Popup
+    static char EditNameBuffer[64] = "";
+    static float EditTime = 0.0f;
+    static float EditDuration = 0.0f;
+    static int EditTrackID = -1;
+
+    if (ImGui::BeginPopup("EditNotifyPopup"))
+    {
+        if (SelectedNotifyIndex >= 0 && SelectedNotifyIndex < Notifies.Num())
+        {
+            FAnimNotifyEvent& Notify = Notifies[SelectedNotifyIndex];
+
+            if (ImGui::IsWindowAppearing())
+            {
+                strcpy_s(EditNameBuffer, Notify.NotifyName.ToString().c_str());
+                EditTime = Notify.TriggerTime;
+                EditDuration = Notify.Duration;
+                EditTrackID = Notify.TrackIndex;
+            }
+
+            ImGui::Text("Edit Notify");
+            ImGui::Separator();
+
+            // Edit name
+            bool bPressedEnter = ImGui::InputText("Name", EditNameBuffer, sizeof(EditNameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+            // Edit time
+            ImGui::InputFloat("Time", &EditTime, 0.01f, 0.1f, "%.2f");
+
+            // Edit duration
+            ImGui::InputFloat("Duration", &EditDuration, 0.01f, 0.1f, "%.2f");
+
+            // Edit track - find current track name
+            FString CurrentTrackName = "Unknown";
+            for (int i = 0; i < NotifyTracks.Num(); i++)
+            {
+                if (NotifyTracks[i].ID == EditTrackID)
+                {
+                    CurrentTrackName = NotifyTracks[i].Name;
+                    break;
+                }
+            }
+
+            if (ImGui::BeginCombo("Track", CurrentTrackName.c_str()))
+            {
+                for (int i = 0; i < NotifyTracks.Num(); i++)
+                {
+                    const ViewerState::NotifyTrack& Track = NotifyTracks[i];
+                    bool isSelected = (Track.ID == EditTrackID);
+                    if (ImGui::Selectable(Track.Name.c_str(), isSelected))
+                    {
+                        EditTrackID = Track.ID;
+                    }
+                    if (isSelected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::Spacing();
+
+            if (ImGui::Button("Save", ImVec2(80, 0)) || bPressedEnter)
+            {
+                Notify.NotifyName = FName(EditNameBuffer);
+                Notify.TriggerTime = FMath::Clamp(EditTime, 0.0f, AnimationLength);
+                Notify.Duration = FMath::Max(0.0f, EditDuration);
+                Notify.TrackIndex = EditTrackID;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Delete", ImVec2(80, 0)))
+            {
+                Notifies.RemoveAt(SelectedNotifyIndex);
+                SelectedNotifyIndex = -1;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(80, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    // Bottom info bar - Current Frame (Time in seconds) (Progress %)
     ImGui::SetCursorScreenPos(ImVec2(TimeLineStartPos.x, TimeLineEndPos.y + 10.0f));
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
 
-    char frameInfo[64];
-    sprintf_s(frameInfo, "%d        0        %d", CurrentFrame, AnimSequence->NumberOfFrames);
+    float ProgressPercent = (AnimationLength > 0.0f) ? (CurrentInternalTime / AnimationLength) * 100.0f : 0.0f;
+
+    char frameInfo[128];
+    sprintf_s(frameInfo, "Frame: %d / %d  (%.2fs / %.2fs)  (%.1f%%)",
+              CurrentFrame,
+              AnimSequence->NumberOfFrames,
+              CurrentInternalTime,
+              AnimationLength,
+              ProgressPercent);
     ImGui::Text("%s", frameInfo);
 
     ImGui::PopStyleColor();

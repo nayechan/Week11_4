@@ -51,7 +51,7 @@ private:
     // Layout state
     float LeftPanelRatio = 0.2f;   // 25% of width
     float RightPanelRatio = 0.2f;  // 25% of width
-    float BottomPanelRatio = 0.2f;
+    float BottomPanelRatio = 0.3f; // 30% of height for bottom panel
 
     // Cached center region used for viewport sizing and input mapping
     FRect CenterRect;

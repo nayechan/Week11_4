@@ -35,4 +35,14 @@ public:
 
     bool bViewAnimation = false;
     bool bLoopAnimation = true;  // Default to looping animation
+
+    // Notify tracks
+    struct NotifyTrack
+    {
+        int32 ID;
+        FString Name;
+    };
+    TArray<NotifyTrack> NotifyTracks;
+    int32 NextTrackID = 1;
+    int32 SelectedNotifyTrackID = -1;
 };

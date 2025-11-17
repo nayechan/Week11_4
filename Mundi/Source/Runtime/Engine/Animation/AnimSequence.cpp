@@ -20,7 +20,7 @@ void UAnimSequence::GetAnimationPose(FPoseContext& OutPose, const FAnimExtractCo
 	for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 	{
 		OutPose.BoneTransforms[BoneIndex] = GetBoneTransformAtTime(BoneIndex, Context.CurrentTime);
-	}
+	}	
 }
 
 FTransform UAnimSequence::GetBoneTransformAtTime(int32 BoneIndex, float Time) const
