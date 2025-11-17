@@ -553,7 +553,11 @@ void FLightManager::AllocateAtlasRegions2D(TArray<FShadowRenderRequest>& InOutRe
 		if (CurrentAtlasY + Request.Size > ShadowAtlasSize2D)
 		{
 			Request.Size = 0; // 꽉 참 (렌더링 실패)
-			UE_LOG("그림자 맵 아틀라스가 가득차서 더 이상 그림자를 추가할 수 없습니다.");
+			if (OwningWorld && !OwningWorld->IsPreviewWorld())
+			{
+				UE_LOG("그림자 맵 아틀라스가 가득차서 더 이상 그림자를 추가할 수 없습니다.");
+			}
+			
 			continue;
 		}
 
