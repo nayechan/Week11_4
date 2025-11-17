@@ -1,13 +1,7 @@
 ﻿#include "pch.h"
 #include "ExceptionHandler.h"
+#include <random>
 
-void CauseCrash()
-{
-	// volatile: 최적화 못 하게 함.
-	volatile int* Trash = nullptr;
-
-	*Trash = 342;
-}
 //UnhandledException이 발생했을 때(Catch구문이 잡지 못한 예외) 호출될 콜백함수
 static LONG WINAPI CustumUnhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
@@ -97,3 +91,76 @@ FExceptionHandler::~FExceptionHandler()
 	}
 
 }
+
+bool FCrasher::bIsCrashMode = false;
+
+void FCrasher::CauseCrash()
+{
+	if (bIsCrashMode)
+	{
+		// 랜덤 시드 생성기
+		std::random_device Random;
+		// 난수 엔진 초기화
+		std::mt19937 Gen(Random());
+
+		std::uniform_int_distribution<int> Distribution(0, GUObjectArray.Num()-1);
+
+		// 난수 엔진을 분포에 넣어서 난수 생성
+		uint32 CrashIndex = Distribution(Gen);
+
+		ObjectFactory::DeleteObject(GUObjectArray[CrashIndex]);
+	}
+}
+ 
+void FCrasher::StartRandomCrash()
+{
+	bIsCrashMode = true;
+}
+
+bool FCrasher::IsCrashMode()
+{
+	return bIsCrashMode;
+}
+
+// _penter는 못 씀
+
+// _penter가 릴리즈에서 터져버림(CRT코드가 실행될때도 _penter 가 호출되는데 그때 CRT가 초기화 안 되서 bIsCrashMode가 쓰레기 값을 가리켜서 터짐.
+// 디버그에서는 이미 컴파일된 CRT를 써서 CRT를 후킹하지 않아서 문제 발생 X, 릴리즈에서 CRT만 후킹 못하도록 하는 기능은 없다고 함
+// 그냥 /GL(전체 프로젝트 최적화, 릴리즈 프로젝트 설정으로 CRT포함 통째로 재컴파일, 링크 타임 코드 생성) 옵션을 꺼야하는데 그럼 릴리즈가 아님.
+
+//// 크래시 명령을 내린 순간부터 모든 함수에 진입하기 전에 후킹 함수를 실행할 거임. 
+//// 근데 후킹 함수에서 다른 함수를 호출하면 다시 후킹 함수를 호출하면서 무한재귀가 일어남.
+//// 그래서 후킹 함수를 실행중이라는 플래그가 필요함.(플래그 켜져있으면 후킹 함수 실행 없이 리턴 -> 최초의 후킹 함수만 실행)
+//// thread_local이 아니라 전역일때: 스레드 A에서 후킹 함수 실행 -> 후킹 플래그 설정 -> 스레드 B 전환 -> 스레드 B 함수 실행 -> 후킹함수 실행 안됨
+//// 호출되는 모든 함수에 후킹 함수를 실행하는 것이 목적이라서 위의 시나리오는 원하는 동작이 아님. 그래서 스레드 로컬
+//static thread_local bool bIsInHook = false;
+//// extern "C" : C스타일(오버로딩 X, 변수 이름 그대로 저장)로 선언해서 어셈블리 파일이 정확히 링크할 수 있도록 함.
+//// 이 변수는 후킹 함수 실행 여부를 결정함(크래시 명령을 내린 순간부터 후킹 함수를 실행하기 위함. 후킹 함수 실행 비용 절약)
+// extern "C" bool bIsCrashMode = false;
+//
+//// 크래시 되는 카운트
+//static uint64 CountToBeCrashed = 0;
+//// 크래시 명렁 이후 콜 카운트
+//static uint64 CallCount = 0;
+//
+//
+//// --Penter 호출 시 실행될 후킹함수(이 후킹 함수는 __penter 호출에서 제외시켜야함. 아니면 또 무한재귀, __Penter -> 후킹 -> __Penter)
+//__declspec(noinline)
+//extern "C" void PenterHook()
+//{
+//	if (bIsInHook)
+//	{
+//		return;
+//	}
+//	bIsInHook = true;
+//
+//	CallCount++;
+//	if (CountToBeCrashed == CallCount)
+//	{
+//		// 위에서 bIsInHook을 체크했기 때문에 CauseCrash 호출 시 PenterHook 재귀호출 방어됨
+//		CauseCrash();
+//	}
+//}
+//
+
+

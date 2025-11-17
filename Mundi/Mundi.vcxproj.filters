@@ -505,7 +505,6 @@
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaBindingRegistry.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaObjectProxy.cpp" />
-    <ClCompile Include="Source\Editor\FBXLoader.cpp" />
     <ClCompile Include="Source\Runtime\Core\Misc\VertexData.cpp" />
     <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.cpp" />
     <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\ViewerState.cpp" />
@@ -686,7 +685,39 @@
     <ClCompile Include="Source\Slate\ThumbnailManager.cpp" />
     <ClCompile Include="Source\Slate\Windows\SConsolePanel.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
-  <ClCompile Include="Generated\FTestTransform.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UTestComponent.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\FAnimState.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UAnimStateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UCharacterAnimInstance.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UCharacterStateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\ATestAnimNotifyActor.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
+    <ClCompile Include="Generated\FTestTransform.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UTestComponent.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\FAnimState.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UAnimStateMachine.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UCharacterAnimInstance.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UCharacterStateMachine.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\ATestAnimNotifyActor.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Plugins\Fbx\FbxConvert.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxHelper.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxMaterial.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxAnimation.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxScene.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxMesh.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxParser.cpp" />
+    <ClCompile Include="Plugins\Fbx\FbxLoader.cpp" />
+    <ClCompile Include="Source\Runtime\Core\Misc\ExceptionHandler.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1279,7 +1310,6 @@
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaBindingRegistry.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaObjectProxy.h" />
-    <ClInclude Include="Source\Editor\FBXLoader.h" />
     <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\SkeletalViewerBootstrap.h" />
     <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\ViewerState.h" />
     <ClInclude Include="Source\Runtime\Renderer\FSkeletalViewerViewportClient.h" />
@@ -1466,7 +1496,41 @@
     <ClInclude Include="Source\Slate\Windows\SConsolePanel.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
-  <ClInclude Include="Generated\FTestTransform.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UTestComponent.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\FAnimState.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UAnimStateMachine.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UCharacterAnimInstance.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UCharacterStateMachine.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\ATestAnimNotifyActor.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\AnimationTypes.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
+    <ClInclude Include="Generated\FTestTransform.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UTestComponent.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\FAnimState.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UAnimStateMachine.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UCharacterAnimInstance.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UCharacterStateMachine.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Plugins\Fbx\FbxConvert.h" />
+    <ClInclude Include="Plugins\Fbx\FbxHelper.h" />
+    <ClInclude Include="Plugins\Fbx\FbxMaterial.h" />
+    <ClInclude Include="Plugins\Fbx\FbxAnimation.h" />
+    <ClInclude Include="Plugins\Fbx\FbxScene.h" />
+    <ClInclude Include="Plugins\Fbx\FbxMesh.h" />
+    <ClInclude Include="Plugins\Fbx\FbxParser.h" />
+    <ClInclude Include="Plugins\Fbx\FbxLoader.h" />
+    <ClInclude Include="Source\Runtime\Core\Misc\ExceptionHandler.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\TestComponent.h" />
+    <ClInclude Include="Source\Runtime\Core\Math\TestTransform.h" />
+  <ClInclude Include="Generated\AnimationTypes.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

@@ -377,12 +377,26 @@ void UStatsOverlayD2D::Draw()
 	if (bShowSkinningProfile)
 	{
 		wchar_t Buf[512];
-		swprintf_s(Buf, L"CPU Skinning Time : %.3fms\n \
-						  GPU Mesh Draw Time : %.3fms",
-			FScopeCycleCounter::GetTimeProfile("SkinningTimeCPU").Milliseconds,
-			FScopeCycleCounter::GetTimeProfile("MeshDrawTimeInGpu").Milliseconds);
-		const float SkinningProfileHeight = 100.0f;
-		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth, NextY + SkinningProfileHeight);
+		if(GEngine.GetRenderer()->IsGpuSkinning())
+		{ 
+			swprintf_s(Buf, L"[GPU SKINNING]\n \
+						  Constant Buffer Update Time: %.3fms\n \
+						  GPU Mesh Draw Time: %.3fms",
+				FScopeCycleCounter::GetTimeProfile("ConstantBufferUpdateTime").Milliseconds,
+				FScopeCycleCounter::GetTimeProfile("MeshDrawTimeInGpu").Milliseconds);
+		}
+		else
+		{
+			swprintf_s(Buf, L"[CPU SKINNING]\n \
+						  Vertices Skinning Time: %.3fms\n \
+						  Vertex Buffer Update Time: %.3fms\n \
+						  GPU Mesh Draw Time: %.3fms",
+				FScopeCycleCounter::GetTimeProfile("VerticesSkinningTime").Milliseconds,
+				FScopeCycleCounter::GetTimeProfile("VertexBufferUpdateTime").Milliseconds,
+				FScopeCycleCounter::GetTimeProfile("MeshDrawTimeInGpu").Milliseconds);
+		}
+		const float SkinningProfileHeight = 220.0f;
+		D2D1_RECT_F rc = D2D1::RectF(Margin, NextY, Margin + PanelWidth+ 10.0f, NextY + SkinningProfileHeight);
 		DrawTextBlock(
 			D2dCtx, Dwrite, Buf, rc, 16.0f,
 			D2D1::ColorF(0, 0, 0, 0.6f),

@@ -1423,11 +1423,11 @@ void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, b
 		if (Batch.SkinnedMeshComponent)
 		{
 			const TArray<FMatrix>& SkinningMatrices = Batch.SkinnedMeshComponent->GetFinalSkinningMatrices();
-			TIME_PROFILE(SkinningTimeCPU)
+			TIME_PROFILE(ConstantBufferUpdateTime)
 			// 기존의 구조체 전달 방식은 SkinningMatrix같은 대용량 버퍼를 전달하기에 적합하지 않음(힙에서 스택으로 64KB 복사됨)
 			// 그래서 따로 만듦.
 			RHIDevice->ConstantBufferUpdateForMatrixArray(RHIDevice->GetConstantBuffer<FSkinningMatrixBufferType>(), SkinningMatrices, 5, true, false);
-			TIME_PROFILE_END(SkinningTimeCPU)
+			TIME_PROFILE_END(ConstantBufferUpdateTime)
 		}
 
 		// 5. 드로우 콜 실행
