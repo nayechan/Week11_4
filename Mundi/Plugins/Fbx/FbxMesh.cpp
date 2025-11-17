@@ -1,6 +1,6 @@
-#include "pch.h"
+﻿#include "pch.h"
 #pragma warning(push)
-#pragma warning(disable: 4244) // Disable double to float conversion warning for FBX SDK
+#pragma warning(disable: 4244) // FBX SDK의 double에서 float 변환 경고 비활성화
 #include "FbxMesh.h"
 #include "FbxMaterial.h"
 #include "FbxConvert.h"
@@ -12,6 +12,89 @@
 // ========================================
 // FBX 메시 추출 구현
 // ========================================
+
+/**
+ * ShouldReverseWindingOrder
+ *
+ * 메시의 winding order를 자동 감지하여 reverse가 필요한지 판단
+ *
+ * @param Vertices - 메시의 정점 데이터
+ * @param IndexList - 메시의 인덱스 리스트
+ * @return true면 CCW (reverse 필요), false면 CW (reverse 불필요)
+ *
+ * 알고리즘:
+ * 1. 첫 번째 삼각형의 정점으로 외적 계산 (계산된 법선 벡터)
+ * 2. FBX에서 제공하는 법선과 내적 비교
+ * 3. 음수면 CCW (법선 반대 방향), 양수면 CW (법선 같은 방향)
+ */
+static bool ShouldReverseWindingOrder(
+	const TArray<FSkinnedVertex>& Vertices,
+	const TArray<uint32>& IndexList)
+{
+	// 최소 1개의 삼각형 필요
+	if (IndexList.Num() < 3 || Vertices.Num() == 0)
+	{
+		// 기본값: reverse 수행 (안전한 fallback)
+		return true;
+	}
+
+	// 첫 번째 유효한 삼각형 찾기 (degenerate triangle 스킵)
+	for (int32 i = 0; i < IndexList.Num(); i += 3)
+	{
+		if (i + 2 >= IndexList.Num()) break;
+
+		uint32 i0 = IndexList[i];
+		uint32 i1 = IndexList[i + 1];
+		uint32 i2 = IndexList[i + 2];
+
+		// 인덱스 범위 검증
+		if (i0 >= (uint32)Vertices.Num() || i1 >= (uint32)Vertices.Num() || i2 >= (uint32)Vertices.Num())
+		{
+			continue;
+		}
+
+		const FSkinnedVertex& v0 = Vertices[i0];
+		const FSkinnedVertex& v1 = Vertices[i1];
+		const FSkinnedVertex& v2 = Vertices[i2];
+
+		// 외적으로 계산된 법선 벡터 계산 (오른손 법칙)
+		FVector edge1 = v1.Position - v0.Position;
+		FVector edge2 = v2.Position - v0.Position;
+		FVector computedNormal = FVector::Cross(edge1, edge2);
+
+		// 퇴화 삼각형 체크 (면적이 0인 경우)
+		float computedLength = computedNormal.Size();
+		if (computedLength < 1e-6f)
+		{
+			continue; // 다음 삼각형 시도
+		}
+
+		computedNormal.Normalize();
+
+		// FBX에서 제공하는 평균 법선
+		FVector fbxNormal = (v0.Normal + v1.Normal + v2.Normal) / 3.0f;
+
+		// 법선이 영벡터인 경우 처리
+		float fbxNormalLength = fbxNormal.Size();
+		if (fbxNormalLength < 1e-6f)
+		{
+			continue; // 다음 삼각형 시도
+		}
+
+		fbxNormal.Normalize();
+
+		// 내적으로 방향 비교
+		float dot = FVector::Dot(computedNormal, fbxNormal);
+
+		// 결과 해석:
+		// dot > 0: 법선 방향 일치 → CW (Mundi 타겟) → reverse 불필요
+		// dot < 0: 법선 방향 반대 → CCW → reverse 필요
+		return (dot < 0.0f);
+	}
+
+	// 모든 삼각형이 degenerate인 경우, 기본값으로 reverse 수행
+	return true;
+}
 
 /**
  * ExtractMeshFromNode
@@ -176,9 +259,8 @@ void FFbxMesh::ExtractMesh(
 		{
 			FbxCluster* Cluster = ((FbxSkin*)InMesh->GetDeformer(0, FbxDeformer::eSkin))->GetCluster(Index);
 
-			// NOTE: FbxSceneWorld is now computed using ComputeSkeletalMeshTotalMatrix()
-			// instead of Cluster->GetTransformMatrix() for correct GeometricTransform handling
-			// (See Phase 3 modification below)
+			// 주의: FbxSceneWorld는 이제 ComputeSkeletalMeshTotalMatrix()를 사용하여 계산됨
+			// GeometricTransform을 올바르게 처리하기 위해 Cluster->GetTransformMatrix() 대신 사용
 
 			int IndexCount = Cluster->GetControlPointIndicesCount();
 			// 클러스터가 영향을 주는 ControlPointIndex를 구함.
@@ -186,14 +268,14 @@ void FFbxMesh::ExtractMesh(
 			double* Weights = Cluster->GetControlPointWeights();
 
 			// ========================================
-			// PHASE 3: Week10 Migration - Cluster-based Bind Pose
+			// Cluster 기반 Bind Pose
 			// ========================================
 
-			// CRITICAL: Use Cluster TransformLinkMatrix (Skinning Bind Pose)
-			// NOT AnimationEvaluator Time 0 (Scene Pose) - they can differ!
+			// 중요: Cluster TransformLinkMatrix 사용 (스키닝 Bind Pose)
+			// AnimationEvaluator Time 0 (Scene Pose) 사용 금지 - 둘이 다를 수 있음!
 			FbxNode* BoneNode = Cluster->GetLink();
 
-			// Get TransformLinkMatrix from Cluster (actual skinning bind pose)
+			// Cluster에서 TransformLinkMatrix 획득 (실제 스키닝 Bind Pose)
 			FbxAMatrix TransformLinkMatrix;
 			Cluster->GetTransformLinkMatrix(TransformLinkMatrix);
 
@@ -210,14 +292,14 @@ void FFbxMesh::ExtractMesh(
 			// - bForceFrontXAxis = true:  SetR(-90°, -90°, 0°) (+X Forward)
 			TransformLinkMatrix = TransformLinkMatrix * JointOrientationMatrix;
 
-			// Convert to Mundi FMatrix with Y-Flip (Right-Handed → Left-Handed)
+			// Y-Flip 적용하여 Mundi FMatrix로 변환 (Right-Handed → Left-Handed)
 			FMatrix GlobalBindPoseMatrix = FFbxConvert::ConvertMatrix(TransformLinkMatrix);
 
-			// Calculate Inverse Bind Pose with Y-Flip
+			// Y-Flip 적용하여 Inverse Bind Pose 계산
 			FbxAMatrix InverseBindMatrix = TransformLinkMatrix.Inverse();
 			FMatrix InverseBindPoseMatrix = FFbxConvert::ConvertMatrix(InverseBindMatrix);
 
-			// Store in Skeleton
+			// Skeleton에 저장
 			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].BindPose = GlobalBindPoseMatrix;
 			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].InverseBindPose = InverseBindPoseMatrix;
 
@@ -240,11 +322,11 @@ void FFbxMesh::ExtractMesh(
 
 
 	// ========================================
-	// UE5 Pattern: Use TotalMatrix instead of Cluster TransformMatrix
+	// UE5 패턴: Cluster TransformMatrix 대신 TotalMatrix 사용
 	// ========================================
-	// CRITICAL: Compute TotalMatrix (GlobalTransform * GeometricTransform)
-	// This includes pivot, rotation offset, and scaling offset from DCC tools
-	// Reference: UE5 FbxSkeletalMeshImport.cpp Line 1607, 1624-1625
+	// 중요: TotalMatrix 계산 (GlobalTransform * GeometricTransform)
+	// DCC 툴의 pivot, rotation offset, scaling offset 포함
+	// 참조: UE5 FbxSkeletalMeshImport.cpp Line 1607, 1624-1625
 	FbxNode* MeshNode = InMesh->GetNode();
 	FbxSceneWorld = ComputeSkeletalMeshTotalMatrix(MeshNode, Scene);
 	FbxSceneWorldInverseTranspose = FbxSceneWorld.Inverse().Transpose();
@@ -266,7 +348,6 @@ void FFbxMesh::ExtractMesh(
 
 	// 위의 이유로 ControlPoint를 인덱스 버퍼로 쓸 수가 없어서 Vertex마다 대응되는 Index Map을 따로 만들어서 계산할 것임.
 	TMap<FSkinnedVertex, uint32> IndexMap;
-
 
 	for (int PolygonIndex = 0; PolygonIndex < PolygonCount; PolygonIndex++)
 	{
@@ -291,12 +372,11 @@ void FFbxMesh::ExtractMesh(
 			int ControlPointIndex = InMesh->GetPolygonVertex(PolygonIndex, VertexIndex);
 
 			// ========================================
-			// PHASE 4: Week10 Migration - Vertex Position Y-Flip
+			// 정점 위치 Y-Flip
 			// ========================================
 			const FbxVector4& Position = FbxSceneWorld.MultT(ControlPoints[ControlPointIndex]);
-			// Apply Y-Flip for Right-Handed → Left-Handed conversion
+			// Right-Handed → Left-Handed 변환을 위해 Y-Flip 적용
 			SkinnedVertex.Position = FFbxConvert::ConvertPos(Position);
-
 
 			if (ControlPointToBoneWeight.Contains(ControlPointIndex))
 			{
@@ -397,7 +477,7 @@ void FFbxMesh::ExtractMesh(
 				{
 					const FbxVector4& Normal = Normals->GetDirectArray().GetAt(MappingIndex);
 					FbxVector4 NormalWorld = FbxSceneWorldInverseTranspose.MultT(FbxVector4(Normal.mData[0], Normal.mData[1], Normal.mData[2], 0.0f));
-					// PHASE 4: Apply Y-Flip to normal (Right-Handed → Left-Handed)
+					// 노말에 Y-Flip 적용 (Right-Handed → Left-Handed)
 					SkinnedVertex.Normal = FFbxConvert::ConvertDir(NormalWorld);
 				}
 				break;
@@ -406,7 +486,7 @@ void FFbxMesh::ExtractMesh(
 					int Id = Normals->GetIndexArray().GetAt(MappingIndex);
 					const FbxVector4& Normal = Normals->GetDirectArray().GetAt(Id);
 					FbxVector4 NormalWorld = FbxSceneWorldInverseTranspose.MultT(FbxVector4(Normal.mData[0], Normal.mData[1], Normal.mData[2], 0.0f));
-					// PHASE 4: Apply Y-Flip to normal (Right-Handed → Left-Handed)
+					// 노말에 Y-Flip 적용 (Right-Handed → Left-Handed)
 					SkinnedVertex.Normal = FFbxConvert::ConvertDir(NormalWorld);
 				}
 				break;
@@ -440,7 +520,7 @@ void FFbxMesh::ExtractMesh(
 				{
 					const FbxVector4& Tangent = Tangents->GetDirectArray().GetAt(MappingIndex);
 					FbxVector4 TangentWorld = FbxSceneWorld.MultT(FbxVector4(Tangent.mData[0], Tangent.mData[1], Tangent.mData[2], 0.0f));
-					// PHASE 4: Apply Y-Flip to tangent (Right-Handed → Left-Handed), preserve W (handedness)
+					// 탄젠트에 Y-Flip 적용 (Right-Handed → Left-Handed), W (handedness) 보존
 					FVector TangentConverted = FFbxConvert::ConvertDir(TangentWorld);
 					SkinnedVertex.Tangent = FVector4(TangentConverted.X, TangentConverted.Y, TangentConverted.Z, Tangent.mData[3]);
 				}
@@ -450,7 +530,7 @@ void FFbxMesh::ExtractMesh(
 					int Id = Tangents->GetIndexArray().GetAt(MappingIndex);
 					const FbxVector4& Tangent = Tangents->GetDirectArray().GetAt(Id);
 					FbxVector4 TangentWorld = FbxSceneWorld.MultT(FbxVector4(Tangent.mData[0], Tangent.mData[1], Tangent.mData[2], 0.0f));
-					// PHASE 4: Apply Y-Flip to tangent (Right-Handed → Left-Handed), preserve W (handedness)
+					// 탄젠트에 Y-Flip 적용 (Right-Handed → Left-Handed), W (handedness) 보존
 					FVector TangentConverted = FFbxConvert::ConvertDir(TangentWorld);
 					SkinnedVertex.Tangent = FVector4(TangentConverted.X, TangentConverted.Y, TangentConverted.Z, Tangent.mData[3]);
 				}
@@ -659,26 +739,39 @@ void FFbxMesh::ExtractMesh(
 	}
 
 	// ========================================
-	// PHASE 4: Week10 Migration - Index Reversal (CCW → CW)
+	// 조건부 인덱스 반전 (CCW → CW)
 	// ========================================
 	//
-	// CRITICAL: Y-Flip does NOT change winding order!
-	// After Y-Flip, triangles are still CCW (Counter-Clockwise).
-	// But Mundi Engine uses CW (Clockwise) as Front Face (D3D11 default).
+	// 중요: Y-Flip은 winding order를 변경하지 않음!
+	// Y-Flip 이후에도 삼각형은 원래의 winding order를 유지함.
+	// 하지만 Mundi 엔진은 CW (시계방향)를 Front Face로 사용 (D3D11 기본값).
 	//
-	// Why Index Reversal is needed:
-	// - Unreal Engine sets FrontCounterClockwise = TRUE, so CCW remains front face
-	// - Mundi Engine uses FrontCounterClockwise = FALSE (default), so CW is front face
-	// - Therefore, we MUST reverse indices to flip winding order from CCW to CW
+	// FBX 파일은 서로 다른 winding order를 가진 메시를 포함할 수 있음:
+	// - CCW로 저장된 메시 (reverse 필요)
+	// - CW로 저장된 메시 (이미 올바름)
 	//
-	// Reverse triangle indices: [v0, v1, v2] → [v2, v1, v0]
+	// 해결책: 머티리얼 그룹별로 winding order 자동 감지
+	// - ShouldReverseWindingOrder()를 사용하여 법선 방향 확인
+	// - CCW로 감지된 경우만 reverse 수행
+	//
+	// 삼각형 인덱스 반전: [v0, v1, v2] → [v2, v1, v0]
+
 	for (auto& Elem : MaterialGroupIndexList)
 	{
+		int32 MaterialIndex = Elem.first;
 		TArray<uint32>& GroupIndexList = Elem.second;
-		for (int32 i = 0; i < GroupIndexList.Num(); i += 3)
+
+		// 이 머티리얼 그룹의 winding order 자동 감지
+		bool bNeedsReverse = ShouldReverseWindingOrder(MeshData.Vertices, GroupIndexList);
+
+		if (bNeedsReverse)
 		{
-			// Swap first and third vertex indices
-			std::swap(GroupIndexList[i], GroupIndexList[i + 2]);
+			// CCW 감지됨 → CW로 반전
+			for (int32 i = 0; i < GroupIndexList.Num(); i += 3)
+			{
+				// 첫 번째와 세 번째 정점 인덱스 교환
+				std::swap(GroupIndexList[i], GroupIndexList[i + 2]);
+			}
 		}
 	}
 }
@@ -691,8 +784,8 @@ void FFbxMesh::ExtractMesh(
  */
 FbxAMatrix FFbxMesh::ComputeSkeletalMeshTotalMatrix(FbxNode* MeshNode, FbxScene* Scene)
 {
-	// 1. Extract GeometricTransform (Pivot, Rotation Offset, Scaling Offset)
-	// These transforms are baked into the mesh vertices by DCC tools (Maya, Max, Blender)
+	// 1. GeometricTransform 추출 (Pivot, Rotation Offset, Scaling Offset)
+	// 이러한 변환들은 DCC 툴 (Maya, Max, Blender)에 의해 메시 정점에 베이크됨
 	FbxVector4 GeometricTranslation = MeshNode->GetGeometricTranslation(FbxNode::eSourcePivot);
 	FbxVector4 GeometricRotation = MeshNode->GetGeometricRotation(FbxNode::eSourcePivot);
 	FbxVector4 GeometricScaling = MeshNode->GetGeometricScaling(FbxNode::eSourcePivot);
@@ -702,22 +795,22 @@ FbxAMatrix FFbxMesh::ComputeSkeletalMeshTotalMatrix(FbxNode* MeshNode, FbxScene*
 	GeometryTransform.SetR(GeometricRotation);
 	GeometryTransform.SetS(GeometricScaling);
 
-	// 2. Get GlobalTransform (World-space transform of the mesh node)
+	// 2. GlobalTransform 가져오기 (메시 노드의 월드 공간 변환)
 	FbxAMatrix GlobalTransform = Scene->GetAnimationEvaluator()
 		->GetNodeGlobalTransform(MeshNode);
 
-	// 3. Compute TotalMatrix = GlobalTransform * GeometryTransform
-	// This combines both the scene graph transform and the geometric transform
+	// 3. TotalMatrix 계산 = GlobalTransform * GeometryTransform
+	// 씬 그래프 변환과 기하학적 변환을 모두 결합함
 	FbxAMatrix TotalMatrix = GlobalTransform * GeometryTransform;
 
 	return TotalMatrix;
 
-	// NOTE: UE5 also supports optional Pivot Baking (bBakePivotInVertex)
-	// For now, we use the basic implementation above.
-	// If pivot baking is needed, add:
+	// 참고: UE5는 선택적 Pivot Baking도 지원함 (bBakePivotInVertex)
+	// 현재는 위의 기본 구현을 사용함.
+	// pivot baking이 필요한 경우 추가:
 	//   FbxVector4 RotationPivot = MeshNode->GetRotationPivot(FbxNode::eSourcePivot);
 	//   FbxVector4 ScalingPivot = MeshNode->GetScalingPivot(FbxNode::eSourcePivot);
-	//   ... (additional pivot matrix computation)
+	//   ... (추가 pivot 행렬 계산)
 }
 
-#pragma warning(pop) // Restore warning state
+#pragma warning(pop) // 경고 상태 복원
