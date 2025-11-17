@@ -55,11 +55,11 @@ struct UClass
             GetAllClasses().emplace_back(InClass);
         }
     }
-    static UClass* FindClass(const FName& InClassName)
+    static UClass* FindClass(const char* InClassName)
     {
         for (UClass* Class : GetAllClasses())
         {
-            if (Class && Class->Name == InClassName)
+            if (Class && Class->Name && strcmp(Class->Name, InClassName) == 0)
             {
                 return Class;
             }
@@ -200,11 +200,11 @@ struct UStruct
 		}
 	}
 
-	static UStruct* FindStruct(const FName& InStructName)
+	static UStruct* FindStruct(const char* InStructName)
 	{
 		for (UStruct* Struct : GetAllStructs())
 		{
-			if (Struct && Struct->Name == InStructName)
+			if (Struct && Struct->Name && strcmp(Struct->Name, InStructName) == 0)
 			{
 				return Struct;
 			}
