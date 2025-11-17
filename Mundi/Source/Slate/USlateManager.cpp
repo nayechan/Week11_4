@@ -194,12 +194,12 @@ void USlateManager::OpenSkeletalMeshViewer()
     SkeletalViewerWindow = new SSkeletalMeshViewerWindow();
 
     // Open as a detached window at a default size and position
-    const float toolbarHeight = 50.0f;
-    const float availableHeight = Rect.GetHeight() - toolbarHeight;
-    const float w = Rect.GetWidth() * 0.6f;
-    const float h = availableHeight * 0.7f;
-    const float x = Rect.Left + (Rect.GetWidth() - w) * 0.5f;
-    const float y = Rect.Top + toolbarHeight + (availableHeight - h) * 0.5f;
+    const float toolbarHeight = 30.0f;
+    const float availableHeight = Rect.GetHeight();
+    const float w = Rect.GetWidth();
+    const float h = availableHeight;
+    const float x = Rect.Left;
+    const float y = Rect.Top;
     SkeletalViewerWindow->Initialize(x, y, w, h, World, Device);
 }
 

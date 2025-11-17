@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Actor.h"
 #include "LineComponent.h"
 #include "SkeletalMeshComponent.h"
@@ -32,7 +32,7 @@ public:
 
     // Rebuild bone line overlay from the current skeletal mesh bind pose
     // SelectedBoneIndex: highlight this bone and its parent connection
-    void RebuildBoneLines(int32 SelectedBoneIndex);
+    void RebuildBoneLines(int32 SelectedBoneIndex = 0);
 
     // Position the anchor
     void RepositionAnchorToBone(int32 BoneIndex);

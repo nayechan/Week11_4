@@ -19,11 +19,14 @@ public:
 	void Stop();
 	void Pause();
 	void SetPlayRate(float InPlayRate);
+	void SetInteralTime(float InInteralTime) { InternalTime = InInteralTime; }
 
 	// 재생 상태 확인
 	bool IsPlaying() const { return bIsPlaying; }
 	bool IsLooping() const { return bLooping; }
 	float GetPlayRate() const { return PlayRate; }
+	float GetInteralTime() const { return InternalTime; }
+	UAnimSequence* GetAnimSequence() { return CurrentSequence; }
 
 	// 업데이트 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;

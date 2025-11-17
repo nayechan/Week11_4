@@ -1,10 +1,11 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SkeletalViewerBootstrap.h"
 #include "CameraActor.h"
 #include "Source/Runtime/Engine/SkeletalViewer/ViewerState.h"
 #include "FViewport.h"
 #include "FSkeletalViewerViewportClient.h"
 #include "Source/Runtime/Engine/GameFramework/SkeletalMeshActor.h"
+#include "AnimInstance.h"
 
 ViewerState* SkeletalViewerBootstrap::CreateViewerState(const char* Name, UWorld* InWorld, ID3D11Device* InDevice)
 {
@@ -50,6 +51,7 @@ ViewerState* SkeletalViewerBootstrap::CreateViewerState(const char* Name, UWorld
 void SkeletalViewerBootstrap::DestroyViewerState(ViewerState*& State)
 {
     if (!State) return;
+    ObjectFactory::DeleteObject(State->PreviewActor->GetSkeletalMeshComponent()->AnimInstance);
     if (State->Viewport) { delete State->Viewport; State->Viewport = nullptr; }
     if (State->Client) { delete State->Client; State->Client = nullptr; }
     if (State->World) { ObjectFactory::DeleteObject(State->World); State->World = nullptr; }

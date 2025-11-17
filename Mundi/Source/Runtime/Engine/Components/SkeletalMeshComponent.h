@@ -36,14 +36,16 @@ public:
     UAnimInstance* AnimInstance = nullptr;
 
     // AnimInstance 설정 (런타임에서 수동 설정 시 사용)
+
     void SetAnimInstance(class UAnimInstance* InAnimInstance);
 
     // AnimNotify 핸들링 (발제 문서 구조)
     void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
-protected:
-    // TickComponent에서 호출
     void TickAnimation(float DeltaTime);
+
+protected:
+    
 
 // Editor Section
 public:

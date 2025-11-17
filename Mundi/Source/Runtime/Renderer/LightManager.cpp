@@ -534,6 +534,8 @@ bool FLightManager::GetCachedShadowCubeSliceIndex(ULightComponent* Light, int32&
 // 단순한 아틀라스 로직
 void FLightManager::AllocateAtlasRegions2D(TArray<FShadowRenderRequest>& InOutRequests2D)
 {
+	if (OwningWorld && OwningWorld->IsPreviewWorld())
+		return;
 	// 요청 정렬 (가장 큰 것부터)
 	InOutRequests2D.Sort(std::greater<FShadowRenderRequest>());
 

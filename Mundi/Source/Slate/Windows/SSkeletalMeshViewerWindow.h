@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "SWindow.h"
 #include "Source/Runtime/Engine/SkeletalViewer/ViewerState.h"
 
@@ -36,6 +36,8 @@ private:
     void OpenNewTab(const char* Name = "Viewer");
     void CloseTab(int Index);
 
+    void RenderAnimationSquenceViewer();
+
 private:
     // Per-tab state
     ViewerState* ActiveState = nullptr;
@@ -47,8 +49,9 @@ private:
     ID3D11Device* Device = nullptr;
 
     // Layout state
-    float LeftPanelRatio = 0.25f;   // 25% of width
-    float RightPanelRatio = 0.25f;  // 25% of width
+    float LeftPanelRatio = 0.2f;   // 25% of width
+    float RightPanelRatio = 0.2f;  // 25% of width
+    float BottomPanelRatio = 0.2f;
 
     // Cached center region used for viewport sizing and input mapping
     FRect CenterRect;
@@ -61,6 +64,14 @@ private:
 
     // Window open state
     bool bIsOpen = true;
+
+    bool bBoneChanged = false;
+
+
+    UTexture* IconPause = nullptr;
+    UTexture* IconResume = nullptr;
+
+    ImVec2 IconSize = ImVec2(50, 50);
 
 public:
     bool IsOpen() const { return bIsOpen; }

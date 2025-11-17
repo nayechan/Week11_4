@@ -11,6 +11,9 @@
 #include "BoneAnchorComponent.h"
 #include "Source/Runtime/Engine/Collision/Picking.h"
 #include "Source/Runtime/Engine/GameFramework/CameraActor.h"
+#include "FBXLoader.h"
+#include "AnimInstance.h"
+#include "AnimSingleNodeInstance.h"
 
 SSkeletalMeshViewerWindow::SSkeletalMeshViewerWindow()
 {
@@ -33,6 +36,9 @@ bool SSkeletalMeshViewerWindow::Initialize(float StartX, float StartY, float Wid
 {
     World = InWorld;
     Device = InDevice;
+
+    IconPause = UResourceManager::GetInstance().Load<UTexture>(GDataDir + "/Icon/Pause.png");
+    IconResume = UResourceManager::GetInstance().Load<UTexture>(GDataDir + "/Icon/Resume.png");
     
     SetRect(StartX, StartY, StartX + Width, StartY + Height);
 
@@ -109,7 +115,15 @@ void SSkeletalMeshViewerWindow::OnRender()
 
         float leftWidth = totalWidth * LeftPanelRatio;
         float rightWidth = totalWidth * RightPanelRatio;
+        float BottomHeight = totalHeight * BottomPanelRatio;
         float centerWidth = totalWidth - leftWidth - rightWidth;
+        float centerHeight = totalHeight;
+
+        if (ActiveState && ActiveState->bViewAnimation)
+        {
+            centerHeight = totalHeight - BottomHeight;
+
+        }
 
         // Remove spacing between panels
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -117,7 +131,6 @@ void SSkeletalMeshViewerWindow::OnRender()
         // Left panel - Asset Browser & Bone Hierarchy
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
         ImGui::BeginChild("LeftPanel", ImVec2(leftWidth, totalHeight), true, ImGuiWindowFlags_NoScrollbar);
-        ImGui::PopStyleVar();
 
         if (ActiveState)
         {
@@ -172,29 +185,82 @@ void SSkeletalMeshViewerWindow::OnRender()
                 FString Path = ActiveState->MeshPathBuffer;
                 if (!Path.empty())
                 {
-                    USkeletalMesh* Mesh = UResourceManager::GetInstance().Load<USkeletalMesh>(Path);
-                    if (Mesh && ActiveState->PreviewActor)
-                    {
-                        ActiveState->PreviewActor->SetSkeletalMesh(Path);
-                        ActiveState->CurrentMesh = Mesh;
-                        ActiveState->LoadedMeshPath = Path;  // Track for resource unloading
-                        if (auto* Skeletal = ActiveState->PreviewActor->GetSkeletalMeshComponent())
-                        {
-                            Skeletal->SetVisibility(ActiveState->bShowMesh);
-                        }
-                        ActiveState->bBoneLinesDirty = true;
-                        if (auto* LineComp = ActiveState->PreviewActor->GetBoneLineComponent())
-                        {
-                            LineComp->ClearLines();
-                            LineComp->SetLineVisible(ActiveState->bShowBones);
-                        }
-                    }
+                    LoadSkeletalMesh(Path);
+                    //USkeletalMesh* Mesh = UResourceManager::GetInstance().Load<USkeletalMesh>(Path);
+                    //if (Mesh && ActiveState->PreviewActor)
+                    //{
+                    //    ActiveState->PreviewActor->SetSkeletalMesh(Path);
+                    //    ActiveState->CurrentMesh = Mesh;
+                    //    ActiveState->LoadedMeshPath = Path;  // Track for resource unloading
+                    //    if (auto* Skeletal = ActiveState->PreviewActor->GetSkeletalMeshComponent())
+                    //    {
+                    //        Skeletal->SetVisibility(ActiveState->bShowMesh);
+                    //    }
+                    //    ActiveState->bBoneLinesDirty = true;
+                    //    if (auto* LineComp = ActiveState->PreviewActor->GetBoneLineComponent())
+                    //    {
+                    //        LineComp->ClearLines();
+                    //        LineComp->SetLineVisible(ActiveState->bShowBones);
+                    //    }
+                    //}
                 }
             }
             ImGui::PopStyleColor(6);
             ImGui::EndGroup();
 
             ImGui::Spacing();
+
+            // Animation Path Section
+            ImGui::BeginGroup();
+            
+            ImGui::Text("Animation Path:");
+            ImGui::PushItemWidth(-1.0f);
+            ImGui::InputTextWithHint("##AnimationPath", "Browse for Animation file...", ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer));
+            ImGui::PopItemWidth();
+
+            ImGui::Spacing();
+
+            // Buttons
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.40f, 0.55f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.50f, 0.70f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.25f, 0.35f, 0.50f, 1.0f));
+
+            if (ImGui::Button("Browse...##Animation", ImVec2(buttonWidth, 32)))
+            {
+                auto widePath = FPlatformProcess::OpenLoadFileDialog(UTF8ToWide(GDataDir), L"fbx", L"FBX Files");
+                if (!widePath.empty())
+                {
+                    std::string s = widePath.string();
+                    strncpy_s(ActiveState->AnimationPathBuffer, s.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+                }
+            }
+            ImGui::SameLine();
+
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.60f, 0.40f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.25f, 0.70f, 0.50f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.50f, 0.30f, 1.0f));
+            if (ImGui::Button("Load Animation", ImVec2(buttonWidth, 32)))
+            {
+                FString Path = ActiveState->AnimationPathBuffer;
+                if (!Path.empty())
+                {
+                    char Label[32]; sprintf_s(Label, "Viewer %d", Tabs.Num() + 1);
+                    OpenNewTab(Label);
+                    LoadSkeletalMesh(Path);
+                    USkeletalMeshComponent* SkeletalMeshComponent = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+                    UAnimSequence* AnimSequence = UFbxLoader::GetInstance().LoadFbxAnimation(Path, SkeletalMeshComponent->GetSkeletalMesh()->GetSkeleton());
+                    if (AnimSequence)
+                    {
+                        UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
+                        AnimInstance->SetAnimationAsset(AnimSequence);
+                        SkeletalMeshComponent->SetAnimInstance(AnimInstance);
+                        ActiveState->bViewAnimation = true;
+                    }
+                }
+            }
+            ImGui::PopStyleColor(6);
+            ImGui::EndGroup();
+
             ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
             ImGui::Separator();
             ImGui::PopStyleColor();
@@ -368,7 +434,9 @@ void SSkeletalMeshViewerWindow::OnRender()
         }
         else
         {
+
             ImGui::EndChild();
+            ImGui::PopStyleVar(2);
             ImGui::End();
             return;
         }
@@ -377,7 +445,8 @@ void SSkeletalMeshViewerWindow::OnRender()
         ImGui::SameLine(0, 0); // No spacing between panels
 
         // Center panel (viewport area) — draw with border to see the viewport area
-        ImGui::BeginChild("SkeletalMeshViewport", ImVec2(centerWidth, totalHeight), true, ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild("ViewportAndAnimSequence", ImVec2(centerWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+        ImGui::BeginChild("SkeletalMeshViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
         ImVec2 childPos = ImGui::GetWindowPos();
         ImVec2 childSize = ImGui::GetWindowSize();
         ImVec2 rectMin = childPos;
@@ -385,12 +454,13 @@ void SSkeletalMeshViewerWindow::OnRender()
         CenterRect.Left = rectMin.x; CenterRect.Top = rectMin.y; CenterRect.Right = rectMax.x; CenterRect.Bottom = rectMax.y; CenterRect.UpdateMinMax();
         ImGui::EndChild();
 
+        RenderAnimationSquenceViewer();
+        ImGui::EndChild();
+
         ImGui::SameLine(0, 0); // No spacing between panels
 
         // Right panel - Bone Properties
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
         ImGui::BeginChild("RightPanel", ImVec2(rightWidth, totalHeight), true);
-        ImGui::PopStyleVar();
 
         // Panel header
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
@@ -444,14 +514,13 @@ void SSkeletalMeshViewerWindow::OnRender()
 
                 ImGui::PushItemWidth(-1);
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.28f, 0.20f, 0.20f, 0.6f));
-                bool bLocationChanged = false;
-                bLocationChanged |= ImGui::DragFloat("##BoneLocX", &ActiveState->EditBoneLocation.X, 0.1f, 0.0f, 0.0f, "X: %.3f");
-                bLocationChanged |= ImGui::DragFloat("##BoneLocY", &ActiveState->EditBoneLocation.Y, 0.1f, 0.0f, 0.0f, "Y: %.3f");
-                bLocationChanged |= ImGui::DragFloat("##BoneLocZ", &ActiveState->EditBoneLocation.Z, 0.1f, 0.0f, 0.0f, "Z: %.3f");
+                bBoneChanged |= ImGui::DragFloat("##BoneLocX", &ActiveState->EditBoneLocation.X, 0.1f, 0.0f, 0.0f, "X: %.3f");
+                bBoneChanged |= ImGui::DragFloat("##BoneLocY", &ActiveState->EditBoneLocation.Y, 0.1f, 0.0f, 0.0f, "Y: %.3f");
+                bBoneChanged |= ImGui::DragFloat("##BoneLocZ", &ActiveState->EditBoneLocation.Z, 0.1f, 0.0f, 0.0f, "Z: %.3f");
                 ImGui::PopStyleColor();
                 ImGui::PopItemWidth();
 
-                if (bLocationChanged)
+                if (bBoneChanged)
                 {
                     ApplyBoneTransform(ActiveState);
                     ActiveState->bBoneLinesDirty = true;
@@ -473,9 +542,9 @@ void SSkeletalMeshViewerWindow::OnRender()
                     ActiveState->bBoneRotationEditing = true;
                 }
 
-                bRotationChanged |= ImGui::DragFloat("##BoneRotX", &ActiveState->EditBoneRotation.X, 0.5f, -180.0f, 180.0f, "X: %.2f°");
-                bRotationChanged |= ImGui::DragFloat("##BoneRotY", &ActiveState->EditBoneRotation.Y, 0.5f, -180.0f, 180.0f, "Y: %.2f°");
-                bRotationChanged |= ImGui::DragFloat("##BoneRotZ", &ActiveState->EditBoneRotation.Z, 0.5f, -180.0f, 180.0f, "Z: %.2f°");
+                bBoneChanged |= ImGui::DragFloat("##BoneRotX", &ActiveState->EditBoneRotation.X, 0.5f, -180.0f, 180.0f, "X: %.2f°");
+                bBoneChanged |= ImGui::DragFloat("##BoneRotY", &ActiveState->EditBoneRotation.Y, 0.5f, -180.0f, 180.0f, "Y: %.2f°");
+                bBoneChanged |= ImGui::DragFloat("##BoneRotZ", &ActiveState->EditBoneRotation.Z, 0.5f, -180.0f, 180.0f, "Z: %.2f°");
                 ImGui::PopStyleColor();
                 ImGui::PopItemWidth();
 
@@ -484,7 +553,7 @@ void SSkeletalMeshViewerWindow::OnRender()
                     ActiveState->bBoneRotationEditing = false;
                 }
 
-                if (bRotationChanged)
+                if (bBoneChanged)
                 {
                     ApplyBoneTransform(ActiveState);
                     ActiveState->bBoneLinesDirty = true;
@@ -500,13 +569,13 @@ void SSkeletalMeshViewerWindow::OnRender()
                 ImGui::PushItemWidth(-1);
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.20f, 0.20f, 0.28f, 0.6f));
                 bool bScaleChanged = false;
-                bScaleChanged |= ImGui::DragFloat("##BoneScaleX", &ActiveState->EditBoneScale.X, 0.01f, 0.001f, 100.0f, "X: %.3f");
-                bScaleChanged |= ImGui::DragFloat("##BoneScaleY", &ActiveState->EditBoneScale.Y, 0.01f, 0.001f, 100.0f, "Y: %.3f");
-                bScaleChanged |= ImGui::DragFloat("##BoneScaleZ", &ActiveState->EditBoneScale.Z, 0.01f, 0.001f, 100.0f, "Z: %.3f");
+                bBoneChanged |= ImGui::DragFloat("##BoneScaleX", &ActiveState->EditBoneScale.X, 0.01f, 0.001f, 100.0f, "X: %.3f");
+                bBoneChanged |= ImGui::DragFloat("##BoneScaleY", &ActiveState->EditBoneScale.Y, 0.01f, 0.001f, 100.0f, "Y: %.3f");
+                bBoneChanged |= ImGui::DragFloat("##BoneScaleZ", &ActiveState->EditBoneScale.Z, 0.01f, 0.001f, 100.0f, "Z: %.3f");
                 ImGui::PopStyleColor();
                 ImGui::PopItemWidth();
 
-                if (bScaleChanged)
+                if (bBoneChanged)
                 {
                     ApplyBoneTransform(ActiveState);
                     ActiveState->bBoneLinesDirty = true;
@@ -523,7 +592,7 @@ void SSkeletalMeshViewerWindow::OnRender()
         ImGui::EndChild(); // RightPanel
 
         // Pop the ItemSpacing style
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
     ImGui::End();
 
@@ -554,6 +623,14 @@ void SSkeletalMeshViewerWindow::OnUpdate(float DeltaSeconds)
         ActiveState->World->Tick(DeltaSeconds);
         if (ActiveState->World->GetGizmoActor())
             ActiveState->World->GetGizmoActor()->ProcessGizmoModeSwitch();
+        // 에니메이션만 틱 돌림.
+        ActiveState->PreviewActor->GetSkeletalMeshComponent()->TickAnimation(DeltaSeconds);
+        if (bBoneChanged)
+        {
+            ApplyBoneTransform(ActiveState);
+            ActiveState->bBoneLinesDirty = true;
+            bBoneChanged = false;
+        }
     }
 
     if (ActiveState && ActiveState->Client)
@@ -691,7 +768,14 @@ void SSkeletalMeshViewerWindow::OnRenderViewport()
             {
                 LineComp->SetLineVisible(true);
             }
-            ActiveState->PreviewActor->RebuildBoneLines(ActiveState->SelectedBoneIndex);
+            if (ActiveState->SelectedBoneIndex == -1)
+            {
+                ActiveState->PreviewActor->RebuildBoneLines();
+            }
+            else
+            {
+                ActiveState->PreviewActor->RebuildBoneLines(ActiveState->SelectedBoneIndex);
+            }   
             ActiveState->bBoneLinesDirty = false;
         }
 
@@ -718,6 +802,144 @@ void SSkeletalMeshViewerWindow::CloseTab(int Index)
     Tabs.RemoveAt(Index);
     if (Tabs.Num() == 0) { ActiveTabIndex = -1; ActiveState = nullptr; }
     else { ActiveTabIndex = std::min(Index, Tabs.Num() - 1); ActiveState = Tabs[ActiveTabIndex]; }
+}
+
+void SSkeletalMeshViewerWindow::RenderAnimationSquenceViewer()
+{
+    UAnimInstance* AnimInstance = ActiveState->PreviewActor->GetSkeletalMeshComponent()->AnimInstance;
+    if (!AnimInstance)
+    {
+        return;
+    }
+    UAnimSingleNodeInstance* AnimSingleNodeInstance = static_cast<UAnimSingleNodeInstance*>(AnimInstance);
+   
+    UAnimSequence* AnimSequence = AnimSingleNodeInstance->GetAnimSequence();
+   
+
+    const float NotifyAspect = 0.3f;
+    ImVec2 ContentAvail = ImGui::GetContentRegionAvail();
+    float NotifyWidth = ContentAvail.x * NotifyAspect;
+    float BottomHeight = ContentAvail.y;
+    float BottomWidth = ContentAvail.x * (1 - NotifyAspect);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+    ImGui::BeginChild("NotifyPanel", ImVec2(NotifyWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
+    const char* NotifyHeaderText = "Notify Panel";
+    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(NotifyHeaderText).x) * 0.5f);
+    ImGui::Text(NotifyHeaderText);
+    ImGui::PopStyleColor();
+    ImGui::EndChild();
+    
+    ImGui::SameLine(0, 0);
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+    ImGui::BeginChild("BottomPanel", ImVec2(BottomWidth, BottomHeight), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
+    const char* AnimSequenceHeaderText = "Animation Sequence Viewer";
+    float TextWidth = ImGui::CalcTextSize(AnimSequenceHeaderText).x;
+    float WindowWidth = ImGui::GetWindowWidth();
+    ImGui::SetCursorPosX((WindowWidth - TextWidth) * 0.5f);
+    ImGui::Text(AnimSequenceHeaderText);
+    ImGui::PopStyleColor();
+
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
+    ImGui::Separator();
+    ImGui::PopStyleColor();
+    ImGui::Dummy(ImVec2(0.0f, 8.0f));
+
+    ImDrawList* DrawList = ImGui::GetWindowDrawList();
+
+    ImVec2 TimeLineStartPos = ImGui::GetCursorScreenPos();
+    ImVec2 CurrentRegionAvail = ImGui::GetContentRegionAvail();
+    float TimeLineWidth = CurrentRegionAvail.x;
+    float TimeLineHeight = 50.0f;
+    ImVec2 TimeLineEndPos = ImVec2(TimeLineStartPos.x + TimeLineWidth, TimeLineStartPos.y + TimeLineHeight);
+    DrawList->AddRectFilled(TimeLineStartPos, TimeLineStartPos + CurrentRegionAvail, IM_COL32(20, 20, 20, 255));
+
+    DrawList->AddLine(
+        TimeLineStartPos,
+        ImVec2(TimeLineEndPos.x, TimeLineStartPos.y),
+        IM_COL32(100, 100, 100, 255), 1.0f);
+    DrawList->AddLine(
+        ImVec2(TimeLineStartPos.x, TimeLineEndPos.y),
+        TimeLineEndPos,
+        IM_COL32(100, 100, 100, 255), 1.0f);
+
+    int FrameStep = 10;
+    for (int Frame = 0; Frame <= AnimSequence->NumberOfFrames; Frame += FrameStep)
+    {
+        float Xpos = TimeLineStartPos.x + (Frame / (float)AnimSequence->NumberOfFrames) * TimeLineWidth;
+
+        DrawList->AddLine(
+            ImVec2(Xpos, TimeLineStartPos.y),
+            ImVec2(Xpos, TimeLineEndPos.y),
+            IM_COL32(100, 100, 100, 255), 1.0f
+        );
+    }
+    FrameStep = 2;
+    for (int Frame = 0; Frame <= AnimSequence->NumberOfFrames; Frame += FrameStep)
+    {
+        float Xpos = TimeLineStartPos.x + (Frame / (float)AnimSequence->NumberOfFrames) * TimeLineWidth;
+
+        DrawList->AddLine(
+            ImVec2(Xpos, TimeLineEndPos.y),
+            ImVec2(Xpos, TimeLineEndPos.y - 10.0f),
+            IM_COL32(100, 100, 100, 255), 1.0f
+        );
+    }
+
+    float CurrentInternalTime = AnimSingleNodeInstance->GetInteralTime();
+    const float AnimationLength = AnimSequence->GetPlayLength();
+    
+    float HeadPosX = TimeLineStartPos.x + (CurrentInternalTime / AnimationLength) * TimeLineWidth;
+    float HeadWidth = 15.0f;
+
+    DrawList->AddRectFilled(
+        ImVec2(HeadPosX - HeadWidth * 0.5f, TimeLineStartPos.y),
+        ImVec2(HeadPosX + HeadWidth * 0.5f, TimeLineEndPos.y),
+        IM_COL32(50, 50, 255, 255));
+
+    ImGui::SetCursorScreenPos(TimeLineStartPos);
+    ImGui::InvisibleButton("##TimeLineHeadButton", ImVec2(TimeLineWidth, TimeLineHeight));
+    if (ImGui::IsItemActive() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+    {
+        float MouseX = ImGui::GetMousePos().x;
+        float Ratio = (MouseX - TimeLineStartPos.x) / TimeLineWidth;
+        Ratio = std::clamp(Ratio, 0.0f, 1.0f);
+
+        CurrentInternalTime = Ratio * AnimationLength;
+        AnimSingleNodeInstance->Pause();
+        AnimSingleNodeInstance->SetInteralTime(CurrentInternalTime);
+    }
+    
+
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.2f, 0.2f, 0.5f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.7f));
+    if (AnimSingleNodeInstance->IsPlaying())
+    {
+        bBoneChanged = true;
+        ImGui::SetCursorPosX((WindowWidth - IconSize.x) * 0.5f);
+        if (ImGui::ImageButton("##AnimPause", IconPause->GetShaderResourceView(), IconSize))
+        {
+            AnimSingleNodeInstance->Pause();
+        }
+    }
+    else
+    {
+        ImGui::SetCursorPosX((WindowWidth - IconSize.x) * 0.5f);
+        if (ImGui::ImageButton("##AnimResume", IconResume->GetShaderResourceView(), IconSize))
+        {
+            AnimSingleNodeInstance->Play(true);
+        }
+    }
+
+    ImGui::PopStyleColor(3);
+    ImGui::EndChild();
 }
 
 void SSkeletalMeshViewerWindow::LoadSkeletalMesh(const FString& Path)
