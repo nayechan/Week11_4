@@ -16,21 +16,40 @@ void USkeletalMeshComponent::BeginPlay()
 {
     Super::BeginPlay();
 
-    // AnimInstance 자동 생성
+    // AnimInstance 자동 생성 (AnimationMode 기반)
     if (!AnimInstance)
     {
         UClass* Class = nullptr;
 
-        if (AnimClass)
+        switch (AnimationMode)
         {
-            // AnimClass가 설정되어 있으면 해당 클래스 사용
-            Class = AnimClass.Get();
-        }
-        else
-        {
-            // AnimClass가 없으면 기본으로 AnimSingleNodeInstance 사용
+        case EAnimationMode::AnimationClass:
+            // AnimClass 사용 (C++ 또는 Lua AnimInstance)
+            if (AnimClass)
+            {
+                Class = AnimClass.Get();
+                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::AnimationClass, using AnimClass: %s", Class ? Class->Name : "nullptr");
+            }
+            else
+            {
+                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::AnimationClass, but AnimClass is not set!");
+            }
+            break;
+
+        case EAnimationMode::AnimationSingleNode:
+            // 단일 AnimSequence 직접 재생
             Class = UAnimSingleNodeInstance::StaticClass();
-            UE_LOG("USkeletalMeshComponent::BeginPlay - No AnimClass, using default AnimSingleNodeInstance");
+            UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::AnimationSingleNode, using AnimSingleNodeInstance");
+            break;
+
+        case EAnimationMode::None:
+            // RefPose (T-Pose) - AnimInstance 생성 안 함
+            UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::None, no AnimInstance created (RefPose)");
+            break;
+
+        default:
+            UE_LOG("USkeletalMeshComponent::BeginPlay - Unknown AnimationMode!");
+            break;
         }
 
         if (Class)
@@ -47,8 +66,8 @@ void USkeletalMeshComponent::BeginPlay()
                 AnimInstance->InitializeAnimation();
                 UE_LOG("USkeletalMeshComponent::BeginPlay - Created AnimInstance: %s", Class->Name);
 
-                // SkeletalMesh가 이미 로드되어 있으면 AnimSequence 자동 할당 (AnimSingleNodeInstance인 경우)
-                if (SkeletalMesh)
+                // AnimationSingleNode 모드에서 SkeletalMesh가 이미 로드되어 있으면 AnimSequence 자동 할당
+                if (AnimationMode == EAnimationMode::AnimationSingleNode && SkeletalMesh)
                 {
                     UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
                     if (SingleNode)
@@ -120,8 +139,8 @@ void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
 
         ForceRecomputePose();
 
-        // FBX 로드 시 AnimSequence 자동 설정 (AnimSingleNodeInstance인 경우)
-        if (AnimInstance)
+        // FBX 로드 시 AnimSequence 자동 설정 (AnimationSingleNode 모드인 경우)
+        if (AnimationMode == EAnimationMode::AnimationSingleNode && AnimInstance)
         {
             UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
             if (SingleNode)
