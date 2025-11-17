@@ -20,6 +20,8 @@
 #include "USlateManager.h"
 #include "AnimationTypes.h"
 #include "AnimationTypes.generated.h"
+#include "PropertyCustomizationRegistry.h"
+#include "PropertyCustomizationHelpers.h"
 
 // Disable warnings for third-party ImGui curve library
 #pragma warning(push)
@@ -303,6 +305,19 @@ void UPropertyRenderer::RenderAllProperties(UObject* Object)
 	if (!Object)
 		return;
 
+	// ===== 신규: Customization 확인 =====
+	FCustomizationGuard Customization(
+		UPropertyCustomizationRegistry::FindCustomization(Object->GetClass()->Name)
+	);
+
+	if (Customization)
+	{
+		// 커스텀 렌더링 사용
+		Customization->CustomizeDetails(Object);
+		return;
+	}
+
+	// ===== 기존: 기본 렌더링 =====
 	UClass* Class = Object->GetClass();
 	const TArray<FProperty>& Properties = Class->GetProperties();
 
@@ -314,6 +329,19 @@ void UPropertyRenderer::RenderAllPropertiesWithInheritance(UObject* Object)
 	if (!Object)
 		return;
 
+	// ===== 신규: Customization 확인 =====
+	FCustomizationGuard Customization(
+		UPropertyCustomizationRegistry::FindCustomization(Object->GetClass()->Name)
+	);
+
+	if (Customization)
+	{
+		// 커스텀 렌더링 사용
+		Customization->CustomizeDetails(Object);
+		return;
+	}
+
+	// ===== 기존: 기본 렌더링 =====
 	UClass* Class = Object->GetClass();
 	const TArray<FProperty>& AllProperties = Class->GetAllProperties();
 
@@ -1218,9 +1246,13 @@ bool UPropertyRenderer::RenderAnimSequenceProperty(const FProperty& Prop, void* 
 	}
 	if (ImGui::IsItemHovered())
 	{
-		ImGui::BeginTooltip();
-		ImGui::TextUnformatted(CurrentPath.c_str());
-		ImGui::EndTooltip();
+		// 경로가 있을 때만 Tooltip 표시
+		if (!CurrentPath.empty())
+		{
+			ImGui::BeginTooltip();
+			ImGui::TextUnformatted(CurrentPath.c_str());
+			ImGui::EndTooltip();
+		}
 	}
 
 	return false;
@@ -2111,4 +2143,159 @@ bool UPropertyRenderer::RenderTransformProperty(const FProperty& Prop, void* Ins
 	ImGui::PopID();
 
 	return bAnyChanged;
+}
+
+// ===== Property Customization 지원 =====
+
+void UPropertyRenderer::RenderPropertiesWithCustomization(
+	UObject* Object,
+	FOnShouldFilterAsset& FilterDelegate)
+{
+	if (!Object)
+		return;
+
+	UClass* Class = Object->GetClass();
+	const TArray<FProperty>& Properties = Class->GetAllProperties();
+
+	// 카테고리별로 정리 (기존 RenderProperties와 동일)
+	TArray<TPair<FString, TArray<const FProperty*>>> CategorizedProps;
+	TMap<FString, int32> CategoryIndexMap;
+
+	for (const FProperty& Prop : Properties)
+	{
+		if (Prop.bIsEditAnywhere)
+		{
+			FString CategoryName = Prop.Category ? Prop.Category : "Default";
+			int32* IndexPtr = CategoryIndexMap.Find(CategoryName);
+
+			if (IndexPtr)
+			{
+				CategorizedProps[*IndexPtr].second.Add(&Prop);
+			}
+			else
+			{
+				TArray<const FProperty*> NewPropArray;
+				NewPropArray.Add(&Prop);
+				int32 NewIndex = CategorizedProps.Add(TPair<FString, TArray<const FProperty*>>(CategoryName, NewPropArray));
+				CategoryIndexMap.Add(CategoryName, NewIndex);
+			}
+		}
+	}
+
+	// 렌더링
+	for (auto& Pair : CategorizedProps)
+	{
+		const FString& Category = Pair.first;
+		const TArray<const FProperty*>& Props = Pair.second;
+
+		ImGui::Separator();
+		ImGui::Text("%s", Category.c_str());
+
+		for (const FProperty* Prop : Props)
+		{
+			ImGui::PushID(Prop);
+
+			// AnimSequence 타입이면 필터와 함께 렌더링
+			if (Prop->Type == EPropertyType::AnimSequence && FilterDelegate.IsBound())
+			{
+				RenderAnimSequencePropertyWithFilter(*Prop, Object, FilterDelegate);
+			}
+			else
+			{
+				// 일반 프로퍼티는 기본 렌더링
+				RenderProperty(*Prop, Object);
+			}
+
+			ImGui::PopID();
+		}
+	}
+}
+
+bool UPropertyRenderer::RenderAnimSequencePropertyWithFilter(
+	const FProperty& Prop,
+	void* Instance,
+	FOnShouldFilterAsset& FilterDelegate)
+{
+	UAnimSequence** AnimPtr = Prop.GetValuePtr<UAnimSequence*>(Instance);
+
+	FString CurrentPath;
+	if (*AnimPtr)
+	{
+		CurrentPath = (*AnimPtr)->GetFilePath();
+	}
+
+	if (CachedAnimSequencePaths.empty())
+	{
+		ImGui::Text("%s: <No Animations>", Prop.Name);
+		return false;
+	}
+
+	// ===== 필터링된 목록 생성 =====
+	TArray<FString> FilteredAnimPaths;
+	TArray<FString> FilteredAnimItems;
+
+	for (int i = 0; i < static_cast<int>(CachedAnimSequencePaths.size()); ++i)
+	{
+		const FString& Path = CachedAnimSequencePaths[i];
+
+		// 필터 적용
+		if (FilterDelegate.IsBound() && FilterDelegate.Execute(Path))
+		{
+			continue;  // 필터링됨 (숨김)
+		}
+
+		// 목록에 추가
+		FilteredAnimPaths.Add(Path);
+		FilteredAnimItems.Add(CachedAnimSequenceItems[i]);
+	}
+
+	// 필터링 후 애니메이션이 없으면
+	if (FilteredAnimPaths.IsEmpty())
+	{
+		ImGui::Text("%s: <No Compatible Animations>", Prop.Name);
+		return false;
+	}
+
+	// ===== 현재 선택 인덱스 찾기 =====
+	int SelectedIdx = -1;
+	for (int i = 0; i < static_cast<int>(FilteredAnimPaths.size()); ++i)
+	{
+		if (FilteredAnimPaths[i] == CurrentPath)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	// ===== Combo Box 렌더링 =====
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, &ItemsGetter, (void*)&FilteredAnimItems, static_cast<int>(FilteredAnimItems.size())))
+	{
+		if (SelectedIdx >= 0 && SelectedIdx < static_cast<int>(FilteredAnimPaths.size()))
+		{
+			if (FilteredAnimPaths[SelectedIdx].empty())
+			{
+				*AnimPtr = nullptr;
+			}
+			else
+			{
+				*AnimPtr = UResourceManager::GetInstance().Get<UAnimSequence>(FilteredAnimPaths[SelectedIdx]);
+			}
+			return true;
+		}
+	}
+
+	// Tooltip
+	if (ImGui::IsItemHovered())
+	{
+		// 경로가 있을 때만 Tooltip 표시
+		if (!CurrentPath.empty())
+		{
+			ImGui::BeginTooltip();
+			ImGui::TextUnformatted(CurrentPath.c_str());
+			ImGui::EndTooltip();
+		}
+	}
+
+	return false;
 }
