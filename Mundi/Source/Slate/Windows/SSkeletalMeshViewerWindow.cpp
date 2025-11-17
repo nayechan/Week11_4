@@ -117,7 +117,6 @@ void SSkeletalMeshViewerWindow::OnRender()
         // Left panel - Asset Browser & Bone Hierarchy
         ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
         ImGui::BeginChild("LeftPanel", ImVec2(leftWidth, totalHeight), true, ImGuiWindowFlags_NoScrollbar);
-        ImGui::PopStyleVar();
 
         if (ActiveState)
         {
@@ -368,7 +367,9 @@ void SSkeletalMeshViewerWindow::OnRender()
         }
         else
         {
+
             ImGui::EndChild();
+            ImGui::PopStyleVar(2);
             ImGui::End();
             return;
         }
@@ -388,9 +389,7 @@ void SSkeletalMeshViewerWindow::OnRender()
         ImGui::SameLine(0, 0); // No spacing between panels
 
         // Right panel - Bone Properties
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
         ImGui::BeginChild("RightPanel", ImVec2(rightWidth, totalHeight), true);
-        ImGui::PopStyleVar();
 
         // Panel header
         ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
@@ -523,7 +522,7 @@ void SSkeletalMeshViewerWindow::OnRender()
         ImGui::EndChild(); // RightPanel
 
         // Pop the ItemSpacing style
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
     ImGui::End();
 
