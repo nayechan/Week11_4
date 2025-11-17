@@ -9,6 +9,7 @@
 #include "Windows/ControlPanelWindow.h"
 #include "Windows/SViewportWindow.h"
 #include "Windows/SSkeletalMeshViewerWindow.h"
+#include "Windows/SAnimSequenceEditorWindow.h"
 #include "Windows/ConsoleWindow.h"
 #include "Windows/SConsolePanel.h"
 #include "Windows/ContentBrowserWindow.h"
@@ -226,6 +227,46 @@ void USlateManager::CloseSkeletalMeshViewer()
     SkeletalViewerWindow = nullptr;
 }
 
+void USlateManager::OpenAnimSequenceEditor()
+{
+    if (AnimSequenceEditorWindow)
+        return;
+
+    AnimSequenceEditorWindow = new SAnimSequenceEditorWindow();
+
+    // Open as a detached window at a default size and position
+    const float toolbarHeight = 30.0f;
+    const float availableHeight = Rect.GetHeight();
+    const float w = Rect.GetWidth();
+    const float h = availableHeight;
+    const float x = Rect.Left;
+    const float y = Rect.Top;
+    AnimSequenceEditorWindow->Initialize(x, y, w, h, World, Device);
+}
+
+void USlateManager::OpenAnimSequenceEditorWithFile(const char* FilePath)
+{
+    // 에디터가 이미 열려있으면 그냥 사용, 아니면 새로 열기
+    if (!AnimSequenceEditorWindow)
+    {
+        OpenAnimSequenceEditor();
+    }
+
+    // Load the animation file into the editor
+    if (AnimSequenceEditorWindow && FilePath && FilePath[0] != '\0')
+    {
+        AnimSequenceEditorWindow->LoadAnimationFile(FilePath);
+        UE_LOG("Opening AnimSequenceEditor with file: %s", FilePath);
+    }
+}
+
+void USlateManager::CloseAnimSequenceEditor()
+{
+    if (!AnimSequenceEditorWindow) return;
+    delete AnimSequenceEditorWindow;
+    AnimSequenceEditorWindow = nullptr;
+}
+
 void USlateManager::SwitchLayout(EViewportLayoutMode NewMode)
 {
     if (NewMode == CurrentMode) return;
@@ -334,10 +375,14 @@ void USlateManager::Render()
         ImGui::PopStyleVar(3);
     }
 
-    // Render detached viewer on top
+    // Render detached windows on top
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnRender();
+    }
+    if (AnimSequenceEditorWindow)
+    {
+        AnimSequenceEditorWindow->OnRender();
     }
 }
 
@@ -346,6 +391,10 @@ void USlateManager::RenderAfterUI()
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnRenderViewport();
+    }
+    if (AnimSequenceEditorWindow)
+    {
+        AnimSequenceEditorWindow->OnRenderViewport();
     }
 }
 
@@ -366,6 +415,10 @@ void USlateManager::Update(float DeltaSeconds)
     if (SkeletalViewerWindow)
     {
         SkeletalViewerWindow->OnUpdate(DeltaSeconds);
+    }
+    if (AnimSequenceEditorWindow)
+    {
+        AnimSequenceEditorWindow->OnUpdate(DeltaSeconds);
     }
 
     // Content Browser 애니메이션 업데이트
@@ -399,6 +452,26 @@ void USlateManager::ProcessInput()
     const FVector2D MousePosition = INPUT.GetMousePosition();
 
     if (SkeletalViewerWindow && SkeletalViewerWindow->Rect.Contains(MousePosition))
+    {
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            OnMouseDown(MousePosition, 0);
+        }
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            OnMouseDown(MousePosition, 1);
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            OnMouseUp(MousePosition, 0);
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        {
+            OnMouseUp(MousePosition, 1);
+        }
+    }
+
+    if (AnimSequenceEditorWindow && AnimSequenceEditorWindow->Rect.Contains(MousePosition))
     {
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         {
@@ -473,10 +546,29 @@ void USlateManager::ProcessInput()
         }
     }
 
+    // Ctrl + Shift + B로 Animation Sequence Editor 토글
+    if (ImGui::IsKeyPressed(ImGuiKey_B) && ImGui::GetIO().KeyCtrl && ImGui::GetIO().KeyShift)
+    {
+        if (AnimSequenceEditorWindow)
+        {
+            CloseAnimSequenceEditor();
+        }
+        else
+        {
+            OpenAnimSequenceEditor();
+        }
+    }
+
     // ESC closes the Skeletal Mesh Viewer if open
     if (ImGui::IsKeyPressed(ImGuiKey_Escape) && SkeletalViewerWindow)
     {
         CloseSkeletalMeshViewer();
+    }
+
+    // ESC closes the Animation Sequence Editor if open
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape) && AnimSequenceEditorWindow)
+    {
+        CloseAnimSequenceEditor();
     }
 
     // 단축키로 기즈모 모드 변경
@@ -486,10 +578,16 @@ void USlateManager::ProcessInput()
 
 void USlateManager::OnMouseMove(FVector2D MousePos)
 {
-    // Route to detached viewer if hovered
+    // Route to detached windows if hovered
     if (SkeletalViewerWindow && SkeletalViewerWindow->IsHover(MousePos))
     {
         SkeletalViewerWindow->OnMouseMove(MousePos);
+        return;
+    }
+
+    if (AnimSequenceEditorWindow && AnimSequenceEditorWindow->IsHover(MousePos))
+    {
+        AnimSequenceEditorWindow->OnMouseMove(MousePos);
         return;
     }
 
@@ -510,7 +608,13 @@ void USlateManager::OnMouseDown(FVector2D MousePos, uint32 Button)
         SkeletalViewerWindow->OnMouseDown(MousePos, Button);
         return;
     }
-    
+
+    if (AnimSequenceEditorWindow && AnimSequenceEditorWindow->Rect.Contains(MousePos))
+    {
+        AnimSequenceEditorWindow->OnMouseDown(MousePos, Button);
+        return;
+    }
+
     if (ActiveViewport)
     {
     }
@@ -549,6 +653,12 @@ void USlateManager::OnMouseUp(FVector2D MousePos, uint32 Button)
     if (SkeletalViewerWindow && SkeletalViewerWindow->Rect.Contains(MousePos))
     {
         SkeletalViewerWindow->OnMouseUp(MousePos, Button);
+        // do not return; still allow panels to finish mouse up
+    }
+
+    if (AnimSequenceEditorWindow && AnimSequenceEditorWindow->Rect.Contains(MousePos))
+    {
+        AnimSequenceEditorWindow->OnMouseUp(MousePos, Button);
         // do not return; still allow panels to finish mouse up
     }
 
@@ -625,6 +735,12 @@ void USlateManager::Shutdown()
     {
         delete SkeletalViewerWindow;
         SkeletalViewerWindow = nullptr;
+    }
+
+    if (AnimSequenceEditorWindow)
+    {
+        delete AnimSequenceEditorWindow;
+        AnimSequenceEditorWindow = nullptr;
     }
 }
 

@@ -36,8 +36,6 @@ private:
     void OpenNewTab(const char* Name = "Viewer");
     void CloseTab(int Index);
 
-    void RenderAnimationSquenceViewer();
-
 private:
     // Per-tab state
     ViewerState* ActiveState = nullptr;

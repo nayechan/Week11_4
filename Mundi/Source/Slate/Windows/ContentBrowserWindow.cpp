@@ -445,6 +445,13 @@ void UContentBrowserWindow::HandleDoubleClick(FFileEntry& Entry)
 		USlateManager::GetInstance().OpenSkeletalMeshViewerWithFile(pathStr.c_str());
 		UE_LOG("Opening SkeletalMeshViewer for: %s", Entry.FileName.c_str());
 	}
+	else if (ext == ".anim")
+	{
+		// AnimSequenceEditor 열기
+		std::string pathStr = Entry.Path.string();
+		USlateManager::GetInstance().OpenAnimSequenceEditorWithFile(pathStr.c_str());
+		UE_LOG("Opening AnimSequenceEditor for: %s", Entry.FileName.c_str());
+	}
 	else if (ext == ".obj")
 	{
 		// StaticMesh는 현재 전용 뷰어가 없으므로 로그만 출력
