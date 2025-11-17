@@ -51,10 +51,13 @@ void USkinnedMeshComponent::CollectMeshBatches(TArray<FMeshBatchElement>& OutMes
 
    if (bSkinningMatricesDirty && !GEngine.GetRenderer()->IsGpuSkinning())
    {
-      TIME_PROFILE(SkinningTimeCPU)
+      TIME_PROFILE(VerticesSkinningTime)
       PerformSkinning();
+      TIME_PROFILE_END(VerticesSkinningTime)
+
+      TIME_PROFILE(VertexBufferUpdateTime)
       SkeletalMesh->UpdateVertexBuffer(SkinnedVertices, VertexBuffer);
-      TIME_PROFILE_END(SkinningTimeCPU)
+      TIME_PROFILE_END(VertexBufferUpdateTime)
       bSkinningMatricesDirty = false;
    }
 
