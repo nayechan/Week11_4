@@ -149,7 +149,12 @@ void USceneComponent::SetWorldTransform(const FTransform& W)
     // Dangling pointer 방지를 위한 체크
     if (AttachParent && !AttachParent->IsPendingDestroy())
     {
-        const FTransform ParentWorld = AttachParent->GetWorldTransform();
+        FTransform ParentWorld = AttachParent->GetWorldTransform();
+        if (AttachSocketName != "NONE")
+        {
+            ParentWorld = AttachParent->GetSocketWorldTransform(AttachSocketName);
+        }
+        
         RelativeTransform = ParentWorld.GetRelativeTransform(W);
     }
     else
@@ -318,7 +323,11 @@ void USceneComponent::SetupAttachment(USceneComponent* InParent, EAttachmentRule
         AttachParent->AttachChildren.push_back(this);
         if (Rule == EAttachmentRule::KeepWorld)
         {
-            const FTransform ParentWorld = AttachParent->GetWorldTransform();
+            FTransform ParentWorld = AttachParent->GetWorldTransform();
+            if (AttachSocketName != "NONE")
+            {
+                ParentWorld = AttachParent->GetSocketWorldTransform(AttachSocketName);
+            }
             RelativeTransform = ParentWorld.GetRelativeTransform(OldWorld);
         }
         // KeepRelative: 기존 RelativeTransform 유지

@@ -25,6 +25,13 @@ void APlayerController::Possess(APawn* InPawn)
 	Pawn = InPawn;
 }
 
+void APlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	PlayerCameraManager->BeginPlay();
+}
+
 void APlayerController::Tick(float DeltaSecond)
 {
 	ProcessInput();
