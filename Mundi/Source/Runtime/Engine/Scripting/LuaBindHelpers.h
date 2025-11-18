@@ -22,7 +22,9 @@ static void AddMethod(sol::table& T, const char* Name, void(C::*Method)(P...))
 {
     T.set_function(Name, [Method](LuaComponentProxy& Proxy, P... Args)
     {
-        if (!Proxy.Instance || Proxy.Class != C::StaticClass()) return;
+        if (!Proxy.Instance) return;
+        // 상속 지원: IsChildOf로 호환성 체크 (Unreal 패턴)
+        if (!Proxy.Class->IsChildOf(C::StaticClass())) return;
         (static_cast<C*>(Proxy.Instance)->*Method)(std::forward<P>(Args)...);
     });
 }
@@ -33,7 +35,7 @@ static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...))
 {
     T.set_function(Name, [Method](LuaComponentProxy& Proxy, P... Args) -> R
     {
-        if (!Proxy.Instance || Proxy.Class != C::StaticClass())
+        if (!Proxy.Instance || !Proxy.Class->IsChildOf(C::StaticClass()))
         {
             if constexpr (!std::is_void_v<R>) return R{};
         }
@@ -47,7 +49,7 @@ static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...) cons
 {
     T.set_function(Name, [Method](LuaComponentProxy& Proxy, P... Args) -> R
     {
-        if (!Proxy.Instance || Proxy.Class != C::StaticClass())
+        if (!Proxy.Instance || !Proxy.Class->IsChildOf(C::StaticClass()))
         {
             if constexpr (!std::is_void_v<R>) return R{};
         }

@@ -44,11 +44,11 @@ public:
 	// 하위 클래스에서 Super::NativeUpdateAnimation() 호출 후 커스텀 로직 구현
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
-	// TODO: Lua 스크립트 초기화 (향후 구현)
-	// virtual void LuaInitializeAnimation();
+	// Lua 스크립트 초기화 (ULuaAnimInstance에서 구현)
+	virtual void LuaInitializeAnimation();
 
-	// TODO: Lua 스크립트 업데이트 (향후 구현)
-	// virtual void LuaUpdateAnimation(float DeltaSeconds);
+	// Lua 스크립트 업데이트 (ULuaAnimInstance에서 구현)
+	virtual void LuaUpdateAnimation(float DeltaSeconds);
 
 	// ========================================
 	// 내부 시스템 함수들
@@ -61,11 +61,16 @@ public:
 	// Owner component 접근자
 	class USkeletalMeshComponent* GetOwnerComponent() const { return OwnerComponent; }
 
+	// World 접근 (OwnerComponent를 통해 간접 접근)
+	class UWorld* GetWorld() const;
+
 protected:
 	// ⭐ CurrentTime, PreviousTime 제거
 	// Unreal 방식: AnimInstance는 전역 시간을 관리하지 않음
 	// 각 AnimNode가 자신의 InternalTime을 관리
 
+	// Lua에서 접근 가능하도록 UPROPERTY 추가
+	UPROPERTY(LuaReadWrite)
 	class USkeletalMeshComponent* OwnerComponent = nullptr;
 
 	friend class USkeletalMeshComponent;

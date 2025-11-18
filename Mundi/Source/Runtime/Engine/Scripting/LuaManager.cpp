@@ -9,6 +9,12 @@
 #include "CameraActor.h"
 #include "CameraComponent.h"
 #include "PlayerCameraManager.h"
+#include "Object.h"
+#include "ObjectFactory.h"
+#include "AnimationStateMachine.h"
+#include "AnimSequence.h"
+#include "AnimationTypes.h"
+#include "ResourceManager.h"
 #include <tuple>
 
 sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class) {
@@ -27,6 +33,7 @@ FLuaManager::FLuaManager()
     // Open essential standard libraries for gameplay scripts
     Lua->open_libraries(
         sol::lib::base,
+        sol::lib::package,     // require() 함수 제공
         sol::lib::coroutine,
         sol::lib::math,
         sol::lib::table,
@@ -34,6 +41,12 @@ FLuaManager::FLuaManager()
     );
 
     SharedLib = Lua->create_table();
+
+    // FName 생성 함수 등록 (FVector 패턴과 동일)
+    SharedLib.set_function("FName", sol::overload(
+        []() { return FName(""); },
+        [](const FString& str) { return FName(str); }
+    ));
 
     // Lua에서 Actor와 FGameObject 가 1대1로 매칭되고
     // Component는 그대로 Component와 1대1로 매칭된다
@@ -183,6 +196,54 @@ FLuaManager::FLuaManager()
             return NewObject;
         }
     ));
+    SharedLib.set_function("NewObject", sol::overload(
+        // NewObject(TypeName, Outer) - Outer 체인 설정
+        [](sol::this_state LuaState, const FString& TypeName, UObject* Outer) -> sol::object
+        {
+            sol::state_view LuaView(LuaState);
+
+            UClass* Type = UClass::FindClass(TypeName.c_str());
+            if (!Type)
+            {
+                UE_LOG("[Lua][error] NewObject: Class '%s' not found", TypeName.c_str());
+                return sol::nil;
+            }
+
+            UObject* Obj = ObjectFactory::NewObject(Type, Outer);
+            if (!Obj)
+            {
+                UE_LOG("[Lua][error] NewObject: Failed to create instance of '%s'", TypeName.c_str());
+                return sol::nil;
+            }
+
+            // LuaObjectProxy로 감싸서 반환 (메서드 호출 가능하게)
+            return MakeCompProxy(LuaView, Obj, Type);
+        },
+        // NewObject(TypeName) - Outer 없이 생성 (기존 호환성)
+        [](sol::this_state LuaState, const FString& TypeName) -> sol::object
+        {
+            sol::state_view LuaView(LuaState);
+
+            UClass* Type = UClass::FindClass(TypeName.c_str());
+            if (!Type)
+            {
+                UE_LOG("[Lua][error] NewObject: Class '%s' not found", TypeName.c_str());
+                return sol::nil;
+            }
+
+            UObject* Obj = ObjectFactory::NewObject(Type);
+            if (!Obj)
+            {
+                UE_LOG("[Lua][error] NewObject: Failed to create instance of '%s'", TypeName.c_str());
+                return sol::nil;
+            }
+
+            // LuaObjectProxy로 감싸서 반환 (메서드 호출 가능하게)
+            return MakeCompProxy(LuaView, Obj, Type);
+        }
+    ));
+
+
     SharedLib.set_function("DeleteObject", sol::overload(
         [](const FGameObject& GameObject)
         {
@@ -196,8 +257,45 @@ FLuaManager::FLuaManager()
                     break;
                 }
             }
+        },
+        [](UObject* Object)
+        {
+            ObjectFactory::DeleteObject(Object);
         }
     ));
+
+    // Cast: UObject*를 특정 타입으로 다운캐스트 (UE의 Cast<T> 패턴)
+    // 용도: GetOuter() 같이 UObject*를 반환하는 함수의 결과를 실제 타입으로 변환
+    // 예: local anim = Cast(self:GetOuter(), "UAnimInstance")
+    SharedLib.set_function("Cast",
+        [](sol::this_state LuaState, UObject* Object, const FString& TargetClassName) -> sol::object
+        {
+            sol::state_view LuaView(LuaState); 
+
+            if (!Object)
+                return sol::nil;
+
+            // 타겟 클래스 찾기
+            UClass* TargetClass = UClass::FindClass(TargetClassName.c_str());
+            if (!TargetClass)
+            {
+                UE_LOG("[Lua][error] Cast: Class '%s' not found", TargetClassName.c_str());
+                return sol::nil;
+            }
+
+            // 런타임 타입 체크 (IsChildOf)
+            if (!Object->GetClass()->IsChildOf(TargetClass))
+            {
+                // Cast 실패 - nil 반환 (UE 패턴과 동일)
+                return sol::nil;
+            }
+
+            // 성공 - TargetClass 타입으로 LuaObjectProxy 재생성
+            // 이제 Lua에서 TargetClass의 properties/methods 접근 가능
+            return MakeCompProxy(LuaView, Object, TargetClass);
+        }
+    );
+
     SharedLib.set_function("FindObjectByName",
         [](const FString& ActorName) -> FGameObject*
         {
@@ -339,6 +437,28 @@ FLuaManager::FLuaManager()
         "A", &FLinearColor::A
     );
 
+    // ===== Animation System Manual Bindings =====
+    // (UFUNCTION 자동 바인딩이 어려운 항목들)
+
+    // FPoseContext - C++에서만 생성, Lua에서는 읽기 전용 접근
+    SharedLib.new_usertype<FPoseContext>("FPoseContext",
+        sol::no_constructor,
+        "BoneTransforms", sol::readonly(&FPoseContext::BoneTransforms),
+        "GetNumBones", &FPoseContext::GetNumBones
+    );
+
+    // UAnimSequence 로드 헬퍼 (ResourceManager 래퍼)
+    SharedLib.set_function("LoadAnimSequence", [](const FString& Path) -> UAnimSequence*
+    {
+        auto& RM = UResourceManager::GetInstance();
+        UAnimSequence* Anim = RM.Get<UAnimSequence>(Path);
+        if (!Anim)
+        {
+            UE_LOG("[Lua][warning] LoadAnimSequence: Animation not found at '%s'", Path.c_str());
+        }
+        return Anim;
+    });
+
     RegisterComponentProxy(*Lua);
     ExposeGlobalFunctions();
     ExposeAllComponentsToLua();
@@ -352,6 +472,8 @@ FLuaManager::FLuaManager()
 FLuaManager::~FLuaManager()
 {
     ShutdownBeforeLuaClose();
+
+    OutputDebugStringA("Lua Manager Deleted\n");
     
     if (Lua)
     {
@@ -375,7 +497,8 @@ sol::environment FLuaManager::CreateEnvironment()
 void FLuaManager::RegisterComponentProxy(sol::state& Lua) {
     Lua.new_usertype<LuaComponentProxy>("Component",
         sol::meta_function::index,     &LuaComponentProxy::Index,
-        sol::meta_function::new_index, &LuaComponentProxy::NewIndex
+        sol::meta_function::new_index, &LuaComponentProxy::NewIndex,
+        "Get", &LuaComponentProxy::Get  // Get raw UObject* pointer
     );
 
     // Register container proxies
@@ -581,6 +704,9 @@ void FLuaManager::ExposeGlobalFunctions()
             }
         }
     );
+
+    // GDataDir 전역 변수 노출 (C++ 패턴과 동일)
+    (*Lua)["GDataDir"] = GDataDir;
 }
 
 bool FLuaManager::LoadScriptInto(sol::environment& Env, const FString& Path) {

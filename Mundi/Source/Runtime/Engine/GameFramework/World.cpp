@@ -30,6 +30,8 @@
 #include "LuaManager.h"
 #include "ShapeComponent.h"
 #include "PlayerCameraManager.h"
+#include "Pawn.h"
+#include "PlayerController.h"
 #include "Hash.h"
 
 IMPLEMENT_CLASS(UWorld)
@@ -58,6 +60,11 @@ UWorld::~UWorld()
 {
 	bIsTearingDown = true;	// 월드 삭제 중에는 새로운 액터 생성을 방지하기 위해
 
+	if (PlayerController)
+	{
+		PlayerController->EndPlay();
+		DeleteObject(PlayerController);
+	}
 	if (Level)
 	{
 		if (bPie)
@@ -249,6 +256,11 @@ void UWorld::Tick(float DeltaSeconds)
         Partition->Update(DeltaSeconds, /*budget*/256);
     }
 
+	if (PlayerController)
+	{
+		PlayerController->Tick(GetDeltaTime(EDeltaTime::Game));
+	}
+
 	if (Level)
 	{
 		// Tick 중에 새로운 actor가 추가될 수도 있어서 복사 후 호출
@@ -301,6 +313,15 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 	FWorldContext PIEWorldContext = FWorldContext(PIEWorld, EWorldType::Game);
 	GEngine.AddWorldContext(PIEWorldContext);
 	
+	// 플레이어 컨트롤러는 레벨에 속하지 않는 액터(레벨이 바뀐다고 플레이어 컨트롤러가 사라지지 않음)
+	PIEWorld->PlayerController = NewObject<APlayerController>();
+	PIEWorld->PlayerController->SetWorld(PIEWorld);
+	PIEWorld->PlayerController->GetPlayerCameraManager()->SetWorld(PIEWorld);
+	PIEWorld->SetPlayerCameraManager(PIEWorld->PlayerController->GetPlayerCameraManager());
+
+	// 생성자에서 안 해주는데 생성자에서 하면 프리뷰 월드에도 파티션 매니저가 생성되서 따로 처리해줌
+	PIEWorld->Partition = std::make_unique<UWorldPartitionManager>();
+
 	const TArray<AActor*>& SourceActors = InEditorWorld->GetLevel()->GetActors();
 	for (AActor* SourceActor : SourceActors)
 	{
@@ -318,17 +339,24 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 			continue;
 		}
 
-		// PlayerCameraManager 복사
-		if (InEditorWorld->PlayerCameraManager == SourceActor)
-		{
-			if (APlayerCameraManager* NewPlayerCameraManager = Cast<APlayerCameraManager>(NewActor))
-			{
-				PIEWorld->PlayerCameraManager = NewPlayerCameraManager;
-			}
-		}
+		//// PlayerCameraManager 복사
+		//if (InEditorWorld->PlayerCameraManager == SourceActor)
+		//{
+		//	if (APlayerCameraManager* NewPlayerCameraManager = Cast<APlayerCameraManager>(NewActor))
+		//	{
+		//		PIEWorld->PlayerCameraManager = NewPlayerCameraManager;
+		//	}
+		//}
 
 		PIEWorld->AddActorToLevel(NewActor);
+
+		// 기본적으로 레벨에 존재하는 Pawn을 Possess하도록 함. 루아에서 따로 설정 가능하게 할 것임.
+		if (APawn* NewPawn = Cast<APawn>(NewActor))
+		{
+			PIEWorld->PlayerController->Possess(NewPawn);
+		}
 	}
+
 
 	return PIEWorld;
 }
@@ -519,12 +547,12 @@ void UWorld::SetLevel(std::unique_ptr<ULevel> InLevel)
 	this->PlayerCameraManager = FindActor<APlayerCameraManager>();
 
 	// 씬에서 APCM을 찾지 못했다면, 비상용으로 새로 생성
-	if (this->PlayerCameraManager == nullptr)
-	{
-		AActor* NewPlayerCameraManager = SpawnActor(APlayerCameraManager::StaticClass());
-		this->PlayerCameraManager = Cast<APlayerCameraManager>(NewPlayerCameraManager);
-		UE_LOG("[info] 씬에서 APlayerCameraManager를 찾지 못해, 비어있는 인스턴스를 새로 생성합니다.");
-	}
+	//if (this->PlayerCameraManager == nullptr)
+	//{
+	//	AActor* NewPlayerCameraManager = SpawnActor(APlayerCameraManager::StaticClass());
+	//	this->PlayerCameraManager = Cast<APlayerCameraManager>(NewPlayerCameraManager);
+	//	UE_LOG("[info] 씬에서 APlayerCameraManager를 찾지 못해, 비어있는 인스턴스를 새로 생성합니다.");
+	//}
 
     // Clean any dangling selection references just in case
     if (SelectionMgr)

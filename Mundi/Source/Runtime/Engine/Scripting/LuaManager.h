@@ -5,6 +5,12 @@
 namespace sol { class state; }
 using state = sol::state;
 
+// Forward declarations
+struct UClass;
+
+// LuaObjectProxy 생성 헬퍼 (리플렉션 기반 바인딩)
+sol::object MakeCompProxy(sol::state_view SolState, void* Instance, UClass* Class);
+
 class FLuaManager
 {
 public:

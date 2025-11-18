@@ -24,11 +24,21 @@ namespace ObjectFactory
     // 2) 생성 + GUObjectArray 자동 등록
     UObject* NewObject(UClass* Class);
 
+    // 2b) 생성 + GUObjectArray 자동 등록 + Outer 설정
+    UObject* NewObject(UClass* Class, UObject* Outer);
+
     // 3) 템플릿 버전 (타입 안전)
     template<class T>
     inline T* NewObject()
     {
         return static_cast<T*>(NewObject(T::StaticClass()));
+    }
+
+    // 3b) 템플릿 버전 with Outer
+    template<class T>
+    inline T* NewObject(UObject* Outer)
+    {
+        return static_cast<T*>(NewObject(T::StaticClass(), Outer));
     }
 
     // 4) GUObjectArray 자동 등록

@@ -42,3 +42,22 @@ FTransform FAnimationRuntime::BlendTransforms(
 
 	return FTransform(BlendedPosition, BlendedRotation, BlendedScale);
 }
+
+float FAnimationRuntime::EvaluateBezierCurve(const float Curve[4], float T)
+{
+	// T 클램핑
+	T = FMath::Clamp(T, 0.0f, 1.0f);
+
+	const float P1_y = Curve[1];
+	const float P2_y = Curve[3];
+
+	const float OneMinusT = 1.0f - T;
+	const float TSquared = T * T;
+	const float OneMinusTSquared = OneMinusT * OneMinusT;
+
+	// Cubic Bezier 공식: y(t) = 3(1-t)^2 * t * P1_y + 3(1-t) * t^2 * P2_y + t^3
+	// 시작점 (0, 0), 끝점 (1, 1) 고정
+	return (3.0f * OneMinusTSquared * T * P1_y) +
+		   (3.0f * OneMinusT * TSquared * P2_y) +
+		   (TSquared * T);
+}

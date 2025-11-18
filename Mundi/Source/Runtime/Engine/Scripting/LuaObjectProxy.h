@@ -30,6 +30,9 @@ struct LuaObjectProxy
     // Validate if the UObject instance is still valid
     bool IsValid() const;
 
+    // Get raw UObject pointer (for passing to functions that need UObject*)
+    UObject* Get() const { return Instance; }
+
     static sol::object Index(sol::this_state LuaState, LuaObjectProxy& Self, const char* Key);
     static void        NewIndex(LuaObjectProxy& Self, const char* Key, sol::object Obj);
 };
