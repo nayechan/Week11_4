@@ -82,3 +82,71 @@ private:
 #define DECLARE_DELEGATE_TYPE_OneParam(Name, T1)  using Name = TDelegate<T1>;
 #define DECLARE_DELEGATE_TYPE_TwoParam(Name, T1, T2) using Name = TDelegate<T1, T2>;
 #define DECLARE_DYNAMIC_DELEGATE_TYPE(Name, ...)  using Name = std::shared_ptr<TDelegate<__VA_ARGS__>>;
+
+// ============================================================
+// TFunction - 단일 핸들러, 반환값 지원
+// ============================================================
+
+template<typename Signature>
+class TFunction;
+
+template<typename RetType, typename... Args>
+class TFunction<RetType(Args...)>
+{
+public:
+	using FunctionType = std::function<RetType(Args...)>;
+
+	TFunction() = default;
+
+	// 람다/함수 바인딩
+	template<typename Callable>
+	void Bind(Callable&& InCallable)
+	{
+		Handler = std::forward<Callable>(InCallable);
+	}
+
+	// 멤버 함수 바인딩
+	template<typename TObj, typename TClass>
+	void BindMember(TObj* Instance, RetType(TClass::* Func)(Args...))
+	{
+		Handler = [=](Args... args) -> RetType {
+			return (Instance->*Func)(args...);
+		};
+	}
+
+	// 실행
+	RetType Execute(Args... args) const
+	{
+		if (!Handler)
+		{
+			// 기본값 반환 (bool의 경우 false, 포인터는 nullptr 등)
+			return RetType();
+		}
+		return Handler(args...);
+	}
+
+	// 바인딩 여부 확인
+	bool IsBound() const
+	{
+		return static_cast<bool>(Handler);
+	}
+
+	// 바인딩 해제
+	void Unbind()
+	{
+		Handler = nullptr;
+	}
+
+private:
+	FunctionType Handler;
+};
+
+// TFunction 매크로 정의
+#define DECLARE_FUNCTION_RetVal(Name, RetType) \
+	using Name = TFunction<RetType()>;
+
+#define DECLARE_FUNCTION_RetVal_OneParam(Name, RetType, ParamType) \
+	using Name = TFunction<RetType(ParamType)>;
+
+#define DECLARE_FUNCTION_RetVal_TwoParam(Name, RetType, Param1Type, Param2Type) \
+	using Name = TFunction<RetType(Param1Type, Param2Type)>;

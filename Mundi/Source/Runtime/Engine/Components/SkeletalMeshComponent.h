@@ -5,6 +5,7 @@
 
 // 전방 선언
 class UAnimInstance;
+class UAnimSequence;
 struct FAnimNotifyEvent;
 enum class EAnimationMode : uint8;  // AnimationTypes.h에 정의됨
 
@@ -30,6 +31,10 @@ public:
     // 애니메이션 인스턴스 클래스 (에디터에서 선택)
     UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animation", Tooltip="애니메이션 인스턴스 클래스")
     TSubclassOf<UAnimInstance> AnimClass;
+
+    // 재생할 애니메이션 시퀀스 (AnimationSingleNode 모드에서 사용, PIE 시작 시 자동 루프 재생)
+    UPROPERTY(EditAnywhere, Category="Animation", Tooltip="재생할 애니메이션 시퀀스")
+    UAnimSequence* AnimToPlay = nullptr;
 
     // 애니메이션 인스턴스 (런타임 생성)
     UPROPERTY(LuaReadWrite, Category="Animation")

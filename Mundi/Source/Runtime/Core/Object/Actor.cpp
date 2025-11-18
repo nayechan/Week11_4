@@ -690,11 +690,11 @@ void AActor::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			for (uint32 i = 0; i < static_cast<uint32>(ComponentsJson.size()); ++i)
 			{
 				JSON ComponentJson = ComponentsJson.at(i);
-				
+
 				FString TypeString;
 				FJsonSerializer::ReadString(ComponentJson, "Type", TypeString);
-	
-				UClass* NewClass = UClass::FindClass(TypeString);
+
+				UClass* NewClass = UClass::FindClass(TypeString.c_str());
 	
 				UActorComponent* NewComponent = Cast<UActorComponent>(ObjectFactory::NewObject(NewClass));
 	
