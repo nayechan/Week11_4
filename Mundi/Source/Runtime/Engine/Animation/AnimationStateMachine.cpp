@@ -173,14 +173,45 @@ void UAnimStateMachine::StartTransition(FName From, FName To, float Duration)
     TransitionElapsed = 0.0f;
     TransitionAlpha = 0.0f;
 
-    // Node-Centric 아키텍처:
+    // Node-Centric 아키텍처 + Phase Sync:
     // FromState: 현재 시간 계속 (예: 2.0초 → 2.033초 → ...)
-    // ToState: 0초부터 시작 (0.0 → 0.033 → 0.066 → ...)
+    // ToState: FromState의 phase(진행률)를 유지하여 시작
+    FAnimState* FromStatePtr = States.Find(From);
     FAnimState* ToStatePtr = States.Find(To);
+
     if (ToStatePtr)
     {
-        ToStatePtr->InternalTime = 0.0f;
-        ToStatePtr->PreviousInternalTime = 0.0f;
+        // Phase 기반 동기화: FromState의 진행률(0.0~1.0)을 ToState에 적용
+        // 예: Walk(2.0초) 1.0초 지점 → phase=0.5 → Run(1.5초)은 0.75초부터 시작
+        if (FromStatePtr && FromStatePtr->Animation && ToStatePtr->Animation)
+        {
+            float fromLength = FromStatePtr->Animation->SequenceLength;
+            float toLength = ToStatePtr->Animation->SequenceLength;
+
+            if (fromLength > 0.0f && toLength > 0.0f)
+            {
+                // Normalized phase 계산
+                float phase = FromStatePtr->InternalTime / fromLength;
+                // Loop 중일 경우 phase가 1.0을 초과할 수 있으므로 fmod로 정규화
+                phase = fmod(phase, 1.0f);
+                ToStatePtr->InternalTime = phase * toLength;
+
+                // Phase sync 로그 (간소화)
+                UE_LOG("StateMachine: Phase sync - phase=%.2f, ToTime=%.2fs",
+                       phase, ToStatePtr->InternalTime);
+            }
+            else
+            {
+                ToStatePtr->InternalTime = 0.0f;
+            }
+        }
+        else
+        {
+            ToStatePtr->InternalTime = 0.0f;
+        }
+
+        // PreviousInternalTime도 동일하게 설정 (첫 프레임에 Notify 중복 방지)
+        ToStatePtr->PreviousInternalTime = ToStatePtr->InternalTime;
     }
 
     UE_LOG("StateMachine: Transition %s -> %s (%.2fs)",

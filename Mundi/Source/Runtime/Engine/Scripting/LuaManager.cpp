@@ -472,6 +472,8 @@ FLuaManager::FLuaManager()
 FLuaManager::~FLuaManager()
 {
     ShutdownBeforeLuaClose();
+
+    OutputDebugStringA("Lua Manager Deleted\n");
     
     if (Lua)
     {

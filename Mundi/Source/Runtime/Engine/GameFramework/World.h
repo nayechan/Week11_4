@@ -95,7 +95,7 @@ public:
     void SetLevel(std::unique_ptr<ULevel> InLevel);
     ULevel* GetLevel() const { return Level.get(); }
     FLightManager* GetLightManager() const { return LightManager.get(); }
-    FLuaManager* GetLuaManager() const { return LuaManager.get(); }
+    std::shared_ptr<FLuaManager> GetLuaManager() const { return LuaManager; }
 
     ACameraActor* GetEditorCameraActor() { return MainEditorCameraActor; }
     void SetEditorCameraActor(ACameraActor* InCamera);
@@ -156,7 +156,7 @@ private:
     std::unique_ptr<FLightManager> LightManager;
 
     /** === 루아 매니저 ===*/
-    std::unique_ptr<FLuaManager> LuaManager;
+    std::shared_ptr<FLuaManager> LuaManager;
     
     // Object naming system
     TMap<FString, int32> ObjectTypeCounts;

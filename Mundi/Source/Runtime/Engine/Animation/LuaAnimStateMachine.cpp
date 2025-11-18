@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "LuaAnimStateMachine.h"
 #include "AnimInstance.h"
 #include "LuaManager.h"
@@ -39,14 +39,15 @@ void ULuaAnimStateMachine::LuaSetup()
 		return;
 	}
 
-	auto LuaVM = World->GetLuaManager();
+	// ⭐ shared_ptr를 멤버로 저장하여 LuaManager 생명주기 보장
+	LuaVM = World->GetLuaManager();
 	if (!LuaVM)
 	{
 		UE_LOG("ULuaAnimStateMachine::LuaSetup - LuaManager is null");
 		return;
 	}
 
-	Lua = &(LuaVM->GetState());
+	Lua = &(LuaVM->GetState());  // 편의용 raw pointer
 
 	// 독립된 환경 생성
 	Env = LuaVM->CreateEnvironment();
@@ -121,14 +122,17 @@ void ULuaAnimStateMachine::CleanupLuaResources()
 	if (bIsLuaCleanedUp)
 		return;
 
-	// 함수 캐시 정리 (값 멤버는 자동 소멸)
-	LuaSetupFunc = sol::protected_function{};
-	LuaProcessStateFunc = sol::protected_function{};
-
-	// 환경 정리 (값 멤버는 자동 소멸)
-	Env = sol::environment{};
+	// ⭐ shared_ptr 패턴: LuaVM이 살아있으면 lua_State*도 유효 보장
+	// 안전하게 명시적으로 해제
+	if (LuaVM)
+	{
+		LuaSetupFunc = sol::protected_function{};
+		LuaProcessStateFunc = sol::protected_function{};
+		Env = sol::environment{};
+	}
 
 	Lua = nullptr;
+	LuaVM.reset();  // shared_ptr 명시적 해제
 	bIsLuaInitialized = false;
 	bIsLuaCleanedUp = true;
 

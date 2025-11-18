@@ -82,7 +82,9 @@ protected:
 	FString LuaScriptPath{};
 
 	// ⭐ ULuaScriptComponent 패턴: sol2가 pch.h에 있어서 값 멤버 사용 가능
-	sol::state* Lua = nullptr;
+	// ⭐ shared_ptr로 LuaManager 생명주기 보장 (dangling pointer 방지)
+	std::shared_ptr<class FLuaManager> LuaVM;  // LuaManager 소유권 공유
+	sol::state* Lua = nullptr;                  // 편의용 raw pointer (LuaVM->GetState())
 	sol::environment Env{};
 
 	// 함수 캐시

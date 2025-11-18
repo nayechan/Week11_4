@@ -31,13 +31,12 @@ function LuaSetup()
     -- NOTE: FName 생성자를 명시적으로 호출
     self:AddState(FName("Idle"), idleAnim, true, 1.0)
     self:AddState(FName("Walk"), walkAnim, true, 1.0)
-    self:AddState(FName("Run"), runAnim, true, 1.5)  -- Run은 1.5배 빠르게
+    self:AddState(FName("Run"), runAnim, true, 1.0)  -- Run은 1.5배 빠르게
 
     -- Transitions 추가
-    self:AddTransition(FName("Idle"), FName("Walk"), 3.0)
+    self:AddTransition(FName("Idle"), FName("Walk"), 0.5)
+    self:AddTransition(FName("Walk"), FName("Idle"), 0.5)
     self:AddTransition(FName("Walk"), FName("Run"), 3.0)
-    self:AddTransition(FName("Run"), FName("Idle"), 3.0)
-    self:AddTransition(FName("Walk"), FName("Idle"), 3.0)
     self:AddTransition(FName("Run"), FName("Walk"), 3.0)
 
     -- 초기 상태 설정

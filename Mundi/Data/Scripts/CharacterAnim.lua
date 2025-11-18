@@ -180,8 +180,8 @@ function UpdateMovementVariables()
     -- end
 
     -- 테스트용 시뮬레이션 (sin wave로 Speed 변화)
-    testTime = testTime + 0.001
-    Vars["Speed"] = 250.0 * math.sin(testTime) - 100.0  -- Auto converted
+    testTime = testTime + 0.0003
+    Vars["Speed"] = 250.0 * math.sin(testTime)  -- Auto converted
 
     -- TODO: 점프/낙하 감지
     Vars["bIsInAir"] = false  -- Auto converted to "false"
