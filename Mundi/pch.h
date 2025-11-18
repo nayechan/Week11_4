@@ -75,6 +75,9 @@
 // nlohmann
 #include "nlohmann/json.hpp"
 
+// sol2 (Lua binding)
+#include <sol/sol.hpp>
+
 // Manager
 #include "Renderer.h"
 #include "InputManager.h"

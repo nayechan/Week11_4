@@ -68,21 +68,21 @@ void APlayerCameraManager::BeginPlay()
 void APlayerCameraManager::Destroy()
 {
 	// 교체할 수 있으면 해당 매니저로 교체 후 삭제 허용
-	TArray<APlayerCameraManager*> PlayerCameraManagers = GetWorld()->FindActors<APlayerCameraManager>();
-	if (1 < PlayerCameraManagers.Num())
-	{
-		for (APlayerCameraManager* PlayerCameraManager : PlayerCameraManagers)
-		{
-			if (this != PlayerCameraManager)
-			{
-				GetWorld()->SetPlayerCameraManager(PlayerCameraManager);
+	//TArray<APlayerCameraManager*> PlayerCameraManagers = GetWorld()->FindActors<APlayerCameraManager>();
+	//if (1 < PlayerCameraManagers.Num())
+	//{
+	//	for (APlayerCameraManager* PlayerCameraManager : PlayerCameraManagers)
+	//	{
+	//		if (this != PlayerCameraManager)
+	//		{
+	//			GetWorld()->SetPlayerCameraManager(PlayerCameraManager);
 				Super::Destroy();
 				return;
-			}
-		}
-	}
+	//		}
+	//	}
+	//}
 
-	UE_LOG("[warning] PlayerCameraManager는 삭제할 수 없습니다. (새로운 매니저를 만들고 삭제하면 가능)");
+	//UE_LOG("[warning] PlayerCameraManager는 삭제할 수 없습니다. (새로운 매니저를 만들고 삭제하면 가능)");
 }
 
 // 만약 현재 월드에 카메라가 없었으면 이 카메라가 View로 등록됨

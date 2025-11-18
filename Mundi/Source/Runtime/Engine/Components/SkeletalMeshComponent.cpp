@@ -2,6 +2,7 @@
 #include "SkeletalMeshComponent.h"
 #include "AnimInstance.h"
 #include "AnimSingleNodeInstance.h"
+#include "LuaAnimInstance.h"
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
 #include "ResourceManager.h"
@@ -23,16 +24,29 @@ void USkeletalMeshComponent::BeginPlay()
 
         switch (AnimationMode)
         {
-        case EAnimationMode::AnimationClass:
-            // AnimClass 사용 (C++ 또는 Lua AnimInstance)
+        case EAnimationMode::AnimationNative:
+            // C++ AnimInstance 사용 (AnimClass 프로퍼티)
             if (AnimClass)
             {
                 Class = AnimClass.Get();
-                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::AnimationClass, using AnimClass: %s", Class ? Class->Name : "nullptr");
+                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::Native, using AnimClass: %s", Class ? Class->Name : "nullptr");
             }
             else
             {
-                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::AnimationClass, but AnimClass is not set!");
+                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::Native, but AnimClass is not set!");
+            }
+            break;
+
+        case EAnimationMode::AnimationLua:
+            // Lua AnimInstance 사용 (AnimLuaScript 프로퍼티)
+            if (!AnimLuaScript.empty())
+            {
+                Class = ULuaAnimInstance::StaticClass();
+                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::Lua, using script: %s", AnimLuaScript.c_str());
+            }
+            else
+            {
+                UE_LOG("USkeletalMeshComponent::BeginPlay - AnimationMode::Lua, but AnimLuaScript is not set!");
             }
             break;
 
@@ -62,6 +76,22 @@ void USkeletalMeshComponent::BeginPlay()
 
             if (AnimInstance)
             {
+                // Lua 모드인 경우 스크립트 경로 설정
+                if (AnimationMode == EAnimationMode::AnimationLua)
+                {
+                    ULuaAnimInstance* LuaAnim = Cast<ULuaAnimInstance>(AnimInstance);
+                    if (LuaAnim)
+                    {
+                        // 사용자 입력을 그대로 전달 (경로 처리는 사용자 책임)
+                        LuaAnim->LuaScriptPath = AnimLuaScript;
+
+                        if (AnimLuaScript.empty())
+                        {
+                            UE_LOG("USkeletalMeshComponent::BeginPlay - AnimLuaScript is empty!");
+                        }
+                    }
+                }
+
                 AnimInstance->OwnerComponent = this;
                 AnimInstance->InitializeAnimation();
                 UE_LOG("USkeletalMeshComponent::BeginPlay - Created AnimInstance: %s", Class->Name);

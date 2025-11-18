@@ -6,6 +6,7 @@
 #include "FbxLoader.h"
 #include "PlatformTime.h"
 #include "ExceptionHandler.h"
+#include "PlayerController.h"
 #include <ObjManager.h>
 
 
@@ -393,6 +394,10 @@ void UEditorEngine::StartPIE()
         Actor->BeginPlay();
     }
 
+    if (GWorld->GetPlayerController())
+    {
+        GWorld->GetPlayerController()->BeginPlay();
+    }
     // NOTE: BeginPlay 중에 삭제된 액터 삭제 후 Tick 시작
     GWorld->ProcessPendingKillActors();
 }

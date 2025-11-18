@@ -5,7 +5,7 @@
 class APawn;
 class APlayerCameraManager;
 
-UCLASS(Abstract, DisplayName = "APlayerController", Description = "APlayerController 액터")
+UCLASS(DisplayName = "APlayerController", Description = "APlayerController 액터")
 class APlayerController : public AActor
 {
 	GENERATED_REFLECTION_BODY()
@@ -16,6 +16,7 @@ public:
 
 	void Possess(APawn* InPawn);
 	
+	void BeginPlay() override;
 	void Tick(float DeltaSecond) override;
 
 	APlayerCameraManager* GetPlayerCameraManager();

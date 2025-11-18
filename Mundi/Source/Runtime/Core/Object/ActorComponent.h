@@ -53,7 +53,10 @@ public:
 
     // ─────────────── Owner/World
     void   SetOwner(AActor* InOwner) { Owner = InOwner; }
+
+    UFUNCTION(LuaBind)
     AActor* GetOwner() const { return Owner; }
+
     UWorld* GetWorld() const; // 구현은 .cpp에서 Owner->GetWorld()
 
     // ─────────────── 컴포넌트 보호

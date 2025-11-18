@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
@@ -717,6 +717,15 @@
     <ClCompile Include="Source\Runtime\Core\Misc\ExceptionHandler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
+    <ClCompile Include="Generated\ULuaAnimInstance.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\ULuaAnimStateMachine.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\EnumRegistry.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
     <ClCompile Include="Generated\APlayerController.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
@@ -729,7 +738,8 @@
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerController.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SpringArmComponent.cpp" />
-  </ItemGroup>
+    <ClCompile Include="Source\Runtime\Engine\GameFramework\Character.cpp" />
+  <ClCompile Include="Generated\ACharacter.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1540,9 +1550,22 @@
     <ClInclude Include="Source\Runtime\Core\Misc\ExceptionHandler.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\TestComponent.h" />
     <ClInclude Include="Source\Runtime\Core\Math\TestTransform.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\ObjectMacros.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\TSubclassOf.h" />
     <ClInclude Include="Generated\AnimationTypes.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ULuaAnimInstance.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ULuaAnimStateMachine.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\EnumRegistry.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\APlayerController.generated.h">
@@ -1558,7 +1581,8 @@
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Pawn.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerController.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SpringArmComponent.h" />
-  </ItemGroup>
+    <ClInclude Include="Source\Runtime\Engine\GameFramework\Character.h" />
+  <ClInclude Include="Generated\ACharacter.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

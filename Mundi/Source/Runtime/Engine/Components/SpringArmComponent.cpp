@@ -45,10 +45,13 @@ void USpringArmComponent::TickComponent(float DeltaTime)
 
 FTransform USpringArmComponent::GetSocketWorldTransform(const FName& InSocketName) const
 {
-	if (!bSocketValid && SocketName == InSocketName)
+	if (!bSocketValid)
 	{
 		// const 함수 내에서 멤버 업데이트 하기 위해 const_cast 사용
 		const_cast<USpringArmComponent*>(this)->EvaluateArm(0.0f);
+	}
+	if (SocketName == InSocketName)
+	{
 		return CachedSocketWorld;
 	}
 	else

@@ -56,7 +56,7 @@ public:
     FVector GetWorldLocation() const;
 
     void SetForward(FVector InForward);
-    void SetWorldRotation(const FQuat& R);
+    void SetWorldRotation(const FQuat& R);    
     FQuat GetWorldRotation() const;
 
     void SetWorldScale(const FVector& S);

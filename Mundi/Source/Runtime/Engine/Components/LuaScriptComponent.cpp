@@ -220,7 +220,7 @@ void ULuaScriptComponent::CleanupLuaResources()
 	// GetWorld()나 LuaManager가 유효한지 확인 (소멸 시점에는 이미 없을 수 있음)
 	if (UWorld* World = GetWorld())
 	{
-		if (FLuaManager* LuaVM = World->GetLuaManager())
+		if (auto LuaVM = World->GetLuaManager())
 		{
 			// 1. 코루틴 정리 (가장 중요. Use-After-Free 방지)
 			LuaVM->GetScheduler().CancelByOwner(this);
