@@ -678,7 +678,7 @@ AActor* UWorld::SpawnPrefabActor(const FWideString& PrefabPath)
 		if (FJsonSerializer::ReadString(ActorDataJson, "Type", TypeString))
 		{
 			//UClass* NewClass = FActorTypeMapper::TypeToActor(TypeString);
-			UClass* NewClass = UClass::FindClass(TypeString);
+			UClass* NewClass = UClass::FindClass(TypeString.c_str());
 
 			UWorld* World = GWorld;
 

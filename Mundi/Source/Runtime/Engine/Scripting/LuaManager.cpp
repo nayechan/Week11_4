@@ -518,11 +518,11 @@ void FLuaManager::ExposeAllComponentsToLua()
                 UE_LOG("[Lua][error] Error: Expected GameObject\n");
                 return sol::make_object(*Lua, sol::nil);
             }
-        
+
             FGameObject& GameObject = Obj.as<FGameObject&>();
             AActor* Actor = GameObject.GetOwner();
 
-            UClass* Class = UClass::FindClass(ClassName);
+            UClass* Class = UClass::FindClass(ClassName.c_str());
             if (!Class) return sol::make_object(*Lua, sol::nil);
 
             UActorComponent* Comp = Actor->AddNewComponent(Class);
@@ -536,11 +536,11 @@ void FLuaManager::ExposeAllComponentsToLua()
                 UE_LOG("[Lua][error] Error: Expected GameObject\n");
                 return sol::make_object(*Lua, sol::nil);
             }
-            
+
             FGameObject& GameObject = Obj.as<FGameObject&>();
             AActor* Actor = GameObject.GetOwner();
 
-            UClass* Class = UClass::FindClass(ClassName);
+            UClass* Class = UClass::FindClass(ClassName.c_str());
             if (!Class) return sol::make_object(*Lua, sol::nil);
             
             UActorComponent* Comp = Actor->GetComponent(Class);

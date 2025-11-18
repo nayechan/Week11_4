@@ -125,7 +125,7 @@ sol::object LuaObjectProxy::Index(sol::this_state LuaState, LuaObjectProxy& Self
     // Struct types (USTRUCT) - return LuaStructProxy for recursive access
     case EPropertyType::Struct:
     {
-        UStruct* StructType = UStruct::FindStruct(FName(Property->TypeName));
+        UStruct* StructType = UStruct::FindStruct(Property->TypeName);
         if (!StructType)
         {
             UE_LOG("[Lua][error] Unknown struct type: %s", Property->TypeName);

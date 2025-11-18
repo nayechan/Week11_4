@@ -56,11 +56,11 @@ struct UClass
             GetAllClasses().emplace_back(InClass);
         }
     }
-    static UClass* FindClass(const FName& InClassName)
+    static UClass* FindClass(const char* InClassName)
     {
         for (UClass* Class : GetAllClasses())
         {
-            if (Class && Class->Name == InClassName)
+            if (Class && Class->Name && strcmp(Class->Name, InClassName) == 0)
             {
                 return Class;
             }
@@ -201,11 +201,11 @@ struct UStruct
 		}
 	}
 
-	static UStruct* FindStruct(const FName& InStructName)
+	static UStruct* FindStruct(const char* InStructName)
 	{
 		for (UStruct* Struct : GetAllStructs())
 		{
-			if (Struct && Struct->Name == InStructName)
+			if (Struct && Struct->Name && strcmp(Struct->Name, InStructName) == 0)
 			{
 				return Struct;
 			}
@@ -324,7 +324,7 @@ public:
     // UUID 발급기: 현재 카운터를 반환하고 1 증가
     static uint32 GenerateUUID() { return GUUIDCounter++; }
 
-    static UObject* GetObjectFromIndex(uint32 InIndex) { if (InIndex >= GUObjectArray.Num() || InIndex < 0) return nullptr; else return GUObjectArray[InIndex]; }
+    static UObject* GetObjectFromIndex(uint32 InIndex) { if (static_cast<int32>(InIndex) >= GUObjectArray.Num() || InIndex < 0) return nullptr; else return GUObjectArray[InIndex]; }
 
     // ───── 복사 관련 ────────────────────────────
     virtual void DuplicateSubObjects(); // Super::DuplicateSubObjects() 호출 -> 얕은 복사한 멤버들에 대해 메뉴얼하게 깊은 복사 수행(특히, Uobject 계열 멤버들에 대해서는 Duplicate() 호출)

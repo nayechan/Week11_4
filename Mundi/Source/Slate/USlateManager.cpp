@@ -18,6 +18,8 @@
 #include "UIManager.h"
 #include "GlobalConsole.h"
 #include "ThumbnailManager.h"
+#include "PropertyCustomizationRegistry.h"
+#include "SkeletalMeshComponentCustomization.h"
 
 IMPLEMENT_CLASS(USlateManager)
 
@@ -184,6 +186,15 @@ void USlateManager::Initialize(ID3D11Device* InDevice, UWorld* InWorld, const FR
     {
         UE_LOG("ERROR: Failed to create ContentBrowserWindow");
     }
+
+    // ===== Property Customization 등록 =====
+    UPropertyCustomizationRegistry::RegisterCustomization(
+        "USkeletalMeshComponent",
+        []() -> IDetailCustomization* {
+            return FSkeletalMeshComponentCustomization::MakeInstance();
+        }
+    );
+    UE_LOG("Property customizations registered");
 }
 
 void USlateManager::OpenSkeletalMeshViewer()
@@ -613,6 +624,9 @@ void USlateManager::Shutdown()
         delete SkeletalViewerWindow;
         SkeletalViewerWindow = nullptr;
     }
+
+    // ===== Property Customization 해제 =====
+    UPropertyCustomizationRegistry::UnregisterAll();
 }
 
 void USlateManager::SetPIEWorld(UWorld* InWorld)
