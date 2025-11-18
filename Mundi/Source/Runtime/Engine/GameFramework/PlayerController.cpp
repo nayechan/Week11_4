@@ -14,7 +14,7 @@ APlayerController::~APlayerController()
 {
 	if (PlayerCameraManager)
 	{
-		//PlayerCameraManager->Destroy();
+		// PlayerCameraManager->Destroy();
 		ObjectFactory::DeleteObject(PlayerCameraManager);
 	}
 }
@@ -28,8 +28,19 @@ void APlayerController::Possess(APawn* InPawn)
 void APlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->BeginPlay();
+	}
+}
 
-	PlayerCameraManager->BeginPlay();
+void APlayerController::EndPlay()
+{
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->EndPlay();
+	}
+	Super::EndPlay();
 }
 
 void APlayerController::Tick(float DeltaSecond)

@@ -17,7 +17,10 @@ class APlayerCameraManager : public AActor
 	GENERATED_REFLECTION_BODY()
 
 public:
-	APlayerCameraManager() { ObjectName = "Player Camera Manager";  };
+	APlayerCameraManager()
+	{ 
+		ObjectName = "Player Camera Manager";
+	};
 
 protected:
 	~APlayerCameraManager() override;

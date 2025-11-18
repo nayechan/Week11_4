@@ -17,6 +17,7 @@ public:
 	void Possess(APawn* InPawn);
 	
 	void BeginPlay() override;
+	void EndPlay() override;
 	void Tick(float DeltaSecond) override;
 
 	APlayerCameraManager* GetPlayerCameraManager();

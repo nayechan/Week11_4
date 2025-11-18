@@ -62,7 +62,8 @@ UWorld::~UWorld()
 
 	if (PlayerController)
 	{
-		ObjectFactory::DeleteObject(PlayerController);
+		PlayerController->EndPlay();
+		DeleteObject(PlayerController);
 	}
 	if (Level)
 	{
@@ -313,10 +314,13 @@ UWorld* UWorld::DuplicateWorldForPIE(UWorld* InEditorWorld)
 	GEngine.AddWorldContext(PIEWorldContext);
 	
 	// 플레이어 컨트롤러는 레벨에 속하지 않는 액터(레벨이 바뀐다고 플레이어 컨트롤러가 사라지지 않음)
-	PIEWorld->PlayerController = ObjectFactory::NewObject<APlayerController>();
+	PIEWorld->PlayerController = NewObject<APlayerController>();
 	PIEWorld->PlayerController->SetWorld(PIEWorld);
 	PIEWorld->PlayerController->GetPlayerCameraManager()->SetWorld(PIEWorld);
 	PIEWorld->SetPlayerCameraManager(PIEWorld->PlayerController->GetPlayerCameraManager());
+
+	// 생성자에서 안 해주는데 생성자에서 하면 프리뷰 월드에도 파티션 매니저가 생성되서 따로 처리해줌
+	PIEWorld->Partition = std::make_unique<UWorldPartitionManager>();
 
 	const TArray<AActor*>& SourceActors = InEditorWorld->GetLevel()->GetActors();
 	for (AActor* SourceActor : SourceActors)

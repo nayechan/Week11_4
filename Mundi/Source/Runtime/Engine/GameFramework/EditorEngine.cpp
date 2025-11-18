@@ -223,20 +223,21 @@ void UEditorEngine::Tick(float DeltaSeconds)
     //@TODO UV 스크롤 입력 처리 로직 이동
     HandleUVInput(DeltaSeconds);
     
+    GWorld->Tick(DeltaSeconds);
     //@TODO: Delta Time 계산 + EditorActor Tick은 어떻게 할 것인가 
-    for (auto& WorldContext : WorldContexts)
-    {
-        WorldContext.World->Tick(DeltaSeconds);
-        //// 테스트용으로 분기해놨음
-        //if (WorldContext.World && bPIEActive && WorldContext.WorldType == EWorldType::Game)
-        //{
-        //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
-        //}
-        //else if (WorldContext.World && !bPIEActive && WorldContext.WorldType == EWorldType::Editor)
-        //{
-        //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
-        //}
-    }
+    //for (auto& WorldContext : WorldContexts)
+    //{
+    //    WorldContext.World->Tick(DeltaSeconds);
+    //    //// 테스트용으로 분기해놨음
+    //    //if (WorldContext.World && bPIEActive && WorldContext.WorldType == EWorldType::Game)
+    //    //{
+    //    //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
+    //    //}
+    //    //else if (WorldContext.World && !bPIEActive && WorldContext.WorldType == EWorldType::Editor)
+    //    //{
+    //    //    WorldContext.World->Tick(DeltaSeconds, WorldContext.WorldType);
+    //    //}
+    //}
     
     SLATE.Update(DeltaSeconds);
     UI.Update(DeltaSeconds);
