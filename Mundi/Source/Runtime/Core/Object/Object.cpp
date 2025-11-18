@@ -388,6 +388,20 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 	}
 }
 
+UObject* UObject::GetObjectFromIndex(uint32 InIndex)
+{
+	int32 Index = static_cast<int32>(InIndex);
+
+	if (Index >= GUObjectArray.Num() || Index < 0)
+	{
+		return nullptr;
+	}
+	else
+	{
+		return GUObjectArray[Index];
+	}
+}
+
 void UObject::DuplicateSubObjects()
 {
     UUID = GenerateUUID(); // UUID는 고유값이므로 새로 생성
