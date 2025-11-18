@@ -49,9 +49,6 @@ void FSkeletalMeshComponentCustomization::CustomizeDetails(UObject* Object)
 		}
 	}
 
-	// === Skeleton 선택 UI 렌더링 ===
-	RenderSkeletonSelector();
-
 	// 필터 델리게이트 (포인터 비교)
 	FOnShouldFilterAsset AssetFilterDelegate;
 	AssetFilterDelegate.Bind([this](const FString& AssetPath) -> bool {
@@ -67,7 +64,16 @@ void FSkeletalMeshComponentCustomization::CustomizeDetails(UObject* Object)
 		return false;
 	});
 
-	UPropertyRenderer::RenderPropertiesWithCustomization(SkelComp, AssetFilterDelegate, PropertyFilterDelegate);
+	// === 순서대로 렌더링: Skeletal Mesh -> Skeleton -> Animation ===
+
+	// 1. Skeletal Mesh 카테고리 렌더링
+	UPropertyRenderer::RenderCategoryOnly(SkelComp, "Skeletal Mesh", AssetFilterDelegate, PropertyFilterDelegate);
+
+	// 2. Skeleton 섹션 렌더링
+	RenderSkeletonSelector();
+
+	// 3. Animation 카테고리 렌더링
+	UPropertyRenderer::RenderCategoryOnly(SkelComp, "Animation", AssetFilterDelegate, PropertyFilterDelegate);
 }
 
 bool FSkeletalMeshComponentCustomization::OnShouldFilterAnimAsset(const FString& AssetPath)
@@ -106,7 +112,7 @@ void FSkeletalMeshComponentCustomization::RenderSkeletonSelector()
 	if (!CurrentComponent) return;
 
 	ImGui::Separator();
-	ImGui::Text("[Skeleton Management]");
+	ImGui::Text("Skeleton");
 
 	// 현재 Skeleton 이름
 	FString CurrentSkeletonName = TargetSkeleton ? TargetSkeleton->Name : "None";

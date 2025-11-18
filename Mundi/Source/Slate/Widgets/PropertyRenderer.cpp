@@ -2223,6 +2223,73 @@ void UPropertyRenderer::RenderPropertiesWithCustomization(
 	}
 }
 
+void UPropertyRenderer::RenderCategoryOnly(
+	UObject* Object,
+	const FString& CategoryName,
+	FOnShouldFilterAsset& AssetFilterDelegate,
+	FOnShouldFilterProperty& PropertyFilterDelegate)
+{
+	if (!Object)
+		return;
+
+	UClass* Class = Object->GetClass();
+	const TArray<FProperty>& Properties = Class->GetAllProperties();
+
+	// 지정된 카테고리의 프로퍼티만 수집
+	TArray<const FProperty*> CategoryProps;
+
+	for (const FProperty& Prop : Properties)
+	{
+		if (Prop.bIsEditAnywhere)
+		{
+			// 프로퍼티 필터링 체크
+			if (PropertyFilterDelegate.IsBound())
+			{
+				bool bShouldFilter = PropertyFilterDelegate.Execute(FString(Prop.Name));
+				if (bShouldFilter)
+				{
+					continue;
+				}
+			}
+
+			FString PropCategory = Prop.Category ? Prop.Category : "Default";
+
+			// 지정된 카테고리와 일치하는지 확인
+			if (PropCategory == CategoryName)
+			{
+				CategoryProps.Add(&Prop);
+			}
+		}
+	}
+
+	// 해당 카테고리에 프로퍼티가 없으면 렌더링하지 않음
+	if (CategoryProps.IsEmpty())
+		return;
+
+	// 카테고리 헤더 렌더링
+	ImGui::Separator();
+	ImGui::Text("%s", CategoryName.c_str());
+
+	// 프로퍼티 렌더링
+	for (const FProperty* Prop : CategoryProps)
+	{
+		ImGui::PushID(Prop);
+
+		// AnimSequence 타입이면 필터와 함께 렌더링
+		if (Prop->Type == EPropertyType::AnimSequence && AssetFilterDelegate.IsBound())
+		{
+			RenderAnimSequencePropertyWithFilter(*Prop, Object, AssetFilterDelegate);
+		}
+		else
+		{
+			// 일반 프로퍼티는 기본 렌더링
+			RenderProperty(*Prop, Object);
+		}
+
+		ImGui::PopID();
+	}
+}
+
 bool UPropertyRenderer::RenderAnimSequencePropertyWithFilter(
 	const FProperty& Prop,
 	void* Instance,

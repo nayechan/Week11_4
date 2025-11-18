@@ -12,7 +12,7 @@ public:
     virtual ~USkeletalMesh() override;
 
     // 스켈레톤 고유 ID (호환성 판별용)
-    UPROPERTY(EditAnywhere, Category="[스켈레톤]", Tooltip="스켈레톤 고유 ID - 같은 ID를 가진 애니메이션과 호환됩니다")
+    UPROPERTY(EditAnywhere, Category="Skeleton", Tooltip="스켈레톤 고유 ID - 같은 ID를 가진 애니메이션과 호환됩니다")
     FString SkeletonID;
 
     void Load(const FString& InFilePath, ID3D11Device* InDevice);
