@@ -124,6 +124,35 @@ struct FAnimNotifyEvent
 	FAnimNotifyEvent() = default;
 	FAnimNotifyEvent(float InTime, const FName& InName)
 		: TriggerTime(InTime), NotifyName(InName) {}
+
+	// 바이너리 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FAnimNotifyEvent& Data)
+	{
+		if (Ar.IsSaving())
+		{
+			Ar << Data.TriggerTime;
+			Ar << Data.Duration;
+
+			FString NameStr = Data.NotifyName.ToString();
+			Serialization::WriteString(Ar, NameStr);
+
+			Serialization::WriteString(Ar, Data.NotifyData);
+			Ar << Data.TrackIndex;
+		}
+		else if (Ar.IsLoading())
+		{
+			Ar << Data.TriggerTime;
+			Ar << Data.Duration;
+
+			FString NameStr;
+			Serialization::ReadString(Ar, NameStr);
+			Data.NotifyName = FName(NameStr);
+
+			Serialization::ReadString(Ar, Data.NotifyData);
+			Ar << Data.TrackIndex;
+		}
+		return Ar;
+	}
 };
 
 // 애니메이션 추출 컨텍스트

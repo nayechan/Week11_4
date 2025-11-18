@@ -57,8 +57,9 @@ public:
 			Ar << Anim.NumberOfFrames;
 			Ar << Anim.NumberOfKeys;
 
-			// 3. SequenceLength 저장 (부모 클래스 프로퍼티)
+			// 3. SequenceLength, RateScale 저장 (부모 클래스 프로퍼티)
 			Ar << Anim.SequenceLength;
+			Ar << Anim.RateScale;
 
 			// 4. BoneAnimationTracks 저장
 			uint32 TrackCount = static_cast<uint32>(Anim.BoneAnimationTracks.Num());
@@ -67,6 +68,25 @@ public:
 			{
 				Ar << Track;
 			}
+
+			// 5. Notify 정보 저장 (부모 클래스의 Notifies)
+			uint32 NotifyCount = static_cast<uint32>(Anim.Notifies.Num());
+			Ar << NotifyCount;
+			for (auto& Notify : Anim.Notifies)
+			{
+				Ar << Notify;
+			}
+
+			// 6. NotifyTracks 저장 (부모 클래스)
+			uint32 NotifyTrackCount = static_cast<uint32>(Anim.NotifyTracks.Num());
+			Ar << NotifyTrackCount;
+			for (auto& Track : Anim.NotifyTracks)
+			{
+				Ar << Track;
+			}
+
+			// 7. NextTrackID 저장 (부모 클래스)
+			Ar << Anim.NextTrackID;
 		}
 		else if (Ar.IsLoading())
 		{
@@ -77,8 +97,9 @@ public:
 			Ar << Anim.NumberOfFrames;
 			Ar << Anim.NumberOfKeys;
 
-			// 3. SequenceLength 로드
+			// 3. SequenceLength, RateScale 로드
 			Ar << Anim.SequenceLength;
+			Ar << Anim.RateScale;
 
 			// 4. BoneAnimationTracks 로드
 			uint32 TrackCount;
@@ -95,6 +116,41 @@ public:
 			{
 				Ar << Anim.BoneAnimationTracks[i];
 			}
+
+			// 5. Notify 정보 로드
+			uint32 NotifyCount;
+			Ar << NotifyCount;
+
+			// Sanity check
+			if (NotifyCount > Serialization::MAX_REASONABLE_ARRAY_SIZE)
+			{
+				throw std::runtime_error("Cache corrupt: Notify count is unreasonable.");
+			}
+
+			Anim.Notifies.SetNum(NotifyCount);
+			for (uint32 i = 0; i < NotifyCount; ++i)
+			{
+				Ar << Anim.Notifies[i];
+			}
+
+			// 6. NotifyTracks 로드
+			uint32 NotifyTrackCount;
+			Ar << NotifyTrackCount;
+
+			// Sanity check
+			if (NotifyTrackCount > Serialization::MAX_REASONABLE_ARRAY_SIZE)
+			{
+				throw std::runtime_error("Cache corrupt: NotifyTrack count is unreasonable.");
+			}
+
+			Anim.NotifyTracks.SetNum(NotifyTrackCount);
+			for (uint32 i = 0; i < NotifyTrackCount; ++i)
+			{
+				Ar << Anim.NotifyTracks[i];
+			}
+
+			// 7. NextTrackID 로드
+			Ar << Anim.NextTrackID;
 		}
 		return Ar;
 	}

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SAnimSequenceEditorWindow.h"
 #include "FViewport.h"
 #include "FViewportClient.h"
@@ -24,6 +24,8 @@
 #include "ResourceManager.h"
 #include "SkeletalMesh.h"
 #include "SkeletalMeshComponent.h"
+#include "WindowsBinWriter.h"
+#include "WindowsBinReader.h"
 #include <filesystem>
 #include <fstream>
 
@@ -34,6 +36,9 @@ SAnimSequenceEditorWindow::SAnimSequenceEditorWindow()
 
 SAnimSequenceEditorWindow::~SAnimSequenceEditorWindow()
 {
+    // Release viewport render target (메모리 누수 방지)
+    ViewportRenderTarget.Release();
+
     // Clean up tabs if any
     for (int i = 0; i < Tabs.Num(); ++i)
     {
@@ -498,15 +503,38 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 // Get all loaded animations
                 TArray<UAnimSequence*> AllAnimations = UResourceManager::GetInstance().GetAll<UAnimSequence>();
 
-                // Filter animations that match this skeleton (same logic as SkeletalMeshComponentCustomization)
+                // Filter animations that match this skeleton (bone structure comparison)
                 TArray<UAnimSequence*> CompatibleAnimations;
                 for (UAnimSequence* Anim : AllAnimations)
                 {
                     if (Anim && Anim->Skeleton)
                     {
-                        // IMPORTANT: Only pointer comparison (same as editor detail panel)
-                        // This ensures the animation uses the EXACT same skeleton instance
+                        // Check if skeletons are compatible by comparing bone structure
+                        bool bIsCompatible = false;
+
+                        // First check: pointer equality (fastest)
                         if (Anim->Skeleton == MeshSkeleton)
+                        {
+                            bIsCompatible = true;
+                        }
+                        // Second check: bone structure comparison
+                        else if (Anim->Skeleton->Bones.Num() == MeshSkeleton->Bones.Num() &&
+                                 Anim->Skeleton->Bones.Num() > 0)
+                        {
+                            // Compare bone names and hierarchy
+                            bIsCompatible = true;
+                            for (int32 i = 0; i < Anim->Skeleton->Bones.Num(); ++i)
+                            {
+                                if (Anim->Skeleton->Bones[i].Name != MeshSkeleton->Bones[i].Name ||
+                                    Anim->Skeleton->Bones[i].ParentIndex != MeshSkeleton->Bones[i].ParentIndex)
+                                {
+                                    bIsCompatible = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (bIsCompatible)
                         {
                             CompatibleAnimations.Add(Anim);
                         }
@@ -563,17 +591,8 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                                     }
                                 }
 
-                                // Clear notify data when switching animations via Compatible Animations list
-                                // (Only "Load Animation (.anim)" button should load saved notify data)
-                                Anim->Notifies.Empty();
-                                Anim->NotifyTracks.Empty();
-                                Anim->NextTrackID = 0;
-                                UE_LOG("Switching animation via Compatible Animations - cleared notify data");
-
-                                FString AnimPath = Anim->GetFilePath();
-
                                 // Set animation
-                                UAnimSingleNodeInstance* AnimSingleNode = dynamic_cast<UAnimSingleNodeInstance*>(SkeletalComp->AnimInstance);
+                                UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
                                 if (!AnimSingleNode)
                                 {
                                     AnimSingleNode = NewObject<UAnimSingleNodeInstance>();
@@ -585,6 +604,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                                 SkeletalComp->TickAnimation(0.0f);
 
                                 // Update animation path buffer
+                                FString AnimPath = Anim->GetFilePath();
                                 if (!AnimPath.empty())
                                 {
                                     strncpy_s(ActiveState->AnimationPathBuffer, AnimPath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
@@ -736,7 +756,57 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::BeginChild("RightPanel", ImVec2(rightWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
-    ImGui::TextDisabled("(Reserved for future properties)");
+    // Display selected bone properties
+    if (ActiveState->SelectedBoneIndex >= 0 && ActiveState->CurrentMesh)
+    {
+        const FSkeleton* Skeleton = ActiveState->CurrentMesh->GetSkeleton();
+        if (Skeleton && ActiveState->SelectedBoneIndex < Skeleton->Bones.size())
+        {
+            const FBone& SelectedBone = Skeleton->Bones[ActiveState->SelectedBoneIndex];
+
+            // Selected bone header
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.90f, 0.40f, 1.0f));
+            ImGui::Text("> Selected Bone");
+            ImGui::PopStyleColor();
+
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.95f, 1.00f, 1.0f));
+            ImGui::TextWrapped("%s", SelectedBone.Name.c_str());
+            ImGui::PopStyleColor();
+
+            ImGui::Spacing();
+            ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.45f, 0.55f, 0.70f, 0.8f));
+            ImGui::Separator();
+            ImGui::PopStyleColor();
+
+            ImGui::Spacing();
+
+            // Bone Index
+            ImGui::Text("Bone Index: %d", ActiveState->SelectedBoneIndex);
+
+            // Parent Index
+            if (SelectedBone.ParentIndex >= 0)
+            {
+                ImGui::Text("Parent Index: %d", SelectedBone.ParentIndex);
+                if (SelectedBone.ParentIndex < Skeleton->Bones.size())
+                {
+                    ImGui::TextDisabled("  (%s)", Skeleton->Bones[SelectedBone.ParentIndex].Name.c_str());
+                }
+            }
+            else
+            {
+                ImGui::Text("Parent: (Root)");
+            }
+
+            ImGui::Spacing();
+            ImGui::TextDisabled("(Bone properties)");
+            ImGui::Spacing();
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("No bone selected");
+    }
 
     ImGui::EndChild(); // RightPanel
 
@@ -958,7 +1028,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         UAnimSequenceBase::FNotifyTrack NewTrack;
         NewTrack.ID = AnimSequence->NextTrackID++;
         char newTrackName[64];
-        sprintf_s(newTrackName, "Track %d", NewTrack.ID);
+        sprintf_s(newTrackName, "Track %d", NotifyTracks.Num() + 1);
         NewTrack.Name = newTrackName;
         NotifyTracks.Add(NewTrack);
     }
@@ -988,14 +1058,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
             }
         }
 
-        if (AnimSequence->SaveToFile(SavePath))
-        {
-            UE_LOG("Animation saved successfully to: %s", SavePath.c_str());
-        }
-        else
-        {
-            UE_LOG("Failed to save animation to: %s", SavePath.c_str());
-        }
+        AnimSequence->SaveToFile(SavePath);
     }
 
     ImGui::Spacing();
@@ -1056,18 +1119,55 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         if (GetSaveFileNameA(&ofn) == TRUE)
         {
             FString SavePath = ofn.lpstrFile;
-            if (AnimSequence->SaveNotifyData(SavePath))
+
+            try
             {
-                UE_LOG("Notify data saved successfully to: %s", SavePath.c_str());
+                // 1. 바이너리로 현재 AnimSequence 저장
+                FWindowsBinWriter Writer(SavePath);
+                if (Writer.IsOpen())
+                {
+                    Writer << *AnimSequence;
+                    Writer.Close();
+
+                    // 2. 저장한 파일을 다시 로드해서 새 객체로 만들어 ResourceManager에 등록
+                    FWindowsBinReader Reader(SavePath);
+                    if (Reader.IsOpen())
+                    {
+                        UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                        Reader << *LoadedAnimSeq;
+                        Reader.Close();
+
+                        // Skeleton 할당
+                        LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
+                        LoadedAnimSeq->SetFilePath(SavePath);
+
+                        // Extract filename from path and set as Name
+                        FString FileName = SavePath;
+                        size_t lastSlash = FileName.find_last_of("/\\");
+                        if (lastSlash != std::string::npos)
+                        {
+                            FileName = FileName.substr(lastSlash + 1);
+                        }
+                        // Remove .anim extension
+                        size_t lastDot = FileName.find_last_of('.');
+                        if (lastDot != std::string::npos)
+                        {
+                            FileName = FileName.substr(0, lastDot);
+                        }
+                        LoadedAnimSeq->ObjectName = FName(FileName);
+
+                        // ResourceManager에 등록 (Compatible Animations에 표시되도록)
+                        UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
+                    }
+                }
             }
-            else
+            catch (const std::exception& e)
             {
-                UE_LOG("Failed to save notify data to: %s", SavePath.c_str());
             }
         }
     }
 
-    // Load Animation from .anim file (애니메이션 + Notify 통합 로드)
+    // Load Animation from .anim file (바이너리 AnimSequence 에셋 로드)
     if (ImGui::Button("Load Animation (.anim)", ImVec2(LeftControlWidth - 20.0f, 0)))
     {
         // Show Open File Dialog
@@ -1082,7 +1182,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ofn.hwndOwner = NULL;
         ofn.lpstrFile = szFile;
         ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "Animation Notify Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
+        ofn.lpstrFilter = "Animation Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
         ofn.nFilterIndex = 1;
         ofn.lpstrFileTitle = NULL;
         ofn.nMaxFileTitle = 0;
@@ -1093,220 +1193,89 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         if (GetOpenFileNameA(&ofn) == TRUE)
         {
             FString AnimFilePath = ofn.lpstrFile;
-            UE_LOG("=== Loading .anim file: %s ===", AnimFilePath.c_str());
 
-            // .anim 파일을 열어서 SourceFilePath 읽기
             try
             {
-                UE_LOG("[1/7] Opening .anim file...");
-                std::ifstream InFile(AnimFilePath);
-                if (InFile.is_open())
+                // 1. 현재 Mesh의 Skeleton 가져오기
+                USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor ? ActiveState->PreviewActor->GetSkeletalMeshComponent() : nullptr;
+                if (!SkeletalComp || !SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
                 {
-                    UE_LOG("[2/7] Reading JSON string...");
-                    FString JsonString((std::istreambuf_iterator<char>(InFile)), std::istreambuf_iterator<char>());
-                    InFile.close();
-                    UE_LOG("[3/7] JSON string size: %zu bytes", JsonString.size());
+                    return;
+                }
 
-                    UE_LOG("[4/7] Parsing JSON...");
-                    JSON RootJson = JSON::Load(JsonString);
-                    UE_LOG("[5/7] JSON parsed successfully");
-                    FString SourceFilePath;
-                    FJsonSerializer::ReadString(RootJson, "SourceFilePath", SourceFilePath, "", false);
+                const FSkeleton* CurrentSkeleton = SkeletalComp->GetSkeletalMesh()->GetSkeleton();
 
-                    UE_LOG("Read SourceFilePath from JSON: %s", SourceFilePath.c_str());
+                // 2. 바이너리 파일에서 AnimSequence 역직렬화
+                FWindowsBinReader Reader(AnimFilePath);
+                if (!Reader.IsOpen())
+                {
+                    return;
+                }
 
-                    if (!SourceFilePath.empty())
-                    {
-                        // 파일 존재 여부 확인 (상대경로 유지하되 검증만 절대경로로)
-                        std::filesystem::path SourcePath(SourceFilePath);
-                        bool bFileExists = false;
+                UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                Reader << *LoadedAnimSeq;
+                Reader.Close();
 
-                        if (SourcePath.is_relative())
-                        {
-                            // 먼저 현재 작업 디렉토리에서 찾기
-                            std::filesystem::path CurrentPath = std::filesystem::current_path();
-                            std::filesystem::path AbsPath = CurrentPath / SourcePath;
+                // 3. Skeleton 포인터 설정 (바이너리에는 저장 안 됨)
+                LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(CurrentSkeleton);
+                LoadedAnimSeq->SetFilePath(AnimFilePath);
 
-                            if (std::filesystem::exists(AbsPath))
-                            {
-                                bFileExists = true;
-                                UE_LOG("Found file in working directory: %s", SourceFilePath.c_str());
-                            }
-                            else
-                            {
-                                // .anim 파일과 같은 디렉토리에서 찾기
-                                std::filesystem::path AnimFileDir = std::filesystem::path(AnimFilePath).parent_path();
-                                AbsPath = AnimFileDir / SourcePath;
-                                if (std::filesystem::exists(AbsPath))
-                                {
-                                    bFileExists = true;
-                                    UE_LOG("Found file in .anim directory: %s", SourceFilePath.c_str());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // 절대경로인 경우 그대로 확인
-                            bFileExists = std::filesystem::exists(SourcePath);
-                        }
+                // Extract filename from path and set as Name
+                FString FileName = AnimFilePath;
+                size_t lastSlash = FileName.find_last_of("/\\");
+                if (lastSlash != std::string::npos)
+                {
+                    FileName = FileName.substr(lastSlash + 1);
+                }
+                // Remove .anim extension
+                size_t lastDot = FileName.find_last_of('.');
+                if (lastDot != std::string::npos)
+                {
+                    FileName = FileName.substr(0, lastDot);
+                }
+                LoadedAnimSeq->ObjectName = FName(FileName);
 
-                        // NOTE: SourceFilePath는 상대경로 그대로 유지 (ResourceManager 중복 방지)
-                        if (bFileExists)
-                        {
-                            UE_LOG("[6/7] Source FBX file exists, loading...");
-                            UE_LOG("Source file path: %s", SourceFilePath.c_str());
+                // 4. ResourceManager에 등록 (Compatible Animations에 표시되도록)
+                UResourceManager::GetInstance().Add<UAnimSequence>(AnimFilePath, LoadedAnimSeq);
+                UE_LOG("Registered in ResourceManager");
 
-                            // .anim의 source mesh와 현재 로드된 mesh가 같은지 확인
-                            bool bNeedLoadMesh = true;
-                            if (ActiveState->CurrentMesh && !ActiveState->LoadedMeshPath.empty())
-                            {
-                                // 경로 정규화 후 비교
-                                std::filesystem::path CurrentMeshPath = std::filesystem::path(ActiveState->LoadedMeshPath).lexically_normal();
-                                std::filesystem::path NewMeshPath = std::filesystem::path(SourceFilePath).lexically_normal();
-
-                                if (CurrentMeshPath == NewMeshPath)
-                                {
-                                    UE_LOG("Same mesh already loaded, skipping LoadSkeletalMesh");
-                                    bNeedLoadMesh = false;
-                                }
-                                else
-                                {
-                                    UE_LOG("WARNING: .anim source mesh (%s) differs from current mesh (%s)",
-                                           SourceFilePath.c_str(), ActiveState->LoadedMeshPath.c_str());
-                                    UE_LOG("Will load the correct mesh for this animation");
-                                }
-                            }
-
-                            // 다른 메시거나 처음 로드하는 경우에만 메시 로드
-                            if (bNeedLoadMesh)
-                            {
-                                UE_LOG("Loading new skeletal mesh, cleaning up previous state...");
-
-                                // 이전 AnimInstance 제거
-                                if (auto* SkeletalComp = ActiveState->PreviewActor->GetSkeletalMeshComponent())
-                                {
-                                    if (SkeletalComp->AnimInstance)
-                                    {
-                                        UE_LOG("Clearing previous AnimInstance before mesh change");
-                                        SkeletalComp->AnimInstance = nullptr;
-                                    }
-                                }
-
-                                // 이전 상태 초기화
-                                ActiveState->CurrentMesh = nullptr;
-                                ActiveState->LoadedMeshPath.clear();
-                                ActiveState->bBoneLinesDirty = true;
-
-                                // NOTE: BoneLines는 RebuildBoneLines()에서 안전하게 정리됨
-                                // ClearLines()를 직접 호출하면 렌더링 프레임과 겹쳐서 크래시 발생 가능
-
-                                UE_LOG("Loading new skeletal mesh...");
-                                LoadSkeletalMesh(SourceFilePath);
-                                UE_LOG("LoadSkeletalMesh completed");
-                            }
-                            else
-                            {
-                                // 같은 메시를 사용하는 경우에도 본 라인 재구축 필요
-                                // (애니메이션이 바뀌면 본 포즈가 달라지므로)
-                                UE_LOG("Same mesh, but marking bone lines dirty for animation change");
-                                if (ActiveState->bShowBones)
-                                {
-                                    ActiveState->bBoneLinesDirty = true;
-                                }
-                            }
-
-                            UE_LOG("Getting SkeletalMeshComponent...");
-                            USkeletalMeshComponent* SkeletalMeshComponent = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-                            if (SkeletalMeshComponent)
-                            {
-                                UE_LOG("SkeletalMeshComponent found");
-                                if (SkeletalMeshComponent->GetSkeletalMesh())
-                                {
-                                    UE_LOG("SkeletalMesh found, loading animation...");
-
-                                    // 애니메이션 로드
-                                    UE_LOG("Calling UFbxLoader::LoadFbxAnimation...");
-                                    UAnimSequence* LoadedAnimSequence = UFbxLoader::GetInstance().LoadFbxAnimation(
-                                        SourceFilePath,
-                                        SkeletalMeshComponent->GetSkeletalMesh()->GetSkeleton()
-                                    );
-                                    UE_LOG("UFbxLoader::LoadFbxAnimation returned: %p", LoadedAnimSequence);
-
-                                    if (LoadedAnimSequence)
-                                    {
-                                        UE_LOG("Animation loaded successfully, applying notify data...");
-
-                                        // Notify 데이터 적용
-                                        UE_LOG("Calling LoadNotifyData...");
-                                        if (LoadedAnimSequence->LoadNotifyData(AnimFilePath))
-                                        {
-                                            UE_LOG("Notify data applied successfully from: %s", AnimFilePath.c_str());
-                                            UE_LOG("Loaded %d notifies, %d tracks", LoadedAnimSequence->Notifies.Num(), LoadedAnimSequence->NotifyTracks.Num());
-                                        }
-                                        else
-                                        {
-                                            UE_LOG("Failed to apply notify data");
-                                        }
-
-                                        // AnimInstance 설정 - 기존 AnimInstance가 있으면 재사용, 없으면 새로 생성
-                                        UE_LOG("Setting up AnimInstance...");
-
-                                        UAnimSingleNodeInstance* SingleNodeInstance = dynamic_cast<UAnimSingleNodeInstance*>(SkeletalMeshComponent->AnimInstance);
-                                        if (SingleNodeInstance)
-                                        {
-                                            // 기존 AnimInstance의 AnimationAsset만 교체
-                                            UE_LOG("Reusing existing AnimInstance");
-                                            SingleNodeInstance->SetAnimationAsset(LoadedAnimSequence);
-                                        }
-                                        else
-                                        {
-                                            // 새로운 AnimInstance 생성
-                                            UE_LOG("Creating new AnimInstance");
-                                            UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
-                                            AnimInstance->SetAnimationAsset(LoadedAnimSequence);
-                                            SkeletalMeshComponent->SetAnimInstance(AnimInstance);
-                                        }
-
-                                        UE_LOG("[7/7] Animation loaded successfully from .anim file");
-                                        UE_LOG("=== Load complete ===");
-
-                                        // Animation Path 업데이트 (Mesh Path 아님!)
-                                        strncpy_s(ActiveState->AnimationPathBuffer, SourceFilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
-                                    }
-                                    else
-                                    {
-                                        UE_LOG("Failed to load animation from source: %s", SourceFilePath.c_str());
-                                    }
-                                }
-                                else
-                                {
-                                    UE_LOG("Failed to get SkeletalMesh from component");
-                                }
-                            }
-                            else
-                            {
-                                UE_LOG("Failed to get SkeletalMeshComponent");
-                            }
-                        }
-                        else
-                        {
-                            UE_LOG("ERROR: Source FBX file not found: %s", SourceFilePath.c_str());
-                            UE_LOG("Please check that the FBX file exists and the path in .anim file is correct");
-                        }
-                    }
-                    else
-                    {
-                        UE_LOG("No SourceFilePath found in .anim file");
-                    }
+                // 5. AnimInstance에 설정
+                UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
+                if (SingleNodeInstance)
+                {
+                    // 기존 AnimInstance 재사용
+                    UE_LOG("Reusing existing AnimInstance");
+                    SingleNodeInstance->SetAnimationAsset(LoadedAnimSeq);
                 }
                 else
                 {
-                    UE_LOG("Failed to open .anim file: %s", AnimFilePath.c_str());
+                    // 새로운 AnimInstance 생성
+                    UE_LOG("Creating new AnimInstance");
+                    UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
+                    AnimInstance->SetAnimationAsset(LoadedAnimSeq);
+                    SkeletalComp->SetAnimInstance(AnimInstance);
                 }
+
+                // Set to frame 0
+                if (UAnimSingleNodeInstance* Inst = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance))
+                {
+                    Inst->SetInteralTime(0.0f);
+                    SkeletalComp->TickAnimation(0.0f);
+                }
+
+                // Bone lines dirty
+                ActiveState->bBoneLinesDirty = true;
+
+                // Animation path buffer 업데이트
+                strncpy_s(ActiveState->AnimationPathBuffer, AnimFilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+
+                UE_LOG("Animation loaded successfully!");
+                UE_LOG("==========================================================");
             }
             catch (const std::exception& e)
             {
-                UE_LOG("Exception loading .anim file: %s", e.what());
+                UE_LOG("ERROR: Failed to load .anim file: %s", e.what());
+                UE_LOG("==========================================================");
             }
         }
     }
@@ -2244,7 +2213,82 @@ void SAnimSequenceEditorWindow::OnMouseDown(FVector2D MousePos, uint32 Button)
     if (CenterRect.Contains(MousePos))
     {
         FVector2D LocalPos = MousePos - FVector2D(CenterRect.Left, CenterRect.Top);
+
+        // First, always try gizmo picking (pass to viewport)
         ActiveState->Viewport->ProcessMouseButtonDown((int32)LocalPos.X, (int32)LocalPos.Y, (int32)Button);
+
+        // Left click: if no gizmo was picked, try bone picking
+        if (Button == 0 && ActiveState->PreviewActor && ActiveState->CurrentMesh && ActiveState->Client && ActiveState->World)
+        {
+            // Check if gizmo was picked by checking selection
+            UActorComponent* SelectedComp = ActiveState->World->GetSelectionManager()->GetSelectedComponent();
+
+            // Only do bone picking if gizmo wasn't selected
+            if (!SelectedComp || !Cast<UBoneAnchorComponent>(SelectedComp))
+            {
+                // Get camera from viewport client
+                ACameraActor* Camera = ActiveState->Client->GetCamera();
+                if (Camera)
+                {
+                    // Get camera vectors
+                    FVector CameraPos = Camera->GetActorLocation();
+                    FVector CameraRight = Camera->GetRight();
+                    FVector CameraUp = Camera->GetUp();
+                    FVector CameraForward = Camera->GetForward();
+
+                    // Calculate viewport-relative mouse position
+                    FVector2D ViewportMousePos(MousePos.X - CenterRect.Left, MousePos.Y - CenterRect.Top);
+                    FVector2D ViewportSize(CenterRect.GetWidth(), CenterRect.GetHeight());
+
+                    // Generate ray from mouse position
+                    FRay Ray = MakeRayFromViewport(
+                        Camera->GetViewMatrix(),
+                        Camera->GetProjectionMatrix(CenterRect.GetWidth() / CenterRect.GetHeight(), ActiveState->Viewport),
+                        CameraPos,
+                        CameraRight,
+                        CameraUp,
+                        CameraForward,
+                        ViewportMousePos,
+                        ViewportSize
+                    );
+
+                    // Try to pick a bone
+                    float HitDistance;
+                    int32 PickedBoneIndex = ActiveState->PreviewActor->PickBone(Ray, HitDistance);
+
+                    if (PickedBoneIndex >= 0)
+                    {
+                        // Bone was picked
+                        ActiveState->SelectedBoneIndex = PickedBoneIndex;
+                        ActiveState->bBoneLinesDirty = true;
+
+                        ExpandToSelectedBone(ActiveState, PickedBoneIndex);
+
+                        // Move gizmo to the selected bone
+                        ActiveState->PreviewActor->RepositionAnchorToBone(PickedBoneIndex);
+                        if (USceneComponent* Anchor = ActiveState->PreviewActor->GetBoneGizmoAnchor())
+                        {
+                            ActiveState->World->GetSelectionManager()->SelectActor(ActiveState->PreviewActor);
+                            ActiveState->World->GetSelectionManager()->SelectComponent(Anchor);
+                        }
+                    }
+                    else
+                    {
+                        // No bone was picked - clear selection
+                        ActiveState->SelectedBoneIndex = -1;
+                        ActiveState->bBoneLinesDirty = true;
+
+                        // Hide gizmo and clear selection
+                        if (UBoneAnchorComponent* Anchor = ActiveState->PreviewActor->GetBoneGizmoAnchor())
+                        {
+                            Anchor->SetVisibility(false);
+                            Anchor->SetEditability(false);
+                        }
+                        ActiveState->World->GetSelectionManager()->ClearSelection();
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2256,5 +2300,23 @@ void SAnimSequenceEditorWindow::OnMouseUp(FVector2D MousePos, uint32 Button)
     {
         FVector2D LocalPos = MousePos - FVector2D(CenterRect.Left, CenterRect.Top);
         ActiveState->Viewport->ProcessMouseButtonUp((int32)LocalPos.X, (int32)LocalPos.Y, (int32)Button);
+    }
+}
+
+void SAnimSequenceEditorWindow::ExpandToSelectedBone(AnimSequenceEditorState* State, int32 BoneIndex)
+{
+    if (!State || !State->CurrentMesh)
+        return;
+
+    const FSkeleton* Skeleton = State->CurrentMesh->GetSkeleton();
+    if (!Skeleton || BoneIndex < 0 || BoneIndex >= Skeleton->Bones.size())
+        return;
+
+    // Expand all parent bones up to the selected bone
+    int32 CurrentIndex = BoneIndex;
+    while (CurrentIndex >= 0)
+    {
+        State->ExpandedBoneIndices.insert(CurrentIndex);
+        CurrentIndex = Skeleton->Bones[CurrentIndex].ParentIndex;
     }
 }

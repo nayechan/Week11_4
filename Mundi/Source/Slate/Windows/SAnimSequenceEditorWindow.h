@@ -56,6 +56,7 @@ private:
     void UpdateBoneLines();
     void UpdateBoneTransformFromSkeleton(AnimSequenceEditorState* State);
     void ApplyBoneTransformToSkeleton(AnimSequenceEditorState* State);
+    void ExpandToSelectedBone(AnimSequenceEditorState* State, int32 BoneIndex);
 
 private:
     UWorld* World = nullptr;

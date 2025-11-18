@@ -1365,6 +1365,9 @@ void D3D11RHI::ResizeViewportRenderTarget(uint32 Width, uint32 Height, FViewport
     if (RT.Width == Width && RT.Height == Height && RT.IsValid())
         return;
 
+    // 기존 리소스 해제 (메모리 누수 방지)
+    RT.Release();
+
     // 새로 생성
     CreateViewportRenderTarget(Width, Height, RT);
 }

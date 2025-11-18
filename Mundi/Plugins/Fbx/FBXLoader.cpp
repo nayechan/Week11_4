@@ -41,6 +41,7 @@ void UFbxLoader::PreLoad()
 	size_t LoadedCount = 0;
 	std::unordered_set<FString> ProcessedFiles; // 중복 로딩 방지
 
+	// Phase 1: Load .fbx files and textures first
 	for (const auto& Entry : fs::recursive_directory_iterator(DataDir))
 	{
 		if (!Entry.is_regular_file())
@@ -83,6 +84,117 @@ void UFbxLoader::PreLoad()
 			if (PathStr.find(".fbm") == FString::npos)
 			{
 				UResourceManager::GetInstance().Load<UTexture>(Path.string()); // 데칼 텍스쳐를 ui에서 고를 수 있게 하기 위해 임시로 만듬.
+			}
+		}
+	}
+
+	// Phase 2: Load .anim files after all Skeletons are loaded
+	for (const auto& Entry : fs::recursive_directory_iterator(DataDir))
+	{
+		if (!Entry.is_regular_file())
+			continue;
+
+		const fs::path& Path = Entry.path();
+		FString Extension = Path.extension().string();
+		std::transform(Extension.begin(), Extension.end(), Extension.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+		if (Extension == ".anim")
+		{
+			FString AnimPath = NormalizePath(Path.string());
+
+			try
+			{
+				// 1. 파일에서 AnimSequence 역직렬화
+				FWindowsBinReader Reader(AnimPath);
+				if (!Reader.IsOpen())
+				{
+					continue;
+				}
+
+				UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+				Reader << *LoadedAnimSeq;
+				Reader.Close();
+
+				// 2. Skeleton 찾기 (모든 SkeletalMesh 순회)
+				// 우선순위: 같은 이름의 FBX 메시 > 아무 메시
+				bool bFoundSkeleton = false;
+				USkeletalMesh* FallbackMesh = nullptr;
+
+				// Extract base name from .anim file (without extension)
+				FString AnimBaseName = AnimPath;
+				size_t lastSlash = AnimBaseName.find_last_of("/\\");
+				if (lastSlash != FString::npos)
+				{
+					AnimBaseName = AnimBaseName.substr(lastSlash + 1);
+				}
+				size_t lastDot = AnimBaseName.find_last_of('.');
+				if (lastDot != FString::npos)
+				{
+					AnimBaseName = AnimBaseName.substr(0, lastDot);
+				}
+
+				for (TObjectIterator<USkeletalMesh> It; It; ++It)
+				{
+					USkeletalMesh* ExistingMesh = *It;
+					if (ExistingMesh && ExistingMesh->GetSkeleton())
+					{
+						// Keep first mesh as fallback
+						if (!FallbackMesh)
+						{
+							FallbackMesh = ExistingMesh;
+						}
+
+						// Try to find mesh with matching name
+						FString MeshPath = ExistingMesh->GetFilePath();
+						if (!MeshPath.empty())
+						{
+							FString MeshBaseName = MeshPath;
+							size_t meshSlash = MeshBaseName.find_last_of("/\\");
+							if (meshSlash != FString::npos)
+							{
+								MeshBaseName = MeshBaseName.substr(meshSlash + 1);
+							}
+							size_t meshDot = MeshBaseName.find_last_of('.');
+							if (meshDot != FString::npos)
+							{
+								MeshBaseName = MeshBaseName.substr(0, meshDot);
+							}
+
+							// If names match, use this skeleton
+							if (MeshBaseName == AnimBaseName)
+							{
+								LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(ExistingMesh->GetSkeleton());
+								bFoundSkeleton = true;
+								break;
+							}
+						}
+					}
+				}
+
+				// If no matching name found, use fallback mesh
+				if (!bFoundSkeleton && FallbackMesh)
+				{
+					LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(FallbackMesh->GetSkeleton());
+					bFoundSkeleton = true;
+				}
+
+				if (!bFoundSkeleton)
+				{
+					continue;
+				}
+
+				LoadedAnimSeq->SetFilePath(AnimPath);
+
+				// 3. ObjectName 설정 (이미 추출된 AnimBaseName 사용)
+				LoadedAnimSeq->ObjectName = FName(AnimBaseName);
+
+				// 4. ResourceManager에 등록
+				UResourceManager::GetInstance().Add<UAnimSequence>(AnimPath, LoadedAnimSeq);
+
+				++LoadedCount;
+			}
+			catch (const std::exception&)
+			{
 			}
 		}
 	}

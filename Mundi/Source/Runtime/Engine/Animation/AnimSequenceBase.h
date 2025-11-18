@@ -20,6 +20,22 @@ public:
 	{
 		int32 ID;
 		FString Name;
+
+		// 바이너리 직렬화
+		friend FArchive& operator<<(FArchive& Ar, FNotifyTrack& Data)
+		{
+			if (Ar.IsSaving())
+			{
+				Ar << Data.ID;
+				Serialization::WriteString(Ar, Data.Name);
+			}
+			else if (Ar.IsLoading())
+			{
+				Ar << Data.ID;
+				Serialization::ReadString(Ar, Data.Name);
+			}
+			return Ar;
+		}
 	};
 	TArray<FNotifyTrack> NotifyTracks;
 	int32 NextTrackID = 1;
