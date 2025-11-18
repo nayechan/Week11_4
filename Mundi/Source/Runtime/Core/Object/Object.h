@@ -324,7 +324,7 @@ public:
     // UUID 발급기: 현재 카운터를 반환하고 1 증가
     static uint32 GenerateUUID() { return GUUIDCounter++; }
 
-    static UObject* GetObjectFromIndex(uint32 InIndex) { if (static_cast<int32>(InIndex) >= GUObjectArray.Num() || InIndex < 0) return nullptr; else return GUObjectArray[InIndex]; }
+    static UObject* GetObjectFromIndex(uint32 InIndex);
 
     // ───── 복사 관련 ────────────────────────────
     virtual void DuplicateSubObjects(); // Super::DuplicateSubObjects() 호출 -> 얕은 복사한 멤버들에 대해 메뉴얼하게 깊은 복사 수행(특히, Uobject 계열 멤버들에 대해서는 Duplicate() 호출)
