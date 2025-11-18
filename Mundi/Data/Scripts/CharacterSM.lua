@@ -47,6 +47,18 @@ function LuaSetup()
 end
 
 -- ========================================
+-- Variables wrapper 캐싱 (성능 최적화)
+-- ========================================
+-- NOTE: VarsWrapper는 값을 저장하지 않고, C++ TMap에 대한 "프록시"입니다.
+-- __index/__newindex가 매번 C++ TMap을 직접 읽고 쓰므로,
+-- wrapper를 캐싱해도 항상 최신 값을 읽습니다.
+--
+-- 예시:
+--   vars["Speed"] 읽기 → __index 호출 → anim.Variables["Speed"] 직접 읽기
+--   vars["Speed"] = 100 → __newindex 호출 → anim.Variables["Speed"] 직접 쓰기
+local VarsWrapper = nil
+
+-- ========================================
 -- ProcessState: 매 Update마다 호출 (자율적 전환 로직)
 -- ========================================
 function LuaProcessState()
@@ -60,9 +72,12 @@ function LuaProcessState()
         return
     end
 
-    -- ⭐ 이 스크립트의 environment에서 wrapper 생성
-    -- (anim.Vars는 다른 environment라서 nil)
-    local vars = CreateVarsWrapper(anim.Variables)
+    -- 첫 호출 시에만 wrapper 생성 (metatable 객체 재생성 방지)
+    if not VarsWrapper then
+        VarsWrapper = CreateVarsWrapper(anim.Variables)
+    end
+
+    local vars = VarsWrapper  -- 프록시를 통해 C++ TMap 접근
 
     -- State transition logic based on AnimInstance's Variables
     -- CreateVarsWrapper로 자동 타입 변환됨
