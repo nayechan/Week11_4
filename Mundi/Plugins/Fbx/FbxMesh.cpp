@@ -103,7 +103,7 @@ static bool ShouldReverseWindingOrder(
  */
 void FFbxMesh::ExtractMeshFromNode(
 	FbxNode* InNode,
-	FSkeletalMeshData& MeshData,
+	FSkeletalMesh& MeshData,
 	TMap<int32, TArray<uint32>>& MaterialGroupIndexList,
 	TMap<FbxNode*, int32>& BoneToIndex,
 	TMap<FbxSurfaceMaterial*, int32>& MaterialToIndex,
@@ -227,7 +227,7 @@ void FFbxMesh::ExtractMeshFromNode(
  */
 void FFbxMesh::ExtractMesh(
 	FbxMesh* InMesh,
-	FSkeletalMeshData& MeshData,
+	FSkeletalMesh& MeshData,
 	TMap<int32, TArray<uint32>>& MaterialGroupIndexList,
 	TMap<FbxNode*, int32>& BoneToIndex,
 	TArray<int32> MaterialSlotToIndex,
@@ -300,8 +300,8 @@ void FFbxMesh::ExtractMesh(
 			FMatrix InverseBindPoseMatrix = FFbxConvert::ConvertMatrix(InverseBindMatrix);
 
 			// Skeleton에 저장
-			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].BindPose = GlobalBindPoseMatrix;
-			MeshData.Skeleton.Bones[BoneToIndex[BoneNode]].InverseBindPose = InverseBindPoseMatrix;
+			MeshData.Skeleton->Bones[BoneToIndex[BoneNode]].BindPose = GlobalBindPoseMatrix;
+			MeshData.Skeleton->Bones[BoneToIndex[BoneNode]].InverseBindPose = InverseBindPoseMatrix;
 
 
 			for (int ControlPointIndex = 0; ControlPointIndex < IndexCount; ControlPointIndex++)

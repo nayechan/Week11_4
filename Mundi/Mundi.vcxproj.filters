@@ -69,6 +69,9 @@
     <ClCompile Include="Source\Editor\PlatformProcess.cpp">
       <Filter>Source\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\FbxManager.cpp">
+      <Filter>Source\Editor</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Runtime\Core\Math\Vector.cpp">
       <Filter>Source\Runtime\Core\Math</Filter>
     </ClCompile>
@@ -745,6 +748,9 @@
     <ClCompile Include="Generated\FAnimTransition.generated.cpp">
         <Filter>Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\USkeletalMesh.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -752,6 +758,9 @@
       <Filter>Source\Editor\Clipboard</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\PlatformProcess.h">
+      <Filter>Source\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\FbxManager.h">
       <Filter>Source\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Source\Runtime\Core\Misc\Delegates.h">
@@ -1592,6 +1601,9 @@
         <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\FAnimTransition.generated.h">
+        <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\USkeletalMesh.generated.h">
         <Filter>Generated</Filter>
     </ClInclude>
   </ItemGroup>

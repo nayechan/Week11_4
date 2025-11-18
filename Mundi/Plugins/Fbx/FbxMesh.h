@@ -42,7 +42,7 @@ struct FFbxMesh
 	 */
 	static void ExtractMeshFromNode(
 		FbxNode* InNode,
-		FSkeletalMeshData& MeshData,
+		FSkeletalMesh& MeshData,
 		TMap<int32, TArray<uint32>>& MaterialGroupIndexList,
 		TMap<FbxNode*, int32>& BoneToIndex,
 		TMap<FbxSurfaceMaterial*, int32>& MaterialToIndex,
@@ -76,7 +76,7 @@ struct FFbxMesh
 	 */
 	static void ExtractMesh(
 		FbxMesh* InMesh,
-		FSkeletalMeshData& MeshData,
+		FSkeletalMesh& MeshData,
 		TMap<int32, TArray<uint32>>& MaterialGroupIndexList,
 		TMap<FbxNode*, int32>& BoneToIndex,
 		TArray<int32> MaterialSlotToIndex,

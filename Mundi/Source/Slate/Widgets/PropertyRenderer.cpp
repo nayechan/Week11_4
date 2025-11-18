@@ -588,7 +588,7 @@ bool UPropertyRenderer::RenderStringProperty(const FProperty& Prop, void* Instan
 {
 	FString* Value = Prop.GetValuePtr<FString>(Instance);
 
-	// ImGui::InputText는 char 버퍼를 사용하므로 변환 필요
+	// 일반 FString property는 텍스트 입력으로 렌더링
 	char Buffer[256];
 	strncpy_s(Buffer, Value->c_str(), sizeof(Buffer) - 1);
 	Buffer[sizeof(Buffer) - 1] = '\0';
@@ -825,10 +825,8 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	}
 
 	// 2. 콤보 박스 렌더링
-	ImGui::Text("%s", Property.Name);
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 	ImGui::PushID(Property.Name); // 고유 ID
+	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(Property.Name).x - ImGui::GetStyle().ItemSpacing.x);
 
 	// 콤보박스에 표시될 텍스트
 	const char* PreviewText = CachedScriptItems[CurrentItem];
@@ -901,6 +899,11 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 		}
 		ImGui::EndCombo();
 	}
+
+	// 레이블을 드롭다운 오른쪽에 표시
+	ImGui::SameLine();
+	ImGui::Text("%s", Property.Name);
+
 	ImGui::PopID();
 
 	// 사라진 파일 표시
@@ -922,8 +925,6 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	// 3. 스크립트 생성 UI (선택된 파일이 없을 때만 표시)
 	else if (FilePath->empty() || CurrentItem == 0)
 	{
-		ImGui::Separator();
-
 		// "스크립트 생성 메뉴"
 		ImGui::InputText("스크립트 명", NewScriptNameBuffer, IM_ARRAYSIZE(NewScriptNameBuffer));
 		ImGui::SameLine();
@@ -2220,6 +2221,73 @@ void UPropertyRenderer::RenderPropertiesWithCustomization(
 
 			ImGui::PopID();
 		}
+	}
+}
+
+void UPropertyRenderer::RenderCategoryOnly(
+	UObject* Object,
+	const FString& CategoryName,
+	FOnShouldFilterAsset& AssetFilterDelegate,
+	FOnShouldFilterProperty& PropertyFilterDelegate)
+{
+	if (!Object)
+		return;
+
+	UClass* Class = Object->GetClass();
+	const TArray<FProperty>& Properties = Class->GetAllProperties();
+
+	// 지정된 카테고리의 프로퍼티만 수집
+	TArray<const FProperty*> CategoryProps;
+
+	for (const FProperty& Prop : Properties)
+	{
+		if (Prop.bIsEditAnywhere)
+		{
+			// 프로퍼티 필터링 체크
+			if (PropertyFilterDelegate.IsBound())
+			{
+				bool bShouldFilter = PropertyFilterDelegate.Execute(FString(Prop.Name));
+				if (bShouldFilter)
+				{
+					continue;
+				}
+			}
+
+			FString PropCategory = Prop.Category ? Prop.Category : "Default";
+
+			// 지정된 카테고리와 일치하는지 확인
+			if (PropCategory == CategoryName)
+			{
+				CategoryProps.Add(&Prop);
+			}
+		}
+	}
+
+	// 해당 카테고리에 프로퍼티가 없으면 렌더링하지 않음
+	if (CategoryProps.IsEmpty())
+		return;
+
+	// 카테고리 헤더 렌더링
+	ImGui::Separator();
+	ImGui::Text("%s", CategoryName.c_str());
+
+	// 프로퍼티 렌더링
+	for (const FProperty* Prop : CategoryProps)
+	{
+		ImGui::PushID(Prop);
+
+		// AnimSequence 타입이면 필터와 함께 렌더링
+		if (Prop->Type == EPropertyType::AnimSequence && AssetFilterDelegate.IsBound())
+		{
+			RenderAnimSequencePropertyWithFilter(*Prop, Object, AssetFilterDelegate);
+		}
+		else
+		{
+			// 일반 프로퍼티는 기본 렌더링
+			RenderProperty(*Prop, Object);
+		}
+
+		ImGui::PopID();
 	}
 }
 

@@ -116,8 +116,8 @@ public:
 	static HRESULT CreateIndexBuffer(ID3D11Device* device, const FMeshData* meshData, ID3D11Buffer** outBuffer);
 
 	static HRESULT CreateIndexBuffer(ID3D11Device* device, const FStaticMesh* mesh, ID3D11Buffer** outBuffer);
-	
-	static HRESULT CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMeshData* Mesh, ID3D11Buffer** OutBuffer);
+
+	static HRESULT CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMesh* Mesh, ID3D11Buffer** OutBuffer);
 
 	CONSTANT_BUFFER_LIST(DECLARE_UPDATE_CONSTANT_BUFFER_FUNC)
 	// 상수 버퍼 스택 생성 없이 얻기 위한 템플릿 함수, DECLARE_GET_CONSTNAT_BUFFER_FUNC보다 먼저 정의되어야함.

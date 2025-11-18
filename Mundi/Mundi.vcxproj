@@ -328,6 +328,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <ClCompile Include="Source\Editor\Clipboard\ClipboardManager.cpp" />
+    <ClCompile Include="Source\Editor\FbxManager.cpp" />
     <ClCompile Include="Source\Editor\PlatformProcess.cpp" />
     <ClCompile Include="Source\Runtime\Core\Math\Vector.cpp" />
     <ClCompile Include="Source\Runtime\Core\Object\FireballActor.cpp" />
@@ -553,7 +554,9 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\APawn.generated.cpp" />
     <ClCompile Include="Generated\USpringArmComponent.generated.cpp" />
     <ClCompile Include="Generated\FAnimTransition.generated.cpp" />
-  <ClCompile Include="Generated\ACharacter.generated.cpp" /></ItemGroup>
+    <ClCompile Include="Generated\ACharacter.generated.cpp" />
+    <ClCompile Include="Generated\USkeletalMesh.generated.cpp" />
+  </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -718,6 +721,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Plugins\Fbx\FbxMesh.h" />
     <ClInclude Include="Plugins\Fbx\FbxParser.h" />
     <ClInclude Include="Plugins\Fbx\FbxLoader.h" />
+    <ClInclude Include="Source\Editor\FbxManager.h" />
     <ClInclude Include="Source\Editor\PlatformProcess.h" />
     <ClInclude Include="Source\Runtime\AssetManagement\SkeletalMesh.h" />
     <ClInclude Include="Source\Runtime\Core\Memory\WeakPtr.h" />
@@ -996,6 +1000,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\USpringArmComponent.generated.h" />
     <ClInclude Include="Generated\ACharacter.generated.h" />
     <ClInclude Include="Generated\FAnimTransition.generated.h" />
+    <ClInclude Include="Generated\USkeletalMesh.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />

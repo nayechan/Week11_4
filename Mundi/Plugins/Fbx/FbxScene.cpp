@@ -18,7 +18,7 @@
 void FFbxScene::ExtractSkeleton(
 	FbxScene* Scene,
 	FbxNode* RootNode,
-	FSkeletalMeshData& MeshData,
+	FSkeletalMesh& MeshData,
 	TMap<FbxNode*, int32>& BoneToIndex,
 	bool bCreatorIsBlender)
 {
@@ -102,11 +102,17 @@ FbxNode* FFbxScene::Internal_GetRootSkeleton(
 void FFbxScene::ExtractSkeletonRecursive(
 	FbxScene* Scene,
 	FbxNode* InNode,
-	FSkeletalMeshData& MeshData,
+	FSkeletalMesh& MeshData,
 	int32 ParentNodeIndex,
 	TMap<FbxNode*, int32>& BoneToIndex,
 	bool bCreatorIsBlender)
 {
+	// Skeleton 포인터가 없으면 할당
+	if (!MeshData.Skeleton)
+	{
+		MeshData.Skeleton = new FSkeleton();
+	}
+
 	// Skeleton은 계층구조까지 표현해야하므로 깊이 우선 탐색, ParentNodeIndex 명시.
 	int32 BoneIndex = ParentNodeIndex;
 	for (int Index = 0; Index < InNode->GetNodeAttributeCount(); Index++)
@@ -145,13 +151,13 @@ void FFbxScene::ExtractSkeletonRecursive(
 			BoneInfo.ParentIndex = ActualParentIndex;
 
 			// 뼈 리스트에 추가
-			MeshData.Skeleton.Bones.Add(BoneInfo);
+			MeshData.Skeleton->Bones.Add(BoneInfo);
 
 			// 뼈 인덱스 우리가 정해줌(방금 추가한 마지막 원소)
-			BoneIndex = MeshData.Skeleton.Bones.Num() - 1;
+			BoneIndex = MeshData.Skeleton->Bones.Num() - 1;
 
 			// 뼈 이름으로 인덱스 서치 가능하게 함.
-			MeshData.Skeleton.BoneNameToIndex.Add(BoneInfo.Name, BoneIndex);
+			MeshData.Skeleton->BoneNameToIndex.Add(BoneInfo.Name, BoneIndex);
 
 			// 매시 로드할때 써야되서 맵에 인덱스 저장
 			BoneToIndex.Add(InNode, BoneIndex);
@@ -172,16 +178,16 @@ void FFbxScene::ExtractSkeletonRecursive(
  * 스켈레톤에 단일 루트 본을 보장
  * 루트 본이 2개 이상이면 가상 루트 본 생성
  */
-void FFbxScene::EnsureSingleRootBone(FSkeletalMeshData& MeshData)
+void FFbxScene::EnsureSingleRootBone(FSkeletalMesh& MeshData)
 {
-	if (MeshData.Skeleton.Bones.IsEmpty())
+	if (!MeshData.Skeleton || MeshData.Skeleton->Bones.IsEmpty())
 		return;
 
 	// 루트 본 개수 세기
 	TArray<int32> RootBoneIndices;
-	for (int32 i = 0; i < MeshData.Skeleton.Bones.size(); ++i)
+	for (int32 i = 0; i < MeshData.Skeleton->Bones.size(); ++i)
 	{
-		if (MeshData.Skeleton.Bones[i].ParentIndex == -1)
+		if (MeshData.Skeleton->Bones[i].ParentIndex == -1)
 		{
 			RootBoneIndices.Add(i);
 		}
@@ -200,19 +206,19 @@ void FFbxScene::EnsureSingleRootBone(FSkeletalMeshData& MeshData)
 		VirtualRoot.InverseBindPose = FMatrix::Identity();
 
 		// 가상 루트를 배열 맨 앞에 삽입
-		MeshData.Skeleton.Bones.Insert(VirtualRoot, 0);
+		MeshData.Skeleton->Bones.Insert(VirtualRoot, 0);
 
 		// 기존 본들의 인덱스가 모두 +1 씩 밀림
 		// 모든 본의 ParentIndex 업데이트
-		for (int32 i = 1; i < MeshData.Skeleton.Bones.size(); ++i)
+		for (int32 i = 1; i < MeshData.Skeleton->Bones.size(); ++i)
 		{
-			if (MeshData.Skeleton.Bones[i].ParentIndex >= 0)
+			if (MeshData.Skeleton->Bones[i].ParentIndex >= 0)
 			{
-				MeshData.Skeleton.Bones[i].ParentIndex += 1;
+				MeshData.Skeleton->Bones[i].ParentIndex += 1;
 			}
 			else // 원래 루트 본들
 			{
-				MeshData.Skeleton.Bones[i].ParentIndex = 0; // 가상 루트를 부모로 설정
+				MeshData.Skeleton->Bones[i].ParentIndex = 0; // 가상 루트를 부모로 설정
 			}
 		}
 

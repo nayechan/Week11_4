@@ -4,7 +4,7 @@
 #include "SkeletalMesh.h"
 
 // Forward declarations
-struct FSkeletalMeshData;
+struct FSkeletalMesh;
 struct FBone;
 template<typename K, typename V> class TMap;
 
@@ -30,7 +30,7 @@ struct FFbxScene
 	 *
 	 * @param Scene - FBX Scene (Internal_GetRootSkeleton 호출용)
 	 * @param RootNode - FBX 루트 노드
-	 * @param MeshData - 스켈레톤 데이터를 저장할 FSkeletalMeshData
+	 * @param MeshData - 스켈레톤 데이터를 저장할 FSkeletalMesh
 	 * @param BoneToIndex - FbxNode*를 본 인덱스로 매핑하는 맵 (출력)
 	 * @param bCreatorIsBlender - Blender FBX 여부 (Armature 노드 감지용)
 	 *
@@ -45,7 +45,7 @@ struct FFbxScene
 	static void ExtractSkeleton(
 		FbxScene* Scene,
 		FbxNode* RootNode,
-		FSkeletalMeshData& MeshData,
+		FSkeletalMesh& MeshData,
 		TMap<FbxNode*, int32>& BoneToIndex,
 		bool bCreatorIsBlender);
 
@@ -65,7 +65,7 @@ struct FFbxScene
 	 *    - 기존 본들의 인덱스 +1
 	 *    - 정점의 BoneIndices도 +1
 	 */
-	static void EnsureSingleRootBone(FSkeletalMeshData& MeshData);
+	static void EnsureSingleRootBone(FSkeletalMesh& MeshData);
 
 private:
 	/**
@@ -114,7 +114,7 @@ private:
 	 *
 	 * @param Scene - FBX Scene (Internal_GetRootSkeleton 호출용)
 	 * @param InNode - 현재 순회 중인 FBX 노드
-	 * @param MeshData - 스켈레톤 데이터를 저장할 FSkeletalMeshData
+	 * @param MeshData - 스켈레톤 데이터를 저장할 FSkeletalMesh
 	 * @param ParentNodeIndex - 부모 본 인덱스 (-1이면 루트)
 	 * @param BoneToIndex - FbxNode*를 본 인덱스로 매핑하는 맵 (출력)
 	 * @param bCreatorIsBlender - Blender FBX 여부 (Armature 노드 감지용)
@@ -122,7 +122,7 @@ private:
 	static void ExtractSkeletonRecursive(
 		FbxScene* Scene,
 		FbxNode* InNode,
-		FSkeletalMeshData& MeshData,
+		FSkeletalMesh& MeshData,
 		int32 ParentNodeIndex,
 		TMap<FbxNode*, int32>& BoneToIndex,
 		bool bCreatorIsBlender);

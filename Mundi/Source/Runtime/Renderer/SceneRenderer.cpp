@@ -81,7 +81,7 @@ void FSceneRenderer::Render()
 	/*static bool Loaded = false;
 	if (!Loaded)
 	{
-		FSkeletalMeshData Skeletal = UFbxLoader::GetInstance().LoadFbxMesh("C:\\Program Files\\Autodesk\\Fbx\\Fbx SDK\\2020.3.7\\build\\vc143_x64_dll\\Debug\\sadface.fbx");
+		FSkeletalMesh Skeletal = UFbxLoader::GetInstance().LoadFbxMesh("C:\\Program Files\\Autodesk\\Fbx\\Fbx SDK\\2020.3.7\\build\\vc143_x64_dll\\Debug\\sadface.fbx");
 		Loaded = true;
 	}*/
     // 뷰(View) 준비: 행렬, 절두체 등 프레임에 필요한 기본 데이터 계산

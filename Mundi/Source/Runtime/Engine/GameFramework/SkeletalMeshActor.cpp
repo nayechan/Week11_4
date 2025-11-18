@@ -101,13 +101,15 @@ void ASkeletalMeshActor::RebuildBoneLines(int32 SelectedBoneIndex)
         return;
     }
 
-    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    const FSkeletalMesh* Data = SkeletalMesh->GetSkeletalMeshData();
     if (!Data)
     {
         return;
     }
 
-    const auto& Bones = Data->Skeleton.Bones;
+    if (!Data->Skeleton) return;
+
+    const auto& Bones = Data->Skeleton->Bones;
     const int32 BoneCount = static_cast<int32>(Bones.size());
     if (BoneCount <= 0)
     {
@@ -153,13 +155,15 @@ void ASkeletalMeshActor::RepositionAnchorToBone(int32 BoneIndex)
         return;
     }
 
-    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    const FSkeletalMesh* Data = SkeletalMesh->GetSkeletalMeshData();
     if (!Data)
     {
         return;
     }
 
-    const auto& Bones = Data->Skeleton.Bones;
+    if (!Data->Skeleton) return;
+
+    const auto& Bones = Data->Skeleton->Bones;
     if (BoneIndex < 0 || BoneIndex >= (int32)Bones.size())
     {
         return;
@@ -223,13 +227,15 @@ void ASkeletalMeshActor::BuildBoneLinesCache()
         return;
     }
     
-    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    const FSkeletalMesh* Data = SkeletalMesh->GetSkeletalMeshData();
     if (!Data)
     {
         return;
     }
 
-    const auto& Bones = Data->Skeleton.Bones;
+    if (!Data->Skeleton) return;
+
+    const auto& Bones = Data->Skeleton->Bones;
     const int32 BoneCount = static_cast<int32>(Bones.size());
 
     BoneLinesCache.Empty();
@@ -345,13 +351,15 @@ void ASkeletalMeshActor::UpdateBoneSelectionHighlight(int32 SelectedBoneIndex)
         return;
     }
     
-    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    const FSkeletalMesh* Data = SkeletalMesh->GetSkeletalMeshData();
     if (!Data)
     {
         return;
     }
-    
-    const auto& Bones = Data->Skeleton.Bones;
+
+    if (!Data->Skeleton) return;
+
+    const auto& Bones = Data->Skeleton->Bones;
     const int32 BoneCount = static_cast<int32>(Bones.size());
 
     const FVector4 SelRing(1.0f, 0.85f, 0.2f, 1.0f);
@@ -401,13 +409,15 @@ void ASkeletalMeshActor::UpdateBoneSubtreeTransforms(int32 BoneIndex)
         return;
     }
     
-    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    const FSkeletalMesh* Data = SkeletalMesh->GetSkeletalMeshData();
     if (!Data)
     {
         return;
     }
-    
-    const auto& Bones = Data->Skeleton.Bones;
+
+    if (!Data->Skeleton) return;
+
+    const auto& Bones = Data->Skeleton->Bones;
     const int32 BoneCount = static_cast<int32>(Bones.size());
     if (BoneIndex < 0 || BoneIndex >= BoneCount)
     {
@@ -522,13 +532,15 @@ int32 ASkeletalMeshActor::PickBone(const FRay& Ray, float& OutDistance) const
         return -1;
     }
 
-    const FSkeletalMeshData* Data = SkeletalMesh->GetSkeletalMeshData();
+    const FSkeletalMesh* Data = SkeletalMesh->GetSkeletalMeshData();
     if (!Data)
     {
         return -1;
     }
 
-    const auto& Bones = Data->Skeleton.Bones;
+    if (!Data->Skeleton) return -1;
+
+    const auto& Bones = Data->Skeleton->Bones;
     if (Bones.empty())
     {
         return -1;

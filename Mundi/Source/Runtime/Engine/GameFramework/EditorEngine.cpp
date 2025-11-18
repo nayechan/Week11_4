@@ -8,6 +8,7 @@
 #include "ExceptionHandler.h"
 #include "PlayerController.h"
 #include <ObjManager.h>
+#include "FbxManager.h"
 
 
 float UEditorEngine::ClientWidth = 1024.0f;
@@ -195,8 +196,10 @@ bool UEditorEngine::Startup(HINSTANCE hInstance)
     UI.Initialize(HWnd, RHIDevice.GetDevice(), RHIDevice.GetDeviceContext());
     INPUT.Initialize(HWnd);
 
-    FObjManager::Preload(); 
-    UFbxLoader::PreLoad();
+    FObjManager::Preload();
+
+    // FbxManager 초기화
+    FFbxManager::Preload();
 
     FAudioDevice::Preload();
 
@@ -360,6 +363,9 @@ void UEditorEngine::Shutdown()
     // because ObjStaticMeshMap is a static member variable that may be destroyed
     // before the global GEngine variable's destructor runs
     FObjManager::Clear();
+
+    // FbxManager 정리
+    FFbxManager::Clear();
 
     // AudioDevice 종료
     FAudioDevice::Shutdown();

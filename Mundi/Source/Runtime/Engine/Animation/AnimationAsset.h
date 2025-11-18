@@ -15,6 +15,10 @@ public:
 	// 애니메이션 길이 반환
 	virtual float GetPlayLength() const { return 0.0f; }
 
+	// 스켈레톤 고유 ID (호환성 판별용)
+	UPROPERTY(EditAnywhere, Category="[애니메이션]", Tooltip="스켈레톤 고유 ID - 같은 ID를 가진 스켈레탈 메시와 호환됩니다")
+	FString SkeletonID;
+
 	// 스켈레톤 참조
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="대상 스켈레톤")
 	struct FSkeleton* Skeleton = nullptr;

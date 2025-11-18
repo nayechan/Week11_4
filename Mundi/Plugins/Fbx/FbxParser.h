@@ -11,7 +11,7 @@
 class USkeletalMesh;
 class UAnimSequence;
 struct FSkeleton;
-struct FSkeletalMeshData;
+struct FSkeletalMesh;
 struct FMaterialInfo;
 
 /**
@@ -52,7 +52,7 @@ public:
 	 * @param OutMaterialInfos - 머티리얼 정보 출력 (bin 캐시 저장용)
 	 * @return 로드된 스켈레탈 메시 데이터 (실패 시 nullptr)
 	 */
-	FSkeletalMeshData* LoadFbxMesh(const FString& FilePath, TArray<FMaterialInfo>& OutMaterialInfos);
+	FSkeletalMesh* LoadFbxMesh(const FString& FilePath, TArray<FMaterialInfo>& OutMaterialInfos);
 
 	/**
 	 * LoadFbxAnimation

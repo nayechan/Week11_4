@@ -32,6 +32,19 @@ public:
 		FOnShouldFilterAsset& AssetFilterDelegate,
 		FOnShouldFilterProperty& PropertyFilterDelegate);
 
+	/**
+	 * 특정 카테고리의 프로퍼티만 렌더링
+	 * @param Object - 편집 중인 객체
+	 * @param CategoryName - 렌더링할 카테고리 이름
+	 * @param AssetFilterDelegate - 애셋 필터링 델리게이트
+	 * @param PropertyFilterDelegate - 프로퍼티 필터링 델리게이트
+	 */
+	static void RenderCategoryOnly(
+		UObject* Object,
+		const FString& CategoryName,
+		FOnShouldFilterAsset& AssetFilterDelegate,
+		FOnShouldFilterProperty& PropertyFilterDelegate);
+
 private:
 	// 타입별 렌더링 함수들
 	static bool RenderBoolProperty(const FProperty& Prop, void* Instance);
