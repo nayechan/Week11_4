@@ -788,17 +788,22 @@ void AActor::UnregisterComponentTree(USceneComponent* SceneComp)
 
 void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 {
-	// "NewNotify" 특별 처리
+	// "NewNotify" 특별 처리 - 액터 스케일을 1.1배 증가
 	if (Notify.NotifyName == FName("NewNotify"))
 	{
-		UE_LOG("[NewNotify] 애니메이션 노티파이가 트리거되었습니다! (시간: %.2f초, 액터: %s)",
-		       Notify.TriggerTime,
-		       GetName().c_str());
+		FVector CurrentScale = GetActorScale();
+		FVector NewScale = CurrentScale * 1.1f;
+		SetActorScale(NewScale);
+
+		//UE_LOG("[NewNotify] 스케일 증가! %.2f초 - (%.2f, %.2f, %.2f) -> (%.2f, %.2f, %.2f)",
+		//       Notify.TriggerTime,
+		//       CurrentScale.X, CurrentScale.Y, CurrentScale.Z,
+		//       NewScale.X, NewScale.Y, NewScale.Z);
 		return;
 	}
 
 	// 기본 구현: 로그 출력
-	UE_LOG("AActor::HandleAnimNotify - Notify: %s at %.2f",
-	       Notify.NotifyName.ToString().c_str(),
-	       Notify.TriggerTime);
+	//UE_LOG("AActor::HandleAnimNotify - Notify: %s at %.2f",
+	//       Notify.NotifyName.ToString().c_str(),
+	//       Notify.TriggerTime);
 }
