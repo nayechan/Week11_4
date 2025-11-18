@@ -20,12 +20,9 @@
 #include "USlateManager.h"
 #include "AnimationTypes.h"
 #include "AnimationTypes.generated.h"
-<<<<<<< HEAD
 #include "EnumRegistry.generated.h"
-=======
 #include "PropertyCustomizationRegistry.h"
 #include "PropertyCustomizationHelpers.h"
->>>>>>> 59cd52f60970d05a92e1d209597f2e30687a1149
 
 // Disable warnings for third-party ImGui curve library
 #pragma warning(push)

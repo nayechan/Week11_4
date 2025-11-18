@@ -32,15 +32,13 @@ public:
     UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animation", Tooltip="C++ 애니메이션 인스턴스 클래스")
     TSubclassOf<UAnimInstance> AnimClass;
 
-<<<<<<< HEAD
+    // 재생할 애니메이션 시퀀스 (AnimationSingleNode 모드에서 사용, PIE 시작 시 자동 루프 재생)
+    UPROPERTY(EditAnywhere, Category = "Animation", Tooltip = "재생할 애니메이션 시퀀스")
+    UAnimSequence* AnimToPlay = nullptr;
+
     // Lua AnimInstance 스크립트 경로 (AnimationLua 모드에서 사용)
     UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animation", Tooltip="Lua 애니메이션 스크립트 경로")
     FString AnimLuaScript;
-=======
-    // 재생할 애니메이션 시퀀스 (AnimationSingleNode 모드에서 사용, PIE 시작 시 자동 루프 재생)
-    UPROPERTY(EditAnywhere, Category="Animation", Tooltip="재생할 애니메이션 시퀀스")
-    UAnimSequence* AnimToPlay = nullptr;
->>>>>>> 59cd52f60970d05a92e1d209597f2e30687a1149
 
     // 애니메이션 인스턴스 (런타임 생성)
     UPROPERTY(LuaReadWrite, Category="Animation")

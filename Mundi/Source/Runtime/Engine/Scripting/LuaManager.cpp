@@ -202,7 +202,7 @@ FLuaManager::FLuaManager()
         {
             sol::state_view LuaView(LuaState);
 
-            UClass* Type = UClass::FindClass(TypeName);
+            UClass* Type = UClass::FindClass(TypeName.c_str());
             if (!Type)
             {
                 UE_LOG("[Lua][error] NewObject: Class '%s' not found", TypeName.c_str());
@@ -224,7 +224,7 @@ FLuaManager::FLuaManager()
         {
             sol::state_view LuaView(LuaState);
 
-            UClass* Type = UClass::FindClass(TypeName);
+            UClass* Type = UClass::FindClass(TypeName.c_str());
             if (!Type)
             {
                 UE_LOG("[Lua][error] NewObject: Class '%s' not found", TypeName.c_str());
@@ -276,7 +276,7 @@ FLuaManager::FLuaManager()
                 return sol::nil;
 
             // 타겟 클래스 찾기
-            UClass* TargetClass = UClass::FindClass(TargetClassName);
+            UClass* TargetClass = UClass::FindClass(TargetClassName.c_str());
             if (!TargetClass)
             {
                 UE_LOG("[Lua][error] Cast: Class '%s' not found", TargetClassName.c_str());
