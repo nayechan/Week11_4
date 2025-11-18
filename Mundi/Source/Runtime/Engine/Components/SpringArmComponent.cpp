@@ -13,12 +13,11 @@ USpringArmComponent::USpringArmComponent()
 {
 	bCanEverTick = true;
 	bTickEnabled = true;
-	bTickInEditor = true;
 }
 
 void USpringArmComponent::OnRegister(UWorld* InWorld)
 {
-	Super_t::OnRegister(InWorld);
+	Super::OnRegister(InWorld);
 	if(Owner)
 		Owner->SetTickInEditor(true);
 	bSocketValid = false;
@@ -28,13 +27,13 @@ void USpringArmComponent::OnRegister(UWorld* InWorld)
 void USpringArmComponent::BeginPlay()
 {
 	InitialRotation = GetRelativeRotation();
-}
+} 
 
 void USpringArmComponent::TickComponent(float DeltaTime)
 {
 	if (!IsComponentTickEnabled()) return;
 
-	Super_t::TickComponent(DeltaTime);
+	Super::TickComponent(DeltaTime);
 
 	APlayerController* PlayerController = GWorld->GetPlayerController();
 	if (bUseControllerRotation && PlayerController)
@@ -44,14 +43,19 @@ void USpringArmComponent::TickComponent(float DeltaTime)
 	EvaluateArm(DeltaTime);
 }
 
-FTransform USpringArmComponent::GetSocketWorldTransform() const
+FTransform USpringArmComponent::GetSocketWorldTransform(const FName& InSocketName) const
 {
-	if (!bSocketValid)
+	if (!bSocketValid && SocketName == InSocketName)
 	{
 		// const 함수 내에서 멤버 업데이트 하기 위해 const_cast 사용
 		const_cast<USpringArmComponent*>(this)->EvaluateArm(0.0f);
+		return CachedSocketWorld;
 	}
-	return CachedSocketWorld;
+	else
+	{
+		return GetWorldTransform();
+	}
+	
 }
 
 void USpringArmComponent::RenderDebugVolume(URenderer* Renderer) const
@@ -59,7 +63,7 @@ void USpringArmComponent::RenderDebugVolume(URenderer* Renderer) const
 	const FLinearColor LineColor(1.0f, 0.0f, 0.0f, 1.0f);
 
 	FVector Start = GetWorldTransform().TransformPosition(TargetOffset);
-	FVector End = GetSocketWorldTransform().Translation;
+	FVector End = GetSocketWorldTransform(SocketName).Translation;
 	Renderer->AddLine(Start, End, LineColor.ToFVector4());
 }
 
@@ -159,7 +163,7 @@ void USpringArmComponent::EvaluateArm(float DeltaTime)
 
 void USpringArmComponent::DuplicateSubObjects()
 {
-	Super_t::DuplicateSubObjects();
+	Super::DuplicateSubObjects();
 
 	// 캐시 무효화
 	bSocketValid = false;
