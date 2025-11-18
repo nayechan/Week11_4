@@ -37,6 +37,14 @@ void UMovementComponent::TickComponent(float DeltaSeconds)
     // 매 프레임 호출, 파생 클래스에서 오버라이드하여 이동 로직 구현
 }
 
+void UMovementComponent::MoveUpdatedComponent(float DeltaSeconds)
+{
+    // 일단 충돌 처리는 나중에 생각함
+    FVector Translation = Velocity * DeltaSeconds;
+    
+    UpdatedComponent->AddWorldOffset(Translation);
+}
+
 void UMovementComponent::SetVelocity(const FVector& NewVelocity)
 {
     Velocity = NewVelocity;

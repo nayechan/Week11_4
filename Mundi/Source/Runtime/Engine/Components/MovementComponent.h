@@ -26,6 +26,8 @@ public:
     virtual void InitializeComponent() override;
     virtual void TickComponent(float DeltaSeconds) override;
 
+    virtual void MoveUpdatedComponent(float DeltaSeconds);
+
     void SetVelocity(const FVector& NewVelocity);
     FVector GetVelocity() const { return Velocity; }
 

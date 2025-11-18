@@ -23,6 +23,7 @@ APlayerController::~APlayerController()
 void APlayerController::Possess(APawn* InPawn)
 {
 	Pawn = InPawn;
+	Pawn->Controller = this;
 }
 
 void APlayerController::BeginPlay()
@@ -66,7 +67,6 @@ void APlayerController::ProcessInput()
 
 	UInputManager& InputManager = UInputManager::GetInstance();
 
-
 	// 마우스 회전
 	ProcessMouseInput();
 	
@@ -74,34 +74,17 @@ void APlayerController::ProcessInput()
 	{
 		Pawn->HandleThrustInput(1.0f);
 	}
-	if (InputManager.IsKeyReleased('W'))
-	{
-		Pawn->HandleThrustInput(0.0f);
-	}
 	if (InputManager.IsKeyDown('S'))
 	{
 		Pawn->HandleThrustInput(-1.0f);
 	}
-	if (InputManager.IsKeyReleased('S'))
-	{
-		Pawn->HandleThrustInput(0.0f);
-	}
-
 	if (InputManager.IsKeyDown('D'))
 	{
 		Pawn->HandleSteerInput(1.0f);
 	}
-	if (InputManager.IsKeyReleased('D'))
-	{
-		Pawn->HandleSteerInput(0.0f);
-	}
 	if (InputManager.IsKeyDown('A'))
 	{
 		Pawn->HandleSteerInput(-1.0f);
-	}
-	if (InputManager.IsKeyReleased('A'))
-	{
-		Pawn->HandleSteerInput(0.0f);
 	}
 
 	// 부스터 제어 키

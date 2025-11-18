@@ -288,6 +288,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\LuaAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\LuaAnimStateMachine.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Components\CharacterMovementComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Components\PawnMovementComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SpringArmComponent.cpp" />
@@ -553,10 +555,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\APlayerController.generated.cpp" />
     <ClCompile Include="Generated\APawn.generated.cpp" />
     <ClCompile Include="Generated\USpringArmComponent.generated.cpp" />
-    <ClCompile Include="Generated\FAnimTransition.generated.cpp" />
     <ClCompile Include="Generated\ACharacter.generated.cpp" />
-    <ClCompile Include="Generated\USkeletalMesh.generated.cpp" />
-  </ItemGroup>
+  <ClCompile Include="Generated\UCharacterMovementComponent.generated.cpp" /><ClCompile Include="Generated\UPawnMovementComponent.generated.cpp" /><ClCompile Include="Generated\USkeletalMesh.generated.cpp" /><ClCompile Include="Generated\FAnimTransition.generated.cpp" /></ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -748,8 +748,10 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\CharacterMovementComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\LuaScriptComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\MovementComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\PawnMovementComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\ProjectileMovementComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\RotatingMovementComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SpringArmComponent.h" />
@@ -999,9 +1001,7 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\APawn.generated.h" />
     <ClInclude Include="Generated\USpringArmComponent.generated.h" />
     <ClInclude Include="Generated\ACharacter.generated.h" />
-    <ClInclude Include="Generated\FAnimTransition.generated.h" />
-    <ClInclude Include="Generated\USkeletalMesh.generated.h" />
-  </ItemGroup>
+  <ClInclude Include="Generated\UCharacterMovementComponent.generated.h" /><ClInclude Include="Generated\UPawnMovementComponent.generated.h" /><ClInclude Include="Generated\USkeletalMesh.generated.h" /><ClInclude Include="Generated\FAnimTransition.generated.h" /></ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />

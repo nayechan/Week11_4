@@ -68,6 +68,22 @@ namespace FMath
 	{
 		return Value - std::floor(Value);
 	}
+
+	static float RInterpTo(float Current, float Target, float DeltaTime, float InterpFactor)
+	{
+		float ShortAngle = Target - Current;
+		if (abs(ShortAngle) > 180.0f)
+		{
+			ShortAngle += (ShortAngle > 0) ? (-360.0f) : (360.0f);
+		}
+		// 프레임당 최대 회전량
+		float MaxDelta = InterpFactor * DeltaTime;
+
+		float Delta = Clamp<float>(ShortAngle, -MaxDelta, MaxDelta);
+
+		return Current + Delta;
+
+	}
 }
 // 각도를 -180 ~ 180 범위로 정규화 (모듈러 연산)
 inline float NormalizeAngleDeg(float angleDeg)

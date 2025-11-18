@@ -23,6 +23,8 @@ public:
 	APlayerCameraManager* GetPlayerCameraManager();
 	const FQuat& GetControlRotation() { return ControlRotation; }
 
+	bool IsMoveInputIgnored() const { return bIgnoreMoveInput;}
+
 	void ProcessInput();
 	void ProcessMouseInput();
 
@@ -35,6 +37,8 @@ private:
 	float MouseSensitivity = 0.1f;  // 기존 World에서 사용하던 값으로 조정
 	float CameraYawDeg = 0.0f;   
 	float CameraPitchDeg = 0.0f; 
+
+	bool bIgnoreMoveInput = false;
 
 	APlayerCameraManager* PlayerCameraManager = nullptr;
 };

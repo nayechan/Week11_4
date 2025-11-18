@@ -721,13 +721,13 @@
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
     <ClCompile Include="Generated\ULuaAnimInstance.generated.cpp">
-        <Filter>Generated</Filter>
+      <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Generated\ULuaAnimStateMachine.generated.cpp">
-        <Filter>Generated</Filter>
+      <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Generated\EnumRegistry.generated.cpp">
-        <Filter>Generated</Filter>
+      <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Generated\APlayerController.generated.cpp">
       <Filter>Generated</Filter>
@@ -743,15 +743,15 @@
     <ClCompile Include="Source\Runtime\Engine\Components\SpringArmComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Character.cpp" />
     <ClCompile Include="Generated\ACharacter.generated.cpp">
-        <Filter>Generated</Filter>
+      <Filter>Generated</Filter>
     </ClCompile>
-    <ClCompile Include="Generated\FAnimTransition.generated.cpp">
-        <Filter>Generated</Filter>
-    </ClCompile>
-    <ClCompile Include="Generated\USkeletalMesh.generated.cpp">
-        <Filter>Generated</Filter>
-    </ClCompile>
-  </ItemGroup>
+    <ClCompile Include="Source\Runtime\Engine\Animation\LuaAnimInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\LuaAnimStateMachine.cpp" />
+    <ClCompile Include="Source\Slate\PropertyCustomization\PropertyCustomizationRegistry.cpp" />
+    <ClCompile Include="Source\Slate\PropertyCustomization\SkeletalMeshComponentCustomization.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Components\PawnMovementComponent.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Components\CharacterMovementComponent.cpp" />
+  <ClCompile Include="Generated\UCharacterMovementComponent.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UPawnMovementComponent.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\USkeletalMesh.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\FAnimTransition.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1598,15 +1598,15 @@
     <ClInclude Include="Source\Runtime\Engine\Components\SpringArmComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\Character.h" />
     <ClInclude Include="Generated\ACharacter.generated.h">
-        <Filter>Generated</Filter>
+      <Filter>Generated</Filter>
     </ClInclude>
-    <ClInclude Include="Generated\FAnimTransition.generated.h">
-        <Filter>Generated</Filter>
-    </ClInclude>
-    <ClInclude Include="Generated\USkeletalMesh.generated.h">
-        <Filter>Generated</Filter>
-    </ClInclude>
-  </ItemGroup>
+    <ClInclude Include="Source\Slate\PropertyCustomization\IDetailCustomization.h" />
+    <ClInclude Include="Source\Slate\PropertyCustomization\PropertyCustomizationRegistry.h" />
+    <ClInclude Include="Source\Slate\PropertyCustomization\PropertyCustomizationHelpers.h" />
+    <ClInclude Include="Source\Slate\PropertyCustomization\SkeletalMeshComponentCustomization.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\PawnMovementComponent.h" />
+    <ClInclude Include="Source\Runtime\Engine\Components\CharacterMovementComponent.h" />
+  <ClInclude Include="Generated\UCharacterMovementComponent.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UPawnMovementComponent.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\USkeletalMesh.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\FAnimTransition.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

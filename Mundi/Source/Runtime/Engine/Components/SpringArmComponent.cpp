@@ -18,8 +18,6 @@ USpringArmComponent::USpringArmComponent()
 void USpringArmComponent::OnRegister(UWorld* InWorld)
 {
 	Super::OnRegister(InWorld);
-	if(Owner)
-		Owner->SetTickInEditor(true);
 	bSocketValid = false;
 	bInitLag = false;
 }
