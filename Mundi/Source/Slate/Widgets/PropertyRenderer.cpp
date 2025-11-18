@@ -825,10 +825,8 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	}
 
 	// 2. 콤보 박스 렌더링
-	ImGui::Text("%s", Property.Name);
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 	ImGui::PushID(Property.Name); // 고유 ID
+	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(Property.Name).x - ImGui::GetStyle().ItemSpacing.x);
 
 	// 콤보박스에 표시될 텍스트
 	const char* PreviewText = CachedScriptItems[CurrentItem];
@@ -901,6 +899,11 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 		}
 		ImGui::EndCombo();
 	}
+
+	// 레이블을 드롭다운 오른쪽에 표시
+	ImGui::SameLine();
+	ImGui::Text("%s", Property.Name);
+
 	ImGui::PopID();
 
 	// 사라진 파일 표시
@@ -922,8 +925,6 @@ bool UPropertyRenderer::RenderScriptFileProperty(const FProperty& Property, void
 	// 3. 스크립트 생성 UI (선택된 파일이 없을 때만 표시)
 	else if (FilePath->empty() || CurrentItem == 0)
 	{
-		ImGui::Separator();
-
 		// "스크립트 생성 메뉴"
 		ImGui::InputText("스크립트 명", NewScriptNameBuffer, IM_ARRAYSIZE(NewScriptNameBuffer));
 		ImGui::SameLine();

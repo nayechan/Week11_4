@@ -57,9 +57,18 @@ void FSkeletalMeshComponentCustomization::CustomizeDetails(UObject* Object)
 
 	FOnShouldFilterProperty PropertyFilterDelegate;
 	PropertyFilterDelegate.Bind([SkelComp](const FString& PropertyName) -> bool {
+		// AnimationMode에 따라 해당하지 않는 프로퍼티 필터링
 		if (PropertyName == "AnimToPlay")
 		{
 			return SkelComp->AnimationMode != EAnimationMode::AnimationSingleNode;
+		}
+		else if (PropertyName == "AnimClass")
+		{
+			return SkelComp->AnimationMode != EAnimationMode::AnimationNative;
+		}
+		else if (PropertyName == "AnimLuaScript")
+		{
+			return SkelComp->AnimationMode != EAnimationMode::AnimationLua;
 		}
 		return false;
 	});
@@ -111,6 +120,12 @@ void FSkeletalMeshComponentCustomization::RenderSkeletonSelector()
 {
 	if (!CurrentComponent) return;
 
+	// SkeletalMesh와 AnimToPlay가 모두 설정되지 않은 경우 Skeleton 섹션을 렌더링하지 않음
+	if (!CurrentComponent->GetSkeletalMesh() && !CurrentComponent->AnimToPlay)
+	{
+		return;
+	}
+
 	ImGui::Separator();
 	ImGui::Text("Skeleton");
 
@@ -136,7 +151,7 @@ void FSkeletalMeshComponentCustomization::RenderSkeletonSelector()
 
 	// 드롭다운 렌더링
 	ImGui::SetNextItemWidth(240);
-	if (ImGui::Combo("Change Skeleton", &CurrentIdx, Items.data(), static_cast<int>(Items.size())))
+	if (ImGui::Combo("Selected Skeleton", &CurrentIdx, Items.data(), static_cast<int>(Items.size())))
 	{
 		if (CurrentIdx == 0)
 		{
