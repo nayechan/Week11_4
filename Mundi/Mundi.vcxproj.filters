@@ -717,7 +717,7 @@
     <ClCompile Include="Source\Runtime\Core\Misc\ExceptionHandler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
-  </ItemGroup>
+  <ClCompile Include="Generated\ULuaAnimInstance.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\ULuaAnimStateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\EnumRegistry.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1530,7 +1530,7 @@
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\TestComponent.h" />
     <ClInclude Include="Source\Runtime\Core\Math\TestTransform.h" />
-  <ClInclude Include="Generated\AnimationTypes.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
+  <ClInclude Include="Generated\AnimationTypes.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\ULuaAnimInstance.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\ULuaAnimStateMachine.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\EnumRegistry.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

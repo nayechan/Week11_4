@@ -65,6 +65,16 @@ namespace ObjectFactory
         return Obj;
     }
 
+    UObject* NewObject(UClass* Class, UObject* Outer)
+    {
+        UObject* Obj = NewObject(Class);
+        if (Obj && Outer)
+        {
+            Obj->SetOuter(Outer);
+        }
+        return Obj;
+    }
+
     UObject* AddToGUObjectArray(UClass* Class, UObject* Obj)
     {
         if (!Obj) return nullptr;

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "UEContainer.h"
 #include "ObjectFactory.h"
+#include "ObjectMacros.h"
 #include "MemoryManager.h"
 #include "Name.h"
 #include "Property.h"
@@ -237,7 +238,7 @@ public:
     using ThisClass_t = UObject;
 
 public:
-    UObject() : UUID(GenerateUUID()), InternalIndex(UINT32_MAX), ObjectName("UObject") {}
+    UObject() : UUID(GenerateUUID()), InternalIndex(UINT32_MAX), ObjectName("UObject"), Outer(nullptr) {}
     UObject(const UObject&) = default;
 
 protected:
@@ -245,6 +246,15 @@ protected:
     // Centralized deletion entry accessible to ObjectFactory only
     void DestroyInternal() { delete this; }
     friend void ObjectFactory::DeleteObject(UObject* Obj);
+
+public:
+    // ===== Outer (Parent Object) =====
+    // Unreal Engine pattern: Every UObject can have an Outer (containing object)
+    // Examples: Component's Outer is Actor, StateMachine's Outer is AnimInstance
+    // NOTE: UObject는 UCLASS가 없어서 UFUNCTION 사용 불가 - LuaManager.cpp에서 수동 바인딩
+    UObject* GetOuter() const;
+
+    void SetOuter(UObject* InOuter) { Outer = InOuter; }
 
 public:
     // UObject-scoped allocation only
@@ -278,6 +288,10 @@ public:
 
     // 리플렉션 기반 자동 직렬화 (현재 클래스의 프로퍼티만 처리)
     virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle);
+private:
+    // Outer (containing/parent object) - Unreal Engine pattern
+    UObject* Outer;
+
 public:
     // GenerateUUID()에 의해 자동 발급
     uint32_t UUID;

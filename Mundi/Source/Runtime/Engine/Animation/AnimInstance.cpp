@@ -18,8 +18,8 @@ void UAnimInstance::InitializeAnimation()
 	//    StateMachine 생성, State/Transition 추가 등
 	NativeInitializeAnimation();
 
-	// 2. TODO: Lua 스크립트 초기화 (향후 구현)
-	// LuaInitializeAnimation();
+	// 2. Lua 스크립트 초기화 (ULuaAnimInstance에서 구현)
+	LuaInitializeAnimation();
 }
 
 // ========================================
@@ -51,8 +51,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	//    각 AnimNode가 내부 시간(InternalTime) 업데이트
 	NativeUpdateAnimation(DeltaSeconds);
 
-	// 2. TODO: Lua 스크립트 업데이트 (향후 구현)
-	// LuaUpdateAnimation(DeltaSeconds);
+	// 2. Lua 스크립트 업데이트 (ULuaAnimInstance에서 구현)
+	LuaUpdateAnimation(DeltaSeconds);
 
 	// 3. 포즈 추출 + Notify 수집 (트리 누적 패턴)
 	//    GetAnimationPose()가 트리를 순회하며:
@@ -79,6 +79,16 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// AnimInstance는 전역 시간을 관리하지 않음!
 }
 
+void UAnimInstance::LuaInitializeAnimation()
+{
+	// 기본 구현 비어있음 (ULuaAnimInstance에서 override)
+}
+
+void UAnimInstance::LuaUpdateAnimation(float DeltaSeconds)
+{
+	// 기본 구현 비어있음 (ULuaAnimInstance에서 override)
+}
+
 void UAnimInstance::GetAnimationPose(FPoseContext& OutPose)
 {
 	OutPose.BoneTransforms.Empty();
@@ -95,4 +105,11 @@ void UAnimInstance::TriggerAnimNotifies(const FPoseContext& Pose)
 	{
 		OwnerComponent->HandleAnimNotify(Notify);
 	}
+}
+
+UWorld* UAnimInstance::GetWorld() const
+{
+	// Outer 체인 대신 OwnerComponent를 통해 World 접근
+	// AnimInstance는 Component가 아니므로 Owner 대신 OwnerComponent 사용
+	return OwnerComponent ? OwnerComponent->GetWorld() : nullptr;
 }

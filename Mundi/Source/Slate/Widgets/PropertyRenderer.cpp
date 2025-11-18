@@ -20,6 +20,7 @@
 #include "USlateManager.h"
 #include "AnimationTypes.h"
 #include "AnimationTypes.generated.h"
+#include "EnumRegistry.generated.h"
 
 // Disable warnings for third-party ImGui curve library
 #pragma warning(push)
@@ -1325,54 +1326,53 @@ bool UPropertyRenderer::RenderEnumProperty(const FProperty& Prop, void* Instance
 		return false;
 	}
 
-	// TODO: 현재는 EAnimationMode만 처리, 향후 확장 필요
-	if (strcmp(Prop.TypeName, "EAnimationMode") == 0)
+	// Enum Registry에서 메타데이터 조회 (타입 무관)
+	const EnumRegistry::FEnumMeta* EnumMeta = EnumRegistry::GetEnumMeta(Prop.TypeName);
+	if (!EnumMeta)
 	{
-		EAnimationMode* EnumPtr = Prop.GetValuePtr<EAnimationMode>(Instance);
-		if (!EnumPtr) return false;
-
-		// 현재 값을 문자열로 변환
-		const char* CurrentValueStr = EAnimationMode_Meta::ToString(*EnumPtr);
-
-		// Combo에 표시할 항목들
-		const char* Items[] = {
-			"AnimationClass",
-			"AnimationSingleNode",
-			"None"
-		};
-		int ItemCount = 3;
-
-		// 현재 선택된 인덱스 찾기
-		int SelectedIdx = 0;
-		for (int i = 0; i < ItemCount; ++i)
-		{
-			if (strcmp(Items[i], CurrentValueStr) == 0)
-			{
-				SelectedIdx = i;
-				break;
-			}
-		}
-
-		// Combo 렌더링
-		ImGui::SetNextItemWidth(240);
-		if (ImGui::Combo(Prop.Name, &SelectedIdx, Items, ItemCount))
-		{
-			// 선택된 문자열을 enum 값으로 변환
-			*EnumPtr = EAnimationMode_Meta::FromString(Items[SelectedIdx]);
-			return true;
-		}
-
-		// 툴팁 표시
-		if (ImGui::IsItemHovered() && Prop.Tooltip)
-		{
-			ImGui::SetTooltip("%s", Prop.Tooltip);
-		}
-
+		ImGui::Text("[Error: Enum type '%s' not found in registry]", Prop.TypeName);
 		return false;
 	}
 
-	// 지원하지 않는 enum 타입
-	ImGui::Text("[Unsupported Enum: %s]", Prop.TypeName);
+	// Enum 값의 포인터 가져오기 (uint8로 가정 - 대부분의 UENUM이 uint8)
+	uint8* EnumPtr = Prop.GetValuePtr<uint8>(Instance);
+	if (!EnumPtr) return false;
+
+	// 현재 값을 int로 변환하여 Registry 함수 사용 (타입 무관)
+	int CurrentValue = static_cast<int>(*EnumPtr);
+	const char* CurrentValueStr = EnumMeta->ToStringFromInt(CurrentValue);
+
+	// Reflection system에서 enum 값 목록 가져오기
+	const char* const* Items = EnumMeta->GetAllValueNames();
+	int ItemCount = EnumMeta->GetValueCount();
+
+	// 현재 선택된 인덱스 찾기
+	int SelectedIdx = 0;
+	for (int i = 0; i < ItemCount; ++i)
+	{
+		if (strcmp(Items[i], CurrentValueStr) == 0)
+		{
+			SelectedIdx = i;
+			break;
+		}
+	}
+
+	// Combo 렌더링
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo(Prop.Name, &SelectedIdx, Items, ItemCount))
+	{
+		// 선택된 문자열을 enum 값으로 변환 (Registry 함수 사용 - 타입 무관)
+		int NewValue = EnumMeta->FromStringToInt(Items[SelectedIdx]);
+		*EnumPtr = static_cast<uint8>(NewValue);
+		return true;
+	}
+
+	// 툴팁 표시
+	if (ImGui::IsItemHovered() && Prop.Tooltip)
+	{
+		ImGui::SetTooltip("%s", Prop.Tooltip);
+	}
+
 	return false;
 }
 
