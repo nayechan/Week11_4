@@ -53,12 +53,26 @@ sol::object LuaObjectProxy::Index(sol::this_state LuaState, LuaObjectProxy& Self
 
     BuildBoundClass(Self.Class);
 
+    // ⭐ 특수 메서드: GetOuter (모든 UObject에서 사용 가능)
+    // NOTE: UObject는 UCLASS가 없어서 UFUNCTION 사용 불가, 수동 바인딩
+    if (std::strcmp(Key, "GetOuter") == 0)
+    {
+        return sol::make_object(LuaView, [](LuaObjectProxy& Proxy) -> UObject*
+        {
+            return Proxy.Instance ? Proxy.Instance->GetOuter() : nullptr;
+        });
+    }
 
-    sol::table& FuncTable = FLuaBindRegistry::Get().EnsureTable(LuaView, Self.Class);
-    sol::object Func = (FuncTable.valid() ? FuncTable.raw_get<sol::object>(Key) : sol::object());
+    // ⭐ 상속 체인을 따라가며 메서드 검색 (UE 패턴)
+    // 자식 클래스 → 부모 클래스 순서로 검색
+    for (const UClass* CurrentClass = Self.Class; CurrentClass != nullptr; CurrentClass = CurrentClass->Super)
+    {
+        sol::table& FuncTable = FLuaBindRegistry::Get().EnsureTable(LuaView, CurrentClass);
+        sol::object Func = (FuncTable.valid() ? FuncTable.raw_get<sol::object>(Key) : sol::object());
 
-    if (Func.valid() && Func.get_type() == sol::type::function)
-        return Func;
+        if (Func.valid() && Func.get_type() == sol::type::function)
+            return Func;
+    }
 
     auto It = GBoundClasses.find(Self.Class);
     if (It == GBoundClasses.end()) return sol::nil;
@@ -72,7 +86,8 @@ sol::object LuaObjectProxy::Index(sol::this_state LuaState, LuaObjectProxy& Self
     case EPropertyType::Bool:         return sol::make_object(LuaView, *Property->GetValuePtr<bool>(Self.Instance));
     case EPropertyType::Float:        return sol::make_object(LuaView, *Property->GetValuePtr<float>(Self.Instance));
     case EPropertyType::Int32:        return sol::make_object(LuaView, *Property->GetValuePtr<int>(Self.Instance));
-    case EPropertyType::FString:      return sol::make_object(LuaView, *Property->GetValuePtr<FString>(Self.Instance));
+    case EPropertyType::FString:
+    case EPropertyType::ScriptFile:   return sol::make_object(LuaView, *Property->GetValuePtr<FString>(Self.Instance));
     case EPropertyType::FVector:      return sol::make_object(LuaView, *Property->GetValuePtr<FVector>(Self.Instance));
     case EPropertyType::FLinearColor: return sol::make_object(LuaView, *Property->GetValuePtr<FLinearColor>(Self.Instance));
     case EPropertyType::FName:        return sol::make_object(LuaView, Property->GetValuePtr<FName>(Self.Instance)->ToString());
@@ -127,13 +142,34 @@ sol::object LuaObjectProxy::Index(sol::this_state LuaState, LuaObjectProxy& Self
 
 void LuaObjectProxy::NewIndex(LuaObjectProxy& Self, const char* Key, sol::object Obj)
 {
+    if (!Self.Instance)
+    {
+        UE_LOG("[LuaObjectProxy::NewIndex] Instance is null for key '%s'", Key);
+        return;
+    }
+
+    // Index와 동일하게 BuildBoundClass 호출 (처음 프로퍼티 설정 시 필요)
+    BuildBoundClass(Self.Class);
+
     auto IterateClass = GBoundClasses.find(Self.Class);
-    if (IterateClass == GBoundClasses.end()) return;
+    if (IterateClass == GBoundClasses.end())
+    {
+        UE_LOG("[LuaObjectProxy::NewIndex] Class '%s' not found in GBoundClasses for key '%s'",
+               Self.Class->Name, Key);
+        return;
+    }
 
     auto It = IterateClass->second.PropsByName.find(Key);
-    if (It == IterateClass->second.PropsByName.end()) return;
+    if (It == IterateClass->second.PropsByName.end())
+    {
+        UE_LOG("[LuaObjectProxy::NewIndex] Property '%s' not found in class '%s' (has %d properties)",
+               Key, Self.Class->Name, (int)IterateClass->second.PropsByName.size());
+        return;
+    }
 
     const FProperty* Property = It->second.Property;
+    UE_LOG("[LuaObjectProxy::NewIndex] Setting property '%s' in class '%s' (type=%d)",
+           Key, Self.Class->Name, (int)Property->Type);
 
     switch (Property->Type)
     {
@@ -150,8 +186,20 @@ void LuaObjectProxy::NewIndex(LuaObjectProxy& Self, const char* Key, sol::object
             *Property->GetValuePtr<int>(Self.Instance) = static_cast<int>(Obj.as<double>());
         break;
     case EPropertyType::FString:
+    case EPropertyType::ScriptFile:  // ScriptFile도 내부적으로 FString
+        UE_LOG("[LuaObjectProxy::NewIndex] FString/ScriptFile case: Obj.get_type()=%d (string=%d)",
+               (int)Obj.get_type(), (int)sol::type::string);
         if (Obj.get_type() == sol::type::string)
-            *Property->GetValuePtr<FString>(Self.Instance) = Obj.as<FString>();
+        {
+            FString Value = Obj.as<FString>();
+            UE_LOG("[LuaObjectProxy::NewIndex] FString value: '%s'", Value.c_str());
+            *Property->GetValuePtr<FString>(Self.Instance) = Value;
+            UE_LOG("[LuaObjectProxy::NewIndex] FString set complete");
+        }
+        else
+        {
+            UE_LOG("[LuaObjectProxy::NewIndex] Type mismatch: expected string, got %d", (int)Obj.get_type());
+        }
         break;
     case EPropertyType::FVector:
         if (Obj.is<FVector>())

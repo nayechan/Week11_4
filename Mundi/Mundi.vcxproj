@@ -286,6 +286,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\LuaAnimInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\LuaAnimStateMachine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SpringArmComponent.cpp" />
@@ -539,6 +541,9 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\UCharacterAnimInstance.generated.cpp" />
     <ClCompile Include="Generated\UCharacterStateMachine.generated.cpp" />
     <ClCompile Include="Generated\ATestAnimNotifyActor.generated.cpp" />
+    <ClCompile Include="Generated\ULuaAnimInstance.generated.cpp" />
+    <ClCompile Include="Generated\ULuaAnimStateMachine.generated.cpp" />
+    <ClCompile Include="Generated\EnumRegistry.generated.cpp" />
     <ClCompile Include="Generated\APlayerController.generated.cpp" />
     <ClCompile Include="Generated\APawn.generated.cpp" />
     <ClCompile Include="Generated\USpringArmComponent.generated.cpp" />
@@ -715,7 +720,9 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Core\Misc\Hash.h" />
     <ClInclude Include="Source\Runtime\Core\Misc\PathUtils.h" />
     <ClInclude Include="Source\Runtime\Core\Object\FireballActor.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\ObjectMacros.h" />
     <ClInclude Include="Source\Runtime\Core\Object\Property.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\TSubclassOf.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationAsset.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationRuntime.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationTypes.h" />
@@ -726,6 +733,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Audio\Sound.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\AudioComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\CapsuleComponent.h" />
@@ -965,6 +974,9 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UCharacterStateMachine.generated.h" />
     <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h" />
     <ClInclude Include="Generated\AnimationTypes.generated.h" />
+    <ClInclude Include="Generated\ULuaAnimInstance.generated.h" />
+    <ClInclude Include="Generated\ULuaAnimStateMachine.generated.h" />
+    <ClInclude Include="Generated\EnumRegistry.generated.h" />
     <ClInclude Include="Generated\APlayerController.generated.h" />
     <ClInclude Include="Generated\APawn.generated.h" />
     <ClInclude Include="Generated\USpringArmComponent.generated.h" />

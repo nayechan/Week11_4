@@ -87,7 +87,10 @@ public:
     // ───────────────
     // Transform API
     // ───────────────
+    UFUNCTION(LuaBind)
     void SetActorTransform(const FTransform& NewTransform);
+
+    UFUNCTION(LuaBind)
     FTransform GetActorTransform() const;
 
     void SetActorLocation(const FVector& NewLocation);

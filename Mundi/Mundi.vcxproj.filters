@@ -717,6 +717,15 @@
     <ClCompile Include="Source\Runtime\Core\Misc\ExceptionHandler.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\CharacterStateMachine.cpp" />
+    <ClCompile Include="Generated\ULuaAnimInstance.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\ULuaAnimStateMachine.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\EnumRegistry.generated.cpp">
+        <Filter>Generated</Filter>
+    </ClCompile>
     <ClCompile Include="Generated\APlayerController.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
@@ -1540,9 +1549,22 @@
     <ClInclude Include="Source\Runtime\Core\Misc\ExceptionHandler.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\TestComponent.h" />
     <ClInclude Include="Source\Runtime\Core\Math\TestTransform.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\ObjectMacros.h" />
+    <ClInclude Include="Source\Runtime\Core\Object\TSubclassOf.h" />
     <ClInclude Include="Generated\AnimationTypes.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ULuaAnimInstance.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\ULuaAnimStateMachine.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\EnumRegistry.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\APlayerController.generated.h">

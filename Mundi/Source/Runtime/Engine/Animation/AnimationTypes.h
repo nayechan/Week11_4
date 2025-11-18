@@ -178,7 +178,8 @@ struct FPoseContext
 UENUM()
 enum class EAnimationMode : uint8
 {
-	AnimationClass,        // AnimClass 사용 (C++ 또는 Lua AnimInstance)
+	AnimationNative,       // C++ AnimInstance 사용 (AnimClass 프로퍼티)
+	AnimationLua,          // Lua AnimInstance 사용 (AnimLuaScript 프로퍼티)
 	AnimationSingleNode,   // 단일 AnimSequence 직접 재생
 	None                   // RefPose (T-Pose)
 };
