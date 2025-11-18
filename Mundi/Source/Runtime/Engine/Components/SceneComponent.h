@@ -49,6 +49,7 @@ public:
     // World Transform API
     // ──────────────────────────────
     FTransform GetWorldTransform() const;
+    virtual FTransform GetSocketWorldTransform(const FName& InSocketName) const;
     void SetWorldTransform(const FTransform& W);
 
     void SetWorldLocation(const FVector& L);
@@ -76,6 +77,7 @@ public:
     // ──────────────────────────────
     void SetupAttachment(USceneComponent* InParent, EAttachmentRule Rule = EAttachmentRule::KeepWorld);
     void DetachFromParent(bool bKeepWorld = true);
+    void SetAttachSocketName(const FString& InSocketName) { AttachSocketName = InSocketName; }
 
     // ──────────────────────────────
     // Hierarchy Access
@@ -158,6 +160,9 @@ protected:
     // Hierarchy
     USceneComponent* AttachParent = nullptr;
     TArray<USceneComponent*> AttachChildren;
+    // 부모가 소켓이 여러개 있을 수 있음, 식별용
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="[컴포넌트]")
+    FName AttachSocketName = "NONE";
 
     // 로컬(부모 기준) 트랜스폼
     FTransform RelativeTransform;

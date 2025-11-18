@@ -27,6 +27,7 @@ class BVHierachy;
 class UStaticMesh;
 class FOcclusionCullingManagerCPU;
 class APlayerCameraManager;
+class APlayerController;
 
 struct FTransform;
 struct FSceneCompData;
@@ -97,12 +98,6 @@ public:
     FLightManager* GetLightManager() const { return LightManager.get(); }
     FLuaManager* GetLuaManager() const { return LuaManager.get(); }
 
-    ACameraActor* GetEditorCameraActor() { return MainEditorCameraActor; }
-    void SetEditorCameraActor(ACameraActor* InCamera);
-
-    void SetPlayerCameraManager(APlayerCameraManager* InPlayerCameraManager) {  PlayerCameraManager = InPlayerCameraManager; };
-    APlayerCameraManager* GetPlayerCameraManager() { return PlayerCameraManager; };
-
     // Per-world render settings
     URenderSettings& GetRenderSettings() { return RenderSettings; }
     const URenderSettings& GetRenderSettings() const { return RenderSettings; }
@@ -120,12 +115,18 @@ public:
 
     TMap<TWeakObjectPtr<AActor>, FActorTimeState> ActorTimingMap;
 
+    void SetEditorCameraActor(ACameraActor* InCamera);
+    void SetPlayerCameraManager(APlayerCameraManager* InPlayerCameraManager) { PlayerCameraManager = InPlayerCameraManager; }
+    void SetPlayerController(APlayerController* InPlayerController) { PlayerController = InPlayerController; }
     /** === 필요한 엑터 게터 === */
     const TArray<AActor*>& GetActors() { static TArray<AActor*> Empty; return Level ? Level->GetActors() : Empty; }
     const TArray<AActor*>& GetEditorActors() { return EditorActors; }
     AGizmoActor* GetGizmoActor() { return GizmoActor; }
     AGridActor* GetGridActor() { return GridActor; }
     UWorldPartitionManager* GetPartitionManager() { return Partition.get(); }
+    APlayerController* GetPlayerController() { return PlayerController; }
+    APlayerCameraManager* GetPlayerCameraManager() { return PlayerCameraManager; };
+    ACameraActor* GetEditorCameraActor() { return MainEditorCameraActor; }
 
     // PIE용 World 생성
     static UWorld* DuplicateWorldForPIE(UWorld* InEditorWorld);
@@ -147,6 +148,7 @@ private:
     AGridActor* GridActor = nullptr;
     AGizmoActor* GizmoActor = nullptr;
     APlayerCameraManager* PlayerCameraManager;
+    APlayerController* PlayerController = nullptr;
 
     /** === 레벨 컨테이너 === */
     std::unique_ptr<ULevel> Level;
