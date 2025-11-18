@@ -129,6 +129,20 @@ void UAnimStateMachine::AddTransition(FName From, FName To, float BlendDuration)
     Transitions.Add(Trans);
 }
 
+void UAnimStateMachine::AddTransition(FName From, FName To, float BlendDuration, float P1x, float P1y, float P2x, float P2y)
+{
+    FAnimTransition Trans;
+    Trans.FromState = From;
+    Trans.ToState = To;
+    Trans.BlendDuration = BlendDuration;
+    Trans.BlendCurve[0] = P1x;
+    Trans.BlendCurve[1] = P1y;
+    Trans.BlendCurve[2] = P2x;
+    Trans.BlendCurve[3] = P2y;
+    Trans.Condition = nullptr;
+    Transitions.Add(Trans);
+}
+
 void UAnimStateMachine::AddTransitionWithCondition(FName From, FName To, float Blend, std::function<bool()> Condition)
 {
     FAnimTransition Trans;
@@ -380,10 +394,19 @@ void UAnimStateMachine::GetBlendedPose(FPoseContext& OutPose)
             FromStatePtr->Animation->GetAnimationPose(PoseA, FromContext);
             ToStatePtr->Animation->GetAnimationPose(PoseB, ToContext);
 
+            // Phase 1: Blend Curve 적용
+            // 선형 TransitionAlpha를 Bezier curve로 평가하여 부드러운 전환
+            float CurvedAlpha = TransitionAlpha;
+            FAnimTransition* CurrentTransition = FindTransition(FromState, ToState);
+            if (CurrentTransition)
+            {
+                CurvedAlpha = FAnimationRuntime::EvaluateBezierCurve(CurrentTransition->BlendCurve, TransitionAlpha);
+            }
+
             FAnimationRuntime::BlendTwoPosesTogether(
                 PoseA,
                 PoseB,
-                TransitionAlpha,
+                CurvedAlpha,
                 OutPose
             );
 

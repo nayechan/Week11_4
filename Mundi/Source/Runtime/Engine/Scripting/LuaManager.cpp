@@ -270,7 +270,7 @@ FLuaManager::FLuaManager()
     SharedLib.set_function("Cast",
         [](sol::this_state LuaState, UObject* Object, const FString& TargetClassName) -> sol::object
         {
-            sol::state_view LuaView(LuaState);
+            sol::state_view LuaView(LuaState); 
 
             if (!Object)
                 return sol::nil;

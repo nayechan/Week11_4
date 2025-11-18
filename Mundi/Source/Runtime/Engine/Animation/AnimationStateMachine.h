@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Name.h"
 #include "AnimState.h"
+#include "AnimTransition.h"
 
 // Forward declaration (CharacterAnimInstance.h creates circular dependency)
 class UAnimInstance;
@@ -66,6 +67,10 @@ public:
     // Phase 2: Transition APIs
     UFUNCTION(LuaBind, DisplayName = "AddTransition")
     void AddTransition(FName From, FName To, float BlendDuration);
+
+    // Phase 1: AddTransition with Blend Curve (오버로드)
+    UFUNCTION(LuaBind, DisplayName = "AddTransitionWithCurve")
+    void AddTransition(FName From, FName To, float BlendDuration, float P1x, float P1y, float P2x, float P2y);
 
     // NOTE: AddTransitionWithCondition은 std::function 때문에 자동 바인딩 불가
     // Lua에서 조건을 확인하려면 수동으로 체크하거나 별도 래퍼 필요
