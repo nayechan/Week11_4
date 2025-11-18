@@ -2,6 +2,7 @@
 
 #include "Property.h"
 #include "Object.h"
+#include "PropertyCustomizationHelpers.h"
 
 // 프로퍼티 렌더러
 // 리플렉션 정보를 기반으로 ImGui UI를 자동 생성
@@ -19,6 +20,17 @@ public:
 
 	// 객체의 모든 프로퍼티를 카테고리별로 렌더링 (부모 클래스 프로퍼티 포함)
 	static void RenderAllPropertiesWithInheritance(UObject* Object);
+
+	/**
+	 * Customization과 함께 프로퍼티 렌더링
+	 * @param Object - 편집 중인 객체
+	 * @param AssetFilterDelegate - 애셋 필터링 델리게이트
+	 * @param PropertyFilterDelegate - 프로퍼티 필터링 델리게이트
+	 */
+	static void RenderPropertiesWithCustomization(
+		UObject* Object,
+		FOnShouldFilterAsset& AssetFilterDelegate,
+		FOnShouldFilterProperty& PropertyFilterDelegate);
 
 private:
 	// 타입별 렌더링 함수들
@@ -57,6 +69,19 @@ private:
 
 	static void CacheResources();	// 필요할 때 리소스 목록을 멤버 변수에 캐시합니다.
 	static void ClearResourcesCache();	// 렌더링 패스가 끝날 때 캐시를 비웁니다.
+
+	// ===== 신규 private 메서드 =====
+
+	/**
+	 * AnimSequence 프로퍼티 렌더링 (필터링 지원)
+	 * @param Prop - 프로퍼티 정보
+	 * @param Instance - 객체 인스턴스
+	 * @param FilterDelegate - 필터링 델리게이트 (선택)
+	 */
+	static bool RenderAnimSequencePropertyWithFilter(
+		const FProperty& Prop,
+		void* Instance,
+		FOnShouldFilterAsset& FilterDelegate);
 
 private:
 	// 렌더링 중 캐시되는 리소스 목록

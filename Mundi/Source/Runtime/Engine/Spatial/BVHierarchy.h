@@ -32,6 +32,7 @@ public:
 
     void FlushRebuild();
 
+    void QueryRayClosestStrict(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT, TArray<AActor*> ExcludeList = {}) const;
     void QueryRayClosest(const FRay& Ray, AActor*& OutActor, OUT float& OutBestT) const;
     void QueryFrustum(const FFrustum& InFrustum);
     TArray<UPrimitiveComponent*> QueryIntersectedComponents(const FAABB& InBound) const;
@@ -42,7 +43,7 @@ public:
 
     // Debug/Stats
     int TotalNodeCount() const;
-    int TotalActorCount() const;
+    int TotalActorCount() const; 
     int MaxOccupiedDepth() const;
     void DebugDump() const;
     const FAABB& GetBounds() const { return Bounds; }
@@ -76,8 +77,8 @@ private:
     int MaxObjects;
     FAABB Bounds;
 
-    TMap<UPrimitiveComponent*, FAABB> StaticMeshComponentBounds;
-    TArray<UPrimitiveComponent*> StaticMeshComponentArray;
+    TMap<UPrimitiveComponent*, FAABB> PrimitiveComponentBounds;
+    TArray<UPrimitiveComponent*> PrimitiveComponentArray;
 
     // LBVH nodes
     TArray<FLBVHNode> Nodes;

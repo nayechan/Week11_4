@@ -124,10 +124,24 @@ FTransform USceneComponent::GetWorldTransform() const
     // Dangling pointer 방지를 위한 체크 
     if (AttachParent && !AttachParent->IsPendingDestroy())
     {
-        return AttachParent->GetWorldTransform().GetWorldTransform(RelativeTransform);
+        // 분기를 추가하는 이유: 소켓이 있어도 쓰고싶지 않을 수 있음. 
+        // 지금 당장 필요한 기능은 아니지만 구조만 짜둠
+        if (AttachSocketName != "NONE")
+        {
+            return AttachParent->GetSocketWorldTransform(AttachSocketName).GetWorldTransform(RelativeTransform);
+        }
+        else
+        {
+            return AttachParent->GetWorldTransform().GetWorldTransform(RelativeTransform);
+        }
     }
 
     return RelativeTransform;
+}
+
+FTransform USceneComponent::GetSocketWorldTransform(const FName& InSocketName) const
+{
+    return GetWorldTransform();
 }
 
 void USceneComponent::SetWorldTransform(const FTransform& W)

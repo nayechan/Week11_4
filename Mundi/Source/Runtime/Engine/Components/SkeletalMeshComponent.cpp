@@ -66,22 +66,21 @@ void USkeletalMeshComponent::BeginPlay()
                 AnimInstance->InitializeAnimation();
                 UE_LOG("USkeletalMeshComponent::BeginPlay - Created AnimInstance: %s", Class->Name);
 
-                // AnimationSingleNode 모드에서 SkeletalMesh가 이미 로드되어 있으면 AnimSequence 자동 할당
-                if (AnimationMode == EAnimationMode::AnimationSingleNode && SkeletalMesh)
+                // AnimationSingleNode 모드에서 AnimSequence 설정
+                if (AnimationMode == EAnimationMode::AnimationSingleNode)
                 {
                     UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
                     if (SingleNode)
                     {
-                        FString MeshPath = SkeletalMesh->GetFilePath();
-                        auto& ResourceManager = UResourceManager::GetInstance();
-                        UAnimSequence* AnimSeq = ResourceManager.Get<UAnimSequence>(MeshPath);
-
-                        if (AnimSeq)
+                        // AnimToPlay가 설정되어 있으면 재생 (None이면 재생하지 않음)
+                        if (AnimToPlay)
                         {
-                            SingleNode->SetAnimationAsset(AnimSeq);
-                            SingleNode->Play(true); // Loop 재생
-                            UE_LOG("USkeletalMeshComponent::BeginPlay - Auto-assigned AnimSequence from existing mesh: %s (Length: %.2fs)",
-                                MeshPath.c_str(), AnimSeq->SequenceLength);
+                            UE_LOG("USkeletalMeshComponent::BeginPlay - Using AnimToPlay: %s (Length: %.2fs)",
+                                AnimToPlay->GetFilePath().c_str(), AnimToPlay->SequenceLength);
+
+                            // AnimSequence 설정 및 루프 재생
+                            SingleNode->SetAnimationAsset(AnimToPlay);
+                            SingleNode->Play(true); // 무조건 루프 재생
                         }
                     }
                 }
@@ -138,39 +137,6 @@ void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
         }
 
         ForceRecomputePose();
-
-        // FBX 로드 시 AnimSequence 자동 설정 (AnimationSingleNode 모드인 경우)
-        if (AnimationMode == EAnimationMode::AnimationSingleNode && AnimInstance)
-        {
-            UAnimSingleNodeInstance* SingleNode = Cast<UAnimSingleNodeInstance>(AnimInstance);
-            if (SingleNode)
-            {
-                // 같은 경로의 AnimSequence 찾기
-                auto& ResourceManager = UResourceManager::GetInstance();
-                UAnimSequence* AnimSeq = ResourceManager.Get<UAnimSequence>(PathFileName);
-
-                if (AnimSeq)
-                {
-                    SingleNode->SetAnimationAsset(AnimSeq);
-                    SingleNode->Play(true); // Loop 재생
-                    UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - Auto-assigned AnimSequence: %s (Length: %.2fs)",
-                        PathFileName.c_str(), AnimSeq->SequenceLength);
-                }
-                else
-                {
-                    UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - AnimSequence not found in cache: %s", PathFileName.c_str());
-                }
-            }
-            else
-            {
-                UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - AnimInstance is not AnimSingleNodeInstance (Type: %s)",
-                    AnimInstance->GetClass()->Name);
-            }
-        }
-        else
-        {
-            UE_LOG("USkeletalMeshComponent::SetSkeletalMesh - AnimInstance is nullptr (called before BeginPlay?)");
-        }
     }
     else
     {
