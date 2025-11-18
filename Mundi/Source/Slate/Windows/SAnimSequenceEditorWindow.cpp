@@ -21,6 +21,9 @@
 #include "AnimSingleNodeInstance.h"
 #include "AnimSequence.h"
 #include "AnimSequenceBase.h"
+#include "ResourceManager.h"
+#include "SkeletalMesh.h"
+#include "SkeletalMeshComponent.h"
 #include <filesystem>
 #include <fstream>
 
@@ -359,6 +362,268 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::TextDisabled("Anim: None");
     }
     ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
+    ImGui::Separator();
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // === Skeleton-Based Animation Browser ===
+    static int32 SelectedMeshIndex = -1;
+
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
+    ImGui::Text("Compatible Animations");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // Get all loaded skeletal meshes
+    TArray<USkeletalMesh*> AllLoadedMeshes = UResourceManager::GetInstance().GetAll<USkeletalMesh>();
+
+    // Remove duplicates based on normalized file path and sort for stable order
+    TMap<FString, USkeletalMesh*> UniqueMeshes;
+    for (USkeletalMesh* Mesh : AllLoadedMeshes)
+    {
+        if (Mesh)
+        {
+            FString FilePath = Mesh->GetFilePath();
+            if (!FilePath.empty())
+            {
+                // Normalize path to handle relative/absolute path differences
+                // (e.g., "Data/Fbx/mesh.fbx" vs "Data/Fbx/../Fbx/mesh.fbx")
+                try
+                {
+                    std::filesystem::path NormalizedPath = std::filesystem::path(FilePath).lexically_normal();
+                    FString NormalizedPathStr = NormalizedPath.string();
+                    std::replace(NormalizedPathStr.begin(), NormalizedPathStr.end(), '\\', '/');
+
+                    if (UniqueMeshes.find(NormalizedPathStr) == UniqueMeshes.end())
+                    {
+                        UniqueMeshes[NormalizedPathStr] = Mesh;
+                    }
+                }
+                catch (...)
+                {
+                    // Fallback: use original path if normalization fails
+                    if (UniqueMeshes.find(FilePath) == UniqueMeshes.end())
+                    {
+                        UniqueMeshes[FilePath] = Mesh;
+                    }
+                }
+            }
+        }
+    }
+
+    // Convert to sorted array
+    TArray<USkeletalMesh*> LoadedMeshes;
+    TArray<FString> SortedPaths;
+    for (auto& Pair : UniqueMeshes)
+    {
+        SortedPaths.Add(Pair.first);
+    }
+    std::sort(SortedPaths.begin(), SortedPaths.end());
+
+    for (const FString& Path : SortedPaths)
+    {
+        LoadedMeshes.Add(UniqueMeshes[Path]);
+    }
+
+    if (LoadedMeshes.Num() > 0)
+    {
+        // Skeletal Mesh selector
+        ImGui::Text("Select Skeletal Mesh:");
+        ImGui::PushItemWidth(-1.0f);
+
+        // Prepare combo items
+        TArray<FString> MeshNames;
+        for (int32 i = 0; i < LoadedMeshes.Num(); ++i)
+        {
+            USkeletalMesh* Mesh = LoadedMeshes[i];
+            FString DisplayName = Mesh->GetFilePath();
+            if (!DisplayName.empty())
+            {
+                // Extract filename from path
+                size_t lastSlash = DisplayName.find_last_of("/\\");
+                if (lastSlash != std::string::npos)
+                {
+                    DisplayName = DisplayName.substr(lastSlash + 1);
+                }
+            }
+            else
+            {
+                DisplayName = "Unnamed Mesh";
+            }
+            MeshNames.Add(DisplayName);
+        }
+
+        // Current selection display
+        const char* CurrentSelectionLabel = (SelectedMeshIndex >= 0 && SelectedMeshIndex < MeshNames.Num())
+            ? MeshNames[SelectedMeshIndex].c_str()
+            : "Select a mesh...";
+
+        if (ImGui::BeginCombo("##MeshSelector", CurrentSelectionLabel))
+        {
+            for (int32 i = 0; i < LoadedMeshes.Num(); ++i)
+            {
+                bool isSelected = (SelectedMeshIndex == i);
+                if (ImGui::Selectable(MeshNames[i].c_str(), isSelected))
+                {
+                    SelectedMeshIndex = i;
+                }
+                if (isSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::Spacing();
+
+        // If a mesh is selected, show compatible animations
+        if (SelectedMeshIndex >= 0 && SelectedMeshIndex < LoadedMeshes.Num())
+        {
+            USkeletalMesh* SelectedMesh = LoadedMeshes[SelectedMeshIndex];
+            const FSkeleton* MeshSkeleton = SelectedMesh->GetSkeleton();
+
+            if (MeshSkeleton)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.8f, 0.6f, 1.0f));
+                ImGui::Text("Skeleton: %s", MeshSkeleton->Name.c_str());
+                ImGui::Text("Bones: %d", MeshSkeleton->Bones.Num());
+                ImGui::PopStyleColor();
+                ImGui::Spacing();
+
+                // Get all loaded animations
+                TArray<UAnimSequence*> AllAnimations = UResourceManager::GetInstance().GetAll<UAnimSequence>();
+
+                // Filter animations that match this skeleton (same logic as SkeletalMeshComponentCustomization)
+                TArray<UAnimSequence*> CompatibleAnimations;
+                for (UAnimSequence* Anim : AllAnimations)
+                {
+                    if (Anim && Anim->Skeleton)
+                    {
+                        // IMPORTANT: Only pointer comparison (same as editor detail panel)
+                        // This ensures the animation uses the EXACT same skeleton instance
+                        if (Anim->Skeleton == MeshSkeleton)
+                        {
+                            CompatibleAnimations.Add(Anim);
+                        }
+                    }
+                }
+
+                // Display compatible animations list
+                ImGui::Text("Compatible Animations: %d", CompatibleAnimations.Num());
+                ImGui::Spacing();
+
+                if (CompatibleAnimations.Num() > 0)
+                {
+                    // Scrollable animation list
+                    ImGui::BeginChild("AnimListScroll", ImVec2(0, 150), true);
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.30f, 0.40f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.45f, 0.60f, 1.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.25f, 0.35f, 1.0f));
+
+                    for (int32 i = 0; i < CompatibleAnimations.Num(); ++i)
+                    {
+                        UAnimSequence* Anim = CompatibleAnimations[i];
+                        FString AnimName = Anim->GetName();
+                        if (AnimName.empty())
+                        {
+                            AnimName = Anim->GetFilePath();
+                            if (!AnimName.empty())
+                            {
+                                size_t lastSlash = AnimName.find_last_of("/\\");
+                                if (lastSlash != std::string::npos)
+                                {
+                                    AnimName = AnimName.substr(lastSlash + 1);
+                                }
+                            }
+                        }
+
+                        char ButtonLabel[256];
+                        sprintf_s(ButtonLabel, "%s##Anim%d", AnimName.c_str(), i);
+
+                        if (ImGui::Button(ButtonLabel, ImVec2(-1.0f, 0.0f)))
+                        {
+                            // Load this animation into the editor
+                            if (ActiveState && ActiveState->PreviewActor && ActiveState->PreviewActor->GetSkeletalMeshComponent())
+                            {
+                                USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+
+                                // If current mesh doesn't match selected mesh, load the selected mesh first
+                                if (ActiveState->CurrentMesh != SelectedMesh)
+                                {
+                                    FString MeshPath = SelectedMesh->GetFilePath();
+                                    if (!MeshPath.empty())
+                                    {
+                                        LoadSkeletalMesh(MeshPath);
+                                    }
+                                }
+
+                                // Clear notify data when switching animations via Compatible Animations list
+                                // (Only "Load Animation (.anim)" button should load saved notify data)
+                                Anim->Notifies.Empty();
+                                Anim->NotifyTracks.Empty();
+                                Anim->NextTrackID = 0;
+                                UE_LOG("Switching animation via Compatible Animations - cleared notify data");
+
+                                FString AnimPath = Anim->GetFilePath();
+
+                                // Set animation
+                                UAnimSingleNodeInstance* AnimSingleNode = dynamic_cast<UAnimSingleNodeInstance*>(SkeletalComp->AnimInstance);
+                                if (!AnimSingleNode)
+                                {
+                                    AnimSingleNode = NewObject<UAnimSingleNodeInstance>();
+                                    SkeletalComp->SetAnimInstance(AnimSingleNode);
+                                }
+
+                                AnimSingleNode->SetAnimationAsset(Anim);
+                                AnimSingleNode->SetInteralTime(0.0f);
+                                SkeletalComp->TickAnimation(0.0f);
+
+                                // Update animation path buffer
+                                if (!AnimPath.empty())
+                                {
+                                    strncpy_s(ActiveState->AnimationPathBuffer, AnimPath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+                                }
+
+                                // Mark bone lines as dirty
+                                ActiveState->bBoneLinesDirty = true;
+                            }
+                        }
+
+                        // Show animation info on hover
+                        if (ImGui::IsItemHovered())
+                        {
+                            ImGui::BeginTooltip();
+                            ImGui::Text("Name: %s", AnimName.c_str());
+                            ImGui::Text("Length: %.2fs", Anim->GetPlayLength());
+                            ImGui::Text("Frames: %d", Anim->NumberOfFrames);
+                            ImGui::EndTooltip();
+                        }
+                    }
+
+                    ImGui::PopStyleColor(3);
+                    ImGui::EndChild();
+                }
+                else
+                {
+                    ImGui::TextDisabled("No compatible animations found");
+                }
+            }
+            else
+            {
+                ImGui::TextDisabled("Selected mesh has no skeleton");
+            }
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("No skeletal meshes loaded");
+    }
 
     ImGui::Spacing();
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
@@ -852,29 +1117,41 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
                     if (!SourceFilePath.empty())
                     {
-                        // 상대경로를 절대경로로 변환 (상대경로인 경우)
+                        // 파일 존재 여부 확인 (상대경로 유지하되 검증만 절대경로로)
                         std::filesystem::path SourcePath(SourceFilePath);
+                        bool bFileExists = false;
+
                         if (SourcePath.is_relative())
                         {
                             // 먼저 현재 작업 디렉토리에서 찾기
                             std::filesystem::path CurrentPath = std::filesystem::current_path();
                             std::filesystem::path AbsPath = CurrentPath / SourcePath;
 
-                            // 파일이 존재하지 않으면, .anim 파일과 같은 디렉토리에서 찾기
-                            if (!std::filesystem::exists(AbsPath))
+                            if (std::filesystem::exists(AbsPath))
                             {
+                                bFileExists = true;
+                                UE_LOG("Found file in working directory: %s", SourceFilePath.c_str());
+                            }
+                            else
+                            {
+                                // .anim 파일과 같은 디렉토리에서 찾기
                                 std::filesystem::path AnimFileDir = std::filesystem::path(AnimFilePath).parent_path();
                                 AbsPath = AnimFileDir / SourcePath;
-                                UE_LOG("File not found in working directory, trying .anim file directory: %s", AbsPath.string().c_str());
+                                if (std::filesystem::exists(AbsPath))
+                                {
+                                    bFileExists = true;
+                                    UE_LOG("Found file in .anim directory: %s", SourceFilePath.c_str());
+                                }
                             }
-
-                            SourcePath = AbsPath;
-                            SourceFilePath = SourcePath.string();
-                            UE_LOG("Converted to absolute path: %s", SourceFilePath.c_str());
+                        }
+                        else
+                        {
+                            // 절대경로인 경우 그대로 확인
+                            bFileExists = std::filesystem::exists(SourcePath);
                         }
 
-                        // 파일 존재 여부 확인
-                        if (std::filesystem::exists(SourceFilePath))
+                        // NOTE: SourceFilePath는 상대경로 그대로 유지 (ResourceManager 중복 방지)
+                        if (bFileExists)
                         {
                             UE_LOG("[6/7] Source FBX file exists, loading...");
                             UE_LOG("Source file path: %s", SourceFilePath.c_str());
@@ -920,11 +1197,8 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                                 ActiveState->LoadedMeshPath.clear();
                                 ActiveState->bBoneLinesDirty = true;
 
-                                // BoneLines 명시적 클리어 (메시 변경 전 이전 본 인덱스 참조 방지)
-                                if (auto* LineComp = ActiveState->PreviewActor->GetBoneLineComponent())
-                                {
-                                    LineComp->ClearLines();
-                                }
+                                // NOTE: BoneLines는 RebuildBoneLines()에서 안전하게 정리됨
+                                // ClearLines()를 직접 호출하면 렌더링 프레임과 겹쳐서 크래시 발생 가능
 
                                 UE_LOG("Loading new skeletal mesh...");
                                 LoadSkeletalMesh(SourceFilePath);
@@ -1837,10 +2111,9 @@ void SAnimSequenceEditorWindow::LoadSkeletalMesh(const FString& Path)
         // Mark bone lines as dirty to rebuild on next frame
         ActiveState->bBoneLinesDirty = true;
 
-        // Clear and sync bone line visibility
+        // Sync bone line visibility (NOTE: ClearLines() removed to avoid race condition with rendering)
         if (auto* LineComp = ActiveState->PreviewActor->GetBoneLineComponent())
         {
-            LineComp->ClearLines();
             LineComp->SetLineVisible(ActiveState->bShowBones);
         }
 
