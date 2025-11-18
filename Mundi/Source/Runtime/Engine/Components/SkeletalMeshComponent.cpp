@@ -109,8 +109,10 @@ void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
 
     if (SkeletalMesh && SkeletalMesh->GetSkeletalMeshData())
     {
-        const FSkeleton& Skeleton = SkeletalMesh->GetSkeletalMeshData()->Skeleton;
-        const int32 NumBones = Skeleton.Bones.Num();
+        const FSkeleton* Skeleton = SkeletalMesh->GetSkeletalMeshData()->Skeleton;
+        if (!Skeleton) return;
+
+        const int32 NumBones = Skeleton->Bones.Num();
 
         CurrentLocalSpacePose.SetNum(NumBones);
         CurrentComponentSpacePose.SetNum(NumBones);
@@ -119,7 +121,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
 
         for (int32 i = 0; i < NumBones; ++i)
         {
-            const FBone& ThisBone = Skeleton.Bones[i];
+            const FBone& ThisBone = Skeleton->Bones[i];
             const int32 ParentIndex = ThisBone.ParentIndex;
             FMatrix LocalBindMatrix;
 
@@ -129,7 +131,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(const FString& PathFileName)
             }
             else // 자식 본
             {
-                const FMatrix& ParentInverseBindPose = Skeleton.Bones[ParentIndex].InverseBindPose;
+                const FMatrix& ParentInverseBindPose = Skeleton->Bones[ParentIndex].InverseBindPose;
                 LocalBindMatrix = ThisBone.BindPose * ParentInverseBindPose;
             }
             // 계산된 로컬 행렬을 로컬 트랜스폼으로 변환
@@ -203,13 +205,15 @@ void USkeletalMeshComponent::ForceRecomputePose()
 
 void USkeletalMeshComponent::UpdateComponentSpaceTransforms()
 {
-    const FSkeleton& Skeleton = SkeletalMesh->GetSkeletalMeshData()->Skeleton;
-    const int32 NumBones = Skeleton.Bones.Num();
+    const FSkeleton* Skeleton = SkeletalMesh->GetSkeletalMeshData()->Skeleton;
+    if (!Skeleton) return;
+
+    const int32 NumBones = Skeleton->Bones.Num();
 
     for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
     {
         const FTransform& LocalTransform = CurrentLocalSpacePose[BoneIndex];
-        const int32 ParentIndex = Skeleton.Bones[BoneIndex].ParentIndex;
+        const int32 ParentIndex = Skeleton->Bones[BoneIndex].ParentIndex;
 
         if (ParentIndex == -1) // 루트 본
         {
@@ -225,12 +229,14 @@ void USkeletalMeshComponent::UpdateComponentSpaceTransforms()
 
 void USkeletalMeshComponent::UpdateFinalSkinningMatrices()
 {
-    const FSkeleton& Skeleton = SkeletalMesh->GetSkeletalMeshData()->Skeleton;
-    const int32 NumBones = Skeleton.Bones.Num();
+    const FSkeleton* Skeleton = SkeletalMesh->GetSkeletalMeshData()->Skeleton;
+    if (!Skeleton) return;
+
+    const int32 NumBones = Skeleton->Bones.Num();
 
     for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
     {
-        const FMatrix& InvBindPose = Skeleton.Bones[BoneIndex].InverseBindPose;
+        const FMatrix& InvBindPose = Skeleton->Bones[BoneIndex].InverseBindPose;
         const FMatrix ComponentPoseMatrix = CurrentComponentSpacePose[BoneIndex].ToMatrix();
 
         TempFinalSkinningMatrices[BoneIndex] = InvBindPose * ComponentPoseMatrix;

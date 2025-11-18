@@ -315,7 +315,7 @@ HRESULT D3D11RHI::CreateIndexBuffer(ID3D11Device* device, const FStaticMesh* mes
     return device->CreateBuffer(&ibd, &iinitData, outBuffer);
 }
 
-HRESULT D3D11RHI::CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMeshData* Mesh, ID3D11Buffer** OutBuffer)
+HRESULT D3D11RHI::CreateIndexBuffer(ID3D11Device* Device, const FSkeletalMesh* Mesh, ID3D11Buffer** OutBuffer)
 {
     if (!Mesh || Mesh->Indices.empty())
         return E_FAIL;

@@ -32,7 +32,21 @@ private:
 	 */
 	bool OnShouldFilterAnimAsset(const FString& AssetPath);
 
+	/**
+	 * Skeleton 선택 UI 렌더링
+	 */
+	void RenderSkeletonSelector();
+
+	/**
+	 * Skeleton 변경 콜백
+	 * @param NewSkeleton - 새로운 Skeleton 포인터
+	 */
+	void OnSkeletonChanged(FSkeleton* NewSkeleton);
+
 private:
-	// 현재 편집 중인 컴포넌트의 Skeleton
+	// 현재 편집 중인 컴포넌트의 Skeleton 포인터
 	FSkeleton* TargetSkeleton = nullptr;
+
+	// 현재 편집 중인 컴포넌트
+	USkeletalMeshComponent* CurrentComponent = nullptr;
 };

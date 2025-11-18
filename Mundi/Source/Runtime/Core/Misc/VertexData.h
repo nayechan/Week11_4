@@ -264,6 +264,7 @@ struct FBone
 struct FSkeleton
 {
     FString Name; // 스켈레톤 이름
+    FString SkeletonID; // 스켈레톤 고유 ID (호환성 판별용)
     TArray<FBone> Bones; // 본 배열
     TMap <FString, int32> BoneNameToIndex; // 이름으로 본 검색
 
@@ -272,6 +273,7 @@ struct FSkeleton
         if (Ar.IsSaving())
         {
             Serialization::WriteString(Ar, Skeleton.Name);
+            Serialization::WriteString(Ar, Skeleton.SkeletonID);
 
             uint32 boneCount = static_cast<uint32>(Skeleton.Bones.size());
             Ar << boneCount;
@@ -284,6 +286,7 @@ struct FSkeleton
         else if (Ar.IsLoading())
         {
             Serialization::ReadString(Ar, Skeleton.Name);
+            Serialization::ReadString(Ar, Skeleton.SkeletonID);
 
             uint32 boneCount;
             Ar << boneCount;
@@ -310,18 +313,30 @@ struct FVertexWeight
     float Weight; // 가중치
 };
 
-struct FSkeletalMeshData
+struct FSkeletalMesh
 {
     FString PathFileName;
     FString CacheFilePath;
-    
+
     TArray<FSkinnedVertex> Vertices; // 정점 배열
     TArray<uint32> Indices; // 인덱스 배열
-    FSkeleton Skeleton; // 스켈레톤 정보
+    FSkeleton* Skeleton = nullptr; // 스켈레톤 포인터 (FFbxManager가 소유, 참조만 함)
     TArray<FGroupInfo> GroupInfos; // 머티리얼 그룹 (기존 시스템 재사용)
     bool bHasMaterial = false;
 
-    friend FArchive& operator<<(FArchive& Ar, FSkeletalMeshData& Data)
+    // 소멸자: Skeleton은 FFbxManager가 소유하므로 여기서 삭제하지 않음
+    ~FSkeletalMesh()
+    {
+        // Skeleton은 FFbxManager가 소유하므로 여기서 삭제하지 않음
+        // FFbxManager::Clear()에서 중앙 관리
+        Skeleton = nullptr;
+    }
+
+    // 하위 호환성 헬퍼
+    const FSkeleton* GetSkeleton() const { return Skeleton; }
+    FSkeleton* GetSkeleton() { return Skeleton; }
+
+    friend FArchive& operator<<(FArchive& Ar, FSkeletalMesh& Data)
     {
         if (Ar.IsSaving())
         {
@@ -331,8 +346,13 @@ struct FSkeletalMeshData
             // 2. Indices 저장
             Serialization::WriteArray(Ar, Data.Indices);
 
-            // 3. Skeleton 저장
-            Ar << Data.Skeleton;
+            // 3. Skeleton 전체 구조 저장
+            bool bHasSkeleton = (Data.Skeleton != nullptr);
+            Ar << bHasSkeleton;
+            if (bHasSkeleton)
+            {
+                Ar << *(Data.Skeleton);
+            }
 
             // 4. GroupInfos 저장
             uint32 gCount = static_cast<uint32>(Data.GroupInfos.size());
@@ -356,8 +376,18 @@ struct FSkeletalMeshData
             // 2. Indices 로드
             Serialization::ReadArray(Ar, Data.Indices);
 
-            // 3. Skeleton 로드
-            Ar << Data.Skeleton;
+            // 3. Skeleton 전체 구조 로드
+            bool bHasSkeleton = false;
+            Ar << bHasSkeleton;
+            if (bHasSkeleton)
+            {
+                Data.Skeleton = new FSkeleton();
+                Ar << *(Data.Skeleton);
+            }
+            else
+            {
+                Data.Skeleton = nullptr;
+            }
 
             // 4. GroupInfos 로드
             uint32 gCount;

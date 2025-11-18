@@ -56,9 +56,9 @@ public:
 	 * 3. 캐시 무효 → FFbxParser::LoadFbxMesh() 호출 → 캐시 저장
 	 *
 	 * @param FilePath - FBX 파일 경로
-	 * @return 로드된 FSkeletalMeshData (실패 시 nullptr)
+	 * @return 로드된 FSkeletalMesh (실패 시 nullptr)
 	 */
-	FSkeletalMeshData* LoadFbxMeshAsset(const FString& FilePath);
+	FSkeletalMesh* LoadFbxMeshAsset(const FString& FilePath);
 
 	/**
 	 * LoadFbxAnimation

@@ -3,12 +3,12 @@
 #pragma warning(disable: 4244) // Disable double to float conversion warning for FBX SDK
 #include "ObjectFactory.h"
 #include "FbxLoader.h"
-#include "FbxParser.h"         
-#include "FbxHelper.h"         
-#include "FbxMaterial.h"       
-#include "FbxAnimation.h"      
-#include "FbxScene.h"          
-#include "FbxMesh.h"               
+#include "FbxParser.h"
+#include "FbxHelper.h"
+#include "FbxMaterial.h"
+#include "FbxAnimation.h"
+#include "FbxScene.h"
+#include "FbxMesh.h"
 #include "ObjectIterator.h"
 #include "WindowsBinReader.h"
 #include "WindowsBinWriter.h"
@@ -16,6 +16,7 @@
 #include <filesystem>
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
+#include "FbxManager.h"
 
 IMPLEMENT_CLASS(UFbxLoader)
 
@@ -139,11 +140,11 @@ USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 // FFbxParser::LoadFbxScene()과 FFbxParser::Reset()으로 이동됨
 // ========================================
 
-FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
+FSkeletalMesh* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 {
 	MaterialInfos.clear();
 	FString NormalizedPath = NormalizePath(FilePath);
-	FSkeletalMeshData* MeshData = nullptr;
+	FSkeletalMesh* MeshData = nullptr;
 #ifdef USE_OBJ_CACHE
 	// 1. 캐시 파일 경로 설정
 	FString CachePathStr = ConvertDataPathToCachePath(NormalizedPath);
@@ -187,7 +188,7 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	{
 		try
 		{
-			MeshData = new FSkeletalMeshData();
+			MeshData = new FSkeletalMesh();
 			MeshData->PathFileName = NormalizedPath;
 
 			FWindowsBinReader Reader(BinPathFileName);
@@ -245,6 +246,30 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 
 			MeshData->CacheFilePath = BinPathFileName;
 			bLoadedFromCache = true;
+
+			// Skeleton Name 설정 (캐시에서 로드된 경우에도 필요)
+			if (MeshData->Skeleton && MeshData->Skeleton->Name.empty())
+			{
+				std::filesystem::path Path(NormalizedPath);
+				MeshData->Skeleton->Name = Path.stem().string();  // "Character.fbx" → "Character"
+			}
+
+			// 캐시에서 로드한 경우 Skeleton 처리
+			if (MeshData->Skeleton)
+			{
+				FSkeleton* ExistingSkeleton = FFbxManager::GetSkeleton(NormalizedPath);
+				if (ExistingSkeleton)
+				{
+					// 이미 등록된 Skeleton이 있으면 재사용 (메모리 누수 방지)
+					delete MeshData->Skeleton;
+					MeshData->Skeleton = ExistingSkeleton;
+				}
+				else
+				{
+					// 없으면 새로 등록
+					FFbxManager::RegisterSkeleton(NormalizedPath, MeshData->Skeleton);
+				}
+			}
 
 			UE_LOG("Successfully loaded FBX '%s' from cache.", NormalizedPath.c_str());
 			return MeshData;
@@ -304,6 +329,32 @@ FSkeletalMeshData* UFbxLoader::LoadFbxMeshAsset(const FString& FilePath)
 	{
 		UE_LOG("Error: Failed to load FBX mesh: %s", NormalizedPath.c_str());
 		return nullptr;
+	}
+
+	// Skeleton Name 설정 (FilePath 기반)
+	if (MeshData->Skeleton)
+	{
+		std::filesystem::path Path(NormalizedPath);
+		MeshData->Skeleton->Name = Path.stem().string();  // "Character.fbx" → "Character"
+	}
+
+	// FFbxManager에 Skeleton 등록 (중복 제거)
+	if (MeshData->Skeleton)
+	{
+		FSkeleton* ExistingSkeleton = FFbxManager::GetSkeleton(NormalizedPath);
+		if (ExistingSkeleton)
+		{
+			// 이미 등록된 Skeleton이 있으면 재사용 (메모리 누수 방지)
+			delete MeshData->Skeleton;
+			MeshData->Skeleton = ExistingSkeleton;
+			UE_LOG("Reusing existing Skeleton from FFbxManager: %s", ExistingSkeleton->Name.c_str());
+		}
+		else
+		{
+			// 없으면 새로 등록
+			FFbxManager::RegisterSkeleton(NormalizedPath, MeshData->Skeleton);
+			UE_LOG("Registered Skeleton to FFbxManager: %s", MeshData->Skeleton->Name.c_str());
+		}
 	}
 
 #ifdef USE_OBJ_CACHE
@@ -452,6 +503,9 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 			UE_LOG("Error: Failed to load FBX animation: %s", NormalizedPath.c_str());
 			return nullptr;
 		}
+
+		// Skeleton 포인터 명시적 설정 (FFbxManager 관리 포인터 사용)
+		AnimSeq->Skeleton = const_cast<FSkeleton*>(TargetSkeleton);
 
 #ifdef USE_OBJ_CACHE
 		// 7. 캐시 저장

@@ -43,7 +43,7 @@ FFbxParser::~FFbxParser()
 // Public API
 // ========================================
 
-FSkeletalMeshData* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMaterialInfo>& OutMaterialInfos)
+FSkeletalMesh* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMaterialInfo>& OutMaterialInfos)
 {
 	OutMaterialInfos.clear();
 
@@ -63,7 +63,7 @@ FSkeletalMeshData* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMate
 	UE_LOG("========================================");
 
 	// 2. 메시 데이터 생성
-	FSkeletalMeshData* MeshData = new FSkeletalMeshData();
+	FSkeletalMesh* MeshData = new FSkeletalMesh();
 	MeshData->PathFileName = FilePath;
 
 	// 3. 루트 노드 획득
@@ -140,7 +140,7 @@ FSkeletalMeshData* FFbxParser::LoadFbxMesh(const FString& FilePath, TArray<FMate
 	UE_LOG("[MESH] Vertices: %d, Indices: %d, Bones: %d, Materials: %d",
 		   MeshData->Vertices.Num(),
 		   MeshData->Indices.Num(),
-		   MeshData->Skeleton.Bones.Num(),
+		   MeshData->Skeleton ? MeshData->Skeleton->Bones.Num() : 0,
 		   MeshData->GroupInfos.Num());
 	UE_LOG("========================================");
 

@@ -10,8 +10,8 @@
 
 namespace
 {
-    // FSkeletalMeshData를 FStaticMesh로 변환 (본 정보 제거)
-    FStaticMesh* ConvertSkeletalToStaticMesh(const FSkeletalMeshData& SkeletalData)
+    // FSkeletalMesh를 FStaticMesh로 변환 (본 정보 제거)
+    FStaticMesh* ConvertSkeletalToStaticMesh(const FSkeletalMesh& SkeletalData)
     {
         FStaticMesh* StaticMesh = new FStaticMesh();
 
@@ -61,7 +61,7 @@ void UStaticMesh::Load(const FString& InFilePath, ID3D11Device* InDevice, EVerte
     if (Extension == ".fbx")
     {
         // FBX 파일 로드
-        FSkeletalMeshData* SkeletalData = UFbxLoader::GetInstance().LoadFbxMeshAsset(InFilePath);
+        FSkeletalMesh* SkeletalData = UFbxLoader::GetInstance().LoadFbxMeshAsset(InFilePath);
 
         if (SkeletalData->Vertices.empty() || SkeletalData->Indices.empty())
         {

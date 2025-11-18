@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "SkeletalMeshComponentCustomization.h"
 #include "PropertyRenderer.h"
 #include "SkeletalMeshComponent.h"
@@ -7,6 +7,7 @@
 #include "AnimationTypes.h"
 #include "ResourceManager.h"
 #include "GlobalConsole.h"
+#include "FbxManager.h"
 
 IDetailCustomization* FSkeletalMeshComponentCustomization::MakeInstance()
 {
@@ -22,44 +23,50 @@ void FSkeletalMeshComponentCustomization::CustomizeDetails(UObject* Object)
 		return;
 	}
 
-	// Skeleton 추출
+	CurrentComponent = SkelComp;
+
+	// Skeleton 포인터 추출
 	TargetSkeleton = nullptr;
 	if (SkelComp->GetSkeletalMesh())
 	{
+		// 우선순위 1: SkeletalMesh의 Skeleton
 		TargetSkeleton = const_cast<FSkeleton*>(SkelComp->GetSkeletalMesh()->GetSkeleton());
 	}
-
-	// 현재 AnimToPlay 유효성 검사
-	if (SkelComp->AnimToPlay)
+	else if (SkelComp->AnimToPlay)
 	{
-		UAnimSequence* CurrentAnim = SkelComp->AnimToPlay;
+		// 우선순위 2: AnimToPlay의 Skeleton (SkeletalMesh 없을 때)
+		TargetSkeleton = SkelComp->AnimToPlay->Skeleton;
+	}
 
-		// TargetSkeleton이 없거나 다른 Skeleton을 사용하면 초기화
-		if (!TargetSkeleton || CurrentAnim->Skeleton != TargetSkeleton)
+	// AnimToPlay 유효성 검사 (SkeletalMesh가 있을 때만 검증)
+	if (SkelComp->AnimToPlay && TargetSkeleton)
+	{
+		// SkeletalMesh가 있는 경우에만 호환성 검사
+		if (SkelComp->AnimToPlay->Skeleton != TargetSkeleton)
 		{
 			SkelComp->AnimToPlay = nullptr;
-			UE_LOG("AnimToPlay cleared: incompatible with current SkeletalMesh");
+			UE_LOG("AnimToPlay cleared: incompatible Skeleton");
 		}
 	}
 
-	// 애셋 필터 델리게이트 생성 (AnimToPlay의 애니메이션 필터링)
+	// === Skeleton 선택 UI 렌더링 ===
+	RenderSkeletonSelector();
+
+	// 필터 델리게이트 (포인터 비교)
 	FOnShouldFilterAsset AssetFilterDelegate;
 	AssetFilterDelegate.Bind([this](const FString& AssetPath) -> bool {
 		return OnShouldFilterAnimAsset(AssetPath);
 	});
 
-	// 프로퍼티 필터 델리게이트 생성 (AnimToPlay 프로퍼티 표시 여부 결정)
 	FOnShouldFilterProperty PropertyFilterDelegate;
 	PropertyFilterDelegate.Bind([SkelComp](const FString& PropertyName) -> bool {
-		// AnimToPlay는 AnimationSingleNode 모드일 때만 표시
 		if (PropertyName == "AnimToPlay")
 		{
 			return SkelComp->AnimationMode != EAnimationMode::AnimationSingleNode;
 		}
-		return false;  // 다른 프로퍼티는 모두 표시
+		return false;
 	});
 
-	// PropertyRenderer 정적 메서드로 필터와 함께 프로퍼티 렌더링 요청
 	UPropertyRenderer::RenderPropertiesWithCustomization(SkelComp, AssetFilterDelegate, PropertyFilterDelegate);
 }
 
@@ -71,26 +78,112 @@ bool FSkeletalMeshComponentCustomization::OnShouldFilterAnimAsset(const FString&
 		return false;
 	}
 
-	// TargetSkeleton이 없으면 모든 애니메이션 숨김 (None만 표시)
-	if (!TargetSkeleton)
+	// SkeletalMesh가 없으면 모든 애니메이션 표시 (Skeleton 드롭다운으로 변경한 경우에도)
+	if (!CurrentComponent || !CurrentComponent->GetSkeletalMesh())
 	{
-		return true;
+		return false;
 	}
 
-	// 애니메이션 로드 및 Skeleton 확인
+	// TargetSkeleton이 없으면 모든 애니메이션 표시
+	if (!TargetSkeleton)
+	{
+		return false;
+	}
+
+	// 애니메이션 로드
 	UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AssetPath);
 	if (!Anim)
 	{
-		// 로드 실패 시 숨김
 		return true;
 	}
 
-	// Skeleton 포인터 비교
-	if (Anim->Skeleton == TargetSkeleton)
+	// 포인터 비교 (SkeletalMesh가 있을 때만)
+	return (Anim->Skeleton != TargetSkeleton);
+}
+
+void FSkeletalMeshComponentCustomization::RenderSkeletonSelector()
+{
+	if (!CurrentComponent) return;
+
+	ImGui::Separator();
+	ImGui::Text("[Skeleton Management]");
+
+	// 현재 Skeleton 이름
+	FString CurrentSkeletonName = TargetSkeleton ? TargetSkeleton->Name : "None";
+
+	// FFbxManager에서 Skeleton 목록 가져오기
+	TArray<FString> AllSkeletonNames = FFbxManager::GetAllSkeletonNames();
+
+	// ComboBox 아이템 배열
+	TArray<const char*> Items;
+	Items.Add("None");
+	int CurrentIdx = 0;
+
+	for (int i = 0; i < AllSkeletonNames.Num(); ++i)
 	{
-		return false;  // 같은 Skeleton이면 표시
+		Items.Add(AllSkeletonNames[i].c_str());
+		if (AllSkeletonNames[i] == CurrentSkeletonName)
+		{
+			CurrentIdx = i + 1;
+		}
 	}
 
-	// 다른 Skeleton이면 숨김
-	return true;
+	// 드롭다운 렌더링
+	ImGui::SetNextItemWidth(240);
+	if (ImGui::Combo("Change Skeleton", &CurrentIdx, Items.data(), static_cast<int>(Items.size())))
+	{
+		if (CurrentIdx == 0)
+		{
+			OnSkeletonChanged(nullptr);
+		}
+		else
+		{
+			FString SelectedName = AllSkeletonNames[CurrentIdx - 1];
+			FSkeleton* NewSkeleton = FFbxManager::GetSkeletonByName(SelectedName);
+			OnSkeletonChanged(NewSkeleton);
+		}
+	}
+
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::TextUnformatted("Change the Skeleton for both SkeletalMesh and AnimToPlay");
+		ImGui::EndTooltip();
+	}
+}
+
+void FSkeletalMeshComponentCustomization::OnSkeletonChanged(FSkeleton* NewSkeleton)
+{
+	if (!CurrentComponent) return;
+
+	USkeletalMesh* Mesh = CurrentComponent->GetSkeletalMesh();
+	UAnimSequence* Anim = CurrentComponent->AnimToPlay;
+
+	// 1. SkeletalMesh의 Skeleton 교체
+	if (Mesh)
+	{
+		Mesh->SetSkeleton(NewSkeleton);
+		Mesh->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+		UE_LOG("Changed SkeletalMesh Skeleton to: %s",
+			   NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+	}
+
+	// 2. AnimToPlay의 Skeleton 교체
+	if (Anim)
+	{
+		Anim->Skeleton = NewSkeleton;
+		Anim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+		UE_LOG("Changed Animation Skeleton to: %s",
+			   NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+	}
+
+	// 3. TargetSkeleton 업데이트
+	TargetSkeleton = NewSkeleton;
+
+	// 4. AnimToPlay 호환성 확인
+	if (Anim && NewSkeleton && Anim->Skeleton != NewSkeleton)
+	{
+		CurrentComponent->AnimToPlay = nullptr;
+		UE_LOG("AnimToPlay cleared: incompatible with new Skeleton");
+	}
 }

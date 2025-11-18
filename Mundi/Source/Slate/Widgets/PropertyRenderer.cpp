@@ -587,7 +587,7 @@ bool UPropertyRenderer::RenderStringProperty(const FProperty& Prop, void* Instan
 {
 	FString* Value = Prop.GetValuePtr<FString>(Instance);
 
-	// ImGui::InputText는 char 버퍼를 사용하므로 변환 필요
+	// 일반 FString property는 텍스트 입력으로 렌더링
 	char Buffer[256];
 	strncpy_s(Buffer, Value->c_str(), sizeof(Buffer) - 1);
 	Buffer[sizeof(Buffer) - 1] = '\0';

@@ -81,7 +81,7 @@ void USkeletalMesh::UpdateVertexBuffer(const TArray<FSkinnedVertex>& SkinnedVert
     GEngine.GetRHIDevice()->VertexBufferUpdate(InVertexBuffer, SkinnedVertices);
 }
 
-void USkeletalMesh::CreateIndexBuffer(FSkeletalMeshData* InSkeletalMesh, ID3D11Device* InDevice)
+void USkeletalMesh::CreateIndexBuffer(FSkeletalMesh* InSkeletalMesh, ID3D11Device* InDevice)
 {
     HRESULT hr = D3D11RHI::CreateIndexBuffer(InDevice, InSkeletalMesh, &IndexBuffer);
     assert(SUCCEEDED(hr));
