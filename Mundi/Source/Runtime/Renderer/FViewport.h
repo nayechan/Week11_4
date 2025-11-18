@@ -4,6 +4,7 @@
 #include <d3d11.h>
 
 class FViewportClient;
+struct FViewportRenderTarget;
 
 /**
  * @brief 뷰포트 클래스 - UE의 FViewport를 모방
@@ -38,8 +39,12 @@ public:
     uint32 GetStartX() const { return StartX; }
     uint32 GetStartY() const { return StartY; }
     float GetAspectRatio() const { return (float)SizeX / SizeY; }
-    
+
     FVector2D GetViewportMousePosition() { return ViewportMousePosition; }
+
+    // 렌더 타겟 접근자
+    FViewportRenderTarget* GetRenderTarget() { return RenderTarget; }
+    void SetRenderTarget(FViewportRenderTarget* InRenderTarget) { RenderTarget = InRenderTarget; }
 
     // 마우스/키보드 입력 처리
     void ProcessMouseMove(int32 X, int32 Y);
@@ -63,5 +68,8 @@ private:
     FViewportClient* ViewportClient = nullptr;
 
     FVector2D ViewportMousePosition{};
+
+    // 뷰포트 전용 렌더 타겟 (ImGui::Image로 표시하기 위해)
+    FViewportRenderTarget* RenderTarget = nullptr;
 };
 

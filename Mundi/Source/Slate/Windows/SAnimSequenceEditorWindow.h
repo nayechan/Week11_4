@@ -5,6 +5,7 @@ class AnimSequenceEditorState;
 class UWorld;
 class UTexture;
 struct ID3D11Device;
+struct FViewportRenderTarget;
 
 class SAnimSequenceEditorWindow : public SWindow
 {
@@ -80,6 +81,9 @@ private:
     // Icons for playback controls
     UTexture* IconPause = nullptr;
     UTexture* IconResume = nullptr;
+
+    // 뷰포트 렌더 타겟 (ImGui::Image로 표시하기 위해)
+    FViewportRenderTarget ViewportRenderTarget;
 
 public:
     bool IsOpen() const { return bIsOpen; }

@@ -135,6 +135,18 @@ void D3D11RHI::CreateBlendState()
     Rt1.BlendEnable = FALSE;
     Rt1.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     Device->CreateBlendState(&BlendDesc, &BlendStateOpaque);
+
+    // ViewportRT용: RGB만 쓰고 Alpha는 1.0 유지
+    BlendDesc = {};
+    BlendDesc.IndependentBlendEnable = TRUE;
+    Rt0 = BlendDesc.RenderTarget[0];
+    Rt0.BlendEnable = FALSE;
+    Rt0.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE; // RGB만, Alpha는 쓰지 않음
+
+    Rt1 = BlendDesc.RenderTarget[1];
+    Rt1.BlendEnable = FALSE;
+    Rt1.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    Device->CreateBlendState(&BlendDesc, &BlendStateOpaqueRGBOnly);
     //auto& rt = bd.RenderTarget[0];
     //rt.BlendEnable = TRUE;
     //rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;      // 스트레이트 알파
@@ -794,6 +806,11 @@ void D3D11RHI::ReleaseBlendState()
         BlendStateTransparent->Release();
         BlendStateTransparent = nullptr;
     }
+    if (BlendStateOpaqueRGBOnly)
+    {
+        BlendStateOpaqueRGBOnly->Release();
+        BlendStateOpaqueRGBOnly = nullptr;
+    }
 }
 
 void D3D11RHI::ReleaseRasterizerState()
@@ -953,6 +970,9 @@ void D3D11RHI::OMSetDepthStencilState(EComparisonFunc Func)
         break;
     case EComparisonFunc::GreaterEqual:
         DeviceContext->OMSetDepthStencilState(DepthStencilStateGreaterEqualWrite, 0);
+        break;
+    case EComparisonFunc::Disable:
+        DeviceContext->OMSetDepthStencilState(DepthStencilStateAlwaysNoWrite, 0);
         break;
     case EComparisonFunc::LessEqualReadOnly:
         DeviceContext->OMSetDepthStencilState(DepthStencilStateLessEqualReadOnly, 0);
@@ -1231,4 +1251,120 @@ void D3D11RHI::UpdateStructuredBuffer(ID3D11Buffer* InBuffer, const void* InData
         memcpy(mappedResource.pData, InData, InDataSize);
         DeviceContext->Unmap(InBuffer, 0);
     }
+}
+
+// ──────────────────────────────────────────────────────
+// 뷰포트 렌더 타겟 관리
+// ──────────────────────────────────────────────────────
+
+bool D3D11RHI::CreateViewportRenderTarget(uint32 Width, uint32 Height, FViewportRenderTarget& OutRT)
+{
+    if (Width == 0 || Height == 0 || !Device)
+        return false;
+
+    // 기존 리소스 해제
+    OutRT.Release();
+
+    // 컬러 텍스처 생성
+    D3D11_TEXTURE2D_DESC colorTexDesc = {};
+    colorTexDesc.Width = Width;
+    colorTexDesc.Height = Height;
+    colorTexDesc.MipLevels = 1;
+    colorTexDesc.ArraySize = 1;
+    colorTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    colorTexDesc.SampleDesc.Count = 1;
+    colorTexDesc.SampleDesc.Quality = 0;
+    colorTexDesc.Usage = D3D11_USAGE_DEFAULT;
+    colorTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    colorTexDesc.CPUAccessFlags = 0;
+    colorTexDesc.MiscFlags = 0;
+
+    HRESULT hr = Device->CreateTexture2D(&colorTexDesc, nullptr, &OutRT.Texture);
+    if (FAILED(hr))
+    {
+        OutRT.Release();
+        return false;
+    }
+
+    // RTV 생성
+    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    rtvDesc.Format = colorTexDesc.Format;
+    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    rtvDesc.Texture2D.MipSlice = 0;
+
+    hr = Device->CreateRenderTargetView(OutRT.Texture, &rtvDesc, &OutRT.RTV);
+    if (FAILED(hr))
+    {
+        OutRT.Release();
+        return false;
+    }
+
+    // SRV 생성
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = colorTexDesc.Format;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.MipLevels = 1;
+
+    hr = Device->CreateShaderResourceView(OutRT.Texture, &srvDesc, &OutRT.SRV);
+    if (FAILED(hr))
+    {
+        OutRT.Release();
+        return false;
+    }
+
+    // 깊이 스텐실 텍스처 생성
+    D3D11_TEXTURE2D_DESC depthTexDesc = {};
+    depthTexDesc.Width = Width;
+    depthTexDesc.Height = Height;
+    depthTexDesc.MipLevels = 1;
+    depthTexDesc.ArraySize = 1;
+    depthTexDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthTexDesc.SampleDesc.Count = 1;
+    depthTexDesc.SampleDesc.Quality = 0;
+    depthTexDesc.Usage = D3D11_USAGE_DEFAULT;
+    depthTexDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    depthTexDesc.CPUAccessFlags = 0;
+    depthTexDesc.MiscFlags = 0;
+
+    hr = Device->CreateTexture2D(&depthTexDesc, nullptr, &OutRT.DepthTexture);
+    if (FAILED(hr))
+    {
+        OutRT.Release();
+        return false;
+    }
+
+    // DSV 생성
+    D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+    dsvDesc.Format = depthTexDesc.Format;
+    dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    dsvDesc.Texture2D.MipSlice = 0;
+
+    hr = Device->CreateDepthStencilView(OutRT.DepthTexture, &dsvDesc, &OutRT.DSV);
+    if (FAILED(hr))
+    {
+        OutRT.Release();
+        return false;
+    }
+
+    OutRT.Width = Width;
+    OutRT.Height = Height;
+
+    return true;
+}
+
+void D3D11RHI::ResizeViewportRenderTarget(uint32 Width, uint32 Height, FViewportRenderTarget& RT)
+{
+    if (Width == 0 || Height == 0)
+    {
+        RT.Release();
+        return;
+    }
+
+    // 크기가 동일하면 아무것도 하지 않음
+    if (RT.Width == Width && RT.Height == Height && RT.IsValid())
+        return;
+
+    // 새로 생성
+    CreateViewportRenderTarget(Width, Height, RT);
 }

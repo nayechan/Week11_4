@@ -6,6 +6,7 @@ class FViewport;
 class FViewportClient;
 class UWorld;
 struct ID3D11Device;
+struct FViewportRenderTarget;
 
 class SSkeletalMeshViewerWindow : public SWindow
 {
@@ -71,6 +72,9 @@ private:
     UTexture* IconResume = nullptr;
 
     ImVec2 IconSize = ImVec2(50, 50);
+
+    // 뷰포트 렌더 타겟 (ImGui::Image로 표시하기 위해)
+    FViewportRenderTarget ViewportRenderTarget;
 
 public:
     bool IsOpen() const { return bIsOpen; }

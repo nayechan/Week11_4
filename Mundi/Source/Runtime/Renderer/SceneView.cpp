@@ -70,10 +70,24 @@ FSceneView::FSceneView(UCameraComponent* InCamera, FViewport* InViewport, URende
 	FieldOfView = InCamera->GetFOV();
 	ZoomFactor = InCamera->GetZoomFactor();
 
-	ViewRect.MinX = InViewport->GetStartX();
-	ViewRect.MinY = InViewport->GetStartY();
-	ViewRect.MaxX = ViewRect.MinX + InViewport->GetSizeX();
-	ViewRect.MaxY = ViewRect.MinY + InViewport->GetSizeY();
+	// ViewRect: 뷰포트 렌더 타겟이 있으면 0,0 기준, 없으면 백버퍼 기준
+	FViewportRenderTarget* ViewportRT = InViewport->GetRenderTarget();
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// 뷰포트 전용 렌더 타겟: 0,0 기준
+		ViewRect.MinX = 0;
+		ViewRect.MinY = 0;
+		ViewRect.MaxX = InViewport->GetSizeX();
+		ViewRect.MaxY = InViewport->GetSizeY();
+	}
+	else
+	{
+		// 백버퍼 공유: 화면 좌표 기준
+		ViewRect.MinX = InViewport->GetStartX();
+		ViewRect.MinY = InViewport->GetStartY();
+		ViewRect.MaxX = ViewRect.MinX + InViewport->GetSizeX();
+		ViewRect.MaxY = ViewRect.MinY + InViewport->GetSizeY();
+	}
 
 	ProjectionMode = InCamera->GetProjectionMode();
 

@@ -48,6 +48,34 @@ enum class EComparisonFunc
 	// 필요시 추가 후 OMSetDepthStencilState 함수 수정
 };
 
+// 뷰포트용 렌더 타겟 구조체
+struct FViewportRenderTarget
+{
+	ID3D11Texture2D* Texture = nullptr;
+	ID3D11RenderTargetView* RTV = nullptr;
+	ID3D11ShaderResourceView* SRV = nullptr;
+	ID3D11Texture2D* DepthTexture = nullptr;
+	ID3D11DepthStencilView* DSV = nullptr;
+	uint32 Width = 0;
+	uint32 Height = 0;
+
+	void Release()
+	{
+		if (SRV) { SRV->Release(); SRV = nullptr; }
+		if (RTV) { RTV->Release(); RTV = nullptr; }
+		if (Texture) { Texture->Release(); Texture = nullptr; }
+		if (DSV) { DSV->Release(); DSV = nullptr; }
+		if (DepthTexture) { DepthTexture->Release(); DepthTexture = nullptr; }
+		Width = 0;
+		Height = 0;
+	}
+
+	bool IsValid() const
+	{
+		return Texture != nullptr && RTV != nullptr && SRV != nullptr && DSV != nullptr;
+	}
+};
+
 class D3D11RHI
 {
 public:
@@ -156,6 +184,7 @@ public:
 	void RSSetViewport();
 
 	void OMSetBlendState(bool bIsBlendMode);
+	ID3D11BlendState* GetBlendStateOpaqueRGBOnly() const { return BlendStateOpaqueRGBOnly; }
 	void PSSetDefaultSampler(UINT StartSlot);
 	void PSSetClampSampler(UINT StartSlot);
 
@@ -206,6 +235,10 @@ public:
 	// [Enum 으로 SRV, RTV 를 다루는 함수]
 	ID3D11SamplerState* GetSamplerState(RHI_Sampler_Index SamplerIndex) const;
 	void OMSetRenderTargets(ERTVMode RTVMode);
+
+	// 뷰포트 렌더 타겟 관리
+	bool CreateViewportRenderTarget(uint32 Width, uint32 Height, FViewportRenderTarget& OutRT);
+	void ResizeViewportRenderTarget(uint32 Width, uint32 Height, FViewportRenderTarget& RT);
 
 public:
 	// getter
@@ -274,6 +307,7 @@ private:
 
 	ID3D11BlendState* BlendStateTransparent{};
 	ID3D11BlendState* BlendStateOpaque{};
+	ID3D11BlendState* BlendStateOpaqueRGBOnly{};  // RGB만 쓰고 Alpha는 1.0 유지 (ViewportRT용)
 
 	ID3D11Texture2D* FrameBuffer{};
 	ID3D11Texture2D* IdBuffer{};

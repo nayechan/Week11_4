@@ -49,9 +49,10 @@
 #include "FbxLoader.h"
 #include "SkinnedMeshComponent.h"
 
-FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer)
+FSceneRenderer::FSceneRenderer(UWorld* InWorld, FSceneView* InView, FViewport* InViewport, URenderer* InOwnerRenderer)
 	: World(InWorld)
 	, View(InView) // 전달받은 FSceneView 저장
+	, Viewport(InViewport)
 	, OwnerRenderer(InOwnerRenderer)
 	, RHIDevice(InOwnerRenderer->GetRHIDevice())
 {
@@ -138,7 +139,17 @@ void FSceneRenderer::Render()
     CompositeToBackBuffer();
 
     // BackBuffer 위에 라인 오버레이(항상 위)를 그린다
-    RenderFinalOverlayLines();
+    // ViewportRT 모드에서는 이미 모든 것이 ViewportRT에 그려졌으므로 건너뛰기
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+	if (!ViewportRT || !ViewportRT->IsValid())
+	{
+		RenderFinalOverlayLines();
+	}
+	else
+	{
+		// ViewportRT 모드였다면 백버퍼로 복원 (ImGui 렌더링을 위해)
+		RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithDepth);
+	}
 }
 
 //====================================================================================
@@ -147,22 +158,50 @@ void FSceneRenderer::Render()
 
 void FSceneRenderer::RenderLitPath()
 {
-    RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
+	// 뷰포트 렌더 타겟이 있으면 그것을 사용, 없으면 SceneColorTarget 사용
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
 
-	// 이 뷰의 rect 영역에 대해 Scene Color를 클리어하여 불투명한 배경을 제공함
-	// 이렇게 해야 에디터 뷰포트 여러 개를 동시에 겹치게 띄워도 서로의 렌더링이 섞이지 않는다
-    {
-        D3D11_VIEWPORT vp = {};
-        vp.TopLeftX = (float)View->ViewRect.MinX;
-        vp.TopLeftY = (float)View->ViewRect.MinY;
-        vp.Width    = (float)View->ViewRect.Width();
-        vp.Height   = (float)View->ViewRect.Height();
-        vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
-        RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
-        const float bg[4] = { 0.0f, 0.0f, 0.0f, 1.00f };
-        RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetCurrentTargetRTV(), bg);
-        RHIDevice->ClearDepthBuffer(1.0f, 0);
-    }
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// 뷰포트 전용 렌더 타겟에 렌더링
+		ID3D11RenderTargetView* RTVs[] = { ViewportRT->RTV };
+		RHIDevice->OMSetCustomRenderTargets(1, RTVs, ViewportRT->DSV);
+
+		// D3D11 Viewport 재설정 (0,0 기준)
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)View->ViewRect.Width();
+		vp.Height = (float)View->ViewRect.Height();
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+
+		// ViewportRT용 blend state: RGB만 쓰고 Alpha는 1.0 유지
+		RHIDevice->GetDeviceContext()->OMSetBlendState(RHIDevice->GetBlendStateOpaqueRGBOnly(), nullptr, 0xffffffff);
+
+		// 렌더 타겟 클리어 (alpha를 1.0으로)
+		const float bg[4] = { 0.0f, 0.0f, 0.0f, 1.00f };
+		RHIDevice->GetDeviceContext()->ClearRenderTargetView(ViewportRT->RTV, bg);
+		RHIDevice->GetDeviceContext()->ClearDepthStencilView(ViewportRT->DSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	}
+	else
+	{
+		// 기존 방식: SceneColorTarget에 렌더링
+		RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
+
+		// 이 뷰의 rect 영역에 대해 Scene Color를 클리어
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = (float)View->ViewRect.MinX;
+		vp.TopLeftY = (float)View->ViewRect.MinY;
+		vp.Width    = (float)View->ViewRect.Width();
+		vp.Height   = (float)View->ViewRect.Height();
+		vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
+		RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+		const float bg[4] = { 0.0f, 0.0f, 0.0f, 1.00f };
+		RHIDevice->GetDeviceContext()->ClearRenderTargetView(RHIDevice->GetCurrentTargetRTV(), bg);
+		RHIDevice->ClearDepthBuffer(1.0f, 0);
+	}
 
 	// Base Pass
 	RenderOpaquePass(View->RenderSettings->GetViewMode());
@@ -171,19 +210,48 @@ void FSceneRenderer::RenderLitPath()
 
 void FSceneRenderer::RenderWireframePath()
 {
-	// 깊이 버퍼 초기화 후 ID만 그리기
-	RHIDevice->RSSetState(ERasterizerMode::Solid);
-	RHIDevice->OMSetRenderTargets(ERTVMode::SceneIdTarget);
-	RenderOpaquePass(EViewMode::VMI_Unlit);
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
 
-    // Wireframe으로 그리기
-    RHIDevice->ClearDepthBuffer(1.0f, 0);
-    RHIDevice->RSSetState(ERasterizerMode::Wireframe);
-    RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
-    RenderOpaquePass(EViewMode::VMI_Unlit);
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// 뷰포트 렌더 타겟: ID 버퍼 없이 Wireframe만 렌더링
+		ID3D11RenderTargetView* RTVs[] = { ViewportRT->RTV };
+		RHIDevice->OMSetCustomRenderTargets(1, RTVs, ViewportRT->DSV);
 
-	// 상태 복구
-	RHIDevice->RSSetState(ERasterizerMode::Solid);
+		// D3D11 Viewport 재설정 (0,0 기준)
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)View->ViewRect.Width();
+		vp.Height = (float)View->ViewRect.Height();
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+
+		// ViewportRT용 blend state: RGB만 쓰고 Alpha는 1.0 유지
+		RHIDevice->GetDeviceContext()->OMSetBlendState(RHIDevice->GetBlendStateOpaqueRGBOnly(), nullptr, 0xffffffff);
+
+		const float bg[4] = { 0.0f, 0.0f, 0.0f, 1.00f };
+		RHIDevice->GetDeviceContext()->ClearRenderTargetView(ViewportRT->RTV, bg);
+		RHIDevice->GetDeviceContext()->ClearDepthStencilView(ViewportRT->DSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+		RHIDevice->RSSetState(ERasterizerMode::Wireframe);
+		RenderOpaquePass(EViewMode::VMI_Unlit);
+		RHIDevice->RSSetState(ERasterizerMode::Solid);
+	}
+	else
+	{
+		// 기존 방식: SceneIdTarget + SceneColorTarget 사용
+		RHIDevice->RSSetState(ERasterizerMode::Solid);
+		RHIDevice->OMSetRenderTargets(ERTVMode::SceneIdTarget);
+		RenderOpaquePass(EViewMode::VMI_Unlit);
+
+		RHIDevice->ClearDepthBuffer(1.0f, 0);
+		RHIDevice->RSSetState(ERasterizerMode::Wireframe);
+		RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
+		RenderOpaquePass(EViewMode::VMI_Unlit);
+		RHIDevice->RSSetState(ERasterizerMode::Solid);
+	}
 }
 
 void FSceneRenderer::RenderSceneDepthPath()
@@ -551,18 +619,29 @@ void FSceneRenderer::PrepareView()
 	Vp.MaxDepth = 1.0f;
 	RHIDevice->GetDeviceContext()->RSSetViewports(1, &Vp);
 
-	// 뷰포트 상수 버퍼 설정 (View->ViewRect, RHIDevice 크기 정보 사용)
+	// 뷰포트 상수 버퍼 설정
 	FViewportConstants ViewConstData;
-	// 1. 뷰포트 정보 채우기
 	ViewConstData.ViewportRect.X = Vp.TopLeftX;
 	ViewConstData.ViewportRect.Y = Vp.TopLeftY;
 	ViewConstData.ViewportRect.Z = Vp.Width;
 	ViewConstData.ViewportRect.W = Vp.Height;
-	// 2. 전체 화면(렌더 타겟) 크기 정보 채우기
-	ViewConstData.ScreenSize.X = static_cast<float>(RHIDevice->GetViewportWidth());
-	ViewConstData.ScreenSize.Y = static_cast<float>(RHIDevice->GetViewportHeight());
-	ViewConstData.ScreenSize.Z = 1.0f / RHIDevice->GetViewportWidth();
-	ViewConstData.ScreenSize.W = 1.0f / RHIDevice->GetViewportHeight();
+
+	// ScreenSize: 뷰포트 렌더 타겟이 있으면 그 크기, 없으면 백버퍼 크기
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		ViewConstData.ScreenSize.X = static_cast<float>(ViewportRT->Width);
+		ViewConstData.ScreenSize.Y = static_cast<float>(ViewportRT->Height);
+		ViewConstData.ScreenSize.Z = 1.0f / ViewportRT->Width;
+		ViewConstData.ScreenSize.W = 1.0f / ViewportRT->Height;
+	}
+	else
+	{
+		ViewConstData.ScreenSize.X = static_cast<float>(RHIDevice->GetViewportWidth());
+		ViewConstData.ScreenSize.Y = static_cast<float>(RHIDevice->GetViewportHeight());
+		ViewConstData.ScreenSize.Z = 1.0f / RHIDevice->GetViewportWidth();
+		ViewConstData.ScreenSize.W = 1.0f / RHIDevice->GetViewportHeight();
+	}
 	RHIDevice->SetAndUpdateConstantBuffer((FViewportConstants)ViewConstData);
 
 	// 공통 상수 버퍼 설정 (View, Projection 등) - 루프 전에 한 번만
@@ -999,6 +1078,13 @@ void FSceneRenderer::RenderDecalPass()
 
 void FSceneRenderer::RenderPostProcessingPasses()
 {
+	// ViewportRT 사용 시 후처리 스킵 (ViewportRT는 SceneColorTarget Source/Target 버퍼 시스템을 사용하지 않음)
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		return;
+	}
+
 	// Ensure first post-process pass samples from the current scene output
  	TArray<FPostProcessModifier> PostProcessModifiers = View->Modifiers;
 
@@ -1109,6 +1195,13 @@ void FSceneRenderer::RenderTileCullingDebug()
 		return;
 	}
 
+	// ViewportRT 사용 시 스킵 (SwapGuard와 호환 안 됨)
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		return;
+	}
+
 	// Swap 가드 객체 생성: 스왑을 수행하고, 소멸 시 SRV를 자동 해제하도록 설정
 	// t0 (SceneColorSource), t2 (TileLightIndices) 사용
 	FSwapGuard SwapGuard(RHIDevice, 0, 1);
@@ -1159,7 +1252,33 @@ void FSceneRenderer::RenderTileCullingDebug()
 // 빌보드, 에디터 화살표 그리기 (상호 작용, 피킹 O)
 void FSceneRenderer::RenderEditorPrimitivesPass()
 {
-	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// ViewportRT에 렌더링 (ID 버퍼 없음)
+		ID3D11RenderTargetView* RTVs[] = { ViewportRT->RTV };
+		RHIDevice->OMSetCustomRenderTargets(1, RTVs, ViewportRT->DSV);
+
+		// D3D11 Viewport 재설정 (0,0 기준)
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)View->ViewRect.Width();
+		vp.Height = (float)View->ViewRect.Height();
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+
+		// ViewportRT용 blend state: RGB만 쓰고 Alpha는 1.0 유지
+		RHIDevice->GetDeviceContext()->OMSetBlendState(RHIDevice->GetBlendStateOpaqueRGBOnly(), nullptr, 0xffffffff);
+	}
+	else
+	{
+		// SceneColorTarget에 렌더링
+		RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
+	}
+
 	for (UPrimitiveComponent* GizmoComp : Proxies.EditorPrimitives)
 	{
 		GizmoComp->CollectMeshBatches(MeshBatchElements, View);
@@ -1170,7 +1289,32 @@ void FSceneRenderer::RenderEditorPrimitivesPass()
 // 경계, 외곽선 등 표시 (상호 작용, 피킹 X)
 void FSceneRenderer::RenderDebugPass()
 {
-	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// ViewportRT에 렌더링
+		ID3D11RenderTargetView* RTVs[] = { ViewportRT->RTV };
+		RHIDevice->OMSetCustomRenderTargets(1, RTVs, ViewportRT->DSV);
+
+		// D3D11 Viewport 재설정 (0,0 기준)
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)View->ViewRect.Width();
+		vp.Height = (float)View->ViewRect.Height();
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+
+		// ViewportRT용 blend state: RGB만 쓰고 Alpha는 1.0 유지
+		RHIDevice->GetDeviceContext()->OMSetBlendState(RHIDevice->GetBlendStateOpaqueRGBOnly(), nullptr, 0xffffffff);
+	}
+	else
+	{
+		// SceneColorTarget에 렌더링
+		RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTarget);
+	}
 
 	// 그리드 라인 수집
 	for (ULineComponent* LineComponent : Proxies.EditorLines)
@@ -1225,35 +1369,86 @@ void FSceneRenderer::RenderDebugPass()
 
 void FSceneRenderer::RenderOverayEditorPrimitivesPass()
 {
-	// 후처리된 최종 이미지 위에 원본 씬의 뎁스 버퍼를 사용하여 3D 오버레이를 렌더링합니다.
-	RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
 
-	// 뎁스 버퍼를 Clear하고 LessEqual로 그리기 때문에 오버레이로 표시되는데
-	// 오버레이 끼리는 깊이 테스트가 가능함
-	RHIDevice->ClearDepthBuffer(1.0f, 0);
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// ViewportRT에 렌더링
+		ID3D11RenderTargetView* RTVs[] = { ViewportRT->RTV };
+		RHIDevice->OMSetCustomRenderTargets(1, RTVs, ViewportRT->DSV);
+
+		// D3D11 Viewport 재설정 (0,0 기준)
+		D3D11_VIEWPORT vp = {};
+		vp.TopLeftX = 0.0f;
+		vp.TopLeftY = 0.0f;
+		vp.Width = (float)View->ViewRect.Width();
+		vp.Height = (float)View->ViewRect.Height();
+		vp.MinDepth = 0.0f;
+		vp.MaxDepth = 1.0f;
+		RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+
+		// 뎁스 버퍼를 Clear하고 LessEqual로 그리기
+		RHIDevice->ClearDepthBuffer(1.0f, 0);
+	}
+	else
+	{
+		// SceneColorTarget에 렌더링
+		RHIDevice->OMSetRenderTargets(ERTVMode::SceneColorTargetWithId);
+
+		// 뎁스 버퍼를 Clear하고 LessEqual로 그리기 때문에 오버레이로 표시되는데
+		// 오버레이 끼리는 깊이 테스트가 가능함
+		RHIDevice->ClearDepthBuffer(1.0f, 0);
+	}
+
+	// 기즈모는 항상 최상위에 그려지도록 depth test 비활성화
+	RHIDevice->OMSetDepthStencilState(EComparisonFunc::Disable);
 
 	for (UPrimitiveComponent* GizmoComp : Proxies.OverlayPrimitives)
 	{
 		GizmoComp->CollectMeshBatches(MeshBatchElements, View);
 	}
 
-	// 수집된 배치를 그립니다.
-	DrawMeshBatches(MeshBatchElements, true);
+	// 수집된 배치를 그립니다 (overlay 모드: depth state 유지)
+	DrawMeshBatches(MeshBatchElements, true, true);
+
+	// Depth test 복원
+	RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual);
 }
 
 void FSceneRenderer::RenderFinalOverlayLines()
 {
-    // Bind backbuffer for final overlay pass (no depth)
-    RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithoutDepth);
+    FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
 
-    // Set viewport to current view rect to confine drawing to this viewport
-    D3D11_VIEWPORT vp = {};
-    vp.TopLeftX = (float)View->ViewRect.MinX;
-    vp.TopLeftY = (float)View->ViewRect.MinY;
-    vp.Width    = (float)View->ViewRect.Width();
-    vp.Height   = (float)View->ViewRect.Height();
-    vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
-    RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+    if (ViewportRT && ViewportRT->IsValid())
+    {
+        // ViewportRT에 렌더링 (depth 없이)
+        ID3D11RenderTargetView* RTVs[] = { ViewportRT->RTV };
+        RHIDevice->OMSetCustomRenderTargets(1, RTVs, nullptr);
+
+        // D3D11 Viewport 재설정 (0,0 기준)
+        D3D11_VIEWPORT vp = {};
+        vp.TopLeftX = 0.0f;
+        vp.TopLeftY = 0.0f;
+        vp.Width = (float)View->ViewRect.Width();
+        vp.Height = (float)View->ViewRect.Height();
+        vp.MinDepth = 0.0f;
+        vp.MaxDepth = 1.0f;
+        RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+    }
+    else
+    {
+        // 백버퍼에 렌더링
+        RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithoutDepth);
+
+        // Set viewport to current view rect to confine drawing to this viewport
+        D3D11_VIEWPORT vp = {};
+        vp.TopLeftX = (float)View->ViewRect.MinX;
+        vp.TopLeftY = (float)View->ViewRect.MinY;
+        vp.Width    = (float)View->ViewRect.Width();
+        vp.Height   = (float)View->ViewRect.Height();
+        vp.MinDepth = 0.0f; vp.MaxDepth = 1.0f;
+        RHIDevice->GetDeviceContext()->RSSetViewports(1, &vp);
+    }
 
     OwnerRenderer->BeginLineBatch();
     for (ULineComponent* LineComponent : Proxies.EditorLines)
@@ -1266,12 +1461,16 @@ void FSceneRenderer::RenderFinalOverlayLines()
 }
 
 // 수집한 Batch 그리기
-void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, bool bClearListAfterDraw)
+void FSceneRenderer::DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, bool bClearListAfterDraw, bool bIsOverlay)
 {
 	if (InMeshBatches.IsEmpty()) return;
 
 	// RHI 상태 초기 설정 (Opaque Pass 기본값)
-	RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual); // 깊이 쓰기 ON
+	// Overlay 모드일 때는 depth state를 변경하지 않음 (이미 외부에서 설정했음)
+	if (!bIsOverlay)
+	{
+		RHIDevice->OMSetDepthStencilState(EComparisonFunc::LessEqual); // 깊이 쓰기 ON
+	}
 
 	// PS 리소스 초기화
 	ID3D11ShaderResourceView* nullSRVs[2] = { nullptr, nullptr };
@@ -1507,20 +1706,29 @@ void FSceneRenderer::ApplyScreenEffectsPass()
 // 최종 결과물의 실제 BackBuffer에 그리는 함수
 void FSceneRenderer::CompositeToBackBuffer()
 {
+	FViewportRenderTarget* ViewportRT = (Viewport && Viewport->GetRenderTarget()) ? Viewport->GetRenderTarget() : nullptr;
+
+	if (ViewportRT && ViewportRT->IsValid())
+	{
+		// 뷰포트 렌더 타겟 사용 시: 이미 RenderLitPath/RenderWireframePath에서 렌더링 완료
+		// ImGui::Image로 표시할 텍스처(ViewportRT->SRV)가 준비되었으므로 아무것도 안 함
+		return;
+	}
+
+	// 기존 방식: SceneColorTarget에서 백버퍼로 composite
 	// 1. 최종 결과물을 Source로 만들기 위해 스왑하고, 작업 후 SRV 슬롯 0을 자동 해제하는 가드 생성
 	FSwapGuard SwapGuard(RHIDevice, 0, 1);
 
-	// 2. 렌더 타겟을 백버퍼로 설정 (깊이 버퍼 없음)
+	// 2. 백버퍼에 composite
 	RHIDevice->OMSetRenderTargets(ERTVMode::BackBufferWithoutDepth);
 
 	// 3. 텍스처 및 샘플러 설정
-	// 이제 RHI_SRV_Index가 아닌, 현재 상태에 맞는 Source SRV를 직접 가져옴
 	ID3D11ShaderResourceView* SourceSRV = RHIDevice->GetCurrentSourceSRV();
 	ID3D11SamplerState* SamplerState = RHIDevice->GetSamplerState(RHI_Sampler_Index::LinearClamp);
 	if (!SourceSRV || !SamplerState)
 	{
 		UE_LOG("CompositeToBackBuffer에 필요한 리소스 없음!\n");
-		return; // 가드가 자동으로 스왑을 되돌리고 SRV를 해제해줌
+		return;
 	}
 
 	// 4. 셰이더 리소스 바인딩
@@ -1533,7 +1741,7 @@ void FSceneRenderer::CompositeToBackBuffer()
 	if (!FullScreenTriangleVS || !FullScreenTriangleVS->GetVertexShader() || !BlitPS || !BlitPS->GetPixelShader())
 	{
 		UE_LOG("Blit용 셰이더 없음!\n");
-		return; // 가드가 자동으로 스왑을 되돌리고 SRV를 해제해줌
+		return;
 	}
 	RHIDevice->PrepareShader(FullScreenTriangleVS, BlitPS);
 

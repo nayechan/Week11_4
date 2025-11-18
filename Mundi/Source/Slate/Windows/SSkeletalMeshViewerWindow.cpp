@@ -2,6 +2,10 @@
 #include "SSkeletalMeshViewerWindow.h"
 #include "FViewport.h"
 #include "FViewportClient.h"
+#include "D3D11RHI.h"
+#include "RHIDevice.h"
+#include "RenderManager.h"
+#include "Renderer.h"
 #include "Source/Runtime/Engine/SkeletalViewer/SkeletalViewerBootstrap.h"
 #include "Source/Editor/PlatformProcess.h"
 #include "Source/Runtime/Engine/GameFramework/SkeletalMeshActor.h"
@@ -395,14 +399,69 @@ void SSkeletalMeshViewerWindow::OnRender()
 
         ImGui::SameLine(0, 0); // No spacing between panels
 
-        // Center panel (viewport area) ? draw with border to see the viewport area
+        // Center panel (viewport area)
         ImGui::BeginChild("ViewportAndAnimSequence", ImVec2(centerWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
         ImGui::BeginChild("SkeletalMeshViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
-        ImVec2 childPos = ImGui::GetWindowPos();
-        ImVec2 childSize = ImGui::GetWindowSize();
-        ImVec2 rectMin = childPos;
-        ImVec2 rectMax(childPos.x + childSize.x, childPos.y + childSize.y);
-        CenterRect.Left = rectMin.x; CenterRect.Top = rectMin.y; CenterRect.Right = rectMax.x; CenterRect.Bottom = rectMax.y; CenterRect.UpdateMinMax();
+
+        // 뷰포트 영역의 화면 좌표를 먼저 계산 (렌더링에 필요)
+        ImVec2 viewportMin = ImGui::GetCursorScreenPos();
+        ImVec2 contentSize = ImGui::GetContentRegionAvail();
+        ImVec2 viewportMax = ImVec2(viewportMin.x + contentSize.x, viewportMin.y + contentSize.y);
+
+        // CenterRect 설정 (렌더 타겟 유무와 관계없이 항상 설정)
+        CenterRect.Left = viewportMin.x;
+        CenterRect.Top = viewportMin.y;
+        CenterRect.Right = viewportMax.x;
+        CenterRect.Bottom = viewportMax.y;
+        CenterRect.UpdateMinMax();
+
+        // ImGui::Image로 뷰포트 렌더 타겟 표시
+        if (ViewportRenderTarget.IsValid() && ViewportRenderTarget.SRV)
+        {
+            ImGui::Image((ImTextureID)ViewportRenderTarget.SRV, contentSize);
+
+            // 마우스 입력 처리
+            if (ActiveState && ActiveState->Viewport && ImGui::IsItemHovered())
+            {
+                // 마우스 위치 (글로벌)
+                ImVec2 mousePos = ImGui::GetMousePos();
+
+                // 로컬 좌표 계산 (이미지 내부 좌표, 0,0 기준)
+                FVector2D localPos(mousePos.x - viewportMin.x, mousePos.y - viewportMin.y);
+
+                // 마우스 이동
+                ActiveState->Viewport->ProcessMouseMove((int32)localPos.X, (int32)localPos.Y);
+
+                // 마우스 클릭
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                {
+                    ActiveState->Viewport->ProcessMouseButtonDown((int32)localPos.X, (int32)localPos.Y, 0);
+                }
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+                {
+                    ActiveState->Viewport->ProcessMouseButtonDown((int32)localPos.X, (int32)localPos.Y, 1);
+                }
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
+                {
+                    ActiveState->Viewport->ProcessMouseButtonDown((int32)localPos.X, (int32)localPos.Y, 2);
+                }
+
+                // 마우스 릴리스
+                if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                {
+                    ActiveState->Viewport->ProcessMouseButtonUp((int32)localPos.X, (int32)localPos.Y, 0);
+                }
+                if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+                {
+                    ActiveState->Viewport->ProcessMouseButtonUp((int32)localPos.X, (int32)localPos.Y, 1);
+                }
+                if (ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
+                {
+                    ActiveState->Viewport->ProcessMouseButtonUp((int32)localPos.X, (int32)localPos.Y, 2);
+                }
+            }
+        }
+
         ImGui::EndChild();
 
         ImGui::EndChild();
@@ -550,6 +609,9 @@ void SSkeletalMeshViewerWindow::OnRender()
     }
 
     ImGui::End();
+
+    // Render the viewport to its render target
+    OnRenderViewport();
 
     // If window was closed via X button, notify the manager to clean up
     if (!bIsOpen)
@@ -704,21 +766,33 @@ void SSkeletalMeshViewerWindow::OnRenderViewport()
         if (ActiveState && ActiveState->Viewport)
         {
             ActiveState->Viewport->Resize(0, 0, 0, 0);
+            ActiveState->Viewport->SetRenderTarget(nullptr);
         }
         return;
     }
 
     if (ActiveState && ActiveState->Viewport && CenterRect.GetWidth() > 0 && CenterRect.GetHeight() > 0)
     {
-        // Calculate visible viewport area (clip to screen bounds)
-        // If viewport goes off-screen, only render the visible portion
-        const float VisibleLeft = FMath::Max(0.0f, CenterRect.Left);
-        const float VisibleTop = FMath::Max(0.0f, CenterRect.Top);
+        // 뷰포트 크기와 화면 위치
+        const uint32 NewStartX = static_cast<uint32>(CenterRect.Left);
+        const uint32 NewStartY = static_cast<uint32>(CenterRect.Top);
+        const uint32 NewWidth = static_cast<uint32>(CenterRect.GetWidth());
+        const uint32 NewHeight = static_cast<uint32>(CenterRect.GetHeight());
 
-        const uint32 NewStartX = static_cast<uint32>(VisibleLeft);
-        const uint32 NewStartY = static_cast<uint32>(VisibleTop);
-        const uint32 NewWidth  = static_cast<uint32>(FMath::Max(1.0f, CenterRect.Right - VisibleLeft));
-        const uint32 NewHeight = static_cast<uint32>(FMath::Max(1.0f, CenterRect.Bottom - VisibleTop));
+        // 렌더 타겟 생성/리사이즈
+        URenderer* Renderer = URenderManager::GetInstance().GetRenderer();
+        if (Renderer)
+        {
+            D3D11RHI* RHIDevice = Renderer->GetRHIDevice();
+            if (RHIDevice)
+            {
+                RHIDevice->ResizeViewportRenderTarget(NewWidth, NewHeight, ViewportRenderTarget);
+                ActiveState->Viewport->SetRenderTarget(&ViewportRenderTarget);
+            }
+        }
+
+        // Viewport 크기와 위치 설정
+        // StartX/Y는 화면 좌표 (GPU 피킹용), SizeX/Y는 렌더 타겟 크기
         ActiveState->Viewport->Resize(NewStartX, NewStartY, NewWidth, NewHeight);
 
         // �� �������� �籸��

@@ -67,7 +67,7 @@ void URenderer::EndFrame()
 void URenderer::RenderSceneForView(UWorld* World, FSceneView* View, FViewport* Viewport)
 {
 	// 씬을 그리는 FSceneRenderer 를 생성합니다.
-	FSceneRenderer SceneRenderer(World, View, this);
+	FSceneRenderer SceneRenderer(World, View, Viewport, this);
 
 	// 실제로 렌더를 수행합니다.
 	SceneRenderer.Render();

@@ -70,7 +70,7 @@ struct FSceneGlobals
 class FSceneRenderer
 {
 public:
-	FSceneRenderer(UWorld* InWorld, FSceneView* InView, URenderer* InOwnerRenderer);
+	FSceneRenderer(UWorld* InWorld, FSceneView* InView, FViewport* InViewport, URenderer* InOwnerRenderer);
 	~FSceneRenderer();
 
 	/** @brief 이 씬 렌더러의 모든 렌더링 파이프라인을 실행합니다. */
@@ -103,7 +103,7 @@ private:
 	/** @brief 불투명(Opaque) 객체들을 렌더링하는 패스입니다. */
 	void RenderOpaquePass(EViewMode InRenderViewMode);
 
-	void DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, bool bClearListAfterDraw);
+	void DrawMeshBatches(TArray<FMeshBatchElement>& InMeshBatches, bool bClearListAfterDraw, bool bIsOverlay = false);
 
 	/** @brief 데칼(Decal)을 렌더링하는 패스입니다. */
 	void RenderDecalPass();
@@ -129,6 +129,7 @@ private:
 	// --- 렌더링 컨텍스트 (외부에서 주입받음) ---
 	UWorld* World;
 	FSceneView* View;
+	FViewport* Viewport;
 	URenderer* OwnerRenderer;
 	D3D11RHI* RHIDevice;
 
