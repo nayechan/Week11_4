@@ -4,6 +4,7 @@
 #include "AnimationRuntime.h"
 #include "AnimationTypes.h"
 #include "GlobalConsole.h"
+#include "AnimNode.h"
 
 // ========================================
 // 초기화 파이프라인
@@ -27,10 +28,26 @@ void UAnimStateMachine::AddState(FName StateName, UAnimSequence* Animation, bool
     FAnimState NewState;
     NewState.StateName = StateName;
     NewState.Animation = Animation;
+    NewState.Node = nullptr;  // Legacy 모드: Node 사용 안 함
     NewState.bLoop = bLoop;
     NewState.PlayRate = PlayRate;
 
     States.Add(StateName, NewState);
+}
+
+void UAnimStateMachine::AddState(FName StateName, UAnimNode* Node)
+{
+    FAnimState NewState;
+    NewState.StateName = StateName;
+    NewState.Animation = nullptr;  // Node 모드: Animation 사용 안 함
+    NewState.Node = Node;          // Node 기반 State
+    NewState.bLoop = true;         // Node 내부에서 관리되므로 기본값
+    NewState.PlayRate = 1.0f;      // Node 내부에서 관리되므로 기본값
+
+    States.Add(StateName, NewState);
+
+    UE_LOG("StateMachine: Added node-based state '%s' (Node=%p)",
+           StateName.ToString().c_str(), Node);
 }
 
 void UAnimStateMachine::SetInitialState(FName StateName)
@@ -278,10 +295,27 @@ void UAnimStateMachine::Update(float DeltaTime)
     if (bIsTransitioning)
     {
         // ========================================
-        // Transition 중: Weight-based Leader Selection (BlendSpace와 동일)
+        // Transition 중: Node/Animation 모드 자동 판별
         // ========================================
         FAnimState* FromStatePtr = States.Find(FromState);
         FAnimState* ToStatePtr = States.Find(ToState);
+
+        // Node 모드 체크: 하나라도 Node면 Node 모드로 처리
+        bool bIsNodeMode = (FromStatePtr && FromStatePtr->Node) || (ToStatePtr && ToStatePtr->Node);
+
+        if (bIsNodeMode)
+        {
+            // ========================================
+            // Node 모드: 단순 업데이트 (Node 내부에서 Phase Sync 처리)
+            // ========================================
+            UpdateState(FromStatePtr, DeltaTime);
+            UpdateState(ToStatePtr, DeltaTime);
+            return;
+        }
+
+        // ========================================
+        // Animation 모드: Weight-based Leader Selection Phase Sync
+        // ========================================
 
         if (!FromStatePtr || !ToStatePtr || !FromStatePtr->Animation || !ToStatePtr->Animation)
         {
@@ -393,36 +427,9 @@ void UAnimStateMachine::Update(float DeltaTime)
     }
     else
     {
-        // 일반: CurrentState만 업데이트
+        // 일반: CurrentState만 업데이트 (Node/Animation 자동 판별)
         FAnimState* CurrentStatePtr = States.Find(CurrentState);
-        if (CurrentStatePtr)
-        {
-            CurrentStatePtr->PreviousInternalTime = CurrentStatePtr->InternalTime;
-            CurrentStatePtr->InternalTime += DeltaTime * CurrentStatePtr->PlayRate;
-
-            // Loop 처리 (UE5 패턴)
-            if (CurrentStatePtr->bLoop && CurrentStatePtr->Animation)
-            {
-                float SequenceLength = CurrentStatePtr->Animation->SequenceLength;
-                if (SequenceLength > 0.0f && CurrentStatePtr->InternalTime >= SequenceLength)
-                {
-                    CurrentStatePtr->InternalTime = fmod(CurrentStatePtr->InternalTime, SequenceLength);
-                }
-            }
-
-            // 디버그: InternalTime 출력
-            static float LogTimer = 0.0f;
-            LogTimer += DeltaTime;
-            if (LogTimer >= 0.5f) // 0.5초마다 로그
-            {
-                UE_LOG("StateMachine: State='%s', InternalTime=%.2fs, bLoop=%d, Animation=%p",
-                    CurrentState.ToString().c_str(),
-                    CurrentStatePtr->InternalTime,
-                    CurrentStatePtr->bLoop ? 1 : 0,
-                    CurrentStatePtr->Animation);
-                LogTimer = 0.0f;
-            }
-        }
+        UpdateState(CurrentStatePtr, DeltaTime);
     }
 
     ProcessState();
@@ -433,6 +440,82 @@ void UAnimStateMachine::Update(float DeltaTime)
     if (!bIsTransitioning)
     {
         CheckAutoTransitions();
+    }
+}
+
+bool UAnimStateMachine::ExtractStatePose(const FAnimState* State, FPoseContext& OutPose)
+{
+    if (!State)
+        return false;
+
+    // ========================================
+    // 우선순위 1: Node 기반 State
+    // ========================================
+    if (State->Node)
+    {
+        // Node->Evaluate()로 포즈 추출
+        State->Node->Evaluate(OutPose);
+        return true;
+    }
+
+    // ========================================
+    // 우선순위 2: Animation 기반 State (Legacy)
+    // ========================================
+    if (State->Animation)
+    {
+        // Animation->GetAnimationPose()로 포즈 추출
+        FAnimExtractContext ExtractContext(State->InternalTime, State->bLoop);
+        State->Animation->GetAnimationPose(OutPose, ExtractContext);
+
+        // Notify 수집 (Animation 모드만)
+        TArray<FAnimNotifyEvent> Notifies;
+        State->Animation->GetAnimNotifiesInRange(
+            State->PreviousInternalTime,
+            State->InternalTime,
+            Notifies
+        );
+        OutPose.AnimNotifies.Append(Notifies);
+
+        return true;
+    }
+
+    // ========================================
+    // 둘 다 없으면 실패
+    // ========================================
+    return false;
+}
+
+void UAnimStateMachine::UpdateState(FAnimState* State, float DeltaTime)
+{
+    if (!State)
+        return;
+
+    // ========================================
+    // 우선순위 1: Node 기반 State
+    // ========================================
+    if (State->Node)
+    {
+        // Node 내부에서 시간 관리
+        State->Node->Update(DeltaTime);
+        return;
+    }
+
+    // ========================================
+    // 우선순위 2: Animation 기반 State (Legacy)
+    // ========================================
+    if (State->Animation)
+    {
+        // StateMachine이 직접 InternalTime 관리
+        State->PreviousInternalTime = State->InternalTime;
+        State->InternalTime += DeltaTime * State->PlayRate;
+
+        // Loop 처리
+        if (State->bLoop)
+        {
+            float SequenceLength = State->Animation->SequenceLength;
+            if (SequenceLength > 0.0f && State->InternalTime >= SequenceLength)
+                State->InternalTime = fmod(State->InternalTime, SequenceLength);
+        }
     }
 }
 
@@ -464,17 +547,13 @@ void UAnimStateMachine::GetBlendedPose(FPoseContext& OutPose)
         const FAnimState* FromStatePtr = States.Find(FromState);
         const FAnimState* ToStatePtr = States.Find(ToState);
 
-        if (FromStatePtr && ToStatePtr && FromStatePtr->Animation && ToStatePtr->Animation)
+        // Node/Animation 자동 판별로 포즈 추출
+        FPoseContext PoseA, PoseB;
+        bool bFromValid = ExtractStatePose(FromStatePtr, PoseA);
+        bool bToValid = ExtractStatePose(ToStatePtr, PoseB);
+
+        if (bFromValid && bToValid)
         {
-            FPoseContext PoseA, PoseB;
-
-            // 각 State가 자신의 InternalTime 사용
-            FAnimExtractContext FromContext(FromStatePtr->InternalTime, FromStatePtr->bLoop);
-            FAnimExtractContext ToContext(ToStatePtr->InternalTime, ToStatePtr->bLoop);
-
-            FromStatePtr->Animation->GetAnimationPose(PoseA, FromContext);
-            ToStatePtr->Animation->GetAnimationPose(PoseB, ToContext);
-
             // Phase 1: Blend Curve 적용
             // 선형 TransitionAlpha를 Bezier curve로 평가하여 부드러운 전환
             float CurvedAlpha = TransitionAlpha;
@@ -484,6 +563,7 @@ void UAnimStateMachine::GetBlendedPose(FPoseContext& OutPose)
                 CurvedAlpha = FAnimationRuntime::EvaluateBezierCurve(CurrentTransition->BlendCurve, TransitionAlpha);
             }
 
+            // 두 포즈 블렌딩
             FAnimationRuntime::BlendTwoPosesTogether(
                 PoseA,
                 PoseB,
@@ -491,50 +571,34 @@ void UAnimStateMachine::GetBlendedPose(FPoseContext& OutPose)
                 OutPose
             );
 
-            // Transition 중: From과 To 애니메이션 모두에서 Notify 수집
-            // 각 State의 독립적인 시간 범위 사용
-            TArray<FAnimNotifyEvent> FromNotifies, ToNotifies;
-            FromStatePtr->Animation->GetAnimNotifiesInRange(
-                FromStatePtr->PreviousInternalTime,
-                FromStatePtr->InternalTime,
-                FromNotifies
-            );
-            ToStatePtr->Animation->GetAnimNotifiesInRange(
-                ToStatePtr->PreviousInternalTime,
-                ToStatePtr->InternalTime,
-                ToNotifies
-            );
-
-            // 트리 누적 패턴: 수집한 Notify를 OutPose에 추가
-            OutPose.AnimNotifies.Append(FromNotifies);
-            OutPose.AnimNotifies.Append(ToNotifies);
+            // ExtractStatePose가 이미 Notify를 OutPose에 추가했으므로
+            // 여기서는 추가 작업 불필요
+        }
+        else if (bFromValid)
+        {
+            // ToState가 유효하지 않으면 FromState만 사용
+            OutPose = PoseA;
+        }
+        else if (bToValid)
+        {
+            // FromState가 유효하지 않으면 ToState만 사용
+            OutPose = PoseB;
         }
         else
         {
+            // 둘 다 유효하지 않으면 빈 포즈
             OutPose.BoneTransforms.Empty();
         }
     }
     else
     {
+        // 일반 상태: CurrentState만 재생
         const FAnimState* StatePtr = States.Find(CurrentState);
-        if (StatePtr && StatePtr->Animation)
-        {
-            FAnimExtractContext ExtractContext(StatePtr->InternalTime, StatePtr->bLoop);
-            StatePtr->Animation->GetAnimationPose(OutPose, ExtractContext);
 
-            // 현재 State 애니메이션에서 Notify 수집
-            TArray<FAnimNotifyEvent> CurrentNotifies;
-            StatePtr->Animation->GetAnimNotifiesInRange(
-                StatePtr->PreviousInternalTime,
-                StatePtr->InternalTime,
-                CurrentNotifies
-            );
-
-            // 트리 누적 패턴: 수집한 Notify를 OutPose에 추가
-            OutPose.AnimNotifies.Append(CurrentNotifies);
-        }
-        else
+        // Node/Animation 자동 판별로 포즈 추출
+        if (!ExtractStatePose(StatePtr, OutPose))
         {
+            // 유효한 State가 없으면 빈 포즈
             OutPose.BoneTransforms.Empty();
         }
     }
