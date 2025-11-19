@@ -1106,7 +1106,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
         if (GetSaveFileNameA(&ofn) == TRUE)
         {
-            FString SavePath = ofn.lpstrFile;
+            // 절대경로를 상대경로로 변환
+            std::filesystem::path AbsPath = ofn.lpstrFile;
+            std::filesystem::path RelPath = std::filesystem::relative(AbsPath, std::filesystem::current_path());
+            FString SavePath = RelPath.string();
+
+            // 백슬래시를 슬래시로 변환
+            std::replace(SavePath.begin(), SavePath.end(), '\\', '/');
+
             try
             {
                 FWindowsBinWriter Writer(SavePath);
@@ -1121,30 +1128,47 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                     Writer << *AnimSequence;
                     Writer.Close();
 
-                    FWindowsBinReader Reader(SavePath);
-                    if (Reader.IsOpen())
+                    // 이미 존재하는 AnimSequence가 있으면 갱신, 없으면 새로 추가
+                    UAnimSequence* ExistingAnim = UResourceManager::GetInstance().Get<UAnimSequence>(SavePath);
+                    if (ExistingAnim)
                     {
-                        UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
-                        Reader << *LoadedAnimSeq;
-                        Reader.Close();
-
-                        LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
-                        LoadedAnimSeq->SetFilePath(SavePath);
-
-                        FString FileName = SavePath;
-                        size_t lastSlash = FileName.find_last_of("/\\");
-                        if (lastSlash != std::string::npos)
+                        // 기존 객체를 갱신
+                        FWindowsBinReader Reader(SavePath);
+                        if (Reader.IsOpen())
                         {
-                            FileName = FileName.substr(lastSlash + 1);
+                            Reader << *ExistingAnim;
+                            Reader.Close();
+                            ExistingAnim->Skeleton = AnimSequence->Skeleton;
                         }
-                        size_t lastDot = FileName.find_last_of('.');
-                        if (lastDot != std::string::npos)
+                    }
+                    else
+                    {
+                        // 새로 추가
+                        FWindowsBinReader Reader(SavePath);
+                        if (Reader.IsOpen())
                         {
-                            FileName = FileName.substr(0, lastDot);
-                        }
-                        LoadedAnimSeq->ObjectName = FName(FileName);
+                            UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                            Reader << *LoadedAnimSeq;
+                            Reader.Close();
 
-                        UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
+                            LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
+                            LoadedAnimSeq->SetFilePath(SavePath);
+
+                            FString FileName = SavePath;
+                            size_t lastSlash = FileName.find_last_of("/\\");
+                            if (lastSlash != std::string::npos)
+                            {
+                                FileName = FileName.substr(lastSlash + 1);
+                            }
+                            size_t lastDot = FileName.find_last_of('.');
+                            if (lastDot != std::string::npos)
+                            {
+                                FileName = FileName.substr(0, lastDot);
+                            }
+                            LoadedAnimSeq->ObjectName = FName(FileName);
+
+                            UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
+                        }
                     }
                 }
             }

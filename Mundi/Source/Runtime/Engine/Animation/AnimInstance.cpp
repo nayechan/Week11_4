@@ -63,7 +63,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	GetAnimationPose(FinalPose);
 
 	// 4. 수집된 Notify 트리거 (프레임워크가 자동 처리)
-	TriggerAnimNotifies(FinalPose);
+	TriggerAnimNotifies(FinalPose, DeltaSeconds);
 
 	// 5. 수집된 Curve 값 트리거 (프레임워크가 자동 처리)
 	TriggerAnimCurves(FinalPose);
@@ -98,16 +98,48 @@ void UAnimInstance::GetAnimationPose(FPoseContext& OutPose)
 	OutPose.BoneTransforms.Empty();
 }
 
-void UAnimInstance::TriggerAnimNotifies(const FPoseContext& Pose)
+void UAnimInstance::TriggerAnimNotifies(const FPoseContext& Pose, float DeltaSeconds)
 {
 	if (!OwnerComponent)
 		return;
 
-	// Unreal 방식: FPoseContext에 이미 수집된 Notify들을 일괄 트리거
-	// AnimNode들이 트리 순회 중 Pose.AnimNotifies에 추가한 것들
+	// 1. 새로 수집된 Notify 처리
 	for (const FAnimNotifyEvent& Notify : Pose.AnimNotifies)
 	{
-		OwnerComponent->HandleAnimNotify(Notify);
+		if (Notify.Duration > 0.0f)
+		{
+			// Duration이 있는 Notify: Begin 호출 후 활성 목록에 추가
+			OwnerComponent->HandleAnimNotifyBegin(Notify);
+
+			FActiveAnimNotify ActiveNotify;
+			ActiveNotify.Notify = Notify;
+			ActiveNotify.RemainingTime = Notify.Duration;
+			ActiveAnimNotifies.Add(ActiveNotify);
+		}
+		else
+		{
+			// 순간 Notify: 기존 방식으로 한 번만 호출
+			OwnerComponent->HandleAnimNotify(Notify);
+		}
+	}
+
+	// 2. 활성 Notify들 Tick/End 처리
+	for (int32 i = ActiveAnimNotifies.Num() - 1; i >= 0; --i)
+	{
+		FActiveAnimNotify& Active = ActiveAnimNotifies[i];
+		Active.RemainingTime -= DeltaSeconds;
+
+		if (Active.RemainingTime <= 0.0f)
+		{
+			// Duration 종료: End 호출 후 제거
+			OwnerComponent->HandleAnimNotifyEnd(Active.Notify);
+			ActiveAnimNotifies.RemoveAt(i);
+		}
+		else
+		{
+			// Duration 진행 중: Tick 호출
+			OwnerComponent->HandleAnimNotifyTick(Active.Notify, DeltaSeconds);
+		}
 	}
 }
 

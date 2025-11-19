@@ -56,7 +56,8 @@ public:
 
 	// Notify 트리거링 (Unreal 방식)
 	// FPoseContext에 수집된 Notify들을 일괄 트리거
-	void TriggerAnimNotifies(const struct FPoseContext& Pose);
+	// Duration > 0인 경우 Begin/Tick/End 패턴으로 처리
+	void TriggerAnimNotifies(const struct FPoseContext& Pose, float DeltaSeconds);
 
 	// Curve 트리거링 (Unreal 방식)
 	// FPoseContext에 수집된 Curve 값들을 일괄 트리거
@@ -76,6 +77,14 @@ protected:
 	// Lua에서 접근 가능하도록 UPROPERTY 추가
 	UPROPERTY(LuaReadWrite)
 	class USkeletalMeshComponent* OwnerComponent = nullptr;
+
+	// Duration이 있는 Notify (NotifyState) 활성 상태 추적
+	struct FActiveAnimNotify
+	{
+		FAnimNotifyEvent Notify;    // 원본 Notify 데이터
+		float RemainingTime;        // 남은 지속 시간
+	};
+	TArray<FActiveAnimNotify> ActiveAnimNotifies;
 
 	friend class USkeletalMeshComponent;
 };

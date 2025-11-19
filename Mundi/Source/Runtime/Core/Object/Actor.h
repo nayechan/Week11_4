@@ -37,8 +37,13 @@ public:
     virtual void EndPlay();   // Override 시 Super::EndPlay() 권장
     virtual void Destroy();
 
-    // 애니메이션 Notify 처리
+    // 애니메이션 Notify 처리 (순간 이벤트)
     virtual void HandleAnimNotify(const struct FAnimNotifyEvent& Notify);
+
+    // 애니메이션 Notify 처리 (Duration > 0인 경우 Begin/Tick/End 패턴)
+    virtual void HandleAnimNotifyBegin(const struct FAnimNotifyEvent& Notify);
+    virtual void HandleAnimNotifyTick(const struct FAnimNotifyEvent& Notify, float DeltaTime);
+    virtual void HandleAnimNotifyEnd(const struct FAnimNotifyEvent& Notify);
 
     // 애니메이션 Curve 처리
     virtual void HandleAnimCurve(const FName& CurveName, float CurveValue);
