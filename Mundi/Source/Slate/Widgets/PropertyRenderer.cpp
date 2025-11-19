@@ -2291,6 +2291,98 @@ void UPropertyRenderer::RenderCategoryOnly(
 	}
 }
 
+void UPropertyRenderer::RenderOtherCategories(
+	UObject* Object,
+	const TArray<FString>& ExcludedCategories,
+	FOnShouldFilterAsset& AssetFilterDelegate,
+	FOnShouldFilterProperty& PropertyFilterDelegate)
+{
+	if (!Object)
+		return;
+
+	UClass* Class = Object->GetClass();
+	const TArray<FProperty>& Properties = Class->GetAllProperties();
+
+	// 카테고리별로 정리 (제외 카테고리는 스킵)
+	TArray<TPair<FString, TArray<const FProperty*>>> CategorizedProps;
+	TMap<FString, int32> CategoryIndexMap;
+
+	for (const FProperty& Prop : Properties)
+	{
+		if (Prop.bIsEditAnywhere)
+		{
+			// 프로퍼티 필터링 체크
+			if (PropertyFilterDelegate.IsBound())
+			{
+				bool bShouldFilter = PropertyFilterDelegate.Execute(FString(Prop.Name));
+				if (bShouldFilter)
+				{
+					continue;
+				}
+			}
+
+			FString CategoryName = Prop.Category ? Prop.Category : "Default";
+
+			// 제외 카테고리에 포함되는지 확인
+			bool bExcluded = false;
+			for (const FString& ExcludedCat : ExcludedCategories)
+			{
+				if (CategoryName == ExcludedCat)
+				{
+					bExcluded = true;
+					break;
+				}
+			}
+			if (bExcluded)
+			{
+				continue;
+			}
+
+			// 카테고리별로 분류
+			int32* IndexPtr = CategoryIndexMap.Find(CategoryName);
+			if (IndexPtr)
+			{
+				CategorizedProps[*IndexPtr].second.Add(&Prop);
+			}
+			else
+			{
+				TArray<const FProperty*> NewPropArray;
+				NewPropArray.Add(&Prop);
+				int32 NewIndex = CategorizedProps.Add(TPair<FString, TArray<const FProperty*>>(CategoryName, NewPropArray));
+				CategoryIndexMap.Add(CategoryName, NewIndex);
+			}
+		}
+	}
+
+	// 각 카테고리 렌더링
+	for (auto& Pair : CategorizedProps)
+	{
+		const FString& Category = Pair.first;
+		const TArray<const FProperty*>& Props = Pair.second;
+
+		ImGui::Separator();
+		ImGui::Text("%s", Category.c_str());
+
+		for (const FProperty* Prop : Props)
+		{
+			ImGui::PushID(Prop);
+
+			// AnimSequence 타입이면 필터와 함께 렌더링
+			if (Prop->Type == EPropertyType::AnimSequence && AssetFilterDelegate.IsBound())
+			{
+				RenderAnimSequencePropertyWithFilter(*Prop, Object, AssetFilterDelegate);
+			}
+			else
+			{
+				// 일반 프로퍼티는 기본 렌더링
+				RenderProperty(*Prop, Object);
+			}
+
+			ImGui::PopID();
+		}
+	}
+}
+
 bool UPropertyRenderer::RenderAnimSequencePropertyWithFilter(
 	const FProperty& Prop,
 	void* Instance,

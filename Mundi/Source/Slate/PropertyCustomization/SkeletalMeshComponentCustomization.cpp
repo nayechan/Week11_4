@@ -73,15 +73,19 @@ void FSkeletalMeshComponentCustomization::CustomizeDetails(UObject* Object)
 		return false;
 	});
 
-	// === 순서대로 렌더링: Skeletal Mesh -> Skeleton -> Animation ===
+	// === 순서대로 렌더링: 부모 클래스 -> Skeletal Mesh -> Skeleton -> Animation ===
 
-	// 1. Skeletal Mesh 카테고리 렌더링
+	// 1. 나머지 모든 카테고리 렌더링 (부모 클래스 프로퍼티 포함)
+	TArray<FString> ExcludedCategories = {"Skeletal Mesh", "Animation"};
+	UPropertyRenderer::RenderOtherCategories(SkelComp, ExcludedCategories, AssetFilterDelegate, PropertyFilterDelegate);
+
+	// 2. Skeletal Mesh 카테고리 렌더링
 	UPropertyRenderer::RenderCategoryOnly(SkelComp, "Skeletal Mesh", AssetFilterDelegate, PropertyFilterDelegate);
 
-	// 2. Skeleton 섹션 렌더링
+	// 3. Skeleton 섹션 렌더링
 	RenderSkeletonSelector();
 
-	// 3. Animation 카테고리 렌더링
+	// 4. Animation 카테고리 렌더링
 	UPropertyRenderer::RenderCategoryOnly(SkelComp, "Animation", AssetFilterDelegate, PropertyFilterDelegate);
 }
 
