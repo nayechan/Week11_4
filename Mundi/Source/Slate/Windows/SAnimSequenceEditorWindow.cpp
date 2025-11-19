@@ -27,6 +27,7 @@
 #include "SkeletalMeshComponent.h"
 #include "WindowsBinWriter.h"
 #include "WindowsBinReader.h"
+#include "ObjectIterator.h"
 #include <filesystem>
 #include <fstream>
 
@@ -528,6 +529,11 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 {
                     Mesh->SetSkeleton(NewSkeleton);
                     Mesh->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+
+                    // Save .fbx.skeleton file with new Skeleton reference
+                    FString SkeletonOverridePath = MeshPath + ".skeleton";
+                    Mesh->SaveOverrideData(SkeletonOverridePath);
+
                     UE_LOG("[Swapping] Changed SkeletalMesh Skeleton to: %s",
                            NewSkeleton ? NewSkeleton->Name.c_str() : "None");
                 }
@@ -542,6 +548,33 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 {
                     Anim->Skeleton = NewSkeleton;
                     Anim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+
+                    // FBX 애니메이션의 경우 .fbx.skeleton의 "Animation" 섹션에 저장
+                    // .anim 파일의 경우 SourceAnimationPath를 통해 원본 애니메이션의 Skeleton을 따라감
+                    if (AnimPath.find(".fbx") != FString::npos)
+                    {
+                        FString SkeletonOverridePath = AnimPath + ".skeleton";
+                        Anim->SaveOverrideData(SkeletonOverridePath);
+
+                        // 이 FBX 애니메이션을 SourceAnimationPath로 참조하는 모든 .anim 파일도 업데이트
+                        int32 UpdatedCount = 0;
+                        for (TObjectIterator<UAnimSequence> It; It; ++It)
+                        {
+                            UAnimSequence* DerivedAnim = *It;
+                            if (DerivedAnim && DerivedAnim->SourceAnimationPath == AnimPath)
+                            {
+                                DerivedAnim->Skeleton = NewSkeleton;
+                                DerivedAnim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+                                ++UpdatedCount;
+                            }
+                        }
+
+                        if (UpdatedCount > 0)
+                        {
+                            UE_LOG("[Swapping] Updated %d derived .anim file(s) referencing this animation", UpdatedCount);
+                        }
+                    }
+
                     UE_LOG("[Swapping] Changed Animation Skeleton to: %s",
                            NewSkeleton ? NewSkeleton->Name.c_str() : "None");
                 }
@@ -1079,6 +1112,12 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 FWindowsBinWriter Writer(SavePath);
                 if (Writer.IsOpen())
                 {
+                    // 원본 애니메이션 경로 저장 (이 애니메이션의 Skeleton을 따라감)
+                    if (AnimSequence->SourceAnimationPath.empty())
+                    {
+                        AnimSequence->SourceAnimationPath = SourcePath;
+                    }
+
                     Writer << *AnimSequence;
                     Writer.Close();
 

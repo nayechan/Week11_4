@@ -24,6 +24,9 @@ public:
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="역재생 여부")
 	bool bReversePlay = false;
 
+	// 원본 애니메이션 경로 (.anim 파일일 경우, 이 애니메이션의 Skeleton을 따라감)
+	FString SourceAnimationPath;
+
 	// 포즈 추출 구현
 	virtual void GetAnimationPose(FPoseContext& OutPose, const FAnimExtractContext& Context) override;
 
@@ -53,10 +56,6 @@ public:
 	{
 		if (Ar.IsSaving())
 		{
-			// 0. 원본 FBX 경로 저장 (Skeleton 복원용)
-			FString SourceFBXPath = Anim.GetFilePath();
-			Serialization::WriteString(Ar, SourceFBXPath);
-
 			// 1. FrameRate 저장
 			Ar << Anim.FrameRate;
 
@@ -70,6 +69,9 @@ public:
 
 			// 3-1. bReversePlay 저장
 			Ar << Anim.bReversePlay;
+
+			// 3-2. SourceAnimationPath 저장
+			Serialization::WriteString(Ar, Anim.SourceAnimationPath);
 
 			// 4. BoneAnimationTracks 저장
 			uint32 TrackCount = static_cast<uint32>(Anim.BoneAnimationTracks.Num());
@@ -103,11 +105,6 @@ public:
 		}
 		else if (Ar.IsLoading())
 		{
-			// 0. 원본 FBX 경로 로드 (Skeleton 복원용)
-			FString SourceFBXPath;
-			Serialization::ReadString(Ar, SourceFBXPath);
-			Anim.SetFilePath(SourceFBXPath);
-
 			// 1. FrameRate 로드
 			Ar << Anim.FrameRate;
 
@@ -121,6 +118,9 @@ public:
 
 			// 3-1. bReversePlay 로드
 			Ar << Anim.bReversePlay;
+
+			// 3-2. SourceAnimationPath 로드
+			Serialization::ReadString(Ar, Anim.SourceAnimationPath);
 
 			// 4. BoneAnimationTracks 로드
 			uint32 TrackCount;
