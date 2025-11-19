@@ -2737,7 +2737,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::PopStyleVar(); // ItemSpacing
 }
 
-void SAnimSequenceEditorWindow::LoadAnimationFile(const FString& FilePath)
+void SAnimSequenceEditorWindow::LoadAnimationFile(const FString& FilePath, const FString& MeshPath)
 {
     UE_LOG("SAnimSequenceEditorWindow::LoadAnimationFile called with: %s", FilePath.c_str());
 
@@ -2753,76 +2753,117 @@ void SAnimSequenceEditorWindow::LoadAnimationFile(const FString& FilePath)
         return;
     }
 
-    // FBX 파일 경로를 직접 사용
-    FString FbxPath = FilePath;
-
-    // FBX 파일 존재 확인
-    if (!std::filesystem::exists(FbxPath))
+    // 파일 존재 확인
+    if (!std::filesystem::exists(FilePath))
     {
-        UE_LOG("LoadAnimationFile: FBX file not found: %s", FbxPath.c_str());
+        UE_LOG("LoadAnimationFile: File not found: %s", FilePath.c_str());
         return;
     }
 
-    // 메시가 아직 로드되지 않았으면 먼저 로드
-    if (!ActiveState->CurrentMesh || ActiveState->LoadedMeshPath != FbxPath)
+    // 확장자 확인
+    bool bIsAnimFile = FilePath.find(".anim") != FString::npos;
+
+    // MeshPath가 있으면 먼저 메시 로드
+    if (!MeshPath.empty())
     {
-        UE_LOG("Loading skeletal mesh from FBX: %s", FbxPath.c_str());
-        LoadSkeletalMesh(FbxPath);
+        LoadSkeletalMesh(MeshPath);
     }
 
     // SkeletalMeshComponent 가져오기
     USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-    if (!SkeletalComp)
+
+    if (bIsAnimFile)
     {
-        UE_LOG("LoadAnimationFile: No SkeletalMeshComponent");
-        return;
-    }
+        // === .anim 파일 처리 ===
+        // 메시가 없으면 실패
+        if (!SkeletalComp || !SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
+        {
+            return;
+        }
 
-    if (!SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
+        // ResourceManager에서 이미 로드된 AnimSequence 가져오기
+        UAnimSequence* LoadedAnimSeq = UResourceManager::GetInstance().Get<UAnimSequence>(FilePath);
+        if (!LoadedAnimSeq)
+        {
+            return;
+        }
+
+        // AnimInstance 설정
+        UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
+        if (!AnimSingleNode)
+        {
+            AnimSingleNode = NewObject<UAnimSingleNodeInstance>();
+            SkeletalComp->SetAnimInstance(AnimSingleNode);
+        }
+
+        AnimSingleNode->SetAnimationAsset(LoadedAnimSeq);
+        AnimSingleNode->SetInteralTime(0.0f);
+        SkeletalComp->TickAnimation(0.0f);
+
+        // Animation path buffer에 경로 저장
+        strncpy_s(ActiveState->AnimationPathBuffer, FilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+
+        ActiveState->bBoneLinesDirty = true;
+    }
+    else
     {
-        UE_LOG("LoadAnimationFile: SkeletalMesh or Skeleton is null");
-        return;
+        // === FBX 파일 처리 ===
+        FString FbxPath = FilePath;
+
+        // MeshPath가 없을 때만 FBX에서 메시 로드 (MeshPath가 있으면 이미 위에서 로드됨)
+        if (MeshPath.empty() && (!ActiveState->CurrentMesh || ActiveState->LoadedMeshPath != FbxPath))
+        {
+            LoadSkeletalMesh(FbxPath);
+        }
+
+        if (!SkeletalComp)
+        {
+            UE_LOG("LoadAnimationFile: No SkeletalMeshComponent");
+            return;
+        }
+
+        if (!SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
+        {
+            UE_LOG("LoadAnimationFile: SkeletalMesh or Skeleton is null");
+            return;
+        }
+
+        // UFbxLoader를 사용해서 AnimSequence 직접 로드
+        UAnimSequence* AnimSequence = UFbxLoader::GetInstance().LoadFbxAnimation(
+            FbxPath,
+            SkeletalComp->GetSkeletalMesh()->GetSkeleton()
+        );
+
+        if (!AnimSequence)
+        {
+            UE_LOG("LoadAnimationFile: Failed to load AnimSequence from FBX: %s", FbxPath.c_str());
+            return;
+        }
+
+        UE_LOG("AnimSequence loaded: %s, frames: %d, length: %.2f",
+               AnimSequence->GetName().c_str(),
+               AnimSequence->NumberOfFrames,
+               AnimSequence->GetPlayLength());
+
+        // AnimSingleNodeInstance 생성
+        UAnimSingleNodeInstance* AnimSingleNode = NewObject<UAnimSingleNodeInstance>();
+        AnimSingleNode->SetAnimationAsset(AnimSequence);
+        SkeletalComp->SetAnimInstance(AnimSingleNode);
+
+        UE_LOG("AnimSingleNode created with animation: %s", AnimSequence->GetName().c_str());
+
+        // Set to frame 0 and update to show initial pose instead of T-pose
+        AnimSingleNode->SetInteralTime(0.0f);
+        SkeletalComp->TickAnimation(0.0f);
+
+        // Animation path buffer에 FBX 경로 저장 (UI용)
+        strncpy_s(ActiveState->AnimationPathBuffer, FbxPath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+
+        // 본 라인 업데이트
+        ActiveState->bBoneLinesDirty = true;
+
+        UE_LOG("Successfully loaded animation: %s", FbxPath.c_str());
     }
-
-    // UFbxLoader를 사용해서 AnimSequence 직접 로드
-    UAnimSequence* AnimSequence = UFbxLoader::GetInstance().LoadFbxAnimation(
-        FbxPath,
-        SkeletalComp->GetSkeletalMesh()->GetSkeleton()
-    );
-
-    if (!AnimSequence)
-    {
-        UE_LOG("LoadAnimationFile: Failed to load AnimSequence from FBX: %s", FbxPath.c_str());
-        return;
-    }
-
-    UE_LOG("AnimSequence loaded: %s, frames: %d, length: %.2f",
-           AnimSequence->GetName().c_str(),
-           AnimSequence->NumberOfFrames,
-           AnimSequence->GetPlayLength());
-
-    // AnimSingleNodeInstance 생성 (원본 방식: Play 호출 안 함)
-    UAnimSingleNodeInstance* AnimSingleNode = NewObject<UAnimSingleNodeInstance>();
-    AnimSingleNode->SetAnimationAsset(AnimSequence);
-    SkeletalComp->SetAnimInstance(AnimSingleNode);
-
-    UE_LOG("AnimSingleNode created with animation: %s", AnimSequence->GetName().c_str());
-
-    // Set to frame 0 and update to show initial pose instead of T-pose
-    AnimSingleNode->SetInteralTime(0.0f);
-    SkeletalComp->TickAnimation(0.0f);  // Force update to apply frame 0 pose
-
-    // NOTE: .anim 파일 자동 로드 제거
-    // FBX만 로드하면 notify 없이 깨끗한 상태로 시작
-    // Notify가 필요하면 "Load Animation (.anim)" 버튼을 사용
-
-    // Animation path buffer에 FBX 경로 저장 (UI용)
-    strncpy_s(ActiveState->AnimationPathBuffer, FbxPath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
-
-    // 본 라인 업데이트
-    ActiveState->bBoneLinesDirty = true;
-
-    UE_LOG("Successfully loaded animation: %s", FbxPath.c_str());
 }
 
 void SAnimSequenceEditorWindow::SaveAnimationFile(const FString& FilePath)
