@@ -31,6 +31,8 @@ public:
     void SetVelocity(const FVector& NewVelocity);
     FVector GetVelocity() const { return Velocity; }
 
+    float GetSpeed() const { return Velocity.Size(); }
+
     void SetAcceleration(const FVector& NewAcceleration);
     FVector GetAcceleration() const { return Acceleration; }
 

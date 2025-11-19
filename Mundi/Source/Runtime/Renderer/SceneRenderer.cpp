@@ -521,9 +521,12 @@ void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, 
 	// 1. 뎁스 전용 셰이더 로드
 	UShader* DepthVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Shadows/DepthOnly_VS.hlsl");
 	if (!DepthVS || !DepthVS->GetVertexShader()) return;
+	FShaderVariant* ShaderVariant = nullptr;
 
-	FShaderVariant* ShaderVariant = DepthVS->GetOrCompileShaderVariant();
+	ShaderVariant = DepthVS->GetOrCompileShaderVariant();
 	if (!ShaderVariant) return;
+	RHIDevice->GetDeviceContext()->IASetInputLayout(ShaderVariant->InputLayout);
+	RHIDevice->GetDeviceContext()->VSSetShader(ShaderVariant->VertexShader, nullptr, 0);
 
 	// vsm용 픽셀 셰이더
 	UShader* DepthPs = UResourceManager::GetInstance().Load<UShader>("Shaders/Shadows/DepthOnly_PS.hlsl");
@@ -531,10 +534,6 @@ void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, 
 
 	FShaderVariant* ShaderVarianVSM = DepthPs->GetOrCompileShaderVariant();
 	if (!ShaderVarianVSM) return;
-
-	// 2. 파이프라인 설정
-	RHIDevice->GetDeviceContext()->IASetInputLayout(ShaderVariant->InputLayout);
-	RHIDevice->GetDeviceContext()->VSSetShader(ShaderVariant->VertexShader, nullptr, 0);
 	
     EShadowAATechnique ShadowAAType = World->GetRenderSettings().GetShadowAATechnique();
 	switch (ShadowAAType)
@@ -560,12 +559,42 @@ void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, 
 	ID3D11Buffer* CurrentVertexBuffer = nullptr;
 	ID3D11Buffer* CurrentIndexBuffer = nullptr;
 	UINT CurrentVertexStride = 0;
+	bool bCurrentGpuSkinning = false;
 	D3D11_PRIMITIVE_TOPOLOGY CurrentTopology = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+
+	TArray<FShaderMacro> SkinningMacro;
+	SkinningMacro.Add(FShaderMacro("USE_SKINNING", "1"));
 
 	for (const FMeshBatchElement& Batch : InShadowBatches)
 	{
 		// 셰이더/픽셀 상태 변경 불필요
 
+
+		bool bGpuSkinning = false;
+		if (Batch.SkinnedMeshComponent)
+		{
+			bGpuSkinning = true;
+		}
+
+		if (bCurrentGpuSkinning != bGpuSkinning)
+		{
+			if (bGpuSkinning)
+			{
+				ShaderVariant = DepthVS->GetOrCompileShaderVariant(SkinningMacro);
+				const TArray<FMatrix>& SkinningMatrices = Batch.SkinnedMeshComponent->GetFinalSkinningMatrices();
+				RHIDevice->ConstantBufferUpdateForMatrixArray(RHIDevice->GetConstantBuffer<FSkinningMatrixBufferType>(), SkinningMatrices, 5, true, false);
+			}
+			else
+			{
+				ShaderVariant = DepthVS->GetOrCompileShaderVariant();
+			}
+			if (!ShaderVariant) return;
+
+			// 2. 파이프라인 설정
+			RHIDevice->GetDeviceContext()->IASetInputLayout(ShaderVariant->InputLayout);
+			RHIDevice->GetDeviceContext()->VSSetShader(ShaderVariant->VertexShader, nullptr, 0);
+			bCurrentGpuSkinning = bGpuSkinning;
+		}
 		// IA 상태 변경
 		if (Batch.VertexBuffer != CurrentVertexBuffer ||
 			Batch.IndexBuffer != CurrentIndexBuffer ||

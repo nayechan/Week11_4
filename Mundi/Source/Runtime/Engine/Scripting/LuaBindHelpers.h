@@ -33,13 +33,37 @@ static void AddMethod(sol::table& T, const char* Name, void(C::*Method)(P...))
 template<typename R, typename C, typename... P>
 static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...))
 {
-    T.set_function(Name, [Method](LuaComponentProxy& Proxy, P... Args) -> R
+    T.set_function(Name, [Method](sol::this_state LuaState, LuaComponentProxy& Proxy, P... Args) -> sol::object
     {
         if (!Proxy.Instance || !Proxy.Class->IsChildOf(C::StaticClass()))
         {
-            if constexpr (!std::is_void_v<R>) return R{};
+            if constexpr (!std::is_void_v<R>)
+            {
+                sol::state_view LuaView(LuaState);
+                return sol::nil;
+            }
         }
-        return (static_cast<C*>(Proxy.Instance)->*Method)(std::forward<P>(Args)...);
+
+        R Result = (static_cast<C*>(Proxy.Instance)->*Method)(std::forward<P>(Args)...);
+
+        // ⭐ UObject* 타입이면 MakeCompProxy로 래핑 (NewObject 패턴과 동일)
+        if constexpr (std::is_pointer_v<R> && std::is_base_of_v<UObject, std::remove_pointer_t<R>>)
+        {
+            sol::state_view LuaView(LuaState);
+            if (Result)
+            {
+                // MakeCompProxy는 LuaManager.cpp에 extern 선언됨
+                extern sol::object MakeCompProxy(sol::state_view, void*, UClass*);
+                return MakeCompProxy(LuaView, Result, Result->GetClass());
+            }
+            return sol::nil;
+        }
+        else
+        {
+            // 일반 타입은 그대로 반환
+            sol::state_view LuaView(LuaState);
+            return sol::make_object(LuaView, Result);
+        }
     });
 }
 
@@ -47,13 +71,36 @@ static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...))
 template<typename R, typename C, typename... P>
 static void AddMethodR(sol::table& T, const char* Name, R(C::*Method)(P...) const)
 {
-    T.set_function(Name, [Method](LuaComponentProxy& Proxy, P... Args) -> R
+    T.set_function(Name, [Method](sol::this_state LuaState, LuaComponentProxy& Proxy, P... Args) -> sol::object
     {
         if (!Proxy.Instance || !Proxy.Class->IsChildOf(C::StaticClass()))
         {
-            if constexpr (!std::is_void_v<R>) return R{};
+            if constexpr (!std::is_void_v<R>)
+            {
+                sol::state_view LuaView(LuaState);
+                return sol::nil;
+            }
         }
-        return (static_cast<const C*>(Proxy.Instance)->*Method)(std::forward<P>(Args)...);
+
+        R Result = (static_cast<const C*>(Proxy.Instance)->*Method)(std::forward<P>(Args)...);
+
+        // ⭐ UObject* 타입이면 MakeCompProxy로 래핑 (NewObject 패턴과 동일)
+        if constexpr (std::is_pointer_v<R> && std::is_base_of_v<UObject, std::remove_pointer_t<R>>)
+        {
+            sol::state_view LuaView(LuaState);
+            if (Result)
+            {
+                extern sol::object MakeCompProxy(sol::state_view, void*, UClass*);
+                return MakeCompProxy(LuaView, Result, Result->GetClass());
+            }
+            return sol::nil;
+        }
+        else
+        {
+            // 일반 타입은 그대로 반환
+            sol::state_view LuaView(LuaState);
+            return sol::make_object(LuaView, Result);
+        }
     });
 }
 

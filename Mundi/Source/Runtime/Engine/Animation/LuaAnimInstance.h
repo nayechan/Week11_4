@@ -1,10 +1,55 @@
 #pragma once
 
-#include "AnimInstance.h"
+#include "AnimGraphInstance.h"
 #include "ULuaAnimInstance.generated.h"
 
-UCLASS(DisplayName="Lua 애니메이션 인스턴스", Description="Lua 스크립트로 제어되는 애니메이션 인스턴스입니다")
-class ULuaAnimInstance : public UAnimInstance
+/**
+ * @brief Lua 스크립트로 노드 그래프를 동적 생성하는 AnimGraphInstance
+ *
+ * 상속 계층 변경:
+ *   Before: ULuaAnimInstance : public UAnimInstance
+ *   After:  ULuaAnimInstance : public UAnimGraphInstance ⭐
+ *
+ * 변경 이유:
+ * - CreateNodeByName() 재사용 (Lua에서 동적 노드 생성)
+ * - Nodes 배열 자동 관리 (GC, 초기화)
+ * - RootNode 기반 평가 (노드 그래프 지원)
+ *
+ * 재사용 기능 (UAnimGraphInstance로부터):
+ * - CreateNodeByName(NodeTypeName): Lua에서 노드 생성
+ * - Nodes: GC 자동 관리, 노드 초기화
+ * - RootNode: 트리 평가 진입점
+ * - NativeUpdateAnimation(): RootNode->Update() 자동 호출
+ *
+ * Lua 사용 예시 (노드 그래프):
+ *   function LuaInitializeAnimation()
+ *       -- 1. StateMachine Node 생성
+ *       local smNode = self:CreateNode("UAnimNode_StateMachine")
+ *
+ *       -- 2. StateMachine 설정
+ *       local sm = NewObject("UAnimStateMachine", self:Get())
+ *       sm:AddState(FName("Idle"), idleAnim, true, 1.0)
+ *       sm:AddState(FName("Walk"), walkAnim, true, 1.0)
+ *       sm:AddTransition(FName("Idle"), FName("Walk"), 0.5)
+ *       sm:SetInitialState(FName("Idle"))
+ *
+ *       -- 3. Node에 StateMachine 연결
+ *       smNode.StateMachine = sm
+ *
+ *       -- 4. RootNode 설정
+ *       self.RootNode = smNode
+ *   end
+ *
+ *   function LuaUpdateAnimation(deltaTime)
+ *       -- 게임 로직: 변수 업데이트, 전환 조건 체크
+ *       local speed = CalculateSpeed()
+ *       if speed > 100 then
+ *           smNode.StateMachine:TransitionTo(FName("Walk"))
+ *       end
+ *   end
+ */
+UCLASS(DisplayName="Lua 애니메이션 인스턴스", Description="Lua 스크립트로 노드 그래프를 동적 생성")
+class ULuaAnimInstance : public UAnimGraphInstance
 {
 public:
 	GENERATED_REFLECTION_BODY()

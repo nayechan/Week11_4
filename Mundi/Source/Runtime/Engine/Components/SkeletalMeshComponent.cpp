@@ -6,6 +6,7 @@
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
 #include "ResourceManager.h"
+#include "CharacterAnimInstance.h"
 #include "Actor.h"
 
 USkeletalMeshComponent::USkeletalMeshComponent()
@@ -51,6 +52,9 @@ void USkeletalMeshComponent::BeginPlay()
             }
             break;
 
+        case EAnimationMode::AnimationCharacter:
+            Class = UCharacterAnimInstance::StaticClass();
+            break;
         case EAnimationMode::AnimationSingleNode:
             // 단일 AnimSequence 직접 재생
             Class = UAnimSingleNodeInstance::StaticClass();
@@ -123,6 +127,16 @@ void USkeletalMeshComponent::BeginPlay()
                 ObjectFactory::DeleteObject(NewObj); // 생성된 객체 삭제
             }
         }
+    }
+}
+
+void USkeletalMeshComponent::EndPlay()
+{
+    Super::EndPlay();
+    if (AnimInstance)
+    {
+        ObjectFactory::DeleteObject(AnimInstance);
+        AnimInstance = nullptr;
     }
 }
 

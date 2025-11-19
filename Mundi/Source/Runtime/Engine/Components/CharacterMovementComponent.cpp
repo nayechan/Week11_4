@@ -25,7 +25,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaSeconds)
 			FQuat YawQuat = FQuat::MakeFromEulerZYX(Euler);
 			UpdatedComponent->SetWorldRotation(YawQuat);
 		}
-		else if(Velocity.Size() >1.0f)
+		else if(Velocity.Size() >0.3f)
 		{
 			FVector TargetDirection = Velocity.GetSafeNormal();
 			FVector OriginDirection = UpdatedComponent->GetWorldRotation().RotateVector(FVector(1.0f, 0.0f, 0.0f));

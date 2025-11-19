@@ -68,3 +68,12 @@ void ACharacter::DuplicateSubObjects()
 		}
 	}
 }
+
+float ACharacter::GetSpeed()
+{
+	if (CharacterMovementComponent)
+	{
+		return CharacterMovementComponent->GetSpeed();
+	}
+	return 0.0f;
+}

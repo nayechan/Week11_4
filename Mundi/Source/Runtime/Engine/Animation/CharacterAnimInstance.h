@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 #include "AnimInstance.h"
 #include "AnimationStateMachine.h"
 #include "UCharacterAnimInstance.generated.h"
 
+class ACharacter;
 UCLASS(DisplayName="캐릭터 애니메이션 인스턴스", Description="State Machine을 사용하는 예제 AnimInstance")
 class UCharacterAnimInstance : public UAnimInstance
 {
@@ -45,4 +46,7 @@ public:
 protected:
 	virtual void UpdateMovementVariables();
 	virtual void UpdateStateMachine();
+
+	// Character 상태 얻어와서 스테이트 머신 인풋으로 사용, 시퀀스 재생
+	ACharacter* Character = nullptr;
 };

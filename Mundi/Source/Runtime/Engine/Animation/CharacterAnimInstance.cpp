@@ -5,6 +5,7 @@
 #include "Source/Runtime/Engine/Components/SkeletalMeshComponent.h"
 #include "GlobalConsole.h"
 #include "ResourceManager.h"
+#include "Character.h"
 
 void UCharacterAnimInstance::NativeInitializeAnimation()
 {
@@ -31,13 +32,18 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 	}
 	UE_LOG("================================");
 
+	if (ACharacter* OwnerCharacter = Cast<ACharacter>(OwnerComponent->GetOwner()))
+	{
+		Character = OwnerCharacter;
+	}
+
 	// ========================================
 	// 테스트용 애니메이션 하드코딩
 	// TODO: Lua/Blueprint에서 설정 가능하도록 변경
 	// ========================================
 	if (!IdleAnimation)
 	{
-		IdleAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/standing idle.fbx");
+		IdleAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/Standing Idle.fbx");
 		if (IdleAnimation)
 		{
 			UE_LOG("CharacterAnimInstance: Loaded IdleAnimation via Get()");
@@ -50,7 +56,7 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 
 	if (!WalkAnimation)
 	{
-		WalkAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/standing walk forward.fbx");
+		WalkAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/Walking.fbx");
 		if (WalkAnimation)
 		{
 			UE_LOG("CharacterAnimInstance: Loaded WalkAnimation via Get()");
@@ -63,7 +69,7 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 
 	if (!RunAnimation)
 	{
-		RunAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/standing walk forward.fbx");
+		RunAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/Running.fbx");
 		if (RunAnimation)
 		{
 			UE_LOG("CharacterAnimInstance: Loaded RunAnimation via Get()");
@@ -102,11 +108,11 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 	}
 
 	// Transition 설정
-	StateMachine->AddTransition("Idle", "Walk", 3.0f);  // 0.5초 블렌딩
-	StateMachine->AddTransition("Walk", "Run", 3.0f);   // 0.3초 블렌딩
-	StateMachine->AddTransition("Run", "Idle", 3.0f);   // 0.7초 블렌딩
-	StateMachine->AddTransition("Walk", "Idle", 3.0f);  // Walk -> Idle 추가
-	StateMachine->AddTransition("Run", "Walk", 3.0f);   // Run -> Walk 추가
+	StateMachine->AddTransition("Idle", "Walk", 0.5f);  // 0.5초 블렌딩
+	StateMachine->AddTransition("Walk", "Run", 0.3f);   // 0.3초 블렌딩
+	StateMachine->AddTransition("Run", "Idle", 0.7f);   // 0.7초 블렌딩
+	StateMachine->AddTransition("Walk", "Idle", 0.5f);  // Walk -> Idle 추가
+	StateMachine->AddTransition("Run", "Walk", 0.3f);   // Run -> Walk 추가
 
 	// 초기 상태 설정
 	StateMachine->SetInitialState("Idle");
@@ -148,22 +154,25 @@ void UCharacterAnimInstance::UpdateMovementVariables()
 		return;
 
 	// Actor에서 Velocity 가져오기
-	AActor* Owner = OwnerComponent->GetOwner();
-
-	static float x = 0.0f;
-	if (Owner)
+	//AActor* Owner = OwnerComponent->GetOwner();
+	if (Character)
 	{
-		FVector Velocity = FVector(1.0f, 1.0f, 1.0f);
-		Speed = 5.0f * Velocity.Size() * sinf(x);
-		x += 0.001f;
-	}
-	else
-	{
-		Speed = 0.0f;
-	}
+		Speed = Character->GetSpeed();
+		//static float x = 0.0f;
+		//if (Owner)
+		//{
+		//	FVector Velocity = FVector(1.0f, 1.0f, 1.0f);
+		//	Speed = 5.0f * Velocity.Size() * sinf(x);
+		//	x += 0.001f;
+		//}
+		//else
+		//{
+		//	Speed = 0.0f;
+		//}
 
-	// TODO: 점프/낙하 감지
-	bIsInAir = false;
+		// TODO: 점프/낙하 감지
+		bIsInAir = false;
+	}
 }
 
 void UCharacterAnimInstance::UpdateStateMachine()
@@ -173,11 +182,11 @@ void UCharacterAnimInstance::UpdateStateMachine()
 
 	FName CurrentState = StateMachine->GetCurrentState();
 
-	if (Speed >= 300.0f)
+	if (Speed >= 1.0f)
 	{
 		StateMachine->TransitionTo("Run");
 	}
-	else if (Speed >= 0.1f)
+	else if (Speed >= 0.3f)
 	{
 		StateMachine->TransitionTo("Walk");
 	}
