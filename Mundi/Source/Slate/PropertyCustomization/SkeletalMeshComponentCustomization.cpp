@@ -211,4 +211,25 @@ void FSkeletalMeshComponentCustomization::OnSkeletonChanged(FSkeleton* NewSkelet
 		CurrentComponent->AnimToPlay = nullptr;
 		UE_LOG("AnimToPlay cleared: incompatible with new Skeleton");
 	}
+
+	// 5. Skeleton 변경사항 저장
+	// SkeletalMesh의 Skeleton 오버라이드 저장
+	if (Mesh && !Mesh->GetFilePath().empty())
+	{
+		FString OverridePath = Mesh->GetFilePath() + ".skeleton";
+		if (Mesh->SaveOverrideData(OverridePath))
+		{
+			UE_LOG("Saved mesh skeleton override: %s", OverridePath.c_str());
+		}
+	}
+
+	// AnimToPlay의 Skeleton 오버라이드 저장
+	if (Anim && !Anim->GetFilePath().empty())
+	{
+		FString OverridePath = Anim->GetFilePath() + ".skeleton";
+		if (Anim->SaveOverrideData(OverridePath))
+		{
+			UE_LOG("Saved animation skeleton override: %s", OverridePath.c_str());
+		}
+	}
 }

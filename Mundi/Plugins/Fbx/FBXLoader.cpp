@@ -236,12 +236,25 @@ USkeletalMesh* UFbxLoader::LoadFbxMesh(const FString& FilePath)
 
 		if (SkeletalMesh->GetFilePath() == NormalizedPathStr)
 		{
+			// Skeleton 오버라이드 데이터 자동 로드
+			FString OverridePath = NormalizedPathStr + ".skeleton";
+			if (std::filesystem::exists(OverridePath))
+			{
+				SkeletalMesh->LoadOverrideData(OverridePath);
+			}
 			return SkeletalMesh;
 		}
 	}
 
 	// 2) 없으면 새로 로드 (정규화된 경로 사용)
 	USkeletalMesh* SkeletalMesh = UResourceManager::GetInstance().Load<USkeletalMesh>(NormalizedPathStr);
+
+	// Skeleton 오버라이드 데이터 자동 로드
+	FString OverridePath = NormalizedPathStr + ".skeleton";
+	if (std::filesystem::exists(OverridePath))
+	{
+		SkeletalMesh->LoadOverrideData(OverridePath);
+	}
 
 	UE_LOG("USkeletalMesh(filename: \'%s\') is successfully crated!", NormalizedPathStr.c_str());
 	return SkeletalMesh;
@@ -515,6 +528,14 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 		if (AnimSeq->GetFilePath() == NormalizedPath)
 		{
 			UE_LOG("Animation already loaded: %s", NormalizedPath.c_str());
+
+			// 오버라이드 데이터 자동 로드
+			FString OverridePath = NormalizedPath + ".skeleton";
+			if (std::filesystem::exists(OverridePath))
+			{
+				AnimSeq->LoadOverrideData(OverridePath);
+			}
+
 			return AnimSeq;
 		}
 	}
@@ -643,6 +664,13 @@ UAnimSequence* UFbxLoader::LoadFbxAnimation(const FString& FilePath, const FSkel
 
 	// 8. 리소스 매니저에 등록
 	UResourceManager::GetInstance().Add<UAnimSequence>(NormalizedPath, AnimSeq);
+
+	// 오버라이드 데이터 자동 로드
+	FString OverridePath = NormalizedPath + ".skeleton";
+	if (std::filesystem::exists(OverridePath))
+	{
+		AnimSeq->LoadOverrideData(OverridePath);
+	}
 
 	return AnimSeq;
 }
