@@ -165,6 +165,14 @@ public:
 	 */
 	virtual void Update(float DeltaTime) override
 	{
+		// DeltaTime Validation
+		if (DeltaTime <= 0.0f)
+		{
+			// Zero/Negative DeltaTime은 무시
+			// 부모(AnimGraphInstance)에서 이미 체크했지만, 직접 호출될 수도 있음
+			return;
+		}
+
 		if (!bIsPlaying || !Sequence)
 			return;
 

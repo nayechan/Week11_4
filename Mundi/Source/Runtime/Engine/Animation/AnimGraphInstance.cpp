@@ -51,21 +51,46 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 	// 부모 클래스 초기화
 	UAnimInstance::NativeInitializeAnimation();
 
+	// ========================================
+	// Critical Error Handling (Medium Priority)
+	// ========================================
+
 	// SkeletalMesh 및 Skeleton 유효성 검증
 	if (!OwnerComponent || !OwnerComponent->GetSkeletalMesh())
 	{
-		UE_LOG("AnimGraphInstance::NativeInitializeAnimation - OwnerComponent or SkeletalMesh is null");
+		UE_LOG("AnimGraphInstance::NativeInitializeAnimation - CRITICAL ERROR: OwnerComponent or SkeletalMesh is null!");
+		UE_LOG("  AnimGraphInstance cannot function without a SkeletalMesh.");
+
+#ifdef _EDITOR
+		// 에디터 모드에서는 PIE 중단 (개발 중 빠른 발견)
+		GEngine.EndPIE();
+#endif
 		return;
 	}
 
 	const USkeletalMesh* SkelMesh = OwnerComponent->GetSkeletalMesh();
 	if (!SkelMesh->GetSkeletalMeshData())
 	{
-		UE_LOG("AnimGraphInstance::NativeInitializeAnimation - SkeletalMeshData is null");
+		UE_LOG("AnimGraphInstance::NativeInitializeAnimation - CRITICAL ERROR: SkeletalMeshData is null!");
+		UE_LOG("  The SkeletalMesh has no mesh data.");
+
+#ifdef _EDITOR
+		GEngine.EndPIE();
+#endif
 		return;
 	}
 
 	const FSkeleton* Skel = SkelMesh->GetSkeletalMeshData()->Skeleton;
+	if (!Skel)
+	{
+		UE_LOG("AnimGraphInstance::NativeInitializeAnimation - CRITICAL ERROR: Skeleton is null!");
+		UE_LOG("  The SkeletalMesh has no skeleton.");
+
+#ifdef _EDITOR
+		GEngine.EndPIE();
+#endif
+		return;
+	}
 
 	// 모든 노드 초기화
 	UE_LOG("AnimGraphInstance::NativeInitializeAnimation - Initializing %d nodes", Nodes.Num());
@@ -86,6 +111,28 @@ void UAnimGraphInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	// 부모 클래스 업데이트
 	UAnimInstance::NativeUpdateAnimation(DeltaSeconds);
+
+	// ========================================
+	// DeltaTime Validation (Medium Priority)
+	// ========================================
+
+	// 1. Zero/Negative DeltaTime 체크
+	if (DeltaSeconds <= 0.0f)
+	{
+		UE_LOG("AnimGraphInstance::NativeUpdateAnimation - Invalid DeltaTime: %.6f (must be positive). Skipping update.", DeltaSeconds);
+		return;
+	}
+
+	// 2. Spike Detection (1초 이상은 비정상)
+	// 원인: 에디터 브레이크포인트, 백그라운드 전환, 무한루프 등
+	// 결과: Notify 누락, 위치 텔레포트, StateMachine 오동작
+	const float MaxDeltaTime = 1.0f;
+	if (DeltaSeconds > MaxDeltaTime)
+	{
+		UE_LOG("AnimGraphInstance::NativeUpdateAnimation - DeltaTime spike detected: %.6f seconds! Clamping to %.2f seconds.",
+			DeltaSeconds, MaxDeltaTime);
+		DeltaSeconds = MaxDeltaTime;
+	}
 
 	// 루트 노드 업데이트 (트리 전체 업데이트)
 	if (RootNode)
