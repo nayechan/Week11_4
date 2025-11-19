@@ -984,6 +984,287 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         }
     }
 
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
+    ImGui::Separator();
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // === Save & Load ===
+    ImGui::Text("Save & Load");
+    ImGui::Spacing();
+
+    // Save Animation (Full) - JSON
+    if (ImGui::Button("Save Animation (Full)", ImVec2(leftWidth - 20.0f, 0)))
+    {
+        if (!AnimSequence)
+        {
+            ImGui::EndChild(); // LeftPanel
+            ImGui::SameLine(0, 0);
+            ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+            ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PopStyleVar();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            return;
+        }
+
+        FString SavePath = AnimSequence->GetFilePath();
+        if (SavePath.empty())
+        {
+            SavePath = "Data/Animations/modified_anim.json";
+        }
+        else
+        {
+            size_t lastDot = SavePath.find_last_of('.');
+            if (lastDot != std::string::npos)
+            {
+                SavePath = SavePath.substr(0, lastDot) + "_modified.json";
+            }
+            else
+            {
+                SavePath += "_modified.json";
+            }
+        }
+        AnimSequence->SaveToFile(SavePath);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Save complete animation data to JSON file");
+
+    // Save Animation (.anim) - Binary
+    if (ImGui::Button("Save Animation (.anim)", ImVec2(leftWidth - 20.0f, 0)))
+    {
+        if (!AnimSequence)
+        {
+            ImGui::EndChild(); // LeftPanel
+            ImGui::SameLine(0, 0);
+            ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+            ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PopStyleVar();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            return;
+        }
+
+        FString DefaultFileName;
+        FString SourcePath = AnimSequence->GetFilePath();
+        if (!SourcePath.empty())
+        {
+            size_t lastSlash = SourcePath.find_last_of("/\\");
+            size_t lastDot = SourcePath.find_last_of('.');
+            if (lastSlash != std::string::npos && lastDot != std::string::npos && lastDot > lastSlash)
+            {
+                DefaultFileName = SourcePath.substr(lastSlash + 1, lastDot - lastSlash - 1) + ".anim";
+            }
+            else if (lastSlash != std::string::npos)
+            {
+                DefaultFileName = SourcePath.substr(lastSlash + 1) + ".anim";
+            }
+            else
+            {
+                DefaultFileName = "animation.anim";
+            }
+        }
+        else
+        {
+            DefaultFileName = "animation.anim";
+        }
+
+        OPENFILENAMEA ofn = {};
+        char szFile[260] = {};
+        strncpy_s(szFile, DefaultFileName.c_str(), sizeof(szFile) - 1);
+
+        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
+        std::string InitialDirStr = InitialDir.string();
+
+        ofn.lStructSize = sizeof(OPENFILENAMEA);
+        ofn.hwndOwner = NULL;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = "Animation Notify Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFileTitle = NULL;
+        ofn.nMaxFileTitle = 0;
+        ofn.lpstrInitialDir = InitialDirStr.c_str();
+        ofn.lpstrTitle = "Save Animation Notify Data";
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+        ofn.lpstrDefExt = "anim";
+
+        if (GetSaveFileNameA(&ofn) == TRUE)
+        {
+            FString SavePath = ofn.lpstrFile;
+            try
+            {
+                FWindowsBinWriter Writer(SavePath);
+                if (Writer.IsOpen())
+                {
+                    Writer << *AnimSequence;
+                    Writer.Close();
+
+                    FWindowsBinReader Reader(SavePath);
+                    if (Reader.IsOpen())
+                    {
+                        UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                        Reader << *LoadedAnimSeq;
+                        Reader.Close();
+
+                        LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
+                        LoadedAnimSeq->SetFilePath(SavePath);
+
+                        FString FileName = SavePath;
+                        size_t lastSlash = FileName.find_last_of("/\\");
+                        if (lastSlash != std::string::npos)
+                        {
+                            FileName = FileName.substr(lastSlash + 1);
+                        }
+                        size_t lastDot = FileName.find_last_of('.');
+                        if (lastDot != std::string::npos)
+                        {
+                            FileName = FileName.substr(0, lastDot);
+                        }
+                        LoadedAnimSeq->ObjectName = FName(FileName);
+
+                        UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
+                    }
+                }
+            }
+            catch (const std::exception& e)
+            {
+            }
+        }
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Save animation data to binary .anim file (notify, curve, etc.)");
+
+    // Load Animation (.anim) - Binary
+    if (ImGui::Button("Load Animation (.anim)", ImVec2(leftWidth - 20.0f, 0)))
+    {
+        OPENFILENAMEA ofn = {};
+        char szFile[260] = {};
+
+        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
+        std::string InitialDirStr = InitialDir.string();
+
+        ofn.lStructSize = sizeof(OPENFILENAMEA);
+        ofn.hwndOwner = NULL;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = "Animation Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFileTitle = NULL;
+        ofn.nMaxFileTitle = 0;
+        ofn.lpstrInitialDir = InitialDirStr.c_str();
+        ofn.lpstrTitle = "Load Animation from .anim file";
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+        if (GetOpenFileNameA(&ofn) == TRUE)
+        {
+            FString AnimFilePath = ofn.lpstrFile;
+            try
+            {
+                USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor ? ActiveState->PreviewActor->GetSkeletalMeshComponent() : nullptr;
+                if (!SkeletalComp || !SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
+                {
+                    ImGui::EndChild(); // LeftPanel
+                    ImGui::SameLine(0, 0);
+                    ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+                    ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PopStyleVar();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::PopStyleVar();
+                    return;
+                }
+
+                const FSkeleton* CurrentSkeleton = SkeletalComp->GetSkeletalMesh()->GetSkeleton();
+
+                FWindowsBinReader Reader(AnimFilePath);
+                if (!Reader.IsOpen())
+                {
+                    ImGui::EndChild(); // LeftPanel
+                    ImGui::SameLine(0, 0);
+                    ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+                    ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PopStyleVar();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::PopStyleVar();
+                    return;
+                }
+
+                UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                Reader << *LoadedAnimSeq;
+                Reader.Close();
+
+                LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(CurrentSkeleton);
+                LoadedAnimSeq->SetFilePath(AnimFilePath);
+
+                FString FileName = AnimFilePath;
+                size_t lastSlash = FileName.find_last_of("/\\");
+                if (lastSlash != std::string::npos)
+                {
+                    FileName = FileName.substr(lastSlash + 1);
+                }
+                size_t lastDot = FileName.find_last_of('.');
+                if (lastDot != std::string::npos)
+                {
+                    FileName = FileName.substr(0, lastDot);
+                }
+                LoadedAnimSeq->ObjectName = FName(FileName);
+
+                UResourceManager::GetInstance().Add<UAnimSequence>(AnimFilePath, LoadedAnimSeq);
+                UE_LOG("Registered in ResourceManager");
+
+                UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
+                if (SingleNodeInstance)
+                {
+                    UE_LOG("Reusing existing AnimInstance");
+                    SingleNodeInstance->SetAnimationAsset(LoadedAnimSeq);
+                }
+                else
+                {
+                    UE_LOG("Creating new AnimInstance");
+                    UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
+                    AnimInstance->SetAnimationAsset(LoadedAnimSeq);
+                    SkeletalComp->SetAnimInstance(AnimInstance);
+                }
+
+                if (UAnimSingleNodeInstance* Inst = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance))
+                {
+                    Inst->SetInteralTime(0.0f);
+                    SkeletalComp->TickAnimation(0.0f);
+                }
+
+                ActiveState->bBoneLinesDirty = true;
+                strncpy_s(ActiveState->AnimationPathBuffer, AnimFilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+
+                UE_LOG("Animation loaded successfully!");
+                UE_LOG("==========================================================");
+            }
+            catch (const std::exception& e)
+            {
+                UE_LOG("ERROR: Failed to load .anim file: %s", e.what());
+                UE_LOG("==========================================================");
+            }
+        }
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Load animation from binary .anim file");
+
     ImGui::EndChild(); // LeftPanel
 
     ImGui::SameLine(0, 0);
@@ -1342,253 +1623,6 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         sprintf_s(newTrackName, "Track %d", NotifyTracks.Num() + 1);
         NewTrack.Name = newTrackName;
         NotifyTracks.Add(NewTrack);
-    }
-
-    ImGui::Spacing();
-
-    // Save animation sequence button (전체 데이터 - 큰 파일)
-    if (ImGui::Button("Save Animation (Full)", ImVec2(LeftControlWidth - 20.0f, 0)))
-    {
-        // Generate save path: original path + "_modified.json"
-        FString SavePath = AnimSequence->GetFilePath();
-        if (SavePath.empty())
-        {
-            SavePath = "Data/Animations/modified_anim.json";
-        }
-        else
-        {
-            // Replace extension with _modified.json
-            size_t lastDot = SavePath.find_last_of('.');
-            if (lastDot != std::string::npos)
-            {
-                SavePath = SavePath.substr(0, lastDot) + "_modified.json";
-            }
-            else
-            {
-                SavePath += "_modified.json";
-            }
-        }
-
-        AnimSequence->SaveToFile(SavePath);
-    }
-
-    ImGui::Spacing();
-
-    // Save Notify Data button (Notify만 - 작은 파일, 추천)
-    if (ImGui::Button("Save Notify Data", ImVec2(LeftControlWidth - 20.0f, 0)))
-    {
-        // Generate default filename from animation path
-        FString DefaultFileName;
-        FString SourcePath = AnimSequence->GetFilePath();
-        if (!SourcePath.empty())
-        {
-            // Extract filename without extension
-            size_t lastSlash = SourcePath.find_last_of("/\\");
-            size_t lastDot = SourcePath.find_last_of('.');
-            if (lastSlash != std::string::npos && lastDot != std::string::npos && lastDot > lastSlash)
-            {
-                DefaultFileName = SourcePath.substr(lastSlash + 1, lastDot - lastSlash - 1) + ".anim";
-            }
-            else if (lastSlash != std::string::npos)
-            {
-                DefaultFileName = SourcePath.substr(lastSlash + 1) + ".anim";
-            }
-            else
-            {
-                DefaultFileName = "animation.anim";
-            }
-        }
-        else
-        {
-            DefaultFileName = "animation.anim";
-        }
-
-        // Show Save File Dialog
-        OPENFILENAMEA ofn = {};
-        char szFile[260] = {};
-
-        // Copy default filename to buffer
-        strncpy_s(szFile, DefaultFileName.c_str(), sizeof(szFile) - 1);
-
-        // Get absolute initial directory
-        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
-        std::string InitialDirStr = InitialDir.string();
-
-        ofn.lStructSize = sizeof(OPENFILENAMEA);
-        ofn.hwndOwner = NULL;
-        ofn.lpstrFile = szFile;
-        ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "Animation Notify Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
-        ofn.nFilterIndex = 1;
-        ofn.lpstrFileTitle = NULL;
-        ofn.nMaxFileTitle = 0;
-        ofn.lpstrInitialDir = InitialDirStr.c_str();
-        ofn.lpstrTitle = "Save Animation Notify Data";
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-        ofn.lpstrDefExt = "anim";
-
-        if (GetSaveFileNameA(&ofn) == TRUE)
-        {
-            FString SavePath = ofn.lpstrFile;
-
-            try
-            {
-                // 1. 바이너리로 현재 AnimSequence 저장
-                FWindowsBinWriter Writer(SavePath);
-                if (Writer.IsOpen())
-                {
-                    Writer << *AnimSequence;
-                    Writer.Close();
-
-                    // 2. 저장한 파일을 다시 로드해서 새 객체로 만들어 ResourceManager에 등록
-                    FWindowsBinReader Reader(SavePath);
-                    if (Reader.IsOpen())
-                    {
-                        UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
-                        Reader << *LoadedAnimSeq;
-                        Reader.Close();
-
-                        // Skeleton 할당
-                        LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
-                        LoadedAnimSeq->SetFilePath(SavePath);
-
-                        // Extract filename from path and set as Name
-                        FString FileName = SavePath;
-                        size_t lastSlash = FileName.find_last_of("/\\");
-                        if (lastSlash != std::string::npos)
-                        {
-                            FileName = FileName.substr(lastSlash + 1);
-                        }
-                        // Remove .anim extension
-                        size_t lastDot = FileName.find_last_of('.');
-                        if (lastDot != std::string::npos)
-                        {
-                            FileName = FileName.substr(0, lastDot);
-                        }
-                        LoadedAnimSeq->ObjectName = FName(FileName);
-
-                        // ResourceManager에 등록 (Compatible Animations에 표시되도록)
-                        UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
-                    }
-                }
-            }
-            catch (const std::exception& e)
-            {
-            }
-        }
-    }
-
-    // Load Animation from .anim file (바이너리 AnimSequence 에셋 로드)
-    if (ImGui::Button("Load Animation (.anim)", ImVec2(LeftControlWidth - 20.0f, 0)))
-    {
-        // Show Open File Dialog
-        OPENFILENAMEA ofn = {};
-        char szFile[260] = {};
-
-        // Get absolute initial directory
-        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
-        std::string InitialDirStr = InitialDir.string();
-
-        ofn.lStructSize = sizeof(OPENFILENAMEA);
-        ofn.hwndOwner = NULL;
-        ofn.lpstrFile = szFile;
-        ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "Animation Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
-        ofn.nFilterIndex = 1;
-        ofn.lpstrFileTitle = NULL;
-        ofn.nMaxFileTitle = 0;
-        ofn.lpstrInitialDir = InitialDirStr.c_str();
-        ofn.lpstrTitle = "Load Animation from .anim file";
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-        if (GetOpenFileNameA(&ofn) == TRUE)
-        {
-            FString AnimFilePath = ofn.lpstrFile;
-
-            try
-            {
-                // 1. 현재 Mesh의 Skeleton 가져오기
-                USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor ? ActiveState->PreviewActor->GetSkeletalMeshComponent() : nullptr;
-                if (!SkeletalComp || !SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
-                {
-                    return;
-                }
-
-                const FSkeleton* CurrentSkeleton = SkeletalComp->GetSkeletalMesh()->GetSkeleton();
-
-                // 2. 바이너리 파일에서 AnimSequence 역직렬화
-                FWindowsBinReader Reader(AnimFilePath);
-                if (!Reader.IsOpen())
-                {
-                    return;
-                }
-
-                UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
-                Reader << *LoadedAnimSeq;
-                Reader.Close();
-
-                // 3. Skeleton 포인터 설정 (바이너리에는 저장 안 됨)
-                LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(CurrentSkeleton);
-                LoadedAnimSeq->SetFilePath(AnimFilePath);
-
-                // Extract filename from path and set as Name
-                FString FileName = AnimFilePath;
-                size_t lastSlash = FileName.find_last_of("/\\");
-                if (lastSlash != std::string::npos)
-                {
-                    FileName = FileName.substr(lastSlash + 1);
-                }
-                // Remove .anim extension
-                size_t lastDot = FileName.find_last_of('.');
-                if (lastDot != std::string::npos)
-                {
-                    FileName = FileName.substr(0, lastDot);
-                }
-                LoadedAnimSeq->ObjectName = FName(FileName);
-
-                // 4. ResourceManager에 등록 (Compatible Animations에 표시되도록)
-                UResourceManager::GetInstance().Add<UAnimSequence>(AnimFilePath, LoadedAnimSeq);
-                UE_LOG("Registered in ResourceManager");
-
-                // 5. AnimInstance에 설정
-                UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
-                if (SingleNodeInstance)
-                {
-                    // 기존 AnimInstance 재사용
-                    UE_LOG("Reusing existing AnimInstance");
-                    SingleNodeInstance->SetAnimationAsset(LoadedAnimSeq);
-                }
-                else
-                {
-                    // 새로운 AnimInstance 생성
-                    UE_LOG("Creating new AnimInstance");
-                    UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
-                    AnimInstance->SetAnimationAsset(LoadedAnimSeq);
-                    SkeletalComp->SetAnimInstance(AnimInstance);
-                }
-
-                // Set to frame 0
-                if (UAnimSingleNodeInstance* Inst = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance))
-                {
-                    Inst->SetInteralTime(0.0f);
-                    SkeletalComp->TickAnimation(0.0f);
-                }
-
-                // Bone lines dirty
-                ActiveState->bBoneLinesDirty = true;
-
-                // Animation path buffer 업데이트
-                strncpy_s(ActiveState->AnimationPathBuffer, AnimFilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
-
-                UE_LOG("Animation loaded successfully!");
-                UE_LOG("==========================================================");
-            }
-            catch (const std::exception& e)
-            {
-                UE_LOG("ERROR: Failed to load .anim file: %s", e.what());
-                UE_LOG("==========================================================");
-            }
-        }
     }
 
     // Delete key: Remove selected notify

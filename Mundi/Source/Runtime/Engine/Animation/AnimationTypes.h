@@ -186,10 +186,17 @@ struct FFloatCurve
 	FFloatCurve(const FName& InName)
 		: CurveName(InName), DefaultValue(0.0f) {}
 
+	// 명시적 소멸자 - orphan 방지
+	~FFloatCurve()
+	{
+		Keys.clear();
+	}
+
 	// 시간에 따른 값 평가 (선형 보간)
 	float Evaluate(float Time) const
 	{
-		if (Keys.IsEmpty())
+		// Safety check: empty or invalid Keys array
+		if (Keys.IsEmpty() || Keys.Num() == 0)
 			return DefaultValue;
 
 		// 첫 키프레임 이전
@@ -197,7 +204,7 @@ struct FFloatCurve
 			return Keys[0].Value;
 
 		// 마지막 키프레임 이후
-		if (Time >= Keys[Keys.Num() - 1].Time)
+		if (Keys.Num() > 0 && Time >= Keys[Keys.Num() - 1].Time)
 			return Keys[Keys.Num() - 1].Value;
 
 		// 두 키프레임 사이 보간
@@ -239,6 +246,12 @@ struct FFloatCurve
 struct FAnimationCurveData
 {
 	TArray<FFloatCurve> FloatCurves;  // Float 커브 배열
+
+	// 명시적 소멸자 - orphan 방지
+	~FAnimationCurveData()
+	{
+		FloatCurves.clear();
+	}
 
 	// 커브 찾기
 	FFloatCurve* FindCurve(const FName& CurveName)
@@ -299,11 +312,33 @@ struct FAnimationCurveData
 	{
 		if (Ar.IsSaving())
 		{
-			Serialization::WriteArray(Ar, Data.FloatCurves);
+			// FFloatCurve는 std::vector를 포함하므로 raw memory copy 불가
+			// 각 Curve를 개별적으로 직렬화해야 함
+			uint32 Count = static_cast<uint32>(Data.FloatCurves.size());
+			Ar << Count;
+			for (auto& Curve : Data.FloatCurves)
+			{
+				Ar << Curve;
+			}
 		}
 		else if (Ar.IsLoading())
 		{
-			Serialization::ReadArray(Ar, Data.FloatCurves);
+			// FFloatCurve는 std::vector를 포함하므로 raw memory copy 불가
+			// 각 Curve를 개별적으로 역직렬화해야 함
+			uint32 Count;
+			Ar << Count;
+
+			// Sanity check
+			if (Count > Serialization::MAX_REASONABLE_ARRAY_SIZE)
+			{
+				throw std::runtime_error("Cache corrupt: FloatCurves count is unreasonable.");
+			}
+
+			Data.FloatCurves.resize(Count);
+			for (uint32 i = 0; i < Count; ++i)
+			{
+				Ar << Data.FloatCurves[i];
+			}
 		}
 		return Ar;
 	}
