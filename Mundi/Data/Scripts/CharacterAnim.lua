@@ -98,7 +98,7 @@ end
 function LuaUpdateAnimation(deltaTime)
     -- Update gameplay variables only
     -- Transition logic is handled by CharacterSM.lua (LuaProcessState)
-    UpdateMovementVariables()
+    UpdateMovementVariables(deltaTime)
 
     -- NOTE: Node->Update() is automatically called by UAnimGraphInstance::NativeUpdateAnimation()
     -- UAnimNode_StateMachine->Update() calls StateMachine->Update()
@@ -110,7 +110,7 @@ end
 -- ========================================
 -- Movement Variables Update
 -- ========================================
-function UpdateMovementVariables()
+function UpdateMovementVariables(deltaTime)
     if not self.OwnerComponent then
         Vars["Speed"] = 0.0
         return
@@ -124,7 +124,7 @@ function UpdateMovementVariables()
     -- end
 
     -- Test simulation (sine wave)
-    testTime = testTime + 0.0003
+    testTime = testTime + deltaTime
     Vars["Speed"] = 200.0 * math.sin(testTime)
 
     Vars["bIsInAir"] = false
