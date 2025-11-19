@@ -42,6 +42,23 @@ UAnimNode* UAnimGraphInstance::CreateNodeByName(const FString& NodeTypeName)
 	// 생명주기 관리 등록
 	Nodes.Add(Node);
 
+	// ⭐ 노드 초기화 (Lua에서 동적 생성 시 필요)
+	// NativeInitializeAnimation()이 이미 호출된 후에 CreateNodeByName()이 호출될 수 있으므로
+	// 여기서 직접 Initialize() 호출
+	if (OwnerComponent && OwnerComponent->GetSkeletalMesh())
+	{
+		const USkeletalMesh* SkelMesh = OwnerComponent->GetSkeletalMesh();
+		if (SkelMesh && SkelMesh->GetSkeletalMeshData())
+		{
+			const FSkeleton* Skel = SkelMesh->GetSkeletalMeshData()->Skeleton;
+			if (Skel)
+			{
+				Node->Initialize(Skel, this);
+				UE_LOG("AnimGraphInstance::CreateNodeByName - Initialized node: %s", Node->GetNodeName().c_str());
+			}
+		}
+	}
+
 	UE_LOG("AnimGraphInstance::CreateNodeByName - Created node: %s", NodeTypeName.c_str());
 	return Node;
 }
