@@ -115,7 +115,7 @@ end
 -- ========================================
 function LuaUpdateAnimation(deltaTime)
     -- Update gameplay variables
-    UpdateMovementVariables()
+    UpdateMovementVariables(deltaTime)
 
     -- Update BlendSpace parameter
     -- CurrentParameter drives the blending
@@ -132,7 +132,7 @@ end
 -- ========================================
 -- Movement Variables Update
 -- ========================================
-function UpdateMovementVariables()
+function UpdateMovementVariables(deltaTime)
     if not self.OwnerComponent then
         Vars["Speed"] = 0.0
         return
@@ -148,7 +148,7 @@ function UpdateMovementVariables()
 
     -- Test simulation (sine wave)
     -- Sine: -1.0 ~ +1.0 → 절댓값 → 0.0 ~ 1.0 → *10 → 0.0 ~ 10.0
-    testTime = testTime + 0.0003
+    testTime = testTime + deltaTime / 10.0
     local sineValue = math.sin(testTime)
     Vars["Speed"] = math.abs(sineValue) * 10.0
 
