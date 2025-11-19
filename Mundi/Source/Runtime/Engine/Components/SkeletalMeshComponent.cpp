@@ -323,6 +323,33 @@ void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
     }
 }
 
+void USkeletalMeshComponent::HandleAnimNotifyBegin(const FAnimNotifyEvent& Notify)
+{
+    AActor* Owner = GetOwner();
+    if (Owner)
+    {
+        Owner->HandleAnimNotifyBegin(Notify);
+    }
+}
+
+void USkeletalMeshComponent::HandleAnimNotifyTick(const FAnimNotifyEvent& Notify, float DeltaTime)
+{
+    AActor* Owner = GetOwner();
+    if (Owner)
+    {
+        Owner->HandleAnimNotifyTick(Notify, DeltaTime);
+    }
+}
+
+void USkeletalMeshComponent::HandleAnimNotifyEnd(const FAnimNotifyEvent& Notify)
+{
+    AActor* Owner = GetOwner();
+    if (Owner)
+    {
+        Owner->HandleAnimNotifyEnd(Notify);
+    }
+}
+
 void USkeletalMeshComponent::HandleAnimCurve(const FName& CurveName, float CurveValue)
 {
     AActor* Owner = GetOwner();

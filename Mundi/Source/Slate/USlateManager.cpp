@@ -255,7 +255,7 @@ void USlateManager::OpenAnimSequenceEditor()
     AnimSequenceEditorWindow->Initialize(x, y, w, h, World, Device);
 }
 
-void USlateManager::OpenAnimSequenceEditorWithFile(const char* FilePath)
+void USlateManager::OpenAnimSequenceEditorWithFile(const char* FilePath, const char* MeshPath)
 {
     // 에디터가 이미 열려있으면 그냥 사용, 아니면 새로 열기
     if (!AnimSequenceEditorWindow)
@@ -266,8 +266,15 @@ void USlateManager::OpenAnimSequenceEditorWithFile(const char* FilePath)
     // Load the animation file into the editor
     if (AnimSequenceEditorWindow && FilePath && FilePath[0] != '\0')
     {
-        AnimSequenceEditorWindow->LoadAnimationFile(FilePath);
-        UE_LOG("Opening AnimSequenceEditor with file: %s", FilePath);
+        // MeshPath가 있으면 먼저 메시 로드
+        if (MeshPath && MeshPath[0] != '\0')
+        {
+            AnimSequenceEditorWindow->LoadAnimationFile(FilePath, MeshPath);
+        }
+        else
+        {
+            AnimSequenceEditorWindow->LoadAnimationFile(FilePath);
+        }
     }
 }
 

@@ -1228,6 +1228,27 @@ bool UPropertyRenderer::RenderAnimSequenceProperty(const FProperty& Prop, void* 
 		}
 	}
 
+	// Anim Editor button
+	if (ImGui::Button("Anim Editor"))
+	{
+		if (!USlateManager::GetInstance().IsAnimSequenceEditorOpen())
+		{
+			// Open editor with the currently selected animation if available
+			if (!CurrentPath.empty())
+			{
+				USlateManager::GetInstance().OpenAnimSequenceEditorWithFile(CurrentPath.c_str());
+			}
+			else
+			{
+				USlateManager::GetInstance().OpenAnimSequenceEditor();
+			}
+		}
+		else
+		{
+			USlateManager::GetInstance().CloseAnimSequenceEditor();
+		}
+	}
+
 	ImGui::SetNextItemWidth(240);
 	if (ImGui::Combo(Prop.Name, &SelectedIdx, &ItemsGetter, (void*)&CachedAnimSequenceItems, static_cast<int>(CachedAnimSequenceItems.size())))
 	{
@@ -2467,6 +2488,38 @@ bool UPropertyRenderer::RenderAnimSequencePropertyWithFilter(
 			ImGui::TextUnformatted(CurrentPath.c_str());
 			ImGui::EndTooltip();
 		}
+	}
+
+	// Anim Editor 버튼 (콤보박스 오른쪽에)
+	ImGui::SameLine();
+	if (ImGui::Button("Anim Editor"))
+	{
+		if (!CurrentPath.empty())
+		{
+			// 메시 경로 가져오기 (CachedSkeletalMeshPaths에서 찾기)
+			FString MeshPath;
+			USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(static_cast<UObject*>(Instance));
+			if (SkelComp && SkelComp->GetSkeletalMesh())
+			{
+				USkeletalMesh* CurrentMesh = SkelComp->GetSkeletalMesh();
+				for (int i = 0; i < static_cast<int>(CachedSkeletalMeshPaths.size()); ++i)
+				{
+					USkeletalMesh* CachedMesh = UResourceManager::GetInstance().Get<USkeletalMesh>(CachedSkeletalMeshPaths[i]);
+					if (CachedMesh == CurrentMesh)
+					{
+						MeshPath = CachedSkeletalMeshPaths[i];
+						break;
+					}
+				}
+			}
+			USlateManager::GetInstance().OpenAnimSequenceEditorWithFile(CurrentPath.c_str(), MeshPath.c_str());
+		}
+	}
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		ImGui::TextUnformatted("Open this animation in the Animation Editor");
+		ImGui::EndTooltip();
 	}
 
 	return false;

@@ -56,6 +56,11 @@ public:
     // AnimNotify 핸들링 (발제 문서 구조)
     void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
+    // AnimNotify (Duration > 0) Begin/Tick/End 핸들링
+    void HandleAnimNotifyBegin(const FAnimNotifyEvent& Notify);
+    void HandleAnimNotifyTick(const FAnimNotifyEvent& Notify, float DeltaTime);
+    void HandleAnimNotifyEnd(const FAnimNotifyEvent& Notify);
+
     // AnimCurve 핸들링 (Notify와 동일한 패턴)
     void HandleAnimCurve(const FName& CurveName, float CurveValue);
 

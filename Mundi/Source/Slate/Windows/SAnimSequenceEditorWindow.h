@@ -23,7 +23,7 @@ public:
     virtual void OnMouseUp(FVector2D MousePos, uint32 Button);
 
     // Public file operations (called from USlateManager)
-    void LoadAnimationFile(const FString& FilePath);
+    void LoadAnimationFile(const FString& FilePath, const FString& MeshPath = "");
     void SaveAnimationFile(const FString& FilePath);
 
 private:

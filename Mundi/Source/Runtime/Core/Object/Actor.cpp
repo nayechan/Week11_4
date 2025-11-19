@@ -794,6 +794,24 @@ void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 	}
 }
 
+void AActor::HandleAnimNotifyBegin(const FAnimNotifyEvent& Notify)
+{
+	// Duration > 0인 Notify 시작 시 호출
+	// 하위 클래스에서 오버라이드하여 사용
+}
+
+void AActor::HandleAnimNotifyTick(const FAnimNotifyEvent& Notify, float DeltaTime)
+{
+	// Duration > 0인 Notify 진행 중 매 프레임 호출
+	// 하위 클래스에서 오버라이드하여 사용
+}
+
+void AActor::HandleAnimNotifyEnd(const FAnimNotifyEvent& Notify)
+{
+	// Duration > 0인 Notify 종료 시 호출
+	// 하위 클래스에서 오버라이드하여 사용
+}
+
 void AActor::HandleAnimCurve(const FName& CurveName, float CurveValue)
 {
 	if (CurveName == FName("NewNotify"))

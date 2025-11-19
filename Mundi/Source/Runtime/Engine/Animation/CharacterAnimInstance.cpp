@@ -96,7 +96,7 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 	}
 
 	// 샘플 추가 (Speed 기반 블렌딩)
-	// Sample Value: 0.0 = Idle, 0.5 = Walk, 1.0 = Run
+	// Sample Value: 0.0 = Idle, 0.2 = Walk, 1.0 = Run
 	if (IdleAnimation)
 	{
 		LocomotionBlendSpace->AddSample(0.0f, IdleAnimation);
@@ -105,7 +105,7 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 
 	if (WalkAnimation)
 	{
-		LocomotionBlendSpace->AddSample(0.5f, WalkAnimation);
+		LocomotionBlendSpace->AddSample(0.2f, WalkAnimation);
 		UE_LOG("CharacterAnimInstance: Added Walk sample at 0.5");
 	}
 
@@ -178,12 +178,13 @@ void UCharacterAnimInstance::UpdateMovementVariables()
 	if (Character)
 	{
 		// Character에서 실제 속도 가져오기
+		// TODO : Speed 0~1 사이로 정규화하기
 		float RawSpeed = Character->GetSpeed();
 
 		// Speed를 0.0 ~ 1.0 범위로 정규화
-		// 0.0 = Idle, 0.5 = Walk, 1.0 = Run
+		// 0.0 = Idle, 0.2 = Walk, 1.0 = Run
 		// 가정: RawSpeed 0~1 범위가 이미 정규화된 값
-		Speed = FMath::Clamp(RawSpeed, 0.0f, 1.0f);
+		Speed = FMath::Clamp(RawSpeed/4.0f, 0.0f, 1.0f);
 
 		// TODO: 점프/낙하 감지
 		bIsInAir = false;

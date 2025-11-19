@@ -85,7 +85,7 @@ public:
 
     // Animation Sequence Editor (detached window) - Ctrl+Shift+B
     void OpenAnimSequenceEditor();
-    void OpenAnimSequenceEditorWithFile(const char* FilePath);
+    void OpenAnimSequenceEditorWithFile(const char* FilePath, const char* MeshPath = nullptr);
     void CloseAnimSequenceEditor();
     bool IsAnimSequenceEditorOpen() const { return AnimSequenceEditorWindow != nullptr; }
 
