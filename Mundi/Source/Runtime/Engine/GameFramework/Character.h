@@ -26,13 +26,10 @@ public:
 	bool IsUseControllerRotationYaw() const { return bUseControllerRotationYaw; }
 
 private:
-	UPROPERTY(LuaReadWrite)
 	UCapsuleComponent* CapsuleComponent = nullptr;
 
-	UPROPERTY(LuaReadWrite)
 	UCharacterMovementComponent* CharacterMovementComponent = nullptr; 
 	 
-	UPROPERTY(LuaReadWrite)
 	USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
 
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category = "Parameter", Tooltip = "캐릭터가 항상 카메라가 바라보는 방향을 바라봅니다")

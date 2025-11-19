@@ -124,6 +124,12 @@ void FSkeletalMeshComponentCustomization::RenderSkeletonSelector()
 {
 	if (!CurrentComponent) return;
 
+	// AnimationMode가 AnimationSingleNode가 아니면 Skeleton 섹션을 렌더링하지 않음
+	if (CurrentComponent->AnimationMode != EAnimationMode::AnimationSingleNode)
+	{
+		return;
+	}
+
 	// SkeletalMesh와 AnimToPlay가 모두 설정되지 않은 경우 Skeleton 섹션을 렌더링하지 않음
 	if (!CurrentComponent->GetSkeletalMesh() && !CurrentComponent->AnimToPlay)
 	{
@@ -210,5 +216,26 @@ void FSkeletalMeshComponentCustomization::OnSkeletonChanged(FSkeleton* NewSkelet
 	{
 		CurrentComponent->AnimToPlay = nullptr;
 		UE_LOG("AnimToPlay cleared: incompatible with new Skeleton");
+	}
+
+	// 5. Skeleton 변경사항 저장
+	// SkeletalMesh의 Skeleton 오버라이드 저장
+	if (Mesh && !Mesh->GetFilePath().empty())
+	{
+		FString OverridePath = Mesh->GetFilePath() + ".skeleton";
+		if (Mesh->SaveOverrideData(OverridePath))
+		{
+			UE_LOG("Saved mesh skeleton override: %s", OverridePath.c_str());
+		}
+	}
+
+	// AnimToPlay의 Skeleton 오버라이드 저장
+	if (Anim && !Anim->GetFilePath().empty())
+	{
+		FString OverridePath = Anim->GetFilePath() + ".skeleton";
+		if (Anim->SaveOverrideData(OverridePath))
+		{
+			UE_LOG("Saved animation skeleton override: %s", OverridePath.c_str());
+		}
 	}
 }

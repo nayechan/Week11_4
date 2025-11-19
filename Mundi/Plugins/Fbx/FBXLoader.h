@@ -41,9 +41,10 @@ public:
 	 * 기존 리소스 확인 후 없으면 LoadFbxMeshAsset() 호출
 	 *
 	 * @param FilePath - FBX 파일 경로
+	 * @param bLoadOverride - .skeleton 오버라이드 파일 자동 로드 여부 (기본값 true)
 	 * @return 로드된 USkeletalMesh (실패 시 nullptr)
 	 */
-	USkeletalMesh* LoadFbxMesh(const FString& FilePath);
+	USkeletalMesh* LoadFbxMesh(const FString& FilePath, bool bLoadOverride = true);
 
 	/**
 	 * LoadFbxMeshAsset
@@ -73,9 +74,10 @@ public:
 	 *
 	 * @param FilePath - FBX 파일 경로
 	 * @param TargetSkeleton - 타겟 스켈레톤 (본 매칭용)
+	 * @param bLoadOverride - .skeleton 오버라이드 파일 자동 로드 여부 (기본값 true)
 	 * @return 로드된 UAnimSequence (실패 시 nullptr)
 	 */
-	UAnimSequence* LoadFbxAnimation(const FString& FilePath, const FSkeleton* TargetSkeleton);
+	UAnimSequence* LoadFbxAnimation(const FString& FilePath, const FSkeleton* TargetSkeleton, bool bLoadOverride = true);
 
 protected:
 	~UFbxLoader() override;

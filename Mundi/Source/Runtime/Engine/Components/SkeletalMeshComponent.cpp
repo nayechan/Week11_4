@@ -7,6 +7,8 @@
 #include "AnimationTypes.h"
 #include "ResourceManager.h"
 #include "CharacterAnimInstance.h"
+#include "FbxLoader.h"
+#include "JsonSerializer.h"
 
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
@@ -331,4 +333,41 @@ void USkeletalMeshComponent::TickAnimation(float DeltaTime)
 
     // 스키닝 업데이트
     ForceRecomputePose();
+}
+
+void USkeletalMeshComponent::Serialize(const bool bInIsLoading, JSON& InOutHandle)
+{
+    Super::Serialize(bInIsLoading, InOutHandle);
+
+    // AnimToPlay 직렬화 (AnimSequence는 FbxLoader를 통해 로드됨)
+    if (bInIsLoading)
+    {
+        FString AnimPath;
+        if (FJsonSerializer::ReadString(InOutHandle, "AnimToPlay", AnimPath, "", false) && !AnimPath.empty())
+        {
+            // FBX 파일에서 애니메이션 로드
+            // TargetSkeleton은 애니메이션 로드 후 나중에 설정될 수 있음
+            AnimToPlay = UFbxLoader::GetInstance().LoadFbxAnimation(AnimPath, nullptr);
+            if (AnimToPlay)
+            {
+                UE_LOG("Loaded AnimToPlay: %s", AnimPath.c_str());
+            }
+            else
+            {
+                UE_LOG("Warning: Failed to load AnimToPlay: %s", AnimPath.c_str());
+            }
+        }
+    }
+    else
+    {
+        // AnimToPlay 저장
+        if (AnimToPlay)
+        {
+            InOutHandle["AnimToPlay"] = AnimToPlay->GetFilePath().c_str();
+        }
+        else
+        {
+            InOutHandle["AnimToPlay"] = "";
+        }
+    }
 }
