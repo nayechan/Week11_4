@@ -105,6 +105,45 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			}
 		}
 		FJsonSerializer::ReadInt32(InOutHandle, "NextTrackID", NextTrackID, 1, false);
+
+		// CurveData 로드
+		JSON CurveDataJson;
+		if (FJsonSerializer::ReadArray(InOutHandle, "FloatCurves", CurveDataJson, nullptr, false))
+		{
+			CurveData.FloatCurves.clear();
+			CurveData.FloatCurves.reserve(CurveDataJson.size());  // 메모리 미리 할당
+
+			for (uint32 i = 0; i < static_cast<uint32>(CurveDataJson.size()); ++i)
+			{
+				JSON CurveJson = CurveDataJson.at(i);
+
+				FFloatCurve Curve;
+				FString CurveNameStr;
+				FJsonSerializer::ReadString(CurveJson, "CurveName", CurveNameStr, "", false);
+				Curve.CurveName = FName(CurveNameStr.c_str());
+				FJsonSerializer::ReadFloat(CurveJson, "DefaultValue", Curve.DefaultValue, 0.0f, false);
+
+				// Keys 로드
+				JSON KeysJson;
+				if (FJsonSerializer::ReadArray(CurveJson, "Keys", KeysJson, nullptr, false))
+				{
+					// ❌ Curve.Keys.clear() 제거 - 이미 빈 상태
+					Curve.Keys.reserve(KeysJson.size());  // 메모리 미리 할당
+
+					for (uint32 j = 0; j < static_cast<uint32>(KeysJson.size()); ++j)
+					{
+						JSON KeyJson = KeysJson.at(j);
+						FFloatKey Key;
+						FJsonSerializer::ReadFloat(KeyJson, "Time", Key.Time, 0.0f, false);
+						FJsonSerializer::ReadFloat(KeyJson, "Value", Key.Value, 0.0f, false);
+						Curve.Keys.Add(Key);
+					}
+				}
+
+				// ✅ std::move 사용 - 복사 대신 이동 (orphan 방지)
+				CurveData.FloatCurves.Add(std::move(Curve));
+			}
+		}
 	}
 	else
 	{
@@ -137,5 +176,28 @@ void UAnimSequenceBase::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		}
 		InOutHandle["NotifyTracks"] = TracksArray;
 		InOutHandle["NextTrackID"] = NextTrackID;
+
+		// CurveData 저장
+		JSON FloatCurvesArray = JSON::Make(JSON::Class::Array);
+		for (const FFloatCurve& Curve : CurveData.FloatCurves)
+		{
+			JSON CurveJson;
+			CurveJson["CurveName"] = Curve.CurveName.ToString();
+			CurveJson["DefaultValue"] = Curve.DefaultValue;
+
+			// Keys 저장
+			JSON KeysArray = JSON::Make(JSON::Class::Array);
+			for (const FFloatKey& Key : Curve.Keys)
+			{
+				JSON KeyJson;
+				KeyJson["Time"] = Key.Time;
+				KeyJson["Value"] = Key.Value;
+				KeysArray.append(KeyJson);
+			}
+			CurveJson["Keys"] = KeysArray;
+
+			FloatCurvesArray.append(CurveJson);
+		}
+		InOutHandle["FloatCurves"] = FloatCurvesArray;
 	}
 }

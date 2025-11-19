@@ -9,11 +9,15 @@ public:
 	GENERATED_REFLECTION_BODY()
 
 	UAnimSequenceBase() = default;
-	~UAnimSequenceBase() = default;
+	virtual ~UAnimSequenceBase() = default;
 
 	// Notify 이벤트 배열 (발제 문서 요구사항)
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션|Notify]", Tooltip="애니메이션 알림 이벤트")
 	TArray<FAnimNotifyEvent> Notifies;
+
+	// Animation Curve Data (UAnimDataModel 호환)
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션|Curve]", Tooltip="커스텀 Float 커브 데이터")
+	FAnimationCurveData CurveData;
 
 	// Notify 트랙 정보 (UI 레이아웃용)
 	struct FNotifyTrack

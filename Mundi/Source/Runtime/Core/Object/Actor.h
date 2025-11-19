@@ -40,6 +40,9 @@ public:
     // 애니메이션 Notify 처리
     virtual void HandleAnimNotify(const struct FAnimNotifyEvent& Notify);
 
+    // 애니메이션 Curve 처리
+    virtual void HandleAnimCurve(const FName& CurveName, float CurveValue);
+
     void SetTag(const FString& InTag) { Tag = InTag; }
     const FString& GetTag() const { return Tag; }
 

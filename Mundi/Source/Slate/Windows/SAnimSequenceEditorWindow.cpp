@@ -17,6 +17,7 @@
 #include "Source/Runtime/Engine/Collision/Picking.h"
 #include "Source/Runtime/Engine/GameFramework/CameraActor.h"
 #include "FBXLoader.h"
+#include "FbxManager.h"
 #include "AnimInstance.h"
 #include "AnimSingleNodeInstance.h"
 #include "AnimSequence.h"
@@ -26,6 +27,7 @@
 #include "SkeletalMeshComponent.h"
 #include "WindowsBinWriter.h"
 #include "WindowsBinReader.h"
+#include "ObjectIterator.h"
 #include <filesystem>
 #include <fstream>
 
@@ -263,8 +265,6 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::InputTextWithHint("##MeshPath", "Browse for FBX file...", ActiveState->MeshPathBuffer, sizeof(ActiveState->MeshPathBuffer));
     ImGui::PopItemWidth();
 
-    ImGui::Spacing();
-
     // Buttons
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.40f, 0.55f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.50f, 0.70f, 1.0f));
@@ -305,8 +305,6 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::PushItemWidth(-1.0f);
     ImGui::InputTextWithHint("##AnimPath", "Browse for FBX file...", ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer));
     ImGui::PopItemWidth();
-
-    ImGui::Spacing();
 
     // Animation Buttons
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.40f, 0.55f, 1.0f));
@@ -367,6 +365,348 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::TextDisabled("Anim: None");
     }
     ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
+    ImGui::Separator();
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // === Skeleton Swapping Section ===
+    // IMPORTANT: 이 섹션은 화면과 완전히 독립적이며, 오직 MeshPathBuffer, AnimationPathBuffer, TargetSkeleton만 사용합니다.
+    // 화면 적용 함수(LoadSkeletalMesh, SetAnimationAsset 등)는 절대 호출하지 않습니다.
+
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
+    ImGui::Text("Skeleton Swapping");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // TargetSkeleton 초기화: MeshPathBuffer 또는 AnimationPathBuffer 기반
+    ActiveState->TargetSkeleton = nullptr;
+    if (ActiveState->MeshPathBuffer[0] != '\0')
+    {
+        // MeshPathBuffer에 경로가 있으면 해당 메시의 Skeleton 사용
+        FString MeshPath = ActiveState->MeshPathBuffer;
+        USkeletalMesh* Mesh = UResourceManager::GetInstance().Get<USkeletalMesh>(MeshPath);
+        if (Mesh)
+        {
+            ActiveState->TargetSkeleton = const_cast<FSkeleton*>(Mesh->GetSkeleton());
+        }
+    }
+    else if (ActiveState->AnimationPathBuffer[0] != '\0')
+    {
+        // AnimationPathBuffer에 경로가 있으면 해당 애니메이션의 Skeleton 사용
+        FString AnimPath = ActiveState->AnimationPathBuffer;
+        UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
+        if (Anim)
+        {
+            ActiveState->TargetSkeleton = Anim->Skeleton;
+        }
+    }
+
+    // 1. Skeletal Mesh ComboBox
+    ImGui::Text("Skeletal Mesh");
+    {
+        TArray<USkeletalMesh*> AllMeshes = UResourceManager::GetInstance().GetAll<USkeletalMesh>();
+        TArray<USkeletalMesh*> UniqueMeshes;
+        TArray<const char*> MeshItems;
+        UniqueMeshes.Add(nullptr);
+        MeshItems.Add("None");
+
+        for (USkeletalMesh* Mesh : AllMeshes)
+        {
+            if (Mesh && !Mesh->GetFilePath().empty())
+            {
+                bool bAlreadyAdded = false;
+                for (USkeletalMesh* ExistingMesh : UniqueMeshes)
+                {
+                    if (ExistingMesh && ExistingMesh->GetFilePath() == Mesh->GetFilePath())
+                    {
+                        bAlreadyAdded = true;
+                        break;
+                    }
+                }
+                if (!bAlreadyAdded)
+                {
+                    UniqueMeshes.Add(Mesh);
+                    FString DisplayName = Mesh->GetFilePath();
+                    size_t lastSlash = DisplayName.find_last_of("/\\");
+                    if (lastSlash != std::string::npos)
+                    {
+                        DisplayName = DisplayName.substr(lastSlash + 1);
+                    }
+                    MeshItems.Add(_strdup(DisplayName.c_str()));
+                }
+            }
+        }
+
+        // 현재 선택: MeshPathBuffer 기반
+        int CurrentMeshIdx = 0;
+        if (ActiveState->MeshPathBuffer[0] != '\0')
+        {
+            FString BufferPath = ActiveState->MeshPathBuffer;
+            for (int i = 0; i < UniqueMeshes.Num(); ++i)
+            {
+                if (UniqueMeshes[i] && UniqueMeshes[i]->GetFilePath() == BufferPath)
+                {
+                    CurrentMeshIdx = i;
+                    break;
+                }
+            }
+        }
+
+        ImGui::SetNextItemWidth(240);
+        if (ImGui::Combo("##SkeletalMesh", &CurrentMeshIdx, MeshItems.data(), static_cast<int>(MeshItems.size())))
+        {
+            // Swapping: MeshPathBuffer 업데이트만, 화면 적용 금지
+            if (CurrentMeshIdx > 0 && CurrentMeshIdx < UniqueMeshes.Num())
+            {
+                USkeletalMesh* SelectedMesh = UniqueMeshes[CurrentMeshIdx];
+                if (SelectedMesh)
+                {
+                    FString MeshPath = SelectedMesh->GetFilePath();
+                    strncpy_s(ActiveState->MeshPathBuffer, sizeof(ActiveState->MeshPathBuffer),
+                              MeshPath.c_str(), _TRUNCATE);
+
+                    // 자동으로 TargetSkeleton 설정
+                    ActiveState->TargetSkeleton = const_cast<FSkeleton*>(SelectedMesh->GetSkeleton());
+
+                    UE_LOG("[Swapping] SkeletalMesh buffer set to: %s (NOT applied to screen)", MeshPath.c_str());
+                }
+            }
+            else if (CurrentMeshIdx == 0)
+            {
+                // Clear
+                ActiveState->MeshPathBuffer[0] = '\0';
+                // TargetSkeleton은 AnimationPathBuffer 기반으로 재설정될 것임
+                UE_LOG("[Swapping] SkeletalMesh buffer cleared");
+            }
+        }
+
+        for (int i = 1; i < MeshItems.Num(); ++i)
+        {
+            free(const_cast<char*>(MeshItems[i]));
+        }
+    }
+
+    ImGui::Spacing();
+
+    // 2. Skeleton ComboBox
+    ImGui::Text("Skeleton");
+    {
+        TArray<FString> AllSkeletonNames = FFbxManager::GetAllSkeletonNames();
+        TArray<const char*> SkeletonItems;
+        SkeletonItems.Add("None");
+
+        // 현재 선택: TargetSkeleton 기반
+        int CurrentSkeletonIdx = 0;
+        for (int i = 0; i < AllSkeletonNames.Num(); ++i)
+        {
+            SkeletonItems.Add(AllSkeletonNames[i].c_str());
+            if (ActiveState->TargetSkeleton && AllSkeletonNames[i] == ActiveState->TargetSkeleton->Name)
+            {
+                CurrentSkeletonIdx = i + 1;
+            }
+        }
+
+        ImGui::SetNextItemWidth(240);
+        if (ImGui::Combo("##Skeleton", &CurrentSkeletonIdx, SkeletonItems.data(), static_cast<int>(SkeletonItems.size())))
+        {
+            // Swapping: MeshPathBuffer나 AnimationPathBuffer의 리소스 Skeleton만 변경
+            FSkeleton* NewSkeleton = nullptr;
+            if (CurrentSkeletonIdx > 0 && CurrentSkeletonIdx <= AllSkeletonNames.Num())
+            {
+                FString SelectedName = AllSkeletonNames[CurrentSkeletonIdx - 1];
+                NewSkeleton = FFbxManager::GetSkeletonByName(SelectedName);
+            }
+
+            // MeshPathBuffer에 있는 메시의 Skeleton 변경
+            if (ActiveState->MeshPathBuffer[0] != '\0')
+            {
+                FString MeshPath = ActiveState->MeshPathBuffer;
+                USkeletalMesh* Mesh = UResourceManager::GetInstance().Get<USkeletalMesh>(MeshPath);
+                if (Mesh)
+                {
+                    Mesh->SetSkeleton(NewSkeleton);
+                    Mesh->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+
+                    // Save .fbx.skeleton file with new Skeleton reference
+                    FString SkeletonOverridePath = MeshPath + ".skeleton";
+                    Mesh->SaveOverrideData(SkeletonOverridePath);
+
+                    UE_LOG("[Swapping] Changed SkeletalMesh Skeleton to: %s",
+                           NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+                }
+            }
+
+            // AnimationPathBuffer에 있는 애니메이션의 Skeleton 변경
+            if (ActiveState->AnimationPathBuffer[0] != '\0')
+            {
+                FString AnimPath = ActiveState->AnimationPathBuffer;
+                UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
+                if (Anim)
+                {
+                    Anim->Skeleton = NewSkeleton;
+                    Anim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+
+                    // FBX 애니메이션의 경우 .fbx.skeleton의 "Animation" 섹션에 저장
+                    // .anim 파일의 경우 SourceAnimationPath를 통해 원본 애니메이션의 Skeleton을 따라감
+                    if (AnimPath.find(".fbx") != FString::npos)
+                    {
+                        FString SkeletonOverridePath = AnimPath + ".skeleton";
+                        Anim->SaveOverrideData(SkeletonOverridePath);
+
+                        // 이 FBX 애니메이션을 SourceAnimationPath로 참조하는 모든 .anim 파일도 업데이트
+                        int32 UpdatedCount = 0;
+                        for (TObjectIterator<UAnimSequence> It; It; ++It)
+                        {
+                            UAnimSequence* DerivedAnim = *It;
+                            if (DerivedAnim && DerivedAnim->SourceAnimationPath == AnimPath)
+                            {
+                                DerivedAnim->Skeleton = NewSkeleton;
+                                DerivedAnim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+                                ++UpdatedCount;
+                            }
+                        }
+
+                        if (UpdatedCount > 0)
+                        {
+                            UE_LOG("[Swapping] Updated %d derived .anim file(s) referencing this animation", UpdatedCount);
+                        }
+                    }
+
+                    UE_LOG("[Swapping] Changed Animation Skeleton to: %s",
+                           NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+                }
+            }
+
+            ActiveState->TargetSkeleton = NewSkeleton;
+        }
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted("Change Skeleton reference for selected SkeletalMesh or Animation");
+            ImGui::EndTooltip();
+        }
+    }
+
+    ImGui::Spacing();
+
+    // 3. Animation ComboBox
+    ImGui::Text("Animation");
+    {
+        TArray<FString> AllAnimPaths = UResourceManager::GetInstance().GetAllFilePaths<UAnimSequence>();
+        TArray<const char*> AnimItems;
+        TArray<FString> FilteredAnimPaths;
+        AnimItems.Add("None");
+        FilteredAnimPaths.Add("");
+
+        // 필터링: MeshPathBuffer의 메시가 참조하는 Skeleton과 동일한 Skeleton을 참조하는 Animation만
+        FSkeleton* FilterSkeleton = nullptr;
+        if (ActiveState->MeshPathBuffer[0] != '\0')
+        {
+            FString MeshPath = ActiveState->MeshPathBuffer;
+            USkeletalMesh* Mesh = UResourceManager::GetInstance().Get<USkeletalMesh>(MeshPath);
+            if (Mesh)
+            {
+                FilterSkeleton = const_cast<FSkeleton*>(Mesh->GetSkeleton());
+            }
+        }
+
+        for (const FString& AnimPath : AllAnimPaths)
+        {
+            if (!AnimPath.empty())
+            {
+                bool bShouldInclude = true;
+
+                // MeshPathBuffer에 메시가 선택되어 있으면 Skeleton 필터링
+                if (FilterSkeleton)
+                {
+                    UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
+                    if (Anim)
+                    {
+                        bShouldInclude = (Anim->Skeleton == FilterSkeleton);
+                    }
+                    else
+                    {
+                        bShouldInclude = false;
+                    }
+                }
+
+                if (bShouldInclude)
+                {
+                    FilteredAnimPaths.Add(AnimPath);
+
+                    std::filesystem::path fsPath(AnimPath);
+                    FString DisplayName = fsPath.filename().string();
+                    AnimItems.Add(_strdup(DisplayName.c_str()));
+                }
+            }
+        }
+
+        // 현재 선택: AnimationPathBuffer 기반
+        int CurrentAnimIdx = 0;
+        if (ActiveState->AnimationPathBuffer[0] != '\0')
+        {
+            FString BufferPath = ActiveState->AnimationPathBuffer;
+            for (int i = 0; i < FilteredAnimPaths.Num(); ++i)
+            {
+                if (FilteredAnimPaths[i] == BufferPath)
+                {
+                    CurrentAnimIdx = i;
+                    break;
+                }
+            }
+        }
+
+        ImGui::SetNextItemWidth(240);
+        if (ImGui::Combo("##Animation", &CurrentAnimIdx, AnimItems.data(), static_cast<int>(AnimItems.size())))
+        {
+            // Swapping: AnimationPathBuffer 업데이트만, 화면 적용 금지
+            if (CurrentAnimIdx > 0 && CurrentAnimIdx < FilteredAnimPaths.Num())
+            {
+                const FString& SelectedPath = FilteredAnimPaths[CurrentAnimIdx];
+                UAnimSequence* SelectedAnim = UResourceManager::GetInstance().Get<UAnimSequence>(SelectedPath);
+
+                if (SelectedAnim)
+                {
+                    strncpy_s(ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer),
+                              SelectedPath.c_str(), _TRUNCATE);
+
+                    // 자동으로 TargetSkeleton 설정
+                    ActiveState->TargetSkeleton = SelectedAnim->Skeleton;
+
+                    UE_LOG("[Swapping] Animation buffer set to: %s (NOT applied to screen)", SelectedPath.c_str());
+                }
+            }
+            else if (CurrentAnimIdx == 0)
+            {
+                // Clear
+                ActiveState->AnimationPathBuffer[0] = '\0';
+                UE_LOG("[Swapping] Animation buffer cleared");
+            }
+        }
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            if (FilterSkeleton)
+            {
+                ImGui::Text("Showing animations compatible with Skeleton: %s", FilterSkeleton->Name.c_str());
+            }
+            else
+            {
+                ImGui::TextUnformatted("Showing all animations (no SkeletalMesh selected)");
+            }
+            ImGui::EndTooltip();
+        }
+
+        for (int i = 1; i < AnimItems.Num(); ++i)
+        {
+            free(const_cast<char*>(AnimItems[i]));
+        }
+    }
 
     ImGui::Spacing();
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
@@ -503,38 +843,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 // Get all loaded animations
                 TArray<UAnimSequence*> AllAnimations = UResourceManager::GetInstance().GetAll<UAnimSequence>();
 
-                // Filter animations that match this skeleton (bone structure comparison)
+                // Filter animations that match this skeleton (pointer equality only)
                 TArray<UAnimSequence*> CompatibleAnimations;
                 for (UAnimSequence* Anim : AllAnimations)
                 {
                     if (Anim && Anim->Skeleton)
                     {
-                        // Check if skeletons are compatible by comparing bone structure
-                        bool bIsCompatible = false;
-
-                        // First check: pointer equality (fastest)
+                        // Only pointer equality check - must be the exact same Skeleton
                         if (Anim->Skeleton == MeshSkeleton)
-                        {
-                            bIsCompatible = true;
-                        }
-                        // Second check: bone structure comparison
-                        else if (Anim->Skeleton->Bones.Num() == MeshSkeleton->Bones.Num() &&
-                                 Anim->Skeleton->Bones.Num() > 0)
-                        {
-                            // Compare bone names and hierarchy
-                            bIsCompatible = true;
-                            for (int32 i = 0; i < Anim->Skeleton->Bones.Num(); ++i)
-                            {
-                                if (Anim->Skeleton->Bones[i].Name != MeshSkeleton->Bones[i].Name ||
-                                    Anim->Skeleton->Bones[i].ParentIndex != MeshSkeleton->Bones[i].ParentIndex)
-                                {
-                                    bIsCompatible = false;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (bIsCompatible)
                         {
                             CompatibleAnimations.Add(Anim);
                         }
@@ -557,18 +873,19 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                     for (int32 i = 0; i < CompatibleAnimations.Num(); ++i)
                     {
                         UAnimSequence* Anim = CompatibleAnimations[i];
-                        FString AnimName = Anim->GetName();
-                        if (AnimName.empty())
+                        // Always use filename from FilePath instead of GetName()
+                        FString AnimName = Anim->GetFilePath();
+                        if (!AnimName.empty())
                         {
-                            AnimName = Anim->GetFilePath();
-                            if (!AnimName.empty())
+                            size_t lastSlash = AnimName.find_last_of("/\\");
+                            if (lastSlash != std::string::npos)
                             {
-                                size_t lastSlash = AnimName.find_last_of("/\\");
-                                if (lastSlash != std::string::npos)
-                                {
-                                    AnimName = AnimName.substr(lastSlash + 1);
-                                }
+                                AnimName = AnimName.substr(lastSlash + 1);
                             }
+                        }
+                        else
+                        {
+                            AnimName = "Unnamed Animation";
                         }
 
                         char ButtonLabel[256];
@@ -672,6 +989,293 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
             ActiveState->PreviewActor->GetBoneLineComponent()->SetLineVisible(ActiveState->bShowBones);
         }
     }
+
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
+    ImGui::Separator();
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // === Save & Load ===
+    ImGui::Text("Save & Load");
+    ImGui::Spacing();
+
+    // Save Animation (Full) - JSON
+    if (ImGui::Button("Save Animation (Full)", ImVec2(leftWidth - 20.0f, 0)))
+    {
+        if (!AnimSequence)
+        {
+            ImGui::EndChild(); // LeftPanel
+            ImGui::SameLine(0, 0);
+            ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+            ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PopStyleVar();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            return;
+        }
+
+        FString SavePath = AnimSequence->GetFilePath();
+        if (SavePath.empty())
+        {
+            SavePath = "Data/Animations/modified_anim.json";
+        }
+        else
+        {
+            size_t lastDot = SavePath.find_last_of('.');
+            if (lastDot != std::string::npos)
+            {
+                SavePath = SavePath.substr(0, lastDot) + "_modified.json";
+            }
+            else
+            {
+                SavePath += "_modified.json";
+            }
+        }
+        AnimSequence->SaveToFile(SavePath);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Save complete animation data to JSON file");
+
+    // Save Animation (.anim) - Binary
+    if (ImGui::Button("Save Animation (.anim)", ImVec2(leftWidth - 20.0f, 0)))
+    {
+        if (!AnimSequence)
+        {
+            ImGui::EndChild(); // LeftPanel
+            ImGui::SameLine(0, 0);
+            ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+            ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+            ImGui::PopStyleVar();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            return;
+        }
+
+        FString DefaultFileName;
+        FString SourcePath = AnimSequence->GetFilePath();
+        if (!SourcePath.empty())
+        {
+            size_t lastSlash = SourcePath.find_last_of("/\\");
+            size_t lastDot = SourcePath.find_last_of('.');
+            if (lastSlash != std::string::npos && lastDot != std::string::npos && lastDot > lastSlash)
+            {
+                DefaultFileName = SourcePath.substr(lastSlash + 1, lastDot - lastSlash - 1) + ".anim";
+            }
+            else if (lastSlash != std::string::npos)
+            {
+                DefaultFileName = SourcePath.substr(lastSlash + 1) + ".anim";
+            }
+            else
+            {
+                DefaultFileName = "animation.anim";
+            }
+        }
+        else
+        {
+            DefaultFileName = "animation.anim";
+        }
+
+        OPENFILENAMEA ofn = {};
+        char szFile[260] = {};
+        strncpy_s(szFile, DefaultFileName.c_str(), sizeof(szFile) - 1);
+
+        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
+        std::string InitialDirStr = InitialDir.string();
+
+        ofn.lStructSize = sizeof(OPENFILENAMEA);
+        ofn.hwndOwner = NULL;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = "Animation Notify Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFileTitle = NULL;
+        ofn.nMaxFileTitle = 0;
+        ofn.lpstrInitialDir = InitialDirStr.c_str();
+        ofn.lpstrTitle = "Save Animation Notify Data";
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+        ofn.lpstrDefExt = "anim";
+
+        if (GetSaveFileNameA(&ofn) == TRUE)
+        {
+            FString SavePath = ofn.lpstrFile;
+            try
+            {
+                FWindowsBinWriter Writer(SavePath);
+                if (Writer.IsOpen())
+                {
+                    // 원본 애니메이션 경로 저장 (이 애니메이션의 Skeleton을 따라감)
+                    if (AnimSequence->SourceAnimationPath.empty())
+                    {
+                        AnimSequence->SourceAnimationPath = SourcePath;
+                    }
+
+                    Writer << *AnimSequence;
+                    Writer.Close();
+
+                    FWindowsBinReader Reader(SavePath);
+                    if (Reader.IsOpen())
+                    {
+                        UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                        Reader << *LoadedAnimSeq;
+                        Reader.Close();
+
+                        LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
+                        LoadedAnimSeq->SetFilePath(SavePath);
+
+                        FString FileName = SavePath;
+                        size_t lastSlash = FileName.find_last_of("/\\");
+                        if (lastSlash != std::string::npos)
+                        {
+                            FileName = FileName.substr(lastSlash + 1);
+                        }
+                        size_t lastDot = FileName.find_last_of('.');
+                        if (lastDot != std::string::npos)
+                        {
+                            FileName = FileName.substr(0, lastDot);
+                        }
+                        LoadedAnimSeq->ObjectName = FName(FileName);
+
+                        UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
+                    }
+                }
+            }
+            catch (const std::exception& e)
+            {
+            }
+        }
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Save animation data to binary .anim file (notify, curve, etc.)");
+
+    // Load Animation (.anim) - Binary
+    if (ImGui::Button("Load Animation (.anim)", ImVec2(leftWidth - 20.0f, 0)))
+    {
+        OPENFILENAMEA ofn = {};
+        char szFile[260] = {};
+
+        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
+        std::string InitialDirStr = InitialDir.string();
+
+        ofn.lStructSize = sizeof(OPENFILENAMEA);
+        ofn.hwndOwner = NULL;
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = "Animation Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
+        ofn.nFilterIndex = 1;
+        ofn.lpstrFileTitle = NULL;
+        ofn.nMaxFileTitle = 0;
+        ofn.lpstrInitialDir = InitialDirStr.c_str();
+        ofn.lpstrTitle = "Load Animation from .anim file";
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+
+        if (GetOpenFileNameA(&ofn) == TRUE)
+        {
+            FString AnimFilePath = ofn.lpstrFile;
+            try
+            {
+                USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor ? ActiveState->PreviewActor->GetSkeletalMeshComponent() : nullptr;
+                if (!SkeletalComp || !SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
+                {
+                    ImGui::EndChild(); // LeftPanel
+                    ImGui::SameLine(0, 0);
+                    ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+                    ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PopStyleVar();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::PopStyleVar();
+                    return;
+                }
+
+                const FSkeleton* CurrentSkeleton = SkeletalComp->GetSkeletalMesh()->GetSkeleton();
+
+                FWindowsBinReader Reader(AnimFilePath);
+                if (!Reader.IsOpen())
+                {
+                    ImGui::EndChild(); // LeftPanel
+                    ImGui::SameLine(0, 0);
+                    ImGui::BeginChild("CenterRightBottomArea", ImVec2(centerWidth + rightWidth, totalHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::BeginChild("TopArea", ImVec2(centerWidth + rightWidth, centerHeight), false, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+                    ImGui::BeginChild("CenterViewport", ImVec2(centerWidth, centerHeight), true, ImGuiWindowFlags_NoScrollbar);
+                    ImGui::PopStyleVar();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::EndChild();
+                    ImGui::PopStyleVar();
+                    return;
+                }
+
+                UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
+                Reader << *LoadedAnimSeq;
+                Reader.Close();
+
+                LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(CurrentSkeleton);
+                LoadedAnimSeq->SetFilePath(AnimFilePath);
+
+                FString FileName = AnimFilePath;
+                size_t lastSlash = FileName.find_last_of("/\\");
+                if (lastSlash != std::string::npos)
+                {
+                    FileName = FileName.substr(lastSlash + 1);
+                }
+                size_t lastDot = FileName.find_last_of('.');
+                if (lastDot != std::string::npos)
+                {
+                    FileName = FileName.substr(0, lastDot);
+                }
+                LoadedAnimSeq->ObjectName = FName(FileName);
+
+                UResourceManager::GetInstance().Add<UAnimSequence>(AnimFilePath, LoadedAnimSeq);
+                UE_LOG("Registered in ResourceManager");
+
+                UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
+                if (SingleNodeInstance)
+                {
+                    UE_LOG("Reusing existing AnimInstance");
+                    SingleNodeInstance->SetAnimationAsset(LoadedAnimSeq);
+                }
+                else
+                {
+                    UE_LOG("Creating new AnimInstance");
+                    UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
+                    AnimInstance->SetAnimationAsset(LoadedAnimSeq);
+                    SkeletalComp->SetAnimInstance(AnimInstance);
+                }
+
+                if (UAnimSingleNodeInstance* Inst = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance))
+                {
+                    Inst->SetInteralTime(0.0f);
+                    SkeletalComp->TickAnimation(0.0f);
+                }
+
+                ActiveState->bBoneLinesDirty = true;
+                strncpy_s(ActiveState->AnimationPathBuffer, AnimFilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
+
+                UE_LOG("Animation loaded successfully!");
+                UE_LOG("==========================================================");
+            }
+            catch (const std::exception& e)
+            {
+                UE_LOG("ERROR: Failed to load .anim file: %s", e.what());
+                UE_LOG("==========================================================");
+            }
+        }
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Load animation from binary .anim file");
 
     ImGui::EndChild(); // LeftPanel
 
@@ -833,9 +1437,9 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     const float AnimationLength = AnimSequence->GetPlayLength();
     int CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
 
-    // Timeline Panel
+    // Timeline Panel (Top 60% of bottom area - Notify section)
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("TimelinePanel", ImVec2(centerWidth + rightWidth, bottomHeight), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("TimelinePanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.6f), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
     float WindowWidth = ImGui::GetWindowWidth();
@@ -844,14 +1448,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImDrawList* DrawList = ImGui::GetWindowDrawList();
 
     // Layout: Left side = Notify tracks + controls, Right side = Timeline
-    const float LeftControlWidth = 200.0f;
+    const float LeftControlWidth = 280.0f; // Increased width for controls
     const float RightTimelineWidth = WindowWidth - LeftControlWidth;
 
     // === LEFT SIDE: Notify Tracks + Playback Controls ===
     ImGui::BeginChild("LeftControlArea", ImVec2(LeftControlWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
 
     // Top part: Notify Tracks
-    float controlsHeight = 80.0f; // Height for playback controls
+    float controlsHeight = 75.0f; // Reduced to increase Track list height
     float tracksHeight = WindowHeight - controlsHeight - 10.0f;
 
     ImGui::BeginChild("NotifyTracks", ImVec2(LeftControlWidth, tracksHeight), true);
@@ -873,11 +1477,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     const float HeaderHeight = 25.0f;
     const float TrackHeight = 28.0f;
 
+    // Header area - exact height to match timeline
+    float headerStartY = ImGui::GetCursorPosY();
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
+    ImGui::SetCursorPosY(headerStartY + 5.0f); // Center text vertically
     ImGui::Text("Tracks");
     ImGui::PopStyleColor();
-    ImGui::Dummy(ImVec2(0, HeaderHeight - 20.0f)); // Spacer to match timeline header
+    // Force exact header height alignment
+    ImGui::SetCursorPosY(headerStartY + HeaderHeight);
 
     // Rename Track state (shared between context menu and popup)
     static int RenameTrackID = -1;
@@ -1033,253 +1640,6 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         NotifyTracks.Add(NewTrack);
     }
 
-    ImGui::Spacing();
-
-    // Save animation sequence button (전체 데이터 - 큰 파일)
-    if (ImGui::Button("Save Animation (Full)", ImVec2(LeftControlWidth - 20.0f, 0)))
-    {
-        // Generate save path: original path + "_modified.json"
-        FString SavePath = AnimSequence->GetFilePath();
-        if (SavePath.empty())
-        {
-            SavePath = "Data/Animations/modified_anim.json";
-        }
-        else
-        {
-            // Replace extension with _modified.json
-            size_t lastDot = SavePath.find_last_of('.');
-            if (lastDot != std::string::npos)
-            {
-                SavePath = SavePath.substr(0, lastDot) + "_modified.json";
-            }
-            else
-            {
-                SavePath += "_modified.json";
-            }
-        }
-
-        AnimSequence->SaveToFile(SavePath);
-    }
-
-    ImGui::Spacing();
-
-    // Save Notify Data button (Notify만 - 작은 파일, 추천)
-    if (ImGui::Button("Save Notify Data", ImVec2(LeftControlWidth - 20.0f, 0)))
-    {
-        // Generate default filename from animation path
-        FString DefaultFileName;
-        FString SourcePath = AnimSequence->GetFilePath();
-        if (!SourcePath.empty())
-        {
-            // Extract filename without extension
-            size_t lastSlash = SourcePath.find_last_of("/\\");
-            size_t lastDot = SourcePath.find_last_of('.');
-            if (lastSlash != std::string::npos && lastDot != std::string::npos && lastDot > lastSlash)
-            {
-                DefaultFileName = SourcePath.substr(lastSlash + 1, lastDot - lastSlash - 1) + ".anim";
-            }
-            else if (lastSlash != std::string::npos)
-            {
-                DefaultFileName = SourcePath.substr(lastSlash + 1) + ".anim";
-            }
-            else
-            {
-                DefaultFileName = "animation.anim";
-            }
-        }
-        else
-        {
-            DefaultFileName = "animation.anim";
-        }
-
-        // Show Save File Dialog
-        OPENFILENAMEA ofn = {};
-        char szFile[260] = {};
-
-        // Copy default filename to buffer
-        strncpy_s(szFile, DefaultFileName.c_str(), sizeof(szFile) - 1);
-
-        // Get absolute initial directory
-        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
-        std::string InitialDirStr = InitialDir.string();
-
-        ofn.lStructSize = sizeof(OPENFILENAMEA);
-        ofn.hwndOwner = NULL;
-        ofn.lpstrFile = szFile;
-        ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "Animation Notify Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
-        ofn.nFilterIndex = 1;
-        ofn.lpstrFileTitle = NULL;
-        ofn.nMaxFileTitle = 0;
-        ofn.lpstrInitialDir = InitialDirStr.c_str();
-        ofn.lpstrTitle = "Save Animation Notify Data";
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-        ofn.lpstrDefExt = "anim";
-
-        if (GetSaveFileNameA(&ofn) == TRUE)
-        {
-            FString SavePath = ofn.lpstrFile;
-
-            try
-            {
-                // 1. 바이너리로 현재 AnimSequence 저장
-                FWindowsBinWriter Writer(SavePath);
-                if (Writer.IsOpen())
-                {
-                    Writer << *AnimSequence;
-                    Writer.Close();
-
-                    // 2. 저장한 파일을 다시 로드해서 새 객체로 만들어 ResourceManager에 등록
-                    FWindowsBinReader Reader(SavePath);
-                    if (Reader.IsOpen())
-                    {
-                        UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
-                        Reader << *LoadedAnimSeq;
-                        Reader.Close();
-
-                        // Skeleton 할당
-                        LoadedAnimSeq->Skeleton = AnimSequence->Skeleton;
-                        LoadedAnimSeq->SetFilePath(SavePath);
-
-                        // Extract filename from path and set as Name
-                        FString FileName = SavePath;
-                        size_t lastSlash = FileName.find_last_of("/\\");
-                        if (lastSlash != std::string::npos)
-                        {
-                            FileName = FileName.substr(lastSlash + 1);
-                        }
-                        // Remove .anim extension
-                        size_t lastDot = FileName.find_last_of('.');
-                        if (lastDot != std::string::npos)
-                        {
-                            FileName = FileName.substr(0, lastDot);
-                        }
-                        LoadedAnimSeq->ObjectName = FName(FileName);
-
-                        // ResourceManager에 등록 (Compatible Animations에 표시되도록)
-                        UResourceManager::GetInstance().Add<UAnimSequence>(SavePath, LoadedAnimSeq);
-                    }
-                }
-            }
-            catch (const std::exception& e)
-            {
-            }
-        }
-    }
-
-    // Load Animation from .anim file (바이너리 AnimSequence 에셋 로드)
-    if (ImGui::Button("Load Animation (.anim)", ImVec2(LeftControlWidth - 20.0f, 0)))
-    {
-        // Show Open File Dialog
-        OPENFILENAMEA ofn = {};
-        char szFile[260] = {};
-
-        // Get absolute initial directory
-        std::filesystem::path InitialDir = std::filesystem::current_path() / "Data" / "Fbx";
-        std::string InitialDirStr = InitialDir.string();
-
-        ofn.lStructSize = sizeof(OPENFILENAMEA);
-        ofn.hwndOwner = NULL;
-        ofn.lpstrFile = szFile;
-        ofn.nMaxFile = sizeof(szFile);
-        ofn.lpstrFilter = "Animation Files (*.anim)\0*.anim\0All Files (*.*)\0*.*\0";
-        ofn.nFilterIndex = 1;
-        ofn.lpstrFileTitle = NULL;
-        ofn.nMaxFileTitle = 0;
-        ofn.lpstrInitialDir = InitialDirStr.c_str();
-        ofn.lpstrTitle = "Load Animation from .anim file";
-        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
-
-        if (GetOpenFileNameA(&ofn) == TRUE)
-        {
-            FString AnimFilePath = ofn.lpstrFile;
-
-            try
-            {
-                // 1. 현재 Mesh의 Skeleton 가져오기
-                USkeletalMeshComponent* SkeletalComp = ActiveState->PreviewActor ? ActiveState->PreviewActor->GetSkeletalMeshComponent() : nullptr;
-                if (!SkeletalComp || !SkeletalComp->GetSkeletalMesh() || !SkeletalComp->GetSkeletalMesh()->GetSkeleton())
-                {
-                    return;
-                }
-
-                const FSkeleton* CurrentSkeleton = SkeletalComp->GetSkeletalMesh()->GetSkeleton();
-
-                // 2. 바이너리 파일에서 AnimSequence 역직렬화
-                FWindowsBinReader Reader(AnimFilePath);
-                if (!Reader.IsOpen())
-                {
-                    return;
-                }
-
-                UAnimSequence* LoadedAnimSeq = NewObject<UAnimSequence>();
-                Reader << *LoadedAnimSeq;
-                Reader.Close();
-
-                // 3. Skeleton 포인터 설정 (바이너리에는 저장 안 됨)
-                LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(CurrentSkeleton);
-                LoadedAnimSeq->SetFilePath(AnimFilePath);
-
-                // Extract filename from path and set as Name
-                FString FileName = AnimFilePath;
-                size_t lastSlash = FileName.find_last_of("/\\");
-                if (lastSlash != std::string::npos)
-                {
-                    FileName = FileName.substr(lastSlash + 1);
-                }
-                // Remove .anim extension
-                size_t lastDot = FileName.find_last_of('.');
-                if (lastDot != std::string::npos)
-                {
-                    FileName = FileName.substr(0, lastDot);
-                }
-                LoadedAnimSeq->ObjectName = FName(FileName);
-
-                // 4. ResourceManager에 등록 (Compatible Animations에 표시되도록)
-                UResourceManager::GetInstance().Add<UAnimSequence>(AnimFilePath, LoadedAnimSeq);
-                UE_LOG("Registered in ResourceManager");
-
-                // 5. AnimInstance에 설정
-                UAnimSingleNodeInstance* SingleNodeInstance = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance);
-                if (SingleNodeInstance)
-                {
-                    // 기존 AnimInstance 재사용
-                    UE_LOG("Reusing existing AnimInstance");
-                    SingleNodeInstance->SetAnimationAsset(LoadedAnimSeq);
-                }
-                else
-                {
-                    // 새로운 AnimInstance 생성
-                    UE_LOG("Creating new AnimInstance");
-                    UAnimSingleNodeInstance* AnimInstance = NewObject<UAnimSingleNodeInstance>();
-                    AnimInstance->SetAnimationAsset(LoadedAnimSeq);
-                    SkeletalComp->SetAnimInstance(AnimInstance);
-                }
-
-                // Set to frame 0
-                if (UAnimSingleNodeInstance* Inst = Cast<UAnimSingleNodeInstance>(SkeletalComp->AnimInstance))
-                {
-                    Inst->SetInteralTime(0.0f);
-                    SkeletalComp->TickAnimation(0.0f);
-                }
-
-                // Bone lines dirty
-                ActiveState->bBoneLinesDirty = true;
-
-                // Animation path buffer 업데이트
-                strncpy_s(ActiveState->AnimationPathBuffer, AnimFilePath.c_str(), sizeof(ActiveState->AnimationPathBuffer) - 1);
-
-                UE_LOG("Animation loaded successfully!");
-                UE_LOG("==========================================================");
-            }
-            catch (const std::exception& e)
-            {
-                UE_LOG("ERROR: Failed to load .anim file: %s", e.what());
-                UE_LOG("==========================================================");
-            }
-        }
-    }
-
     // Delete key: Remove selected notify
     if (ImGui::IsKeyPressed(ImGuiKey_Delete))
     {
@@ -1302,13 +1662,13 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.33f, 0.38f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.17f, 0.20f, 1.0f));
 
-    float buttonSize = 24.0f;
-    float spacing = 2.0f;
+    float buttonSize = 20.0f; // Reduced for compact layout
+    float spacing = 4.0f; // Increased spacing between buttons
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
 
     // Align to left with small margin
-    ImGui::SetCursorPosX(5.0f);
-    ImGui::SetCursorPosY(10.0f);
+    ImGui::SetCursorPosX(3.0f);
+    ImGui::SetCursorPosY(5.0f); // Reduced vertical position
 
     // First Frame (|◀)
     if (ImGui::Button("|\xE2\x97\x80##First", ImVec2(buttonSize, buttonSize)))
@@ -1412,7 +1772,23 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::SetTooltip(ActiveState->bLoopAnimation ? "Loop: ON" : "Loop: OFF");
     ImGui::PopStyleColor(6);
 
-    // Speed control (same line)
+    // === Second Row: Reverse Play + Speed Control ===
+    ImGui::SetCursorPosX(3.0f);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); // Move to next line with spacing
+
+    // Reverse Play Checkbox
+    bool bReversePlay = AnimSequence->bReversePlay;
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.7f, 0.3f, 1.0f)); // Orange text
+    if (ImGui::Checkbox("Rev##Reverse", &bReversePlay))
+    {
+        AnimSequence->bReversePlay = bReversePlay;
+        UE_LOG("Reverse Play: %s", bReversePlay ? "ON" : "OFF");
+    }
+    ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(bReversePlay ? "Reverse Play: ON" : "Reverse Play: OFF");
+
+    // Speed control (same line as Rev)
     ImGui::SameLine();
     ImGui::Dummy(ImVec2(5.0f, 0.0f)); // Small spacer
     ImGui::SameLine();
@@ -1467,7 +1843,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
     // === RIGHT SIDE: Timeline + Notify Display ===
     ImGui::SameLine(0, 0);
-    ImGui::BeginChild("TimelineArea", ImVec2(RightTimelineWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("TimelineArea", ImVec2(RightTimelineWidth, WindowHeight), false);
 
     // Timeline layout
     ImVec2 TimeLineStartPos = ImGui::GetCursorScreenPos();
@@ -1946,9 +2322,483 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
     ImGui::PopStyleColor();
 
+    // Reserve space for scrolling - ensure ImGui knows the full content height
+    // Use Dummy to properly extend the scrollable area
+    float ContentHeight = TimeLineHeight + 70.0f; // Timeline + frame info + padding
+    ImGui::Dummy(ImVec2(0.0f, ContentHeight));
+
     ImGui::EndChild(); // TimelineArea
 
     ImGui::EndChild(); // TimelinePanel
+
+    // === CURVE EDITOR PANEL (Bottom 40% of bottom area) ===
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+    ImGui::BeginChild("CurveEditorPanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.4f), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+
+    float CurveWindowWidth = ImGui::GetWindowWidth();
+    float CurveWindowHeight = ImGui::GetWindowHeight();
+
+    // Layout: Left side = Curve list, Right side = Curve graph
+    const float CurveListWidth = 200.0f;
+    const float CurveGraphWidth = CurveWindowWidth - CurveListWidth;
+
+    // === LEFT SIDE: Curve List ===
+    ImGui::BeginChild("CurveList", ImVec2(CurveListWidth, CurveWindowHeight), false);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
+    ImGui::Text("Animation Curves");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Get CurveData from AnimSequence
+    FAnimationCurveData& CurveData = AnimSequence->CurveData;
+
+    // State variables
+    static int SelectedCurveIndex = -1;
+    static char NewCurveName[64] = "";
+    static bool bShouldOpenRenamePopup = false;
+    static int RenameCurveIndex = -1;
+    static char RenameCurveBuffer[64] = "";
+
+    // Curve list
+    ImGui::BeginChild("CurveListScroll", ImVec2(CurveListWidth - 10.0f, CurveWindowHeight - 100.0f), true);
+    for (int i = 0; i < CurveData.FloatCurves.Num(); i++)
+    {
+        const FFloatCurve& Curve = CurveData.FloatCurves[i];
+        bool isSelected = (i == SelectedCurveIndex);
+        char label[128];
+        sprintf_s(label, "%s##Curve%d", Curve.CurveName.ToString().c_str(), i);
+
+        if (ImGui::Selectable(label, isSelected))
+        {
+            SelectedCurveIndex = i;
+        }
+
+        // Context menu for curve
+        ImGui::PushID(i);
+        if (ImGui::BeginPopupContextItem("CurveContextMenu"))
+        {
+            if (ImGui::MenuItem("Rename Curve"))
+            {
+                RenameCurveIndex = i;
+                strncpy_s(RenameCurveBuffer, Curve.CurveName.ToString().c_str(), sizeof(RenameCurveBuffer) - 1);
+                bShouldOpenRenamePopup = true;
+            }
+            if (ImGui::MenuItem("Delete Curve"))
+            {
+                CurveData.FloatCurves.RemoveAt(i);
+                if (SelectedCurveIndex == i)
+                {
+                    SelectedCurveIndex = -1;
+                }
+                else if (SelectedCurveIndex > i)
+                {
+                    SelectedCurveIndex--;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndChild(); // CurveListScroll
+
+    // Open Rename Popup if flagged
+    if (bShouldOpenRenamePopup)
+    {
+        ImGui::OpenPopup("RenameCurvePopup");
+        bShouldOpenRenamePopup = false;
+    }
+
+    // Rename Curve Popup
+    if (ImGui::BeginPopup("RenameCurvePopup"))
+    {
+        ImGui::Text("Rename Curve");
+        ImGui::Separator();
+
+        bool bPressedEnter = ImGui::InputText("Name", RenameCurveBuffer, sizeof(RenameCurveBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("OK", ImVec2(80, 0)) || bPressedEnter)
+        {
+            if (RenameCurveIndex >= 0 && RenameCurveIndex < CurveData.FloatCurves.Num())
+            {
+                FName NewName = FName(RenameCurveBuffer);
+                CurveData.FloatCurves[RenameCurveIndex].CurveName = NewName;
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(80, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::Spacing();
+
+    // Create Curve button
+    if (ImGui::Button("Create Curve", ImVec2(CurveListWidth - 20.0f, 0)))
+    {
+        ImGui::OpenPopup("CreateCurvePopup");
+    }
+
+    // Create Curve Popup
+    if (ImGui::BeginPopup("CreateCurvePopup"))
+    {
+        ImGui::Text("Create New Curve");
+        ImGui::Separator();
+
+        bool bPressedEnter = ImGui::InputText("Curve Name", NewCurveName, sizeof(NewCurveName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Create", ImVec2(80, 0)) || bPressedEnter)
+        {
+            if (strlen(NewCurveName) > 0)
+            {
+                FName CurveName = FName(NewCurveName);
+                FFloatCurve NewCurve(CurveName);
+
+                // Auto-add first/last keyframes
+                NewCurve.Keys.Add(FFloatKey(0.0f, 0.0f));
+                NewCurve.Keys.Add(FFloatKey(AnimationLength, 0.0f));
+
+                CurveData.AddCurve(std::move(NewCurve));
+                memset(NewCurveName, 0, sizeof(NewCurveName));
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(80, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::EndChild(); // CurveList
+
+    ImGui::SameLine();
+
+    // === RIGHT SIDE: Curve Graph ===
+    ImGui::BeginChild("CurveGraph", ImVec2(CurveGraphWidth, CurveWindowHeight), false);
+
+    if (SelectedCurveIndex >= 0 && SelectedCurveIndex < CurveData.FloatCurves.Num())
+    {
+        FFloatCurve& SelectedCurve = CurveData.FloatCurves[SelectedCurveIndex];
+
+        ImGui::Text("Curve: %s", SelectedCurve.CurveName.ToString().c_str());
+        ImGui::Separator();
+
+        // Range controls
+        static float minVal = 0.0f;
+        static float maxVal = 1.0f;
+        static bool bAutoRange = false;
+
+        ImGui::Checkbox("Auto Range", &bAutoRange);
+        if (bAutoRange)
+        {
+            // Calculate min/max from keyframes
+            if (!SelectedCurve.Keys.IsEmpty())
+            {
+                minVal = SelectedCurve.Keys[0].Value;
+                maxVal = SelectedCurve.Keys[0].Value;
+                for (const FFloatKey& Key : SelectedCurve.Keys)
+                {
+                    minVal = FMath::Min(minVal, Key.Value);
+                    maxVal = FMath::Max(maxVal, Key.Value);
+                }
+                // Add padding
+                float range = maxVal - minVal;
+                if (range < 0.01f) range = 0.01f;
+                minVal -= range * 0.1f;
+                maxVal += range * 0.1f;
+            }
+        }
+        else
+        {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(80);
+            ImGui::DragFloat("Min", &minVal, 0.01f);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(80);
+            ImGui::DragFloat("Max", &maxVal, 0.01f);
+        }
+
+        ImGui::Spacing();
+
+        // Graph area
+        ImVec2 graphMin = ImGui::GetCursorScreenPos();
+        ImVec2 graphSize(CurveGraphWidth - 20.0f, CurveWindowHeight - 80.0f);
+        ImVec2 graphMax(graphMin.x + graphSize.x, graphMin.y + graphSize.y);
+
+        ImDrawList* DrawList = ImGui::GetWindowDrawList();
+
+        // Background
+        DrawList->AddRectFilled(graphMin, graphMax, IM_COL32(30, 30, 35, 255));
+        DrawList->AddRect(graphMin, graphMax, IM_COL32(100, 100, 120, 255));
+
+        // Grid lines
+        const int numGridLines = 5;
+        for (int i = 0; i <= numGridLines; i++)
+        {
+            float t = (float)i / numGridLines;
+            float y = graphMin.y + t * graphSize.y;
+            DrawList->AddLine(ImVec2(graphMin.x, y), ImVec2(graphMax.x, y), IM_COL32(60, 60, 70, 100));
+
+            float x = graphMin.x + t * graphSize.x;
+            DrawList->AddLine(ImVec2(x, graphMin.y), ImVec2(x, graphMax.y), IM_COL32(60, 60, 70, 100));
+        }
+
+        // Draw curve line
+        if (SelectedCurve.Keys.Num() >= 2)
+        {
+            for (int i = 0; i < SelectedCurve.Keys.Num() - 1; i++)
+            {
+                const FFloatKey& Key1 = SelectedCurve.Keys[i];
+                const FFloatKey& Key2 = SelectedCurve.Keys[i + 1];
+
+                float t1 = Key1.Time / AnimationLength;
+                float v1 = (Key1.Value - minVal) / (maxVal - minVal);
+                v1 = 1.0f - v1; // Invert Y
+
+                float t2 = Key2.Time / AnimationLength;
+                float v2 = (Key2.Value - minVal) / (maxVal - minVal);
+                v2 = 1.0f - v2;
+
+                ImVec2 p1(graphMin.x + t1 * graphSize.x, graphMin.y + v1 * graphSize.y);
+                ImVec2 p2(graphMin.x + t2 * graphSize.x, graphMin.y + v2 * graphSize.y);
+
+                DrawList->AddLine(p1, p2, IM_COL32(100, 200, 255, 255), 2.0f);
+            }
+        }
+
+        // Draw keyframes and handle interaction
+        static int DraggedKeyIndex = -1;
+        static int HoveredKeyIndex = -1;
+        static int ContextMenuKeyIndex = -1;
+        static bool bOpenEditKeyframePopup = false;
+        static float EditKeyTime = 0.0f;
+        static float EditKeyValue = 0.0f;
+
+        ImGui::SetCursorScreenPos(graphMin);
+        ImGui::InvisibleButton("GraphArea", graphSize);
+        bool bGraphHovered = ImGui::IsItemHovered();
+
+        HoveredKeyIndex = -1;
+        for (int i = 0; i < SelectedCurve.Keys.Num(); i++)
+        {
+            const FFloatKey& Key = SelectedCurve.Keys[i];
+
+            float t = Key.Time / AnimationLength;
+            float v = (Key.Value - minVal) / (maxVal - minVal);
+            v = 1.0f - v;
+
+            ImVec2 keyPos(graphMin.x + t * graphSize.x, graphMin.y + v * graphSize.y);
+
+            // Draw keyframe
+            DrawList->AddCircleFilled(keyPos, 5.0f, IM_COL32(255, 200, 100, 255));
+            DrawList->AddCircle(keyPos, 5.0f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+
+            // Check if mouse is hovering over this keyframe
+            ImVec2 mousePos = ImGui::GetMousePos();
+            float dist = sqrtf((mousePos.x - keyPos.x) * (mousePos.x - keyPos.x) + (mousePos.y - keyPos.y) * (mousePos.y - keyPos.y));
+            if (dist < 8.0f)
+            {
+                HoveredKeyIndex = i;
+            }
+        }
+
+        // Start dragging
+        if (HoveredKeyIndex >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            DraggedKeyIndex = HoveredKeyIndex;
+        }
+
+        // Drag keyframe
+        if (DraggedKeyIndex >= 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+        {
+            FFloatKey& DraggedKey = SelectedCurve.Keys[DraggedKeyIndex];
+            bool bIsDraggingFirstOrLastKey = (DraggedKeyIndex == 0 || DraggedKeyIndex == SelectedCurve.Keys.Num() - 1);
+
+            ImVec2 mousePos = ImGui::GetMousePos();
+            float normalizedTime = (mousePos.x - graphMin.x) / graphSize.x;
+            float normalizedValue = (mousePos.y - graphMin.y) / graphSize.y;
+            normalizedValue = 1.0f - normalizedValue;
+
+            // Only allow Time change if not first/last key
+            if (!bIsDraggingFirstOrLastKey)
+            {
+                normalizedTime = FMath::Clamp(normalizedTime, 0.0f, 1.0f);
+                DraggedKey.Time = normalizedTime * AnimationLength;
+            }
+
+            // Always allow Value change
+            normalizedValue = FMath::Clamp(normalizedValue, 0.0f, 1.0f);
+            DraggedKey.Value = minVal + normalizedValue * (maxVal - minVal);
+        }
+
+        // Stop dragging
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            if (DraggedKeyIndex >= 0)
+            {
+                // Sort keys by time
+                std::sort(SelectedCurve.Keys.begin(), SelectedCurve.Keys.end(), [](const FFloatKey& a, const FFloatKey& b) {
+                    return a.Time < b.Time;
+                });
+            }
+            DraggedKeyIndex = -1;
+        }
+
+        // Right-click menu
+        if (HoveredKeyIndex >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            ContextMenuKeyIndex = HoveredKeyIndex;
+            ImGui::OpenPopup("KeyframeContextMenu");
+        }
+
+        if (ImGui::BeginPopup("KeyframeContextMenu"))
+        {
+            bool bIsFirstOrLastKey = (ContextMenuKeyIndex == 0 || ContextMenuKeyIndex == SelectedCurve.Keys.Num() - 1);
+
+            if (ImGui::MenuItem("Edit Keyframe"))
+            {
+                if (ContextMenuKeyIndex >= 0 && ContextMenuKeyIndex < SelectedCurve.Keys.Num())
+                {
+                    EditKeyTime = SelectedCurve.Keys[ContextMenuKeyIndex].Time;
+                    EditKeyValue = SelectedCurve.Keys[ContextMenuKeyIndex].Value;
+                    bOpenEditKeyframePopup = true;
+                }
+            }
+
+            if (bIsFirstOrLastKey)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                ImGui::MenuItem("Delete Keyframe (First/Last key)", nullptr, false, false);
+                ImGui::PopStyleColor();
+            }
+            else if (ImGui::MenuItem("Delete Keyframe"))
+            {
+                if (ContextMenuKeyIndex >= 0 && ContextMenuKeyIndex < SelectedCurve.Keys.Num())
+                {
+                    SelectedCurve.Keys.RemoveAt(ContextMenuKeyIndex);
+                    ContextMenuKeyIndex = -1;
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+
+        // Open Edit Keyframe popup if flagged
+        if (bOpenEditKeyframePopup)
+        {
+            ImGui::OpenPopup("EditKeyframePopup");
+            bOpenEditKeyframePopup = false;
+        }
+
+        // Edit Keyframe Popup
+        if (ImGui::BeginPopup("EditKeyframePopup"))
+        {
+            bool bIsEditingFirstOrLastKey = (ContextMenuKeyIndex == 0 || ContextMenuKeyIndex == SelectedCurve.Keys.Num() - 1);
+
+            ImGui::Text("Edit Keyframe");
+            ImGui::Separator();
+
+            ImGui::Text("Time (seconds):");
+            if (bIsEditingFirstOrLastKey)
+            {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            }
+            ImGui::InputFloat("##KeyTime", &EditKeyTime, 0.01f, 0.1f, "%.3f");
+            if (bIsEditingFirstOrLastKey)
+            {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+                ImGui::SameLine();
+                ImGui::TextDisabled("(Fixed)");
+            }
+
+            ImGui::Text("Value:");
+            ImGui::InputFloat("##KeyValue", &EditKeyValue, 0.01f, 0.1f, "%.3f");
+
+            ImGui::Spacing();
+
+            if (ImGui::Button("OK", ImVec2(80, 0)))
+            {
+                if (ContextMenuKeyIndex >= 0 && ContextMenuKeyIndex < SelectedCurve.Keys.Num())
+                {
+                    // Only update Time if not first/last key
+                    if (!bIsEditingFirstOrLastKey)
+                    {
+                        SelectedCurve.Keys[ContextMenuKeyIndex].Time = FMath::Clamp(EditKeyTime, 0.0f, AnimationLength);
+                    }
+                    SelectedCurve.Keys[ContextMenuKeyIndex].Value = EditKeyValue;
+
+                    // Sort keys by time
+                    std::sort(SelectedCurve.Keys.begin(), SelectedCurve.Keys.end(), [](const FFloatKey& a, const FFloatKey& b) {
+                        return a.Time < b.Time;
+                    });
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(80, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        // Right-click on empty area to add keyframe
+        if (bGraphHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && HoveredKeyIndex < 0)
+        {
+            ImGui::OpenPopup("AddKeyframeMenu");
+        }
+
+        if (ImGui::BeginPopup("AddKeyframeMenu"))
+        {
+            if (ImGui::MenuItem("Add Keyframe"))
+            {
+                ImVec2 mousePos = ImGui::GetMousePos();
+                float normalizedTime = (mousePos.x - graphMin.x) / graphSize.x;
+                float normalizedValue = (mousePos.y - graphMin.y) / graphSize.y;
+                normalizedValue = 1.0f - normalizedValue;
+
+                normalizedTime = FMath::Clamp(normalizedTime, 0.0f, 1.0f);
+                normalizedValue = FMath::Clamp(normalizedValue, 0.0f, 1.0f);
+
+                float newTime = normalizedTime * AnimationLength;
+                float newValue = minVal + normalizedValue * (maxVal - minVal);
+
+                SelectedCurve.Keys.Add(FFloatKey(newTime, newValue));
+
+                // Sort keys by time
+                std::sort(SelectedCurve.Keys.begin(), SelectedCurve.Keys.end(), [](const FFloatKey& a, const FFloatKey& b) {
+                    return a.Time < b.Time;
+                });
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("Select a curve to edit");
+    }
+
+    ImGui::EndChild(); // CurveGraph
+
+    ImGui::EndChild(); // CurveEditorPanel
 
     ImGui::EndChild(); // CenterRightBottomArea
 

@@ -58,6 +58,10 @@ public:
 	// FPoseContext에 수집된 Notify들을 일괄 트리거
 	void TriggerAnimNotifies(const struct FPoseContext& Pose);
 
+	// Curve 트리거링 (Unreal 방식)
+	// FPoseContext에 수집된 Curve 값들을 일괄 트리거
+	void TriggerAnimCurves(const struct FPoseContext& Pose);
+
 	// Owner component 접근자
 	class USkeletalMeshComponent* GetOwnerComponent() const { return OwnerComponent; }
 

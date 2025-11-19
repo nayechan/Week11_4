@@ -89,7 +89,52 @@ void UFbxLoader::PreLoad()
 		}
 	}
 
-	// Phase 2: Load .anim files after all Skeletons are loaded
+	// Phase 2: Apply all .skeleton override files FIRST
+	// This ensures FBX animations have correct Skeleton before .anim files reference them
+	UE_LOG("UFbxLoader::Preload: Applying skeleton overrides...");
+	size_t OverrideCount = 0;
+
+	// Apply .skeleton overrides to USkeletalMesh
+	for (TObjectIterator<USkeletalMesh> It; It; ++It)
+	{
+		USkeletalMesh* Mesh = *It;
+		if (!Mesh || Mesh->GetFilePath().empty())
+			continue;
+
+		FString OverridePath = Mesh->GetFilePath() + ".skeleton";
+		if (std::filesystem::exists(OverridePath))
+		{
+			if (Mesh->LoadOverrideData(OverridePath))
+			{
+				++OverrideCount;
+			}
+		}
+	}
+
+	// Apply .skeleton overrides to UAnimSequence (FBX animations)
+	for (TObjectIterator<UAnimSequence> It; It; ++It)
+	{
+		UAnimSequence* Anim = *It;
+		if (!Anim || Anim->GetFilePath().empty())
+			continue;
+
+		FString OverridePath = Anim->GetFilePath() + ".skeleton";
+		if (std::filesystem::exists(OverridePath))
+		{
+			if (Anim->LoadOverrideData(OverridePath))
+			{
+				++OverrideCount;
+			}
+		}
+	}
+
+	if (OverrideCount > 0)
+	{
+		UE_LOG("UFbxLoader::Preload: Applied %zu skeleton override(s)", OverrideCount);
+	}
+
+	// Phase 3: Load .anim files AFTER .skeleton overrides
+	// Now SourceAnimationPath references will get the correct overridden Skeleton
 	for (const auto& Entry : fs::recursive_directory_iterator(DataDir))
 	{
 		if (!Entry.is_regular_file())
@@ -116,12 +161,90 @@ void UFbxLoader::PreLoad()
 				Reader << *LoadedAnimSeq;
 				Reader.Close();
 
-				// 2. Skeleton 찾기 (모든 SkeletalMesh 순회)
-				// 우선순위: 같은 이름의 FBX 메시 > 아무 메시
+				// 2. Skeleton 찾기
+				// SourceAnimationPath가 있으면 그 애니메이션의 Skeleton을 따라감
 				bool bFoundSkeleton = false;
-				USkeletalMesh* FallbackMesh = nullptr;
 
-				// Extract base name from .anim file (without extension)
+				if (!LoadedAnimSeq->SourceAnimationPath.empty())
+				{
+					// 원본 애니메이션에서 Skeleton 가져오기
+					UAnimSequence* SourceAnim = UResourceManager::GetInstance().Get<UAnimSequence>(LoadedAnimSeq->SourceAnimationPath);
+					if (SourceAnim && SourceAnim->Skeleton)
+					{
+						LoadedAnimSeq->Skeleton = SourceAnim->Skeleton;
+						bFoundSkeleton = true;
+					}
+				}
+
+				// SourceAnimationPath가 없거나 찾지 못한 경우 Fallback
+				if (!bFoundSkeleton)
+				{
+					// Extract base name from .anim file (without extension)
+					FString AnimBaseName = AnimPath;
+					size_t lastSlash = AnimBaseName.find_last_of("/\\");
+					if (lastSlash != FString::npos)
+					{
+						AnimBaseName = AnimBaseName.substr(lastSlash + 1);
+					}
+					size_t lastDot = AnimBaseName.find_last_of('.');
+					if (lastDot != FString::npos)
+					{
+						AnimBaseName = AnimBaseName.substr(0, lastDot);
+					}
+
+					USkeletalMesh* FallbackMesh = nullptr;
+					for (TObjectIterator<USkeletalMesh> It; It; ++It)
+					{
+						USkeletalMesh* ExistingMesh = *It;
+						if (ExistingMesh && ExistingMesh->GetSkeleton())
+						{
+							// Keep first mesh as fallback
+							if (!FallbackMesh)
+							{
+								FallbackMesh = ExistingMesh;
+							}
+
+							// Try to find mesh with matching name
+							FString MeshPath = ExistingMesh->GetFilePath();
+							if (!MeshPath.empty())
+							{
+								FString MeshBaseName = MeshPath;
+								size_t meshSlash = MeshBaseName.find_last_of("/\\");
+								if (meshSlash != FString::npos)
+								{
+									MeshBaseName = MeshBaseName.substr(meshSlash + 1);
+								}
+								size_t meshDot = MeshBaseName.find_last_of('.');
+								if (meshDot != FString::npos)
+								{
+									MeshBaseName = MeshBaseName.substr(0, meshDot);
+								}
+
+								// If names match, use this skeleton
+								if (MeshBaseName == AnimBaseName)
+								{
+									LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(ExistingMesh->GetSkeleton());
+									bFoundSkeleton = true;
+									break;
+								}
+							}
+						}
+					}
+
+					// If no matching name found, use fallback mesh
+					if (!bFoundSkeleton && FallbackMesh)
+					{
+						LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(FallbackMesh->GetSkeleton());
+						bFoundSkeleton = true;
+					}
+				}
+
+				if (!bFoundSkeleton)
+				{
+					continue;
+				}
+
+				// Extract base name for ObjectName
 				FString AnimBaseName = AnimPath;
 				size_t lastSlash = AnimBaseName.find_last_of("/\\");
 				if (lastSlash != FString::npos)
@@ -134,59 +257,9 @@ void UFbxLoader::PreLoad()
 					AnimBaseName = AnimBaseName.substr(0, lastDot);
 				}
 
-				for (TObjectIterator<USkeletalMesh> It; It; ++It)
-				{
-					USkeletalMesh* ExistingMesh = *It;
-					if (ExistingMesh && ExistingMesh->GetSkeleton())
-					{
-						// Keep first mesh as fallback
-						if (!FallbackMesh)
-						{
-							FallbackMesh = ExistingMesh;
-						}
-
-						// Try to find mesh with matching name
-						FString MeshPath = ExistingMesh->GetFilePath();
-						if (!MeshPath.empty())
-						{
-							FString MeshBaseName = MeshPath;
-							size_t meshSlash = MeshBaseName.find_last_of("/\\");
-							if (meshSlash != FString::npos)
-							{
-								MeshBaseName = MeshBaseName.substr(meshSlash + 1);
-							}
-							size_t meshDot = MeshBaseName.find_last_of('.');
-							if (meshDot != FString::npos)
-							{
-								MeshBaseName = MeshBaseName.substr(0, meshDot);
-							}
-
-							// If names match, use this skeleton
-							if (MeshBaseName == AnimBaseName)
-							{
-								LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(ExistingMesh->GetSkeleton());
-								bFoundSkeleton = true;
-								break;
-							}
-						}
-					}
-				}
-
-				// If no matching name found, use fallback mesh
-				if (!bFoundSkeleton && FallbackMesh)
-				{
-					LoadedAnimSeq->Skeleton = const_cast<FSkeleton*>(FallbackMesh->GetSkeleton());
-					bFoundSkeleton = true;
-				}
-
-				if (!bFoundSkeleton)
-				{
-					continue;
-				}
-
 				LoadedAnimSeq->SetFilePath(AnimPath);
 
-				// 3. ObjectName 설정 (이미 추출된 AnimBaseName 사용)
+				// 3. ObjectName 설정
 				LoadedAnimSeq->ObjectName = FName(AnimBaseName);
 
 				// 4. ResourceManager에 등록
@@ -196,45 +269,6 @@ void UFbxLoader::PreLoad()
 			}
 			catch (const std::exception&)
 			{
-			}
-		}
-	}
-
-	// Phase 3: Apply all .skeleton override files
-	// 모든 Skeleton이 FFbxManager에 등록된 상태이므로 순서와 무관하게 오버라이드 적용 가능
-	UE_LOG("UFbxLoader::Preload: Applying skeleton overrides...");
-	size_t OverrideCount = 0;
-
-	// 모든 USkeletalMesh에 .skeleton 적용
-	for (TObjectIterator<USkeletalMesh> It; It; ++It)
-	{
-		USkeletalMesh* Mesh = *It;
-		if (!Mesh || Mesh->GetFilePath().empty())
-			continue;
-
-		FString OverridePath = Mesh->GetFilePath() + ".skeleton";
-		if (std::filesystem::exists(OverridePath))
-		{
-			if (Mesh->LoadOverrideData(OverridePath))
-			{
-				++OverrideCount;
-			}
-		}
-	}
-
-	// 모든 UAnimSequence에 .skeleton 적용
-	for (TObjectIterator<UAnimSequence> It; It; ++It)
-	{
-		UAnimSequence* Anim = *It;
-		if (!Anim || Anim->GetFilePath().empty())
-			continue;
-
-		FString OverridePath = Anim->GetFilePath() + ".skeleton";
-		if (std::filesystem::exists(OverridePath))
-		{
-			if (Anim->LoadOverrideData(OverridePath))
-			{
-				++OverrideCount;
 			}
 		}
 	}

@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "AnimSequence.h"
 #include "GlobalConsole.h"
-#include "Source/Runtime/Core/Misc/VertexData.h" 
+#include "Source/Runtime/Core/Misc/VertexData.h"
 
 void UAnimSequence::GetAnimationPose(FPoseContext& OutPose, const FAnimExtractContext& Context)
 {
@@ -20,7 +20,23 @@ void UAnimSequence::GetAnimationPose(FPoseContext& OutPose, const FAnimExtractCo
 	for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
 	{
 		OutPose.BoneTransforms[BoneIndex] = GetBoneTransformAtTime(BoneIndex, Context.CurrentTime);
-	}	
+	}
+
+	// 모든 커브에 대해 현재 시간의 값 평가 (Unreal 방식: 트리 누적 패턴)
+	// AnimSequence가 FPoseContext.CurveValues에 현재 시간의 커브 값 추가
+	// 방어적 체크: CurveData.FloatCurves가 유효한 경우에만 평가
+	if (!CurveData.FloatCurves.empty())
+	{
+		for (const FFloatCurve& Curve : CurveData.FloatCurves)
+		{
+			// 각 커브의 Keys가 유효한지 확인 (댕글링 포인터 방지)
+			if (!Curve.Keys.empty())
+			{
+				float CurveValue = Curve.Evaluate(Context.CurrentTime);
+				OutPose.CurveValues.Add(Curve.CurveName, CurveValue);
+			}
+		}
+	}
 }
 
 FTransform UAnimSequence::GetBoneTransformAtTime(int32 BoneIndex, float Time) const
@@ -129,6 +145,9 @@ void UAnimSequence::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		FJsonSerializer::ReadInt32(InOutHandle, "NumberOfFrames", NumberOfFrames, 0, false);
 		FJsonSerializer::ReadInt32(InOutHandle, "NumberOfKeys", NumberOfKeys, 0, false);
 
+		// bReversePlay 로드
+		FJsonSerializer::ReadBool(InOutHandle, "bReversePlay", bReversePlay, false, false);
+
 		// BoneAnimationTracks 로드
 		JSON TracksJson;
 		if (FJsonSerializer::ReadArray(InOutHandle, "BoneAnimationTracks", TracksJson, nullptr, false))
@@ -207,6 +226,9 @@ void UAnimSequence::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// NumberOfFrames, NumberOfKeys 저장
 		InOutHandle["NumberOfFrames"] = NumberOfFrames;
 		InOutHandle["NumberOfKeys"] = NumberOfKeys;
+
+		// bReversePlay 저장
+		InOutHandle["bReversePlay"] = bReversePlay;
 
 		// BoneAnimationTracks 저장
 		JSON TracksArray = JSON::Make(JSON::Class::Array);

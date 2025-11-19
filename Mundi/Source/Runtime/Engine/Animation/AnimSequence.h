@@ -9,7 +9,7 @@ public:
 	GENERATED_REFLECTION_BODY()
 
 	UAnimSequence() = default;
-	virtual ~UAnimSequence() = default;
+	virtual ~UAnimSequence() override = default;
 
 	// 프레임 레이트
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="프레임 레이트")
@@ -20,6 +20,12 @@ public:
 
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="총 키 개수")
 	int32 NumberOfKeys = 0;
+
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="역재생 여부")
+	bool bReversePlay = false;
+
+	// 원본 애니메이션 경로 (.anim 파일일 경우, 이 애니메이션의 Skeleton을 따라감)
+	FString SourceAnimationPath;
 
 	// 포즈 추출 구현
 	virtual void GetAnimationPose(FPoseContext& OutPose, const FAnimExtractContext& Context) override;
@@ -61,6 +67,12 @@ public:
 			Ar << Anim.SequenceLength;
 			Ar << Anim.RateScale;
 
+			// 3-1. bReversePlay 저장
+			Ar << Anim.bReversePlay;
+
+			// 3-2. SourceAnimationPath 저장
+			Serialization::WriteString(Ar, Anim.SourceAnimationPath);
+
 			// 4. BoneAnimationTracks 저장
 			uint32 TrackCount = static_cast<uint32>(Anim.BoneAnimationTracks.Num());
 			Ar << TrackCount;
@@ -87,6 +99,9 @@ public:
 
 			// 7. NextTrackID 저장 (부모 클래스)
 			Ar << Anim.NextTrackID;
+
+			// 8. CurveData 저장 (부모 클래스)
+			Ar << Anim.CurveData;
 		}
 		else if (Ar.IsLoading())
 		{
@@ -100,6 +115,12 @@ public:
 			// 3. SequenceLength, RateScale 로드
 			Ar << Anim.SequenceLength;
 			Ar << Anim.RateScale;
+
+			// 3-1. bReversePlay 로드
+			Ar << Anim.bReversePlay;
+
+			// 3-2. SourceAnimationPath 로드
+			Serialization::ReadString(Ar, Anim.SourceAnimationPath);
 
 			// 4. BoneAnimationTracks 로드
 			uint32 TrackCount;
@@ -151,6 +172,9 @@ public:
 
 			// 7. NextTrackID 로드
 			Ar << Anim.NextTrackID;
+
+			// 8. CurveData 로드 (부모 클래스)
+			Ar << Anim.CurveData;
 		}
 		return Ar;
 	}

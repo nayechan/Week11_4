@@ -788,22 +788,16 @@ void AActor::UnregisterComponentTree(USceneComponent* SceneComp)
 
 void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 {
-	// "NewNotify" 특별 처리 - 액터 스케일을 1.1배 증가
 	if (Notify.NotifyName == FName("NewNotify"))
 	{
-		FVector CurrentScale = GetActorScale();
-		FVector NewScale = CurrentScale * 1.1f;
-		SetActorScale(NewScale);
-
-		//UE_LOG("[NewNotify] 스케일 증가! %.2f초 - (%.2f, %.2f, %.2f) -> (%.2f, %.2f, %.2f)",
-		//       Notify.TriggerTime,
-		//       CurrentScale.X, CurrentScale.Y, CurrentScale.Z,
-		//       NewScale.X, NewScale.Y, NewScale.Z);
 		return;
 	}
+}
 
-	// 기본 구현: 로그 출력
-	//UE_LOG("AActor::HandleAnimNotify - Notify: %s at %.2f",
-	//       Notify.NotifyName.ToString().c_str(),
-	//       Notify.TriggerTime);
+void AActor::HandleAnimCurve(const FName& CurveName, float CurveValue)
+{
+	if (CurveName == FName("NewNotify"))
+	{
+		return;
+	}
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-class UWorld; class FViewport; class FViewportClient; class ASkeletalMeshActor; class USkeletalMesh;
+class UWorld; class FViewport; class FViewportClient; class ASkeletalMeshActor; class USkeletalMesh; struct FSkeleton;
 
 class AnimSequenceEditorState
 {
@@ -29,6 +29,9 @@ public:
 
     // Animation playback
     bool bLoopAnimation = true;  // Default to looping animation
+
+    // Skeleton Swapping (matches PropertyRenderer pattern)
+    FSkeleton* TargetSkeleton = nullptr;
 
     // Bone selection for Notify editing
     int32 SelectedBoneIndex = -1;

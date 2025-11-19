@@ -47,25 +47,55 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	// Notify 범위 체크용
 	PreviousInternalTime = InternalTime;
-	InternalTime += DeltaSeconds * PlayRate;
 
 	// 애니메이션 길이 체크
 	const float AnimLength = CurrentSequence->GetPlayLength();
 
-	if (InternalTime >= AnimLength)
-	{
-		if (bLooping)
-		{
-			// 루핑: 시작으로 돌아가기
-			InternalTime = std::fmod(InternalTime, AnimLength);
-		}
-		else
-		{
-			// 비루핑: 정지
-			InternalTime = AnimLength;
-			bIsPlaying = false;
+	// 역재생 여부 확인
+	bool bReverse = CurrentSequence->bReversePlay;
 
-			UE_LOG("UAnimSingleNodeInstance - Animation finished");
+	if (bReverse)
+	{
+		// 역재생: 시간을 감소
+		InternalTime -= DeltaSeconds * PlayRate;
+
+		if (InternalTime <= 0.0f)
+		{
+			if (bLooping)
+			{
+				// 루핑: 끝으로 이동
+				InternalTime = AnimLength + std::fmod(InternalTime, AnimLength);
+			}
+			else
+			{
+				// 비루핑: 정지
+				InternalTime = 0.0f;
+				bIsPlaying = false;
+
+				UE_LOG("UAnimSingleNodeInstance - Reverse animation finished");
+			}
+		}
+	}
+	else
+	{
+		// 정방향 재생: 시간을 증가
+		InternalTime += DeltaSeconds * PlayRate;
+
+		if (InternalTime >= AnimLength)
+		{
+			if (bLooping)
+			{
+				// 루핑: 시작으로 돌아가기
+				InternalTime = std::fmod(InternalTime, AnimLength);
+			}
+			else
+			{
+				// 비루핑: 정지
+				InternalTime = AnimLength;
+				bIsPlaying = false;
+
+				UE_LOG("UAnimSingleNodeInstance - Animation finished");
+			}
 		}
 	}
 }
