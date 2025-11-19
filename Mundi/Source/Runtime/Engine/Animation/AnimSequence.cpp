@@ -145,6 +145,9 @@ void UAnimSequence::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		FJsonSerializer::ReadInt32(InOutHandle, "NumberOfFrames", NumberOfFrames, 0, false);
 		FJsonSerializer::ReadInt32(InOutHandle, "NumberOfKeys", NumberOfKeys, 0, false);
 
+		// bReversePlay 로드
+		FJsonSerializer::ReadBool(InOutHandle, "bReversePlay", bReversePlay, false, false);
+
 		// BoneAnimationTracks 로드
 		JSON TracksJson;
 		if (FJsonSerializer::ReadArray(InOutHandle, "BoneAnimationTracks", TracksJson, nullptr, false))
@@ -223,6 +226,9 @@ void UAnimSequence::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 		// NumberOfFrames, NumberOfKeys 저장
 		InOutHandle["NumberOfFrames"] = NumberOfFrames;
 		InOutHandle["NumberOfKeys"] = NumberOfKeys;
+
+		// bReversePlay 저장
+		InOutHandle["bReversePlay"] = bReversePlay;
 
 		// BoneAnimationTracks 저장
 		JSON TracksArray = JSON::Make(JSON::Class::Array);

@@ -21,6 +21,9 @@ public:
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="총 키 개수")
 	int32 NumberOfKeys = 0;
 
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="역재생 여부")
+	bool bReversePlay = false;
+
 	// 포즈 추출 구현
 	virtual void GetAnimationPose(FPoseContext& OutPose, const FAnimExtractContext& Context) override;
 
@@ -60,6 +63,9 @@ public:
 			// 3. SequenceLength, RateScale 저장 (부모 클래스 프로퍼티)
 			Ar << Anim.SequenceLength;
 			Ar << Anim.RateScale;
+
+			// 3-1. bReversePlay 저장
+			Ar << Anim.bReversePlay;
 
 			// 4. BoneAnimationTracks 저장
 			uint32 TrackCount = static_cast<uint32>(Anim.BoneAnimationTracks.Num());
@@ -103,6 +109,9 @@ public:
 			// 3. SequenceLength, RateScale 로드
 			Ar << Anim.SequenceLength;
 			Ar << Anim.RateScale;
+
+			// 3-1. bReversePlay 로드
+			Ar << Anim.bReversePlay;
 
 			// 4. BoneAnimationTracks 로드
 			uint32 TrackCount;

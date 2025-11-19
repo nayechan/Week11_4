@@ -1175,14 +1175,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImDrawList* DrawList = ImGui::GetWindowDrawList();
 
     // Layout: Left side = Notify tracks + controls, Right side = Timeline
-    const float LeftControlWidth = 200.0f;
+    const float LeftControlWidth = 280.0f; // Increased width for controls
     const float RightTimelineWidth = WindowWidth - LeftControlWidth;
 
     // === LEFT SIDE: Notify Tracks + Playback Controls ===
     ImGui::BeginChild("LeftControlArea", ImVec2(LeftControlWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
 
     // Top part: Notify Tracks
-    float controlsHeight = 50.0f; // Height for playback controls (reduced for more track space)
+    float controlsHeight = 90.0f; // Increased height for two-row layout (buttons + Rev/Speed)
     float tracksHeight = WindowHeight - controlsHeight - 10.0f;
 
     ImGui::BeginChild("NotifyTracks", ImVec2(LeftControlWidth, tracksHeight), true);
@@ -1743,7 +1743,23 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::SetTooltip(ActiveState->bLoopAnimation ? "Loop: ON" : "Loop: OFF");
     ImGui::PopStyleColor(6);
 
-    // Speed control (same line)
+    // === Second Row: Reverse Play + Speed Control ===
+    ImGui::SetCursorPosX(3.0f);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8.0f); // Move to next line with spacing
+
+    // Reverse Play Checkbox
+    bool bReversePlay = AnimSequence->bReversePlay;
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.7f, 0.3f, 1.0f)); // Orange text
+    if (ImGui::Checkbox("Rev##Reverse", &bReversePlay))
+    {
+        AnimSequence->bReversePlay = bReversePlay;
+        UE_LOG("Reverse Play: %s", bReversePlay ? "ON" : "OFF");
+    }
+    ImGui::PopStyleColor();
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip(bReversePlay ? "Reverse Play: ON" : "Reverse Play: OFF");
+
+    // Speed control (same line as Rev)
     ImGui::SameLine();
     ImGui::Dummy(ImVec2(5.0f, 0.0f)); // Small spacer
     ImGui::SameLine();
