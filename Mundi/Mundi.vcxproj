@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug_StandAlone|x64">
@@ -280,6 +280,10 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationAsset.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationRuntime.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_BlendTwoWay.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_SequencePlayer.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimGraphInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSequence.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSequenceBase.cpp" />
@@ -556,7 +560,15 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\APawn.generated.cpp" />
     <ClCompile Include="Generated\USpringArmComponent.generated.cpp" />
     <ClCompile Include="Generated\ACharacter.generated.cpp" />
-  <ClCompile Include="Generated\UCharacterMovementComponent.generated.cpp" /><ClCompile Include="Generated\UPawnMovementComponent.generated.cpp" /><ClCompile Include="Generated\USkeletalMesh.generated.cpp" /><ClCompile Include="Generated\FAnimTransition.generated.cpp" /></ItemGroup>
+    <ClCompile Include="Generated\UCharacterMovementComponent.generated.cpp" />
+    <ClCompile Include="Generated\UPawnMovementComponent.generated.cpp" />
+    <ClCompile Include="Generated\USkeletalMesh.generated.cpp" />
+    <ClCompile Include="Generated\FAnimTransition.generated.cpp" />
+    <ClCompile Include="Generated\UAnimGraphInstance.generated.cpp" />
+    <ClCompile Include="Generated\UAnimNode.generated.cpp" />
+    <ClCompile Include="Generated\UAnimNode_BlendTwoWay.generated.cpp" />
+    <ClCompile Include="Generated\UAnimNode_SequencePlayer.generated.cpp" />
+  </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -736,7 +748,11 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationAsset.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationRuntime.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimationTypes.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimGraphInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_BlendTwoWay.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_SequencePlayer.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequence.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequenceBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.h" />
@@ -1001,7 +1017,15 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\APawn.generated.h" />
     <ClInclude Include="Generated\USpringArmComponent.generated.h" />
     <ClInclude Include="Generated\ACharacter.generated.h" />
-  <ClInclude Include="Generated\UCharacterMovementComponent.generated.h" /><ClInclude Include="Generated\UPawnMovementComponent.generated.h" /><ClInclude Include="Generated\USkeletalMesh.generated.h" /><ClInclude Include="Generated\FAnimTransition.generated.h" /></ItemGroup>
+    <ClInclude Include="Generated\UCharacterMovementComponent.generated.h" />
+    <ClInclude Include="Generated\UPawnMovementComponent.generated.h" />
+    <ClInclude Include="Generated\USkeletalMesh.generated.h" />
+    <ClInclude Include="Generated\FAnimTransition.generated.h" />
+    <ClInclude Include="Generated\UAnimGraphInstance.generated.h" />
+    <ClInclude Include="Generated\UAnimNode.generated.h" />
+    <ClInclude Include="Generated\UAnimNode_BlendTwoWay.generated.h" />
+    <ClInclude Include="Generated\UAnimNode_SequencePlayer.generated.h" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
     <None Include="BuildTools\CodeGenerator\lua_generator.py" />

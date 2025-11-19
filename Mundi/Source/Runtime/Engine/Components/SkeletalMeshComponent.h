@@ -29,7 +29,8 @@ public:
     EAnimationMode AnimationMode = EAnimationMode::AnimationSingleNode;
 
     // C++ AnimInstance 클래스 (AnimationNative 모드에서 사용)
-    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animation", Tooltip="C++ 애니메이션 인스턴스 클래스")
+    // UAnimInstance 또는 UAnimGraphInstance 등 모든 서브클래스 사용 가능
+    UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animation", Tooltip="C++ 애니메이션 인스턴스 클래스 (일반/노드 그래프 모두 가능)")
     TSubclassOf<UAnimInstance> AnimClass;
 
     // 재생할 애니메이션 시퀀스 (AnimationSingleNode 모드에서 사용, PIE 시작 시 자동 루프 재생)
