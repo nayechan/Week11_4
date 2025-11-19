@@ -187,16 +187,19 @@ void UAnimStateMachine::StartTransition(FName From, FName To, float Duration)
     TransitionElapsed = 0.0f;
     TransitionAlpha = 0.0f;
 
-    // Node-Centric 아키텍처 + Phase Sync:
-    // FromState: 현재 시간 계속 (예: 2.0초 → 2.033초 → ...)
-    // ToState: FromState의 phase(진행률)를 유지하여 시작
+    // ========================================
+    // Phase Synchronization 초기화 (Weight-based Leader Selection)
+    // ========================================
+    // - ToState를 FromState의 정규화된 시간으로 초기화
+    // - Update()에서 매 프레임 TransitionAlpha 기준으로 Leader 교체
+    //   → Alpha < 0.5: FromState가 Leader
+    //   → Alpha >= 0.5: ToState가 Leader (주도권 교체!)
     FAnimState* FromStatePtr = States.Find(From);
     FAnimState* ToStatePtr = States.Find(To);
 
     if (ToStatePtr)
     {
-        // Phase 기반 동기화: FromState의 진행률(0.0~1.0)을 ToState에 적용
-        // 예: Walk(2.0초) 1.0초 지점 → phase=0.5 → Run(1.5초)은 0.75초부터 시작
+        // ToState 초기 시간 설정: FromState의 phase로 시작
         if (FromStatePtr && FromStatePtr->Animation && ToStatePtr->Animation)
         {
             float fromLength = FromStatePtr->Animation->SequenceLength;
@@ -204,14 +207,14 @@ void UAnimStateMachine::StartTransition(FName From, FName To, float Duration)
 
             if (fromLength > 0.0f && toLength > 0.0f)
             {
-                // Normalized phase 계산
+                // Normalized phase 계산 (0.0~1.0)
                 float phase = FromStatePtr->InternalTime / fromLength;
-                // Loop 중일 경우 phase가 1.0을 초과할 수 있으므로 fmod로 정규화
-                phase = fmod(phase, 1.0f);
+                phase = fmod(phase, 1.0f); // Loop 중일 경우 정규화
+
+                // ToState 초기 시간 = FromState의 정규화된 시간
                 ToStatePtr->InternalTime = phase * toLength;
 
-                // Phase sync 로그 (간소화)
-                UE_LOG("StateMachine: Phase sync - phase=%.2f, ToTime=%.2fs",
+                UE_LOG("StateMachine: Phase sync init - phase=%.2f, ToTime=%.2fs",
                        phase, ToStatePtr->InternalTime);
             }
             else
@@ -274,40 +277,118 @@ void UAnimStateMachine::Update(float DeltaTime)
 
     if (bIsTransitioning)
     {
-        // Transition 중: FromState와 ToState 모두 업데이트
+        // ========================================
+        // Transition 중: Weight-based Leader Selection (BlendSpace와 동일)
+        // ========================================
         FAnimState* FromStatePtr = States.Find(FromState);
         FAnimState* ToStatePtr = States.Find(ToState);
 
-        if (FromStatePtr)
+        if (!FromStatePtr || !ToStatePtr || !FromStatePtr->Animation || !ToStatePtr->Animation)
         {
-            FromStatePtr->PreviousInternalTime = FromStatePtr->InternalTime;
-            FromStatePtr->InternalTime += DeltaTime * FromStatePtr->PlayRate;
-
-            // Loop 처리 (UE5 패턴)
-            if (FromStatePtr->bLoop && FromStatePtr->Animation)
+            // 유효하지 않으면 독립 업데이트로 폴백
+            if (FromStatePtr)
             {
-                float SequenceLength = FromStatePtr->Animation->SequenceLength;
-                if (SequenceLength > 0.0f && FromStatePtr->InternalTime >= SequenceLength)
+                FromStatePtr->PreviousInternalTime = FromStatePtr->InternalTime;
+                FromStatePtr->InternalTime += DeltaTime * FromStatePtr->PlayRate;
+
+                if (FromStatePtr->bLoop && FromStatePtr->Animation)
                 {
-                    FromStatePtr->InternalTime = fmod(FromStatePtr->InternalTime, SequenceLength);
+                    float SequenceLength = FromStatePtr->Animation->SequenceLength;
+                    if (SequenceLength > 0.0f && FromStatePtr->InternalTime >= SequenceLength)
+                        FromStatePtr->InternalTime = fmod(FromStatePtr->InternalTime, SequenceLength);
                 }
             }
+
+            if (ToStatePtr)
+            {
+                ToStatePtr->PreviousInternalTime = ToStatePtr->InternalTime;
+                ToStatePtr->InternalTime += DeltaTime * ToStatePtr->PlayRate;
+
+                if (ToStatePtr->bLoop && ToStatePtr->Animation)
+                {
+                    float SequenceLength = ToStatePtr->Animation->SequenceLength;
+                    if (SequenceLength > 0.0f && ToStatePtr->InternalTime >= SequenceLength)
+                        ToStatePtr->InternalTime = fmod(ToStatePtr->InternalTime, SequenceLength);
+                }
+            }
+            return;
         }
 
-        if (ToStatePtr)
-        {
-            ToStatePtr->PreviousInternalTime = ToStatePtr->InternalTime;
-            ToStatePtr->InternalTime += DeltaTime * ToStatePtr->PlayRate;
+        const float FromLength = FromStatePtr->Animation->SequenceLength;
+        const float ToLength = ToStatePtr->Animation->SequenceLength;
 
-            // Loop 처리 (UE5 패턴)
-            if (ToStatePtr->bLoop && ToStatePtr->Animation)
+        if (FromLength <= 0.0f || ToLength <= 0.0f)
+            return;
+
+        // ========================================
+        // Weight-based Leader Selection (Unreal Engine 스타일)
+        // ========================================
+        // TransitionAlpha < 0.5 → FromState 가중치 높음 (1-Alpha > 0.5)
+        // TransitionAlpha >= 0.5 → ToState 가중치 높음 (Alpha >= 0.5)
+
+        if (TransitionAlpha < 0.5f)
+        {
+            // ========================================
+            // Case 1: FromState가 Leader (전환 초기 ~ 중반)
+            // ========================================
+
+            // Step 1: Leader(FromState) 정규화된 시간 계산
+            float LeaderNormalizedTime = FromStatePtr->InternalTime / FromLength;
+
+            // Step 2: PreviousTime 저장
+            FromStatePtr->PreviousInternalTime = FromStatePtr->InternalTime;
+            ToStatePtr->PreviousInternalTime = ToStatePtr->InternalTime;
+
+            // Step 3: Leader 시간 진행 (normalized time 기준)
+            LeaderNormalizedTime += (DeltaTime * FromStatePtr->PlayRate) / FromLength;
+
+            // Step 4: 루핑/클램핑 (normalized time 기준)
+            if (FromStatePtr->bLoop)
             {
-                float SequenceLength = ToStatePtr->Animation->SequenceLength;
-                if (SequenceLength > 0.0f && ToStatePtr->InternalTime >= SequenceLength)
-                {
-                    ToStatePtr->InternalTime = fmod(ToStatePtr->InternalTime, SequenceLength);
-                }
+                LeaderNormalizedTime = fmod(LeaderNormalizedTime, 1.0f);
             }
+            else
+            {
+                LeaderNormalizedTime = FMath::Min(LeaderNormalizedTime, 1.0f);
+            }
+
+            // Step 5: Leader의 절대 시간 업데이트
+            FromStatePtr->InternalTime = LeaderNormalizedTime * FromLength;
+
+            // Step 6: Follower(ToState)를 Leader의 NormalizedTime에 동기화
+            ToStatePtr->InternalTime = LeaderNormalizedTime * ToLength;
+        }
+        else
+        {
+            // ========================================
+            // Case 2: ToState가 Leader (전환 중반 ~ 완료)
+            // ========================================
+
+            // Step 1: Leader(ToState) 정규화된 시간 계산
+            float LeaderNormalizedTime = ToStatePtr->InternalTime / ToLength;
+
+            // Step 2: PreviousTime 저장
+            FromStatePtr->PreviousInternalTime = FromStatePtr->InternalTime;
+            ToStatePtr->PreviousInternalTime = ToStatePtr->InternalTime;
+
+            // Step 3: Leader 시간 진행 (normalized time 기준)
+            LeaderNormalizedTime += (DeltaTime * ToStatePtr->PlayRate) / ToLength;
+
+            // Step 4: 루핑/클램핑 (normalized time 기준)
+            if (ToStatePtr->bLoop)
+            {
+                LeaderNormalizedTime = fmod(LeaderNormalizedTime, 1.0f);
+            }
+            else
+            {
+                LeaderNormalizedTime = FMath::Min(LeaderNormalizedTime, 1.0f);
+            }
+
+            // Step 5: Leader의 절대 시간 업데이트
+            ToStatePtr->InternalTime = LeaderNormalizedTime * ToLength;
+
+            // Step 6: Follower(FromState)를 Leader의 NormalizedTime에 동기화
+            FromStatePtr->InternalTime = LeaderNormalizedTime * FromLength;
         }
     }
     else

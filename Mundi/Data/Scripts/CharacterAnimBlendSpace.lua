@@ -90,8 +90,9 @@ function LuaInitializeAnimation()
     BlendSpaceNode.bLooping = true
     BlendSpaceNode.PlayRate = 1.0
     BlendSpaceNode.CurrentParameter = 0.0  -- 초기값 (Idle)
+    BlendSpaceNode.bUsePhaseSync = true    -- Phase Synchronization (Unreal 스타일)
 
-    print("[Lua] BlendSpace configured: bLooping=true, PlayRate=1.0")
+    print("[Lua] BlendSpace configured: bLooping=true, PlayRate=1.0, bUsePhaseSync=true")
 
     -- ========================================
     -- Set RootNode (Evaluation Entry Point)

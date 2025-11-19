@@ -101,6 +101,18 @@ public:
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[BlendSpace]", Tooltip="루핑 모드")
 	bool bLooping = true;
 
+	/**
+	 * @brief Phase Synchronization 활성화 (Unreal Engine 스타일)
+	 *
+	 * Phase Sync: 가중치 높은 샘플(Leader)의 정규화된 시간을 기준으로 동기화
+	 *
+	 * 사용 케이스:
+	 * - true: Locomotion (Idle/Walk/Run) - 발 위상 동기화 필수
+	 * - false: One-shot (Attack/Jump) - 독립 재생
+	 */
+	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[BlendSpace]", Tooltip="Phase Synchronization")
+	bool bUsePhaseSync = true;
+
 	// ========================================
 	// Lua 편의 함수 (샘플 추가)
 	// ========================================
@@ -150,45 +162,143 @@ public:
 	// ========================================
 
 	/**
-	 * @brief 시간 진행 (모든 샘플 동시 재생)
+	 * @brief 시간 진행 (Phase Synchronization 지원)
 	 *
-	 * 로직:
-	 * 1. 모든 샘플의 InternalTime 업데이트
-	 * 2. PlayRate 적용
-	 * 3. 루핑 처리
+	 * 두 가지 모드:
 	 *
-	 * 중요: Phase Sync 불필요
-	 * - 모든 샘플이 동시에 재생됨
-	 * - CurrentParameter 변경 시에도 시간 유지
-	 * - StateMachine의 Phase Sync와 대조적
+	 * 1. bUsePhaseSync = false (독립 재생)
+	 *    - 각 샘플이 독립적으로 시간 진행
+	 *    - One-shot 애니메이션에 적합 (Attack, Jump 등)
+	 *
+	 * 2. bUsePhaseSync = true (Unreal Engine 스타일)
+	 *    - Weight-based Leader Selection
+	 *    - Leader의 정규화된 시간을 모든 샘플에 동기화
+	 *    - Locomotion에 적합 (Idle/Walk/Run)
+	 *
+	 * Phase Sync 알고리즘:
+	 * 1. FindBlendSamples(): 현재 블렌딩되는 두 샘플 찾기
+	 * 2. Leader 결정: BlendAlpha < 0.5 ? Lower : Upper
+	 * 3. Leader 시간 진행 (normalized time 기준)
+	 * 4. 모든 샘플에 Leader의 NormalizedTime 적용
+	 *
+	 * 예시 (Speed = 3.0, Alpha = 0.6):
+	 * - Leader = Walk (가중치 60%)
+	 * - Walk의 NormalizedTime = 0.25 (25% 지점, 왼발 앞)
+	 * - Idle도 NormalizedTime = 0.25로 동기화
+	 * - 결과: Idle 25% + Walk 25% = 같은 발 위상!
 	 */
 	virtual void Update(float DeltaTime) override
 	{
-		if (DeltaTime <= 0.0f)
+		if (DeltaTime <= 0.0f || Samples.Num() == 0)
 			return;
 
-		// 모든 샘플 시간 진행
-		for (FBlendSample1D& Sample : Samples)
+		// ========================================
+		// 모드 1: 독립 재생 (Phase Sync 비활성화)
+		// ========================================
+		if (!bUsePhaseSync)
 		{
+			// 각 샘플이 독립적으로 시간 진행
+			for (FBlendSample1D& Sample : Samples)
+			{
+				if (!Sample.Animation)
+					continue;
+
+				Sample.PreviousTime = Sample.InternalTime;
+				Sample.InternalTime += DeltaTime * PlayRate;
+
+				const float AnimLength = Sample.Animation->GetPlayLength();
+
+				if (bLooping)
+				{
+					if (AnimLength > 0.0f)
+						Sample.InternalTime = fmodf(Sample.InternalTime, AnimLength);
+				}
+				else
+				{
+					Sample.InternalTime = FMath::Min(Sample.InternalTime, AnimLength);
+				}
+			}
+			return;
+		}
+
+		// ========================================
+		// 모드 2: Phase Synchronization (Unreal 스타일)
+		// ========================================
+
+		// Step 1: 현재 블렌딩되는 샘플 찾기
+		int32 LowerIdx, UpperIdx;
+		float BlendAlpha;
+		FindBlendSamples(CurrentParameter, LowerIdx, UpperIdx, BlendAlpha);
+
+		// Step 2: Leader 결정 (가중치 높은 샘플)
+		// - BlendAlpha < 0.5 → Lower 가중치 높음 (1-Alpha > 0.5)
+		// - BlendAlpha >= 0.5 → Upper 가중치 높음 (Alpha >= 0.5)
+		int32 LeaderIdx = (BlendAlpha < 0.5f) ? LowerIdx : UpperIdx;
+		FBlendSample1D& LeaderSample = Samples[LeaderIdx];
+
+		if (!LeaderSample.Animation)
+		{
+			// Leader가 유효하지 않으면 독립 재생으로 폴백
+			for (FBlendSample1D& Sample : Samples)
+			{
+				if (!Sample.Animation)
+					continue;
+
+				Sample.PreviousTime = Sample.InternalTime;
+				Sample.InternalTime += DeltaTime * PlayRate;
+
+				const float AnimLength = Sample.Animation->GetPlayLength();
+				if (bLooping && AnimLength > 0.0f)
+					Sample.InternalTime = fmodf(Sample.InternalTime, AnimLength);
+				else
+					Sample.InternalTime = FMath::Min(Sample.InternalTime, AnimLength);
+			}
+			return;
+		}
+
+		const float LeaderLength = LeaderSample.Animation->GetPlayLength();
+		if (LeaderLength <= 0.0f)
+			return;
+
+		// Step 3: Leader의 정규화된 시간 계산 및 진행
+		float LeaderNormalizedTime = LeaderSample.InternalTime / LeaderLength;
+
+		LeaderSample.PreviousTime = LeaderSample.InternalTime;
+
+		// Leader 시간 진행 (normalized time 기준)
+		LeaderNormalizedTime += (DeltaTime * PlayRate) / LeaderLength;
+
+		// 루핑/클램핑 (normalized time 기준)
+		if (bLooping)
+		{
+			LeaderNormalizedTime = fmodf(LeaderNormalizedTime, 1.0f);
+		}
+		else
+		{
+			LeaderNormalizedTime = FMath::Min(LeaderNormalizedTime, 1.0f);
+		}
+
+		// Leader의 절대 시간 업데이트
+		LeaderSample.InternalTime = LeaderNormalizedTime * LeaderLength;
+
+		// Step 4: 모든 샘플을 Leader의 NormalizedTime에 동기화
+		for (int32 i = 0; i < Samples.Num(); ++i)
+		{
+			if (i == LeaderIdx)
+				continue; // Leader는 이미 업데이트됨
+
+			FBlendSample1D& Sample = Samples[i];
 			if (!Sample.Animation)
 				continue;
 
+			const float SampleLength = Sample.Animation->GetPlayLength();
+			if (SampleLength <= 0.0f)
+				continue;
+
 			Sample.PreviousTime = Sample.InternalTime;
-			Sample.InternalTime += DeltaTime * PlayRate;
 
-			const float AnimLength = Sample.Animation->GetPlayLength();
-
-			if (bLooping)
-			{
-				// 루핑: 시간 래핑
-				if (AnimLength > 0.0f)
-					Sample.InternalTime = fmodf(Sample.InternalTime, AnimLength);
-			}
-			else
-			{
-				// 비루핑: 끝에서 클램프
-				Sample.InternalTime = FMath::Min(Sample.InternalTime, AnimLength);
-			}
+			// Leader의 정규화된 시간을 이 샘플의 절대 시간으로 변환
+			Sample.InternalTime = LeaderNormalizedTime * SampleLength;
 		}
 	}
 
