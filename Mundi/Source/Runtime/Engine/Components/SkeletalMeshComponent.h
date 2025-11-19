@@ -23,6 +23,9 @@ public:
     void TickComponent(float DeltaTime) override;
     void SetSkeletalMesh(const FString& PathFileName) override;
 
+    // 직렬화 (AnimToPlay 저장/로드)
+    virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
 // Animation Section
 public:
     // 애니메이션 모드

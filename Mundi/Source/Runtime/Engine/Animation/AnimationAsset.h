@@ -29,4 +29,8 @@ public:
 
 	// 직렬화
 	virtual void Serialize(const bool bInIsLoading, JSON& InOutHandle) override;
+
+	// 오버라이드 데이터 저장/로드 (skeleton + 기타 메타데이터)
+	bool SaveOverrideData(const FString& FilePath);
+	bool LoadOverrideData(const FString& FilePath);
 };
