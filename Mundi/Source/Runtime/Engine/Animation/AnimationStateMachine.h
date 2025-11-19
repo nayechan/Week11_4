@@ -42,8 +42,39 @@ public:
     //        - AddState 시 Animation이 SkeletalMesh와 호환되는지 검증
     //        - Skeleton 호환성 체크 (본 구조가 일치하는지)
 
+    /**
+     * @brief State 추가 (Legacy - UAnimSequence 직접 사용)
+     * @param StateName 상태 이름
+     * @param Animation 애니메이션
+     * @param bLoop 루프 여부
+     * @param PlayRate 재생 속도
+     *
+     * 하위 호환용. 단순 애니메이션 재생에 사용.
+     */
     UFUNCTION(LuaBind, DisplayName = "AddState")
     void AddState(FName StateName, class UAnimSequence* Animation, bool bLoop, float PlayRate);
+
+    /**
+     * @brief State 추가 (New - UAnimNode 기반)
+     * @param StateName 상태 이름
+     * @param Node 애니메이션 노드 (BlendSpace1D, SequencePlayer 등)
+     *
+     * 노드 기반 State. Locomotion(BlendSpace), Jump(SequencePlayer) 등에 사용.
+     *
+     * 예시 (Lua):
+     *   local locomotionBS = self:CreateNodeByName("UAnimNode_BlendSpace1D")
+     *   locomotionBS:AddSample(0, Idle)
+     *   locomotionBS:AddSample(5, Walk)
+     *   locomotionBS:AddSample(10, Run)
+     *   stateMachine:AddStateWithNode("Locomotion", locomotionBS)
+     *
+     *   local jumpPlayer = self:CreateNodeByName("UAnimNode_SequencePlayer")
+     *   jumpPlayer.Animation = JumpAnim
+     *   jumpPlayer.bLooping = false
+     *   stateMachine:AddStateWithNode("Jump", jumpPlayer)
+     */
+    UFUNCTION(LuaBind, DisplayName = "AddStateWithNode")
+    void AddState(FName StateName, class UAnimNode* Node);
 
     UFUNCTION(LuaBind, DisplayName = "SetInitialState")
     void SetInitialState(FName StateName);
@@ -172,4 +203,28 @@ private:
 
     void StartTransition(FName From, FName To, float Duration);
     void UpdateTransition(float DeltaTime);
+
+    /**
+     * @brief State에서 포즈 추출 (Node/Animation 자동 판별)
+     * @param State 포즈를 추출할 State
+     * @param OutPose 출력 포즈
+     * @return 성공 여부
+     *
+     * 우선순위:
+     * - State->Node가 있으면 Node->Evaluate() 사용
+     * - State->Animation이 있으면 Animation->GetAnimationPose() 사용
+     * - 둘 다 없으면 false 반환
+     */
+    bool ExtractStatePose(const FAnimState* State, FPoseContext& OutPose);
+
+    /**
+     * @brief State 시간 업데이트 (Node/Animation 자동 판별)
+     * @param State 업데이트할 State
+     * @param DeltaTime 델타 시간
+     *
+     * 우선순위:
+     * - State->Node가 있으면 Node->Update() 사용
+     * - State->Animation이 있으면 InternalTime 직접 업데이트
+     */
+    void UpdateState(FAnimState* State, float DeltaTime);
 };

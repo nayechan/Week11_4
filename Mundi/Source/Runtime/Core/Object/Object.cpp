@@ -260,6 +260,58 @@ void UObject::Serialize(const bool bInIsLoading, JSON& InOutHandle)
 			}
 			break;
 		}
+		case EPropertyType::UClass:
+		{
+			// TSubclassOf<T>는 내부적으로 UClass* 멤버를 가지므로 UClass*로 처리
+			UClass** Value = Prop.GetValuePtr<UClass*>(this);
+			if (bInIsLoading)
+			{
+				FString ClassName;
+				FJsonSerializer::ReadString(InOutHandle, Prop.Name, ClassName);
+				if (!ClassName.empty())
+				{
+					*Value = UClass::FindClass(ClassName.c_str());
+					if (!*Value)
+					{
+						UE_LOG("[AutoSerialize] UClass '%s' not found for property '%s'", ClassName.c_str(), Prop.Name);
+					}
+				}
+				else
+				{
+					*Value = nullptr;
+				}
+			}
+			else
+			{
+				if (*Value && (*Value)->Name)
+				{
+					InOutHandle[Prop.Name] = (*Value)->Name;
+				}
+				else
+				{
+					InOutHandle[Prop.Name] = "";
+				}
+			}
+			break;
+		}
+		case EPropertyType::Enum:
+		{
+			// Enum은 underlying type에 관계없이 int32로 저장
+			int32* Value = Prop.GetValuePtr<int32>(this);
+			if (bInIsLoading)
+			{
+				int32 ReadValue;
+				if (FJsonSerializer::ReadInt32(InOutHandle, Prop.Name, ReadValue))
+				{
+					*Value = ReadValue;
+				}
+			}
+			else
+			{
+				InOutHandle[Prop.Name] = *Value;
+			}
+			break;
+		}
 		case EPropertyType::Curve:
 		{
 			// Curve 프로퍼티는 float[4] 배열입니다. 따라서 FVector4로 처리

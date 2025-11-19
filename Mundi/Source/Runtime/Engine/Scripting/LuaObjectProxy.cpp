@@ -168,8 +168,8 @@ void LuaObjectProxy::NewIndex(LuaObjectProxy& Self, const char* Key, sol::object
     }
 
     const FProperty* Property = It->second.Property;
-    UE_LOG("[LuaObjectProxy::NewIndex] Setting property '%s' in class '%s' (type=%d)",
-           Key, Self.Class->Name, (int)Property->Type);
+    /*UE_LOG("[LuaObjectProxy::NewIndex] Setting property '%s' in class '%s' (type=%d)",
+           Key, Self.Class->Name, (int)Property->Type);*/
 
     switch (Property->Type)
     {

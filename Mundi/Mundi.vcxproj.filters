@@ -772,7 +772,24 @@
     <ClCompile Include="Generated\UAnimNode_SequencePlayer.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
-  <ClCompile Include="Generated\UAnimGraphInstance.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UAnimNode_StateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UTestAnimGraphInstance.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
+    <ClCompile Include="Generated\UAnimGraphInstance.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UAnimNode_StateMachine.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Generated\UTestAnimGraphInstance.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_BlendTwoWay.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_SequencePlayer.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_StateMachine.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimGraphInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\TestAnimGraphInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\AnimSequenceEditorBootstrap.cpp" />
+    <ClCompile Include="Source\Slate\Windows\SAnimSequenceEditorWindow.cpp" />
+  <ClCompile Include="Generated\UAnimNode_BlendSpace1D.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1639,15 +1656,6 @@
     <ClInclude Include="Generated\FAnimTransition.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
-    <ClInclude Include="Generated\FAnimNode.generated.h">
-      <Filter>Generated</Filter>
-    </ClInclude>
-    <ClInclude Include="Generated\FAnimNode_BlendTwoWay.generated.h">
-      <Filter>Generated</Filter>
-    </ClInclude>
-    <ClInclude Include="Generated\FAnimNode_SequencePlayer.generated.h">
-      <Filter>Generated</Filter>
-    </ClInclude>
     <ClInclude Include="Generated\UAnimNode.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
@@ -1657,7 +1665,26 @@
     <ClInclude Include="Generated\UAnimNode_SequencePlayer.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
-  <ClInclude Include="Generated\UAnimGraphInstance.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UAnimNode_StateMachine.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UTestAnimGraphInstance.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
+    <ClInclude Include="Generated\UAnimGraphInstance.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UAnimNode_StateMachine.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\UTestAnimGraphInstance.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimGraphInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_BlendTwoWay.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_SequencePlayer.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_StateMachine.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\TestAnimGraphInstance.h" />
+    <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\AnimSequenceEditorBootstrap.h" />
+    <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\AnimSequenceEditorState.h" />
+    <ClInclude Include="Source\Slate\Windows\SAnimSequenceEditorWindow.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_BlendSpace1D.h" />
+  <ClInclude Include="Generated\UAnimNode_BlendSpace1D.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>
