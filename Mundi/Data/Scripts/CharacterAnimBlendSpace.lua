@@ -40,7 +40,7 @@ function LuaInitializeAnimation()
     -- ========================================
     -- Load Animations
     -- ========================================
-    local idleAnim = LoadAnimSequence(GDataDir .. "/Fbx/Idle.fbx")
+    local idleAnim = LoadAnimSequence(GDataDir .. "/Fbx/Standing Idle.fbx")
     local walkAnim = LoadAnimSequence(GDataDir .. "/Fbx/Walking.fbx")
     local runAnim = LoadAnimSequence(GDataDir .. "/Fbx/Running.fbx")
 
