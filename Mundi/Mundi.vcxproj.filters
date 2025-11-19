@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
@@ -679,7 +679,6 @@
     <ClCompile Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\TestAnimNotifyActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\BoneAnchorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaArrayProxy.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Scripting\LuaMapProxy.cpp" />
@@ -704,9 +703,6 @@
       <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Generated\UCharacterStateMachine.generated.cpp">
-      <Filter>Generated</Filter>
-    </ClCompile>
-    <ClCompile Include="Generated\ATestAnimNotifyActor.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
     <ClCompile Include="Plugins\Fbx\FbxConvert.cpp" />
@@ -789,7 +785,10 @@
     <ClCompile Include="Source\Runtime\Engine\Animation\TestAnimGraphInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\SkeletalViewer\AnimSequenceEditorBootstrap.cpp" />
     <ClCompile Include="Source\Slate\Windows\SAnimSequenceEditorWindow.cpp" />
-  <ClCompile Include="Generated\UAnimNode_BlendSpace1D.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
+    <ClCompile Include="Generated\UAnimNode_BlendSpace1D.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+  </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1561,7 +1560,6 @@
     <ClInclude Include="Source\Runtime\Engine\Components\SkeletalMeshComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\Components\SkinnedMeshComponent.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\TestAnimNotifyActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaObjectProxyHelpers.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaArrayProxy.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaMapProxy.h" />
@@ -1587,9 +1585,6 @@
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Generated\UCharacterStateMachine.generated.h">
-      <Filter>Generated</Filter>
-    </ClInclude>
-    <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
     <ClInclude Include="Plugins\Fbx\FbxConvert.h" />
@@ -1684,7 +1679,11 @@
     <ClInclude Include="Source\Runtime\Engine\SkeletalViewer\AnimSequenceEditorState.h" />
     <ClInclude Include="Source\Slate\Windows\SAnimSequenceEditorWindow.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_BlendSpace1D.h" />
-  <ClInclude Include="Generated\UAnimNode_BlendSpace1D.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
+    <ClInclude Include="Generated\UAnimNode_BlendSpace1D.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimTransition.h" />
+  </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

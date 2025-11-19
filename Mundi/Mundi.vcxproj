@@ -303,7 +303,6 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\PlayerController.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.cpp" />
-    <ClCompile Include="Source\Runtime\Engine\GameFramework\TestAnimNotifyActor.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Components\BoneAnchorComponent.cpp" />
     <ClCompile Include="Source\Runtime\Engine\GameFramework\Camera\CamMod_Fade.cpp" />
     <FxCompile Include="Shaders\Materials\Fireball.hlsl">
@@ -554,7 +553,6 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\UAnimStateMachine.generated.cpp" />
     <ClCompile Include="Generated\UCharacterAnimInstance.generated.cpp" />
     <ClCompile Include="Generated\UCharacterStateMachine.generated.cpp" />
-    <ClCompile Include="Generated\ATestAnimNotifyActor.generated.cpp" />
     <ClCompile Include="Generated\ULuaAnimInstance.generated.cpp" />
     <ClCompile Include="Generated\ULuaAnimStateMachine.generated.cpp" />
     <ClCompile Include="Generated\EnumRegistry.generated.cpp" />
@@ -805,7 +803,6 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PlayerController.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\PointLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SkeletalMeshActor.h" />
-    <ClInclude Include="Source\Runtime\Engine\GameFramework\TestAnimNotifyActor.h" />
     <ClInclude Include="Source\Runtime\Engine\GameFramework\SpotLightActor.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\GameObject.h" />
     <ClInclude Include="Source\Runtime\Engine\Scripting\LuaBindHelpers.h" />
@@ -1017,7 +1014,6 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UAnimStateMachine.generated.h" />
     <ClInclude Include="Generated\UCharacterAnimInstance.generated.h" />
     <ClInclude Include="Generated\UCharacterStateMachine.generated.h" />
-    <ClInclude Include="Generated\ATestAnimNotifyActor.generated.h" />
     <ClInclude Include="Generated\AnimationTypes.generated.h" />
     <ClInclude Include="Generated\ULuaAnimInstance.generated.h" />
     <ClInclude Include="Generated\ULuaAnimStateMachine.generated.h" />
