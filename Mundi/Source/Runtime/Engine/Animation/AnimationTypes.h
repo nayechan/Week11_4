@@ -155,6 +155,160 @@ struct FAnimNotifyEvent
 	}
 };
 
+// Float Curve 키프레임
+struct FFloatKey
+{
+	float Time = 0.0f;   // 키프레임 시간 (초)
+	float Value = 0.0f;  // 키프레임 값
+
+	FFloatKey() = default;
+	FFloatKey(float InTime, float InValue)
+		: Time(InTime), Value(InValue) {}
+
+	// 바이너리 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FFloatKey& Data)
+	{
+		Ar << Data.Time;
+		Ar << Data.Value;
+		return Ar;
+	}
+};
+
+// Float Curve (커스텀 애니메이션 커브)
+struct FFloatCurve
+{
+	FName CurveName;                  // 커브 이름 (예: "WeaponGlow", "Transparency")
+	TArray<FFloatKey> Keys;           // 키프레임 배열 (시간 순으로 정렬 권장)
+	float DefaultValue = 0.0f;        // 키프레임 없을 때 기본값
+
+	FFloatCurve() = default;
+
+	FFloatCurve(const FName& InName)
+		: CurveName(InName), DefaultValue(0.0f) {}
+
+	// 시간에 따른 값 평가 (선형 보간)
+	float Evaluate(float Time) const
+	{
+		if (Keys.IsEmpty())
+			return DefaultValue;
+
+		// 첫 키프레임 이전
+		if (Time <= Keys[0].Time)
+			return Keys[0].Value;
+
+		// 마지막 키프레임 이후
+		if (Time >= Keys[Keys.Num() - 1].Time)
+			return Keys[Keys.Num() - 1].Value;
+
+		// 두 키프레임 사이 보간
+		for (int32 i = 0; i < Keys.Num() - 1; ++i)
+		{
+			if (Time >= Keys[i].Time && Time <= Keys[i + 1].Time)
+			{
+				float Alpha = (Time - Keys[i].Time) / (Keys[i + 1].Time - Keys[i].Time);
+				return FMath::Lerp(Keys[i].Value, Keys[i + 1].Value, Alpha);
+			}
+		}
+
+		return DefaultValue;
+	}
+
+	// 바이너리 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FFloatCurve& Data)
+	{
+		if (Ar.IsSaving())
+		{
+			FString NameStr = Data.CurveName.ToString();
+			Serialization::WriteString(Ar, NameStr);
+			Serialization::WriteArray(Ar, Data.Keys);
+			Ar << Data.DefaultValue;
+		}
+		else if (Ar.IsLoading())
+		{
+			FString NameStr;
+			Serialization::ReadString(Ar, NameStr);
+			Data.CurveName = FName(NameStr);
+			Serialization::ReadArray(Ar, Data.Keys);
+			Ar << Data.DefaultValue;
+		}
+		return Ar;
+	}
+};
+
+// Animation Curve Data (UAnimDataModel의 CurveData에 해당)
+struct FAnimationCurveData
+{
+	TArray<FFloatCurve> FloatCurves;  // Float 커브 배열
+
+	// 커브 찾기
+	FFloatCurve* FindCurve(const FName& CurveName)
+	{
+		for (auto& Curve : FloatCurves)
+		{
+			if (Curve.CurveName == CurveName)
+				return &Curve;
+		}
+		return nullptr;
+	}
+
+	const FFloatCurve* FindCurve(const FName& CurveName) const
+	{
+		for (const auto& Curve : FloatCurves)
+		{
+			if (Curve.CurveName == CurveName)
+				return &Curve;
+		}
+		return nullptr;
+	}
+
+	// 커브 추가
+	void AddCurve(const FFloatCurve& Curve)
+	{
+		// 중복 체크
+		if (FindCurve(Curve.CurveName) == nullptr)
+		{
+			FloatCurves.Add(Curve);
+		}
+	}
+
+	// 커브 추가 (이동 버전 - orphan 방지)
+	void AddCurve(FFloatCurve&& Curve)
+	{
+		// 중복 체크
+		if (FindCurve(Curve.CurveName) == nullptr)
+		{
+			FloatCurves.Add(std::move(Curve));
+		}
+	}
+
+	// 커브 제거
+	void RemoveCurve(const FName& CurveName)
+	{
+		for (int32 i = FloatCurves.Num() - 1; i >= 0; --i)
+		{
+			if (FloatCurves[i].CurveName == CurveName)
+			{
+				FloatCurves.RemoveAt(i);
+				break;
+			}
+		}
+	}
+
+	// 바이너리 직렬화
+	friend FArchive& operator<<(FArchive& Ar, FAnimationCurveData& Data)
+	{
+		if (Ar.IsSaving())
+		{
+			Serialization::WriteArray(Ar, Data.FloatCurves);
+		}
+		else if (Ar.IsLoading())
+		{
+			Serialization::ReadArray(Ar, Data.FloatCurves);
+		}
+		return Ar;
+	}
+};
+
 // 애니메이션 추출 컨텍스트
 struct FAnimExtractContext
 {
@@ -188,6 +342,12 @@ struct FPoseContext
 	// 예: StateMachine -> State -> SequencePlayer 순회하며
 	//     각 노드가 자신의 Notify를 이 배열에 Append
 	TArray<FAnimNotifyEvent> AnimNotifies;
+
+	// 트리 순회 중 각 노드가 평가한 Curve 값 수집
+	// 예: StateMachine -> State -> SequencePlayer 순회하며
+	//     각 노드가 현재 시간의 커브 값을 이 맵에 추가
+	//     키: 커브 이름, 값: 현재 시간의 커브 값
+	TMap<FName, float> CurveValues;
 
 	FPoseContext() = default;
 

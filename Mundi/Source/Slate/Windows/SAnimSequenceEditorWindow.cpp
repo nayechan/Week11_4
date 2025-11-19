@@ -17,6 +17,7 @@
 #include "Source/Runtime/Engine/Collision/Picking.h"
 #include "Source/Runtime/Engine/GameFramework/CameraActor.h"
 #include "FBXLoader.h"
+#include "FbxManager.h"
 #include "AnimInstance.h"
 #include "AnimSingleNodeInstance.h"
 #include "AnimSequence.h"
@@ -367,6 +368,336 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::TextDisabled("Anim: None");
     }
     ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
+    ImGui::Separator();
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // === Skeleton Swapping Section ===
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
+    ImGui::Text("Skeleton Swapping");
+    ImGui::PopStyleColor();
+    ImGui::Spacing();
+
+    // 1. Skeletal Mesh ComboBox
+    ImGui::Text("Skeletal Mesh");
+    {
+        TArray<USkeletalMesh*> AllMeshes = UResourceManager::GetInstance().GetAll<USkeletalMesh>();
+        TArray<USkeletalMesh*> UniqueMeshes;
+        TArray<const char*> MeshItems;
+        UniqueMeshes.Add(nullptr);
+        MeshItems.Add("None");
+
+        for (USkeletalMesh* Mesh : AllMeshes)
+        {
+            if (Mesh && !Mesh->GetFilePath().empty())
+            {
+                bool bAlreadyAdded = false;
+                for (USkeletalMesh* ExistingMesh : UniqueMeshes)
+                {
+                    if (ExistingMesh && ExistingMesh->GetFilePath() == Mesh->GetFilePath())
+                    {
+                        bAlreadyAdded = true;
+                        break;
+                    }
+                }
+                if (!bAlreadyAdded)
+                {
+                    UniqueMeshes.Add(Mesh);
+                    FString DisplayName = Mesh->GetFilePath();
+                    size_t lastSlash = DisplayName.find_last_of("/\\");
+                    if (lastSlash != std::string::npos)
+                    {
+                        DisplayName = DisplayName.substr(lastSlash + 1);
+                    }
+                    MeshItems.Add(_strdup(DisplayName.c_str()));
+                }
+            }
+        }
+
+        int CurrentMeshIdx = 0;
+        if (ActiveState->CurrentMesh)
+        {
+            FString CurrentPath = ActiveState->CurrentMesh->GetFilePath();
+            for (int i = 0; i < UniqueMeshes.Num(); ++i)
+            {
+                if (UniqueMeshes[i] && UniqueMeshes[i]->GetFilePath() == CurrentPath)
+                {
+                    CurrentMeshIdx = i;
+                    break;
+                }
+            }
+        }
+
+        ImGui::SetNextItemWidth(240);
+        if (ImGui::Combo("##SkeletalMesh", &CurrentMeshIdx, MeshItems.data(), static_cast<int>(MeshItems.size())))
+        {
+            if (CurrentMeshIdx > 0 && CurrentMeshIdx < UniqueMeshes.Num())
+            {
+                USkeletalMesh* SelectedMesh = UniqueMeshes[CurrentMeshIdx];
+                if (SelectedMesh)
+                {
+                    FString MeshPath = SelectedMesh->GetFilePath();
+                    LoadSkeletalMesh(MeshPath.c_str());
+                    UE_LOG("SkeletalMesh changed to: %s", MeshPath.c_str());
+                }
+            }
+            else if (CurrentMeshIdx == 0)
+            {
+                LoadSkeletalMesh("");
+            }
+        }
+
+        for (int i = 1; i < MeshItems.Num(); ++i)
+        {
+            free(const_cast<char*>(MeshItems[i]));
+        }
+    }
+
+    ImGui::Spacing();
+
+    // TargetSkeleton 초기화 (matches PropertyRenderer pattern, lines 29-39)
+    ActiveState->TargetSkeleton = nullptr;
+    if (ActiveState->CurrentMesh)
+    {
+        // 우선순위 1: SkeletalMesh의 Skeleton
+        ActiveState->TargetSkeleton = const_cast<FSkeleton*>(ActiveState->CurrentMesh->GetSkeleton());
+    }
+    else if (ActiveState->PreviewActor)
+    {
+        // 우선순위 2: 현재 Animation의 Skeleton (SkeletalMesh 없을 때)
+        USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+        if (SkelComp && SkelComp->AnimInstance)
+        {
+            UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
+            if (AnimSingleNode && AnimSingleNode->GetAnimSequence())
+            {
+                UAnimSequence* CurrentAnim = AnimSingleNode->GetAnimSequence();
+                if (CurrentAnim)
+                {
+                    ActiveState->TargetSkeleton = CurrentAnim->Skeleton;
+                }
+            }
+        }
+    }
+
+    // 2. Skeleton ComboBox (immediate application - matches Skel Mesh Detail)
+    ImGui::Text("Skeleton");
+    {
+        TArray<FString> AllSkeletonNames = FFbxManager::GetAllSkeletonNames();
+        TArray<const char*> SkeletonItems;
+        SkeletonItems.Add("None");
+
+        int CurrentSkeletonIdx = 0;
+        for (int i = 0; i < AllSkeletonNames.Num(); ++i)
+        {
+            SkeletonItems.Add(AllSkeletonNames[i].c_str());
+            if (ActiveState->TargetSkeleton && AllSkeletonNames[i] == ActiveState->TargetSkeleton->Name)
+            {
+                CurrentSkeletonIdx = i + 1;
+            }
+        }
+
+        ImGui::SetNextItemWidth(240);
+        if (ImGui::Combo("##Skeleton", &CurrentSkeletonIdx, SkeletonItems.data(), static_cast<int>(SkeletonItems.size())))
+        {
+            // Immediate application (matches OnSkeletonChanged in SkeletalMeshComponentCustomization)
+            FSkeleton* NewSkeleton = nullptr;
+            if (CurrentSkeletonIdx > 0 && CurrentSkeletonIdx <= AllSkeletonNames.Num())
+            {
+                FString SelectedName = AllSkeletonNames[CurrentSkeletonIdx - 1];
+                NewSkeleton = FFbxManager::GetSkeletonByName(SelectedName);
+            }
+
+            // Update SkeletalMesh's Skeleton
+            if (ActiveState->CurrentMesh)
+            {
+                ActiveState->CurrentMesh->SetSkeleton(NewSkeleton);
+                ActiveState->CurrentMesh->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+                UE_LOG("Changed SkeletalMesh Skeleton to: %s",
+                       NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+            }
+
+            // Update current Animation's Skeleton
+            if (ActiveState->PreviewActor)
+            {
+                USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+                if (SkelComp && SkelComp->AnimInstance)
+                {
+                    UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
+                    if (AnimSingleNode && AnimSingleNode->GetAnimSequence())
+                    {
+                        UAnimSequence* CurrentAnim = AnimSingleNode->GetAnimSequence();
+                        if (CurrentAnim)
+                        {
+                            CurrentAnim->Skeleton = NewSkeleton;
+                            CurrentAnim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+                            UE_LOG("Changed Animation Skeleton to: %s",
+                                   NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+                        }
+                    }
+                }
+            }
+
+            // 3. TargetSkeleton 업데이트 (matches PropertyRenderer line 206)
+            ActiveState->TargetSkeleton = NewSkeleton;
+        }
+
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted("Change the Skeleton for both SkeletalMesh and Animation");
+            ImGui::EndTooltip();
+        }
+    }
+
+    ImGui::Spacing();
+
+    // 3. Animation ComboBox (file path based - matches PropertyRenderer)
+    ImGui::Text("Animation");
+    {
+        // Use file paths instead of object pointers (matches PropertyRenderer)
+        TArray<FString> AllAnimPaths = UResourceManager::GetInstance().GetAllFilePaths<UAnimSequence>();
+        TArray<const char*> AnimItems;
+        TArray<FString> FilteredAnimPaths;
+        AnimItems.Add("None");
+        FilteredAnimPaths.Add("");
+
+        for (const FString& AnimPath : AllAnimPaths)
+        {
+            if (!AnimPath.empty())
+            {
+                // Filter by skeleton compatibility (matches PropertyRenderer lines 100-120)
+                bool bShouldFilter = false;
+
+                // SkeletalMesh가 없으면 모든 애니메이션 표시
+                if (!ActiveState->CurrentMesh)
+                {
+                    bShouldFilter = false;
+                }
+                // TargetSkeleton이 없으면 모든 애니메이션 표시
+                else if (!ActiveState->TargetSkeleton)
+                {
+                    bShouldFilter = false;
+                }
+                else
+                {
+                    // 포인터 비교 (SkeletalMesh가 있을 때만)
+                    UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
+                    if (Anim)
+                    {
+                        bShouldFilter = (Anim->Skeleton != ActiveState->TargetSkeleton);
+                    }
+                    else
+                    {
+                        bShouldFilter = true;
+                    }
+                }
+
+                if (bShouldFilter)
+                {
+                    continue;
+                }
+
+                FilteredAnimPaths.Add(AnimPath);
+
+                // Extract filename for display (matches PropertyRenderer)
+                std::filesystem::path fsPath(AnimPath);
+                FString DisplayName = fsPath.filename().string();
+                AnimItems.Add(_strdup(DisplayName.c_str()));
+            }
+        }
+
+        // Find current animation index
+        int CurrentAnimIdx = 0;
+        if (ActiveState->PreviewActor)
+        {
+            USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+            if (SkelComp && SkelComp->AnimInstance)
+            {
+                UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
+                if (AnimSingleNode && AnimSingleNode->GetAnimSequence())
+                {
+                    UAnimSequence* CurrentAnim = AnimSingleNode->GetAnimSequence();
+                    if (CurrentAnim)
+                    {
+                        FString CurrentPath = CurrentAnim->GetFilePath();
+                        for (int i = 0; i < FilteredAnimPaths.Num(); ++i)
+                        {
+                            if (FilteredAnimPaths[i] == CurrentPath)
+                            {
+                                CurrentAnimIdx = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ImGui::SetNextItemWidth(240);
+        if (ImGui::Combo("##Animation", &CurrentAnimIdx, AnimItems.data(), static_cast<int>(AnimItems.size())))
+        {
+            // Immediate application
+            if (CurrentAnimIdx > 0 && CurrentAnimIdx < FilteredAnimPaths.Num())
+            {
+                const FString& SelectedPath = FilteredAnimPaths[CurrentAnimIdx];
+                UAnimSequence* SelectedAnim = UResourceManager::GetInstance().Get<UAnimSequence>(SelectedPath);
+
+                if (SelectedAnim && ActiveState->PreviewActor)
+                {
+                    USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+                    if (SkelComp && SkelComp->AnimInstance)
+                    {
+                        UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
+                        if (AnimSingleNode)
+                        {
+                            AnimSingleNode->SetAnimationAsset(SelectedAnim);
+                            AnimSingleNode->Play(true);
+
+                            strncpy_s(ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer),
+                                      SelectedPath.c_str(), _TRUNCATE);
+
+                            ActiveState->bBoneLinesDirty = true;
+
+                            UE_LOG("Animation changed to: %s", SelectedPath.c_str());
+                        }
+                    }
+                }
+            }
+            else if (CurrentAnimIdx == 0)
+            {
+                if (ActiveState->PreviewActor)
+                {
+                    USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
+                    if (SkelComp && SkelComp->AnimInstance)
+                    {
+                        UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
+                        if (AnimSingleNode)
+                        {
+                            AnimSingleNode->SetAnimationAsset(nullptr);
+                            ActiveState->AnimationPathBuffer[0] = '\0';
+                            ActiveState->bBoneLinesDirty = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (ImGui::IsItemHovered() && ActiveState->TargetSkeleton && ActiveState->CurrentMesh)
+        {
+            ImGui::BeginTooltip();
+            ImGui::Text("Showing animations for Skeleton: %s", ActiveState->TargetSkeleton->Name.c_str());
+            ImGui::EndTooltip();
+        }
+
+        for (int i = 1; i < AnimItems.Num(); ++i)
+        {
+            free(const_cast<char*>(AnimItems[i]));
+        }
+    }
 
     ImGui::Spacing();
     ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.45f, 0.60f, 0.7f));
@@ -833,9 +1164,9 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     const float AnimationLength = AnimSequence->GetPlayLength();
     int CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
 
-    // Timeline Panel
+    // Timeline Panel (Top 50% of bottom area)
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("TimelinePanel", ImVec2(centerWidth + rightWidth, bottomHeight), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("TimelinePanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.5f), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
     float WindowWidth = ImGui::GetWindowWidth();
@@ -851,7 +1182,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::BeginChild("LeftControlArea", ImVec2(LeftControlWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
 
     // Top part: Notify Tracks
-    float controlsHeight = 80.0f; // Height for playback controls
+    float controlsHeight = 50.0f; // Height for playback controls (reduced for more track space)
     float tracksHeight = WindowHeight - controlsHeight - 10.0f;
 
     ImGui::BeginChild("NotifyTracks", ImVec2(LeftControlWidth, tracksHeight), true);
@@ -1302,13 +1633,13 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.30f, 0.33f, 0.38f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.17f, 0.20f, 1.0f));
 
-    float buttonSize = 24.0f;
-    float spacing = 2.0f;
+    float buttonSize = 20.0f; // Reduced for compact layout
+    float spacing = 1.0f; // Reduced spacing
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
 
     // Align to left with small margin
-    ImGui::SetCursorPosX(5.0f);
-    ImGui::SetCursorPosY(10.0f);
+    ImGui::SetCursorPosX(3.0f);
+    ImGui::SetCursorPosY(5.0f); // Reduced vertical position
 
     // First Frame (|◀)
     if (ImGui::Button("|\xE2\x97\x80##First", ImVec2(buttonSize, buttonSize)))
@@ -1949,6 +2280,475 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::EndChild(); // TimelineArea
 
     ImGui::EndChild(); // TimelinePanel
+
+    // === CURVE EDITOR PANEL (Bottom 50% of bottom area) ===
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
+    ImGui::BeginChild("CurveEditorPanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.5f), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PopStyleVar();
+
+    float CurveWindowWidth = ImGui::GetWindowWidth();
+    float CurveWindowHeight = ImGui::GetWindowHeight();
+
+    // Layout: Left side = Curve list, Right side = Curve graph
+    const float CurveListWidth = 200.0f;
+    const float CurveGraphWidth = CurveWindowWidth - CurveListWidth;
+
+    // === LEFT SIDE: Curve List ===
+    ImGui::BeginChild("CurveList", ImVec2(CurveListWidth, CurveWindowHeight), false);
+
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
+    ImGui::Text("Animation Curves");
+    ImGui::PopStyleColor();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Get CurveData from AnimSequence
+    FAnimationCurveData& CurveData = AnimSequence->CurveData;
+
+    // State variables
+    static int SelectedCurveIndex = -1;
+    static char NewCurveName[64] = "";
+    static bool bShouldOpenRenamePopup = false;
+    static int RenameCurveIndex = -1;
+    static char RenameCurveBuffer[64] = "";
+
+    // Curve list
+    ImGui::BeginChild("CurveListScroll", ImVec2(CurveListWidth - 10.0f, CurveWindowHeight - 100.0f), true);
+    for (int i = 0; i < CurveData.FloatCurves.Num(); i++)
+    {
+        const FFloatCurve& Curve = CurveData.FloatCurves[i];
+        bool isSelected = (i == SelectedCurveIndex);
+        char label[128];
+        sprintf_s(label, "%s##Curve%d", Curve.CurveName.ToString().c_str(), i);
+
+        if (ImGui::Selectable(label, isSelected))
+        {
+            SelectedCurveIndex = i;
+        }
+
+        // Context menu for curve
+        ImGui::PushID(i);
+        if (ImGui::BeginPopupContextItem("CurveContextMenu"))
+        {
+            if (ImGui::MenuItem("Rename Curve"))
+            {
+                RenameCurveIndex = i;
+                strncpy_s(RenameCurveBuffer, Curve.CurveName.ToString().c_str(), sizeof(RenameCurveBuffer) - 1);
+                bShouldOpenRenamePopup = true;
+            }
+            if (ImGui::MenuItem("Delete Curve"))
+            {
+                CurveData.FloatCurves.RemoveAt(i);
+                if (SelectedCurveIndex == i)
+                {
+                    SelectedCurveIndex = -1;
+                }
+                else if (SelectedCurveIndex > i)
+                {
+                    SelectedCurveIndex--;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndChild(); // CurveListScroll
+
+    // Open Rename Popup if flagged
+    if (bShouldOpenRenamePopup)
+    {
+        ImGui::OpenPopup("RenameCurvePopup");
+        bShouldOpenRenamePopup = false;
+    }
+
+    // Rename Curve Popup
+    if (ImGui::BeginPopup("RenameCurvePopup"))
+    {
+        ImGui::Text("Rename Curve");
+        ImGui::Separator();
+
+        bool bPressedEnter = ImGui::InputText("Name", RenameCurveBuffer, sizeof(RenameCurveBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("OK", ImVec2(80, 0)) || bPressedEnter)
+        {
+            if (RenameCurveIndex >= 0 && RenameCurveIndex < CurveData.FloatCurves.Num())
+            {
+                FName NewName = FName(RenameCurveBuffer);
+                CurveData.FloatCurves[RenameCurveIndex].CurveName = NewName;
+            }
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(80, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::Spacing();
+
+    // Create Curve button
+    if (ImGui::Button("Create Curve", ImVec2(CurveListWidth - 20.0f, 0)))
+    {
+        ImGui::OpenPopup("CreateCurvePopup");
+    }
+
+    // Create Curve Popup
+    if (ImGui::BeginPopup("CreateCurvePopup"))
+    {
+        ImGui::Text("Create New Curve");
+        ImGui::Separator();
+
+        bool bPressedEnter = ImGui::InputText("Curve Name", NewCurveName, sizeof(NewCurveName), ImGuiInputTextFlags_EnterReturnsTrue);
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Create", ImVec2(80, 0)) || bPressedEnter)
+        {
+            if (strlen(NewCurveName) > 0)
+            {
+                FName CurveName = FName(NewCurveName);
+                FFloatCurve NewCurve(CurveName);
+
+                // Auto-add first/last keyframes
+                NewCurve.Keys.Add(FFloatKey(0.0f, 0.0f));
+                NewCurve.Keys.Add(FFloatKey(AnimationLength, 0.0f));
+
+                CurveData.AddCurve(std::move(NewCurve));
+                memset(NewCurveName, 0, sizeof(NewCurveName));
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(80, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    ImGui::EndChild(); // CurveList
+
+    ImGui::SameLine();
+
+    // === RIGHT SIDE: Curve Graph ===
+    ImGui::BeginChild("CurveGraph", ImVec2(CurveGraphWidth, CurveWindowHeight), false);
+
+    if (SelectedCurveIndex >= 0 && SelectedCurveIndex < CurveData.FloatCurves.Num())
+    {
+        FFloatCurve& SelectedCurve = CurveData.FloatCurves[SelectedCurveIndex];
+
+        ImGui::Text("Curve: %s", SelectedCurve.CurveName.ToString().c_str());
+        ImGui::Separator();
+
+        // Range controls
+        static float minVal = 0.0f;
+        static float maxVal = 1.0f;
+        static bool bAutoRange = false;
+
+        ImGui::Checkbox("Auto Range", &bAutoRange);
+        if (bAutoRange)
+        {
+            // Calculate min/max from keyframes
+            if (!SelectedCurve.Keys.IsEmpty())
+            {
+                minVal = SelectedCurve.Keys[0].Value;
+                maxVal = SelectedCurve.Keys[0].Value;
+                for (const FFloatKey& Key : SelectedCurve.Keys)
+                {
+                    minVal = FMath::Min(minVal, Key.Value);
+                    maxVal = FMath::Max(maxVal, Key.Value);
+                }
+                // Add padding
+                float range = maxVal - minVal;
+                if (range < 0.01f) range = 0.01f;
+                minVal -= range * 0.1f;
+                maxVal += range * 0.1f;
+            }
+        }
+        else
+        {
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(80);
+            ImGui::DragFloat("Min", &minVal, 0.01f);
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(80);
+            ImGui::DragFloat("Max", &maxVal, 0.01f);
+        }
+
+        ImGui::Spacing();
+
+        // Graph area
+        ImVec2 graphMin = ImGui::GetCursorScreenPos();
+        ImVec2 graphSize(CurveGraphWidth - 20.0f, CurveWindowHeight - 80.0f);
+        ImVec2 graphMax(graphMin.x + graphSize.x, graphMin.y + graphSize.y);
+
+        ImDrawList* DrawList = ImGui::GetWindowDrawList();
+
+        // Background
+        DrawList->AddRectFilled(graphMin, graphMax, IM_COL32(30, 30, 35, 255));
+        DrawList->AddRect(graphMin, graphMax, IM_COL32(100, 100, 120, 255));
+
+        // Grid lines
+        const int numGridLines = 5;
+        for (int i = 0; i <= numGridLines; i++)
+        {
+            float t = (float)i / numGridLines;
+            float y = graphMin.y + t * graphSize.y;
+            DrawList->AddLine(ImVec2(graphMin.x, y), ImVec2(graphMax.x, y), IM_COL32(60, 60, 70, 100));
+
+            float x = graphMin.x + t * graphSize.x;
+            DrawList->AddLine(ImVec2(x, graphMin.y), ImVec2(x, graphMax.y), IM_COL32(60, 60, 70, 100));
+        }
+
+        // Draw curve line
+        if (SelectedCurve.Keys.Num() >= 2)
+        {
+            for (int i = 0; i < SelectedCurve.Keys.Num() - 1; i++)
+            {
+                const FFloatKey& Key1 = SelectedCurve.Keys[i];
+                const FFloatKey& Key2 = SelectedCurve.Keys[i + 1];
+
+                float t1 = Key1.Time / AnimationLength;
+                float v1 = (Key1.Value - minVal) / (maxVal - minVal);
+                v1 = 1.0f - v1; // Invert Y
+
+                float t2 = Key2.Time / AnimationLength;
+                float v2 = (Key2.Value - minVal) / (maxVal - minVal);
+                v2 = 1.0f - v2;
+
+                ImVec2 p1(graphMin.x + t1 * graphSize.x, graphMin.y + v1 * graphSize.y);
+                ImVec2 p2(graphMin.x + t2 * graphSize.x, graphMin.y + v2 * graphSize.y);
+
+                DrawList->AddLine(p1, p2, IM_COL32(100, 200, 255, 255), 2.0f);
+            }
+        }
+
+        // Draw keyframes and handle interaction
+        static int DraggedKeyIndex = -1;
+        static int HoveredKeyIndex = -1;
+        static int ContextMenuKeyIndex = -1;
+        static bool bOpenEditKeyframePopup = false;
+        static float EditKeyTime = 0.0f;
+        static float EditKeyValue = 0.0f;
+
+        ImGui::SetCursorScreenPos(graphMin);
+        ImGui::InvisibleButton("GraphArea", graphSize);
+        bool bGraphHovered = ImGui::IsItemHovered();
+
+        HoveredKeyIndex = -1;
+        for (int i = 0; i < SelectedCurve.Keys.Num(); i++)
+        {
+            const FFloatKey& Key = SelectedCurve.Keys[i];
+
+            float t = Key.Time / AnimationLength;
+            float v = (Key.Value - minVal) / (maxVal - minVal);
+            v = 1.0f - v;
+
+            ImVec2 keyPos(graphMin.x + t * graphSize.x, graphMin.y + v * graphSize.y);
+
+            // Draw keyframe
+            DrawList->AddCircleFilled(keyPos, 5.0f, IM_COL32(255, 200, 100, 255));
+            DrawList->AddCircle(keyPos, 5.0f, IM_COL32(255, 255, 255, 255), 0, 1.5f);
+
+            // Check if mouse is hovering over this keyframe
+            ImVec2 mousePos = ImGui::GetMousePos();
+            float dist = sqrtf((mousePos.x - keyPos.x) * (mousePos.x - keyPos.x) + (mousePos.y - keyPos.y) * (mousePos.y - keyPos.y));
+            if (dist < 8.0f)
+            {
+                HoveredKeyIndex = i;
+            }
+        }
+
+        // Start dragging
+        if (HoveredKeyIndex >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            DraggedKeyIndex = HoveredKeyIndex;
+        }
+
+        // Drag keyframe
+        if (DraggedKeyIndex >= 0 && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+        {
+            FFloatKey& DraggedKey = SelectedCurve.Keys[DraggedKeyIndex];
+            bool bIsDraggingFirstOrLastKey = (DraggedKeyIndex == 0 || DraggedKeyIndex == SelectedCurve.Keys.Num() - 1);
+
+            ImVec2 mousePos = ImGui::GetMousePos();
+            float normalizedTime = (mousePos.x - graphMin.x) / graphSize.x;
+            float normalizedValue = (mousePos.y - graphMin.y) / graphSize.y;
+            normalizedValue = 1.0f - normalizedValue;
+
+            // Only allow Time change if not first/last key
+            if (!bIsDraggingFirstOrLastKey)
+            {
+                normalizedTime = FMath::Clamp(normalizedTime, 0.0f, 1.0f);
+                DraggedKey.Time = normalizedTime * AnimationLength;
+            }
+
+            // Always allow Value change
+            normalizedValue = FMath::Clamp(normalizedValue, 0.0f, 1.0f);
+            DraggedKey.Value = minVal + normalizedValue * (maxVal - minVal);
+        }
+
+        // Stop dragging
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            if (DraggedKeyIndex >= 0)
+            {
+                // Sort keys by time
+                std::sort(SelectedCurve.Keys.begin(), SelectedCurve.Keys.end(), [](const FFloatKey& a, const FFloatKey& b) {
+                    return a.Time < b.Time;
+                });
+            }
+            DraggedKeyIndex = -1;
+        }
+
+        // Right-click menu
+        if (HoveredKeyIndex >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            ContextMenuKeyIndex = HoveredKeyIndex;
+            ImGui::OpenPopup("KeyframeContextMenu");
+        }
+
+        if (ImGui::BeginPopup("KeyframeContextMenu"))
+        {
+            bool bIsFirstOrLastKey = (ContextMenuKeyIndex == 0 || ContextMenuKeyIndex == SelectedCurve.Keys.Num() - 1);
+
+            if (ImGui::MenuItem("Edit Keyframe"))
+            {
+                if (ContextMenuKeyIndex >= 0 && ContextMenuKeyIndex < SelectedCurve.Keys.Num())
+                {
+                    EditKeyTime = SelectedCurve.Keys[ContextMenuKeyIndex].Time;
+                    EditKeyValue = SelectedCurve.Keys[ContextMenuKeyIndex].Value;
+                    bOpenEditKeyframePopup = true;
+                }
+            }
+
+            if (bIsFirstOrLastKey)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                ImGui::MenuItem("Delete Keyframe (First/Last key)", nullptr, false, false);
+                ImGui::PopStyleColor();
+            }
+            else if (ImGui::MenuItem("Delete Keyframe"))
+            {
+                if (ContextMenuKeyIndex >= 0 && ContextMenuKeyIndex < SelectedCurve.Keys.Num())
+                {
+                    SelectedCurve.Keys.RemoveAt(ContextMenuKeyIndex);
+                    ContextMenuKeyIndex = -1;
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+
+        // Open Edit Keyframe popup if flagged
+        if (bOpenEditKeyframePopup)
+        {
+            ImGui::OpenPopup("EditKeyframePopup");
+            bOpenEditKeyframePopup = false;
+        }
+
+        // Edit Keyframe Popup
+        if (ImGui::BeginPopup("EditKeyframePopup"))
+        {
+            bool bIsEditingFirstOrLastKey = (ContextMenuKeyIndex == 0 || ContextMenuKeyIndex == SelectedCurve.Keys.Num() - 1);
+
+            ImGui::Text("Edit Keyframe");
+            ImGui::Separator();
+
+            ImGui::Text("Time (seconds):");
+            if (bIsEditingFirstOrLastKey)
+            {
+                ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+            }
+            ImGui::InputFloat("##KeyTime", &EditKeyTime, 0.01f, 0.1f, "%.3f");
+            if (bIsEditingFirstOrLastKey)
+            {
+                ImGui::PopStyleVar();
+                ImGui::PopItemFlag();
+                ImGui::SameLine();
+                ImGui::TextDisabled("(Fixed)");
+            }
+
+            ImGui::Text("Value:");
+            ImGui::InputFloat("##KeyValue", &EditKeyValue, 0.01f, 0.1f, "%.3f");
+
+            ImGui::Spacing();
+
+            if (ImGui::Button("OK", ImVec2(80, 0)))
+            {
+                if (ContextMenuKeyIndex >= 0 && ContextMenuKeyIndex < SelectedCurve.Keys.Num())
+                {
+                    // Only update Time if not first/last key
+                    if (!bIsEditingFirstOrLastKey)
+                    {
+                        SelectedCurve.Keys[ContextMenuKeyIndex].Time = FMath::Clamp(EditKeyTime, 0.0f, AnimationLength);
+                    }
+                    SelectedCurve.Keys[ContextMenuKeyIndex].Value = EditKeyValue;
+
+                    // Sort keys by time
+                    std::sort(SelectedCurve.Keys.begin(), SelectedCurve.Keys.end(), [](const FFloatKey& a, const FFloatKey& b) {
+                        return a.Time < b.Time;
+                    });
+                }
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(80, 0)))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
+        // Right-click on empty area to add keyframe
+        if (bGraphHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right) && HoveredKeyIndex < 0)
+        {
+            ImGui::OpenPopup("AddKeyframeMenu");
+        }
+
+        if (ImGui::BeginPopup("AddKeyframeMenu"))
+        {
+            if (ImGui::MenuItem("Add Keyframe"))
+            {
+                ImVec2 mousePos = ImGui::GetMousePos();
+                float normalizedTime = (mousePos.x - graphMin.x) / graphSize.x;
+                float normalizedValue = (mousePos.y - graphMin.y) / graphSize.y;
+                normalizedValue = 1.0f - normalizedValue;
+
+                normalizedTime = FMath::Clamp(normalizedTime, 0.0f, 1.0f);
+                normalizedValue = FMath::Clamp(normalizedValue, 0.0f, 1.0f);
+
+                float newTime = normalizedTime * AnimationLength;
+                float newValue = minVal + normalizedValue * (maxVal - minVal);
+
+                SelectedCurve.Keys.Add(FFloatKey(newTime, newValue));
+
+                // Sort keys by time
+                std::sort(SelectedCurve.Keys.begin(), SelectedCurve.Keys.end(), [](const FFloatKey& a, const FFloatKey& b) {
+                    return a.Time < b.Time;
+                });
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("Select a curve to edit");
+    }
+
+    ImGui::EndChild(); // CurveGraph
+
+    ImGui::EndChild(); // CurveEditorPanel
 
     ImGui::EndChild(); // CenterRightBottomArea
 

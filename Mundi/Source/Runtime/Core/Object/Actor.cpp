@@ -807,3 +807,31 @@ void AActor::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 	//       Notify.NotifyName.ToString().c_str(),
 	//       Notify.TriggerTime);
 }
+
+void AActor::HandleAnimCurve(const FName& CurveName, float CurveValue)
+{
+	// "Scale" 커브 특별 처리 - 액터 스케일을 CurveValue로 설정
+	if (CurveName == FName("Scale"))
+	{
+		FVector NewScale = FVector(CurveValue, CurveValue, CurveValue);
+		SetActorScale(NewScale);
+
+		// UE_LOG("[Scale Curve] 스케일 변경! Value: %.3f -> (%.2f, %.2f, %.2f)",
+		//        CurveValue,
+		//        NewScale.X, NewScale.Y, NewScale.Z);
+		return;
+	}
+
+	// 기본 구현: 비어있음
+	// 하위 클래스에서 오버라이드하여 구현
+	// 예시:
+	// if (CurveName == FName("WeaponGlow"))
+	// {
+	//     SetWeaponEmission(CurveValue);
+	// }
+
+	// 디버그용 로그 (필요 시 주석 해제)
+	//UE_LOG("AActor::HandleAnimCurve - Curve: %s, Value: %.3f",
+	//       CurveName.ToString().c_str(),
+	//       CurveValue);
+}

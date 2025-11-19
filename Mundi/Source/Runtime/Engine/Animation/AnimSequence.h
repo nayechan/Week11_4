@@ -9,7 +9,7 @@ public:
 	GENERATED_REFLECTION_BODY()
 
 	UAnimSequence() = default;
-	virtual ~UAnimSequence() = default;
+	virtual ~UAnimSequence() override = default;
 
 	// 프레임 레이트
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="[애니메이션]", Tooltip="프레임 레이트")
@@ -87,6 +87,9 @@ public:
 
 			// 7. NextTrackID 저장 (부모 클래스)
 			Ar << Anim.NextTrackID;
+
+			// 8. CurveData 저장 (부모 클래스)
+			Ar << Anim.CurveData;
 		}
 		else if (Ar.IsLoading())
 		{
@@ -151,6 +154,9 @@ public:
 
 			// 7. NextTrackID 로드
 			Ar << Anim.NextTrackID;
+
+			// 8. CurveData 로드 (부모 클래스)
+			Ar << Anim.CurveData;
 		}
 		return Ar;
 	}

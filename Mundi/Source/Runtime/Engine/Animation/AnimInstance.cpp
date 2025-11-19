@@ -54,15 +54,19 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	// 2. Lua 스크립트 업데이트 (ULuaAnimInstance에서 구현)
 	LuaUpdateAnimation(DeltaSeconds);
 
-	// 3. 포즈 추출 + Notify 수집 (트리 누적 패턴)
+	// 3. 포즈 추출 + Notify 수집 + Curve 값 평가 (트리 누적 패턴)
 	//    GetAnimationPose()가 트리를 순회하며:
 	//    - 각 노드가 포즈 계산
 	//    - 각 노드가 Notify 수집하여 FPoseContext.AnimNotifies에 추가
+	//    - 각 노드가 Curve 값 평가하여 FPoseContext.CurveValues에 추가
 	FPoseContext FinalPose;
 	GetAnimationPose(FinalPose);
 
 	// 4. 수집된 Notify 트리거 (프레임워크가 자동 처리)
 	TriggerAnimNotifies(FinalPose);
+
+	// 5. 수집된 Curve 값 트리거 (프레임워크가 자동 처리)
+	TriggerAnimCurves(FinalPose);
 }
 
 // ========================================
@@ -104,6 +108,22 @@ void UAnimInstance::TriggerAnimNotifies(const FPoseContext& Pose)
 	for (const FAnimNotifyEvent& Notify : Pose.AnimNotifies)
 	{
 		OwnerComponent->HandleAnimNotify(Notify);
+	}
+}
+
+void UAnimInstance::TriggerAnimCurves(const FPoseContext& Pose)
+{
+	if (!OwnerComponent)
+		return;
+
+	// Unreal 방식: FPoseContext에 이미 수집된 Curve 값들을 일괄 트리거
+	// AnimNode들이 트리 순회 중 Pose.CurveValues에 추가한 것들
+	// HandleAnimNotify와 동일한 패턴: 각 커브를 개별적으로 전달
+	for (const auto& CurvePair : Pose.CurveValues)
+	{
+		const FName& CurveName = CurvePair.first;
+		const float CurveValue = CurvePair.second;
+		OwnerComponent->HandleAnimCurve(CurveName, CurveValue);
 	}
 }
 

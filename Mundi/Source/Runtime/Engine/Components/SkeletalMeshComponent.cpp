@@ -6,6 +6,7 @@
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
 #include "ResourceManager.h"
+#include "Actor.h"
 
 USkeletalMeshComponent::USkeletalMeshComponent()
 {
@@ -240,6 +241,16 @@ void USkeletalMeshComponent::UpdateComponentSpaceTransforms()
 
     const int32 NumBones = Skeleton->Bones.Num();
 
+    // Ensure pose arrays match the skeleton bone count
+    if (CurrentLocalSpacePose.Num() != NumBones)
+    {
+        CurrentLocalSpacePose.resize(NumBones);
+    }
+    if (CurrentComponentSpacePose.Num() != NumBones)
+    {
+        CurrentComponentSpacePose.resize(NumBones);
+    }
+
     for (int32 BoneIndex = 0; BoneIndex < NumBones; ++BoneIndex)
     {
         const FTransform& LocalTransform = CurrentLocalSpacePose[BoneIndex];
@@ -293,6 +304,15 @@ void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
     if (Owner)
     {
         Owner->HandleAnimNotify(Notify);
+    }
+}
+
+void USkeletalMeshComponent::HandleAnimCurve(const FName& CurveName, float CurveValue)
+{
+    AActor* Owner = GetOwner();
+    if (Owner)
+    {
+        Owner->HandleAnimCurve(CurveName, CurveValue);
     }
 }
 
