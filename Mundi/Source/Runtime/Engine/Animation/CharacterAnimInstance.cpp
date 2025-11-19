@@ -7,6 +7,11 @@
 #include "ResourceManager.h"
 #include "Character.h"
 
+UCharacterAnimInstance::~UCharacterAnimInstance()
+{
+	ObjectFactory::DeleteObject(StateMachine);
+}
+
 void UCharacterAnimInstance::NativeInitializeAnimation()
 {
 	// 부모 클래스 초기화 호출

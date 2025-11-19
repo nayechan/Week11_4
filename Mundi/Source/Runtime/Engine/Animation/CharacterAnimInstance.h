@@ -11,7 +11,7 @@ public:
 	GENERATED_REFLECTION_BODY()
 
 	UCharacterAnimInstance() = default;
-	virtual ~UCharacterAnimInstance() = default;
+	virtual ~UCharacterAnimInstance();
 
 	// 애니메이션 시퀀스들
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category="Animations", Tooltip="Idle 상태 애니메이션")
