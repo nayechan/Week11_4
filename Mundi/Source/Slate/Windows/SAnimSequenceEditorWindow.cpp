@@ -376,10 +376,36 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::Spacing();
 
     // === Skeleton Swapping Section ===
+    // IMPORTANT: 이 섹션은 화면과 완전히 독립적이며, 오직 MeshPathBuffer, AnimationPathBuffer, TargetSkeleton만 사용합니다.
+    // 화면 적용 함수(LoadSkeletalMesh, SetAnimationAsset 등)는 절대 호출하지 않습니다.
+
     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.25f, 0.35f, 0.50f, 0.8f));
     ImGui::Text("Skeleton Swapping");
     ImGui::PopStyleColor();
     ImGui::Spacing();
+
+    // TargetSkeleton 초기화: MeshPathBuffer 또는 AnimationPathBuffer 기반
+    ActiveState->TargetSkeleton = nullptr;
+    if (ActiveState->MeshPathBuffer[0] != '\0')
+    {
+        // MeshPathBuffer에 경로가 있으면 해당 메시의 Skeleton 사용
+        FString MeshPath = ActiveState->MeshPathBuffer;
+        USkeletalMesh* Mesh = UResourceManager::GetInstance().Get<USkeletalMesh>(MeshPath);
+        if (Mesh)
+        {
+            ActiveState->TargetSkeleton = const_cast<FSkeleton*>(Mesh->GetSkeleton());
+        }
+    }
+    else if (ActiveState->AnimationPathBuffer[0] != '\0')
+    {
+        // AnimationPathBuffer에 경로가 있으면 해당 애니메이션의 Skeleton 사용
+        FString AnimPath = ActiveState->AnimationPathBuffer;
+        UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
+        if (Anim)
+        {
+            ActiveState->TargetSkeleton = Anim->Skeleton;
+        }
+    }
 
     // 1. Skeletal Mesh ComboBox
     ImGui::Text("Skeletal Mesh");
@@ -417,13 +443,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
             }
         }
 
+        // 현재 선택: MeshPathBuffer 기반
         int CurrentMeshIdx = 0;
-        if (ActiveState->CurrentMesh)
+        if (ActiveState->MeshPathBuffer[0] != '\0')
         {
-            FString CurrentPath = ActiveState->CurrentMesh->GetFilePath();
+            FString BufferPath = ActiveState->MeshPathBuffer;
             for (int i = 0; i < UniqueMeshes.Num(); ++i)
             {
-                if (UniqueMeshes[i] && UniqueMeshes[i]->GetFilePath() == CurrentPath)
+                if (UniqueMeshes[i] && UniqueMeshes[i]->GetFilePath() == BufferPath)
                 {
                     CurrentMeshIdx = i;
                     break;
@@ -434,19 +461,28 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::SetNextItemWidth(240);
         if (ImGui::Combo("##SkeletalMesh", &CurrentMeshIdx, MeshItems.data(), static_cast<int>(MeshItems.size())))
         {
+            // Swapping: MeshPathBuffer 업데이트만, 화면 적용 금지
             if (CurrentMeshIdx > 0 && CurrentMeshIdx < UniqueMeshes.Num())
             {
                 USkeletalMesh* SelectedMesh = UniqueMeshes[CurrentMeshIdx];
                 if (SelectedMesh)
                 {
                     FString MeshPath = SelectedMesh->GetFilePath();
-                    LoadSkeletalMesh(MeshPath.c_str());
-                    UE_LOG("SkeletalMesh changed to: %s", MeshPath.c_str());
+                    strncpy_s(ActiveState->MeshPathBuffer, sizeof(ActiveState->MeshPathBuffer),
+                              MeshPath.c_str(), _TRUNCATE);
+
+                    // 자동으로 TargetSkeleton 설정
+                    ActiveState->TargetSkeleton = const_cast<FSkeleton*>(SelectedMesh->GetSkeleton());
+
+                    UE_LOG("[Swapping] SkeletalMesh buffer set to: %s (NOT applied to screen)", MeshPath.c_str());
                 }
             }
             else if (CurrentMeshIdx == 0)
             {
-                LoadSkeletalMesh("");
+                // Clear
+                ActiveState->MeshPathBuffer[0] = '\0';
+                // TargetSkeleton은 AnimationPathBuffer 기반으로 재설정될 것임
+                UE_LOG("[Swapping] SkeletalMesh buffer cleared");
             }
         }
 
@@ -458,38 +494,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
     ImGui::Spacing();
 
-    // TargetSkeleton 초기화 (matches PropertyRenderer pattern, lines 29-39)
-    ActiveState->TargetSkeleton = nullptr;
-    if (ActiveState->CurrentMesh)
-    {
-        // 우선순위 1: SkeletalMesh의 Skeleton
-        ActiveState->TargetSkeleton = const_cast<FSkeleton*>(ActiveState->CurrentMesh->GetSkeleton());
-    }
-    else if (ActiveState->PreviewActor)
-    {
-        // 우선순위 2: 현재 Animation의 Skeleton (SkeletalMesh 없을 때)
-        USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-        if (SkelComp && SkelComp->AnimInstance)
-        {
-            UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
-            if (AnimSingleNode && AnimSingleNode->GetAnimSequence())
-            {
-                UAnimSequence* CurrentAnim = AnimSingleNode->GetAnimSequence();
-                if (CurrentAnim)
-                {
-                    ActiveState->TargetSkeleton = CurrentAnim->Skeleton;
-                }
-            }
-        }
-    }
-
-    // 2. Skeleton ComboBox (immediate application - matches Skel Mesh Detail)
+    // 2. Skeleton ComboBox
     ImGui::Text("Skeleton");
     {
         TArray<FString> AllSkeletonNames = FFbxManager::GetAllSkeletonNames();
         TArray<const char*> SkeletonItems;
         SkeletonItems.Add("None");
 
+        // 현재 선택: TargetSkeleton 기반
         int CurrentSkeletonIdx = 0;
         for (int i = 0; i < AllSkeletonNames.Num(); ++i)
         {
@@ -503,7 +515,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::SetNextItemWidth(240);
         if (ImGui::Combo("##Skeleton", &CurrentSkeletonIdx, SkeletonItems.data(), static_cast<int>(SkeletonItems.size())))
         {
-            // Immediate application (matches OnSkeletonChanged in SkeletalMeshComponentCustomization)
+            // Swapping: MeshPathBuffer나 AnimationPathBuffer의 리소스 Skeleton만 변경
             FSkeleton* NewSkeleton = nullptr;
             if (CurrentSkeletonIdx > 0 && CurrentSkeletonIdx <= AllSkeletonNames.Num())
             {
@@ -511,128 +523,110 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 NewSkeleton = FFbxManager::GetSkeletonByName(SelectedName);
             }
 
-            // Update SkeletalMesh's Skeleton
-            if (ActiveState->CurrentMesh)
+            // MeshPathBuffer에 있는 메시의 Skeleton 변경
+            if (ActiveState->MeshPathBuffer[0] != '\0')
             {
-                ActiveState->CurrentMesh->SetSkeleton(NewSkeleton);
-                ActiveState->CurrentMesh->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
-                UE_LOG("Changed SkeletalMesh Skeleton to: %s",
-                       NewSkeleton ? NewSkeleton->Name.c_str() : "None");
-            }
-
-            // Update current Animation's Skeleton
-            if (ActiveState->PreviewActor)
-            {
-                USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-                if (SkelComp && SkelComp->AnimInstance)
+                FString MeshPath = ActiveState->MeshPathBuffer;
+                USkeletalMesh* Mesh = UResourceManager::GetInstance().Get<USkeletalMesh>(MeshPath);
+                if (Mesh)
                 {
-                    UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
-                    if (AnimSingleNode && AnimSingleNode->GetAnimSequence())
-                    {
-                        UAnimSequence* CurrentAnim = AnimSingleNode->GetAnimSequence();
-                        if (CurrentAnim)
-                        {
-                            CurrentAnim->Skeleton = NewSkeleton;
-                            CurrentAnim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
-                            UE_LOG("Changed Animation Skeleton to: %s",
-                                   NewSkeleton ? NewSkeleton->Name.c_str() : "None");
-                        }
-                    }
+                    Mesh->SetSkeleton(NewSkeleton);
+                    Mesh->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+                    UE_LOG("[Swapping] Changed SkeletalMesh Skeleton to: %s",
+                           NewSkeleton ? NewSkeleton->Name.c_str() : "None");
                 }
             }
 
-            // 3. TargetSkeleton 업데이트 (matches PropertyRenderer line 206)
+            // AnimationPathBuffer에 있는 애니메이션의 Skeleton 변경
+            if (ActiveState->AnimationPathBuffer[0] != '\0')
+            {
+                FString AnimPath = ActiveState->AnimationPathBuffer;
+                UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
+                if (Anim)
+                {
+                    Anim->Skeleton = NewSkeleton;
+                    Anim->SkeletonID = NewSkeleton ? NewSkeleton->Name : "";
+                    UE_LOG("[Swapping] Changed Animation Skeleton to: %s",
+                           NewSkeleton ? NewSkeleton->Name.c_str() : "None");
+                }
+            }
+
             ActiveState->TargetSkeleton = NewSkeleton;
         }
 
         if (ImGui::IsItemHovered())
         {
             ImGui::BeginTooltip();
-            ImGui::TextUnformatted("Change the Skeleton for both SkeletalMesh and Animation");
+            ImGui::TextUnformatted("Change Skeleton reference for selected SkeletalMesh or Animation");
             ImGui::EndTooltip();
         }
     }
 
     ImGui::Spacing();
 
-    // 3. Animation ComboBox (file path based - matches PropertyRenderer)
+    // 3. Animation ComboBox
     ImGui::Text("Animation");
     {
-        // Use file paths instead of object pointers (matches PropertyRenderer)
         TArray<FString> AllAnimPaths = UResourceManager::GetInstance().GetAllFilePaths<UAnimSequence>();
         TArray<const char*> AnimItems;
         TArray<FString> FilteredAnimPaths;
         AnimItems.Add("None");
         FilteredAnimPaths.Add("");
 
+        // 필터링: MeshPathBuffer의 메시가 참조하는 Skeleton과 동일한 Skeleton을 참조하는 Animation만
+        FSkeleton* FilterSkeleton = nullptr;
+        if (ActiveState->MeshPathBuffer[0] != '\0')
+        {
+            FString MeshPath = ActiveState->MeshPathBuffer;
+            USkeletalMesh* Mesh = UResourceManager::GetInstance().Get<USkeletalMesh>(MeshPath);
+            if (Mesh)
+            {
+                FilterSkeleton = const_cast<FSkeleton*>(Mesh->GetSkeleton());
+            }
+        }
+
         for (const FString& AnimPath : AllAnimPaths)
         {
             if (!AnimPath.empty())
             {
-                // Filter by skeleton compatibility (matches PropertyRenderer lines 100-120)
-                bool bShouldFilter = false;
+                bool bShouldInclude = true;
 
-                // SkeletalMesh가 없으면 모든 애니메이션 표시
-                if (!ActiveState->CurrentMesh)
+                // MeshPathBuffer에 메시가 선택되어 있으면 Skeleton 필터링
+                if (FilterSkeleton)
                 {
-                    bShouldFilter = false;
-                }
-                // TargetSkeleton이 없으면 모든 애니메이션 표시
-                else if (!ActiveState->TargetSkeleton)
-                {
-                    bShouldFilter = false;
-                }
-                else
-                {
-                    // 포인터 비교 (SkeletalMesh가 있을 때만)
                     UAnimSequence* Anim = UResourceManager::GetInstance().Get<UAnimSequence>(AnimPath);
                     if (Anim)
                     {
-                        bShouldFilter = (Anim->Skeleton != ActiveState->TargetSkeleton);
+                        bShouldInclude = (Anim->Skeleton == FilterSkeleton);
                     }
                     else
                     {
-                        bShouldFilter = true;
+                        bShouldInclude = false;
                     }
                 }
 
-                if (bShouldFilter)
+                if (bShouldInclude)
                 {
-                    continue;
+                    FilteredAnimPaths.Add(AnimPath);
+
+                    std::filesystem::path fsPath(AnimPath);
+                    FString DisplayName = fsPath.filename().string();
+                    AnimItems.Add(_strdup(DisplayName.c_str()));
                 }
-
-                FilteredAnimPaths.Add(AnimPath);
-
-                // Extract filename for display (matches PropertyRenderer)
-                std::filesystem::path fsPath(AnimPath);
-                FString DisplayName = fsPath.filename().string();
-                AnimItems.Add(_strdup(DisplayName.c_str()));
             }
         }
 
-        // Find current animation index
+        // 현재 선택: AnimationPathBuffer 기반
         int CurrentAnimIdx = 0;
-        if (ActiveState->PreviewActor)
+        if (ActiveState->AnimationPathBuffer[0] != '\0')
         {
-            USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-            if (SkelComp && SkelComp->AnimInstance)
+            FString BufferPath = ActiveState->AnimationPathBuffer;
+            for (int i = 0; i < FilteredAnimPaths.Num(); ++i)
             {
-                UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
-                if (AnimSingleNode && AnimSingleNode->GetAnimSequence())
+                if (FilteredAnimPaths[i] == BufferPath)
                 {
-                    UAnimSequence* CurrentAnim = AnimSingleNode->GetAnimSequence();
-                    if (CurrentAnim)
-                    {
-                        FString CurrentPath = CurrentAnim->GetFilePath();
-                        for (int i = 0; i < FilteredAnimPaths.Num(); ++i)
-                        {
-                            if (FilteredAnimPaths[i] == CurrentPath)
-                            {
-                                CurrentAnimIdx = i;
-                                break;
-                            }
-                        }
-                    }
+                    CurrentAnimIdx = i;
+                    break;
                 }
             }
         }
@@ -640,56 +634,42 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
         ImGui::SetNextItemWidth(240);
         if (ImGui::Combo("##Animation", &CurrentAnimIdx, AnimItems.data(), static_cast<int>(AnimItems.size())))
         {
-            // Immediate application
+            // Swapping: AnimationPathBuffer 업데이트만, 화면 적용 금지
             if (CurrentAnimIdx > 0 && CurrentAnimIdx < FilteredAnimPaths.Num())
             {
                 const FString& SelectedPath = FilteredAnimPaths[CurrentAnimIdx];
                 UAnimSequence* SelectedAnim = UResourceManager::GetInstance().Get<UAnimSequence>(SelectedPath);
 
-                if (SelectedAnim && ActiveState->PreviewActor)
+                if (SelectedAnim)
                 {
-                    USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-                    if (SkelComp && SkelComp->AnimInstance)
-                    {
-                        UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
-                        if (AnimSingleNode)
-                        {
-                            AnimSingleNode->SetAnimationAsset(SelectedAnim);
-                            AnimSingleNode->Play(true);
+                    strncpy_s(ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer),
+                              SelectedPath.c_str(), _TRUNCATE);
 
-                            strncpy_s(ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer),
-                                      SelectedPath.c_str(), _TRUNCATE);
+                    // 자동으로 TargetSkeleton 설정
+                    ActiveState->TargetSkeleton = SelectedAnim->Skeleton;
 
-                            ActiveState->bBoneLinesDirty = true;
-
-                            UE_LOG("Animation changed to: %s", SelectedPath.c_str());
-                        }
-                    }
+                    UE_LOG("[Swapping] Animation buffer set to: %s (NOT applied to screen)", SelectedPath.c_str());
                 }
             }
             else if (CurrentAnimIdx == 0)
             {
-                if (ActiveState->PreviewActor)
-                {
-                    USkeletalMeshComponent* SkelComp = ActiveState->PreviewActor->GetSkeletalMeshComponent();
-                    if (SkelComp && SkelComp->AnimInstance)
-                    {
-                        UAnimSingleNodeInstance* AnimSingleNode = Cast<UAnimSingleNodeInstance>(SkelComp->AnimInstance);
-                        if (AnimSingleNode)
-                        {
-                            AnimSingleNode->SetAnimationAsset(nullptr);
-                            ActiveState->AnimationPathBuffer[0] = '\0';
-                            ActiveState->bBoneLinesDirty = true;
-                        }
-                    }
-                }
+                // Clear
+                ActiveState->AnimationPathBuffer[0] = '\0';
+                UE_LOG("[Swapping] Animation buffer cleared");
             }
         }
 
-        if (ImGui::IsItemHovered() && ActiveState->TargetSkeleton && ActiveState->CurrentMesh)
+        if (ImGui::IsItemHovered())
         {
             ImGui::BeginTooltip();
-            ImGui::Text("Showing animations for Skeleton: %s", ActiveState->TargetSkeleton->Name.c_str());
+            if (FilterSkeleton)
+            {
+                ImGui::Text("Showing animations compatible with Skeleton: %s", FilterSkeleton->Name.c_str());
+            }
+            else
+            {
+                ImGui::TextUnformatted("Showing all animations (no SkeletalMesh selected)");
+            }
             ImGui::EndTooltip();
         }
 
