@@ -17,6 +17,10 @@ public:
 
     void Load(const FString& InFilePath, ID3D11Device* InDevice);
 
+    // Skeleton 오버라이드 데이터 저장/로드 (.skeleton 파일의 "Mesh" 섹션)
+    bool SaveOverrideData(const FString& FilePath);
+    bool LoadOverrideData(const FString& FilePath);
+
     const FSkeletalMesh* GetSkeletalMeshData() const { return Data; }
     const FString& GetPathFileName() const { static FString EmptyString; if (Data) return Data->PathFileName; return EmptyString; }
     const FSkeleton* GetSkeleton() const { return Data ? Data->Skeleton : nullptr; }
