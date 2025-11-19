@@ -486,6 +486,7 @@ void UResourceManager::InitShaderILMap()
     layout.Add({ "BoneIndices", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, 64, D3D11_INPUT_PER_VERTEX_DATA,0 });
     layout.Add({ "BoneWeights", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 80, D3D11_INPUT_PER_VERTEX_DATA,0 });
     ShaderToInputLayoutMap["Shaders/Materials/UberLit.hlsl#USESKINNING"] = layout;
+    ShaderToInputLayoutMap["Shaders/Shadows/DepthOnly_VS.hlsl#USESKINNING"] = layout;
 
     layout.clear();
 
@@ -530,7 +531,7 @@ TArray<D3D11_INPUT_ELEMENT_DESC>& UResourceManager::GetProperInputLayout(const F
     // UberLit이고 GpuSkinning을 하는 경우 #USESKINNING 추가해서 레이아웃 키로 씀.
     FString ShaderName = InShaderName;  
     
-    if (InShaderName.find("UberLit") != FString::npos &&
+    if (((InShaderName.find("UberLit") != FString::npos) || (InShaderName.find("DepthOnly_VS") != FString::npos)) &&
         GEngine.GetRenderer() &&
         GEngine.GetRenderer()->IsGpuSkinning())
     {

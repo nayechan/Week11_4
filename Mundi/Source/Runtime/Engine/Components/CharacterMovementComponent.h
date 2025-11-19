@@ -28,7 +28,7 @@ private:
 	float BrakingDeceleration = 1.0f;
 
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category = "Parameter", Tooltip = "이동 방향으로 회전하는 속도를 조절합니다")
-	float InterpFactor = 1.0f;
+	float InterpFactor = 1000.0f;
 
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category = "Parameter", Tooltip = "현재 플레이어의 이동 방향으로 서서히 회전합니다")
 	bool bOrientRotationToMovement = true;
