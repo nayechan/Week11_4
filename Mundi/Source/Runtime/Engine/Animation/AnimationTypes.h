@@ -204,6 +204,55 @@ struct FPoseContext
 	int32 GetNumBones() const { return BoneTransforms.Num(); }
 };
 
+// 전방 선언
+class UAnimSequence;
+
+/**
+ * @brief BlendSpace 샘플 (1D)
+ *
+ * 하나의 파라미터 값에 대응하는 애니메이션 샘플
+ *
+ * 예시:
+ * - SampleValue = 0.0, Animation = Idle
+ * - SampleValue = 5.0, Animation = Walk
+ * - SampleValue = 10.0, Animation = Run
+ *
+ * 사용 시:
+ * - CurrentParameter = 3.0 → Idle(60%) + Walk(40%) 블렌딩
+ * - CurrentParameter = 7.5 → Walk(50%) + Run(50%) 블렌딩
+ */
+struct FBlendSample1D
+{
+	/**
+	 * @brief 파라미터 값 (예: 속도)
+	 *
+	 * - Samples 배열은 SampleValue 오름차순 정렬 필요
+	 * - 예: 0.0 (Idle), 5.0 (Walk), 10.0 (Run)
+	 */
+	float SampleValue = 0.0f;
+
+	/**
+	 * @brief 해당 파라미터 값에서 재생할 애니메이션
+	 *
+	 * - nullptr일 경우 샘플 무시
+	 */
+	UAnimSequence* Animation = nullptr;
+
+	/**
+	 * @brief 샘플의 현재 재생 시간 (초)
+	 *
+	 * Node-Centric Time Management:
+	 * - Update()에서 DeltaTime만큼 증가
+	 * - 모든 샘플이 동일 속도로 재생 (Phase Sync 필요 없음)
+	 */
+	float InternalTime = 0.0f;
+
+	/**
+	 * @brief 이전 프레임의 재생 시간 (Notify 범위 체크용)
+	 */
+	float PreviousTime = 0.0f;
+};
+
 // 애니메이션 모드 열거형
 UENUM()
 enum class EAnimationMode : uint8
