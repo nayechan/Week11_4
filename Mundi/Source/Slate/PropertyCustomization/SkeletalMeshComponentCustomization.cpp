@@ -124,6 +124,12 @@ void FSkeletalMeshComponentCustomization::RenderSkeletonSelector()
 {
 	if (!CurrentComponent) return;
 
+	// AnimationMode가 AnimationSingleNode가 아니면 Skeleton 섹션을 렌더링하지 않음
+	if (CurrentComponent->AnimationMode != EAnimationMode::AnimationSingleNode)
+	{
+		return;
+	}
+
 	// SkeletalMesh와 AnimToPlay가 모두 설정되지 않은 경우 Skeleton 섹션을 렌더링하지 않음
 	if (!CurrentComponent->GetSkeletalMesh() && !CurrentComponent->AnimToPlay)
 	{
