@@ -1,6 +1,6 @@
 {
   "Actors" : {
-    "277" : {
+    "896" : {
       "ObjectName" : "ADirectionalLightActor_1",
       "OwnedComponents" : [{
           "AttachSocketName" : "NONE",
@@ -9,7 +9,7 @@
           "CascadedCount" : 4,
           "CascadedLinearBlendingValue" : 0.500000,
           "CascadedOverlapValue" : 0.200000,
-          "Id" : 278,
+          "Id" : 898,
           "Intensity" : 1.000000,
           "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "ObjectName" : "UDirectionalLightComponent_1",
@@ -30,17 +30,17 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 278,
+      "RootComponentId" : 898,
       "Tag" : "",
       "Type" : "ADirectionalLightActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "279" : {
+    "899" : {
       "ObjectName" : "AAmbientLightActor_1",
       "OwnedComponents" : [{
           "AttachSocketName" : "NONE",
-          "Id" : 280,
+          "Id" : 901,
           "Intensity" : 0.100000,
           "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "ObjectName" : "UAmbientLightComponent_1",
@@ -60,23 +60,50 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 280,
+      "RootComponentId" : 901,
       "Tag" : "",
       "Type" : "AAmbientLightActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     },
-    "895" : {
+    "902" : {
       "ObjectName" : "ACharacter_0",
       "OwnedComponents" : [{
+          "AnimClass" : "",
+          "AnimLuaScript" : "",
+          "AnimToPlay" : "",
+          "AnimationMode" : 3,
+          "AttachSocketName" : "NONE",
+          "Id" : 907,
+          "MaterialSlots" : [{
+              "Type" : "None"
+            }, {
+              "AssetPath" : "MariaMat",
+              "Type" : "UMaterial"
+            }],
+          "ObjectName" : "USkeletalMeshComponent_1",
+          "ParentId" : 0,
+          "RelativeLocation" : [1.532815, -1.532815, 1.173166],
+          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
+          "RelativeScale" : [1.000000, 1.000000, 1.000000],
+          "SkeletalMesh" : "Data/Fbx/Running.fbx",
+          "Type" : "USkeletalMeshComponent",
+          "bBlockComponent" : false,
+          "bCastShadows" : true,
+          "bGenerateOverlapEvents" : true,
+          "bHiddenInGame" : false,
+          "bIsActive" : true,
+          "bIsVisible" : true,
+          "bTickEnabled" : true
+        }, {
           "AspectRatio" : 1.000000,
           "AttachSocketName" : "SpringArmSocket",
           "FarClip" : 100.000000,
           "FieldOfView" : 60.000000,
-          "Id" : 900,
+          "Id" : 912,
           "NearClip" : 0.100000,
           "ObjectName" : "UCameraComponent_5",
-          "ParentId" : 899,
+          "ParentId" : 911,
           "ProjectionMode" : 0,
           "RelativeLocation" : [0.000000, 0.000000, 0.000000],
           "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
@@ -89,58 +116,39 @@
           "bTickEnabled" : true
         }, {
           "AttachSocketName" : "NONE",
-          "BackoffEpsilon" : 0.100000,
-          "Id" : 899,
-          "LagSpeed" : 15.000000,
-          "MaxLagDistance" : 10.000000,
-          "ObjectName" : "USpringArmComponent_1",
-          "ParentId" : 896,
+          "CapsuleHalfHeight" : 0.000000,
+          "CapsuleRadius" : 0.000000,
+          "Id" : 908,
+          "ObjectName" : "UCapsuleComponent_1",
+          "ParentId" : 907,
           "RelativeLocation" : [0.000000, 0.000000, 0.000000],
-          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
+          "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
           "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "SocketName" : "SpringArmSocket",
-          "SocketOffset" : [0.000000, 0.000000, 0.000000],
-          "TargetArmLength" : 10.000000,
-          "TargetOffset" : [0.000000, 0.000000, 0.000000],
-          "Type" : "USpringArmComponent",
-          "bEnableLag" : true,
-          "bHiddenInGame" : false,
-          "bInitLag" : false,
-          "bIsActive" : true,
-          "bIsVisible" : true,
-          "bTickEnabled" : true,
-          "bUseControllerRotation" : true
-        }, {
-          "AnimClass" : "",
-          "AnimLuaScript" : "",
-          "AnimToPlay" : "",
-          "AnimationMode" : 3,
-          "AttachSocketName" : "NONE",
-          "Id" : 896,
-          "MaterialSlots" : [{
-              "Type" : "None"
-            }, {
-              "AssetPath" : "Ch06_body",
-              "Type" : "UMaterial"
-            }, {
-              "AssetPath" : "Ch06_eyelashes",
-              "Type" : "UMaterial"
-            }, {
-              "AssetPath" : "Ch06_body1",
-              "Type" : "UMaterial"
-            }],
-          "ObjectName" : "USkeletalMeshComponent_1",
-          "ParentId" : 0,
-          "RelativeLocation" : [1.532815, -1.532815, 1.173166],
-          "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-          "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "SkeletalMesh" : "Data/Fbx/James.fbx",
-          "Type" : "USkeletalMeshComponent",
+          "Type" : "UCapsuleComponent",
           "bBlockComponent" : false,
-          "bCastShadows" : true,
           "bGenerateOverlapEvents" : true,
           "bHiddenInGame" : false,
           "bIsActive" : true,
+          "bIsVisible" : true,
+          "bShapeHiddenInGame" : true,
+          "bShapeIsVisible" : true,
+          "bTickEnabled" : true
+        }, {
+          "AttachSocketName" : "NONE",
+          "Id" : 910,
+          "ObjectName" : "UAudioComponent_1",
+          "ParentId" : 907,
+          "Pitch" : 1.000000,
+          "RelativeLocation" : [0.000000, 0.000000, 0.000000],
+          "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
+          "RelativeScale" : [1.000000, 1.000000, 1.000000],
+          "Sounds" : ["Data/Audio/HitFireball.wav"],
+          "Type" : "UAudioComponent",
+          "Volume" : 1.000000,
+          "bAutoPlay" : false,
+          "bHiddenInGame" : false,
+          "bIsActive" : true,
+          "bIsLooping" : false,
           "bIsVisible" : true,
           "bTickEnabled" : true
         }, {
@@ -156,45 +164,49 @@
           "bTickEnabled" : true
         }, {
           "AttachSocketName" : "NONE",
-          "CapsuleHalfHeight" : 0.000000,
-          "CapsuleRadius" : 0.000000,
-          "Id" : 897,
-          "ObjectName" : "UCapsuleComponent_1",
-          "ParentId" : 896,
+          "BackoffEpsilon" : 0.100000,
+          "Id" : 911,
+          "LagSpeed" : 15.000000,
+          "MaxLagDistance" : 10.000000,
+          "ObjectName" : "USpringArmComponent_1",
+          "ParentId" : 907,
           "RelativeLocation" : [0.000000, 0.000000, 0.000000],
           "RelativeRotationEuler" : [0.000000, 0.000000, 0.000000],
           "RelativeScale" : [1.000000, 1.000000, 1.000000],
-          "Type" : "UCapsuleComponent",
-          "bBlockComponent" : false,
-          "bGenerateOverlapEvents" : true,
+          "SocketName" : "SpringArmSocket",
+          "SocketOffset" : [0.000000, 0.000000, 0.000000],
+          "TargetArmLength" : 10.000000,
+          "TargetOffset" : [0.000000, 0.000000, 0.000000],
+          "Type" : "USpringArmComponent",
+          "bEnableLag" : true,
           "bHiddenInGame" : false,
+          "bInitLag" : false,
           "bIsActive" : true,
           "bIsVisible" : true,
-          "bShapeHiddenInGame" : true,
-          "bShapeIsVisible" : true,
-          "bTickEnabled" : true
+          "bTickEnabled" : true,
+          "bUseControllerRotation" : true
         }],
-      "RootComponentId" : 896,
+      "RootComponentId" : 907,
       "Tag" : "",
       "Type" : "ACharacter",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true,
       "bUseControllerRotationYaw" : false
     },
-    "920" : {
+    "913" : {
       "ObjectName" : "스태틱 메시_0",
       "OwnedComponents" : [{
           "AttachSocketName" : "NONE",
-          "Id" : 921,
+          "Id" : 915,
           "MaterialSlots" : [{
               "AssetPath" : "texture",
               "Type" : "UMaterial"
             }],
           "ObjectName" : "UStaticMeshComponent_2",
           "ParentId" : 0,
-          "RelativeLocation" : [5.844056, -2.347047, 0.231862],
+          "RelativeLocation" : [0.849844, -1.390665, 0.659357],
           "RelativeRotationEuler" : [0.000000, -0.000000, 0.000000],
-          "RelativeScale" : [31.663052, 40.507603, 1.000000],
+          "RelativeScale" : [48.248428, 42.571663, 1.000000],
           "StaticMesh" : "Data/cube-tex.obj",
           "Type" : "UStaticMeshComponent",
           "bBlockComponent" : false,
@@ -205,20 +217,20 @@
           "bIsVisible" : true,
           "bTickEnabled" : true
         }],
-      "RootComponentId" : 921,
+      "RootComponentId" : 915,
       "Tag" : "",
       "Type" : "AStaticMeshActor",
       "bActorHiddenInGame" : false,
       "bActorIsActive" : true
     }
   },
-  "NextUUID" : 942,
+  "NextUUID" : 962,
   "PerspectiveCamera" : {
     "FOV" : [60.000000],
     "FarClip" : [2000.000000],
-    "Location" : [-14.351117, 9.737584, 12.243179],
+    "Location" : [-9.501257, 6.334700, 9.154164],
     "NearClip" : [0.100000],
-    "Rotation" : [0.000000, 21.299683, -16.900030]
+    "Rotation" : [0.000000, 22.499714, -35.301491]
   },
   "Version" : 1
 }

@@ -5,6 +5,7 @@
 #include "CapsuleComponent.h"
 #include "CharacterMovementComponent.h"
 #include "PlayerController.h"
+#include "AudioComponent.h"
 
 ACharacter::ACharacter()
 {
@@ -18,6 +19,8 @@ ACharacter::ACharacter()
 	// MovementComponent InitalizeComponent함수에서 알아서 오너 엑터 찾아서 루트컴포넌트를 UpdatedComponnet로 설정함.
 	//MovementComponent->SetUpdatedComponent(SkeletalMeshComponent);
 
+	AudioComponent = CreateDefaultSubobject<UAudioComponent>("AudioComponent");
+	AudioComponent->SetupAttachment(RootComponent);
 	CapsuleComponent->SetupAttachment(RootComponent);
 }
 
@@ -66,6 +69,22 @@ void ACharacter::DuplicateSubObjects()
 		{
 			CharacterMovementComponent = MovementComponent;
 		}
+		else if (UAudioComponent* OwnedAudioComponent = Cast<UAudioComponent>(Component))
+		{
+			AudioComponent = OwnedAudioComponent;
+		}
+	}
+}
+
+void ACharacter::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+	if (CharacterMovementComponent->GetSpeed() <= 0.1f)
+	{
+		return;
+	}
+	if (Notify.NotifyName == FName("Step"))
+	{
+		AudioComponent->Play();
 	}
 }
 

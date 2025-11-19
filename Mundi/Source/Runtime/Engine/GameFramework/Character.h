@@ -6,6 +6,7 @@ class UCapsuleComponent;
 class UCharacterMovementComponent;
 class USkeletalMeshComponent;
 class UCharacterAnimInstance;
+class UAudioComponent;
 
 UCLASS(DisplayName = "ACharacter", Description = "Character Actor")
 class ACharacter : public APawn
@@ -19,6 +20,7 @@ public:
 	void HandleSteerInput(float InScalar) override;
 	void DuplicateSubObjects() override;
 	
+	void HandleAnimNotify(const FAnimNotifyEvent& Notify) override;
 	// 캐릭터 무브먼트 컴포넌트와 소통
 	float GetSpeed();
 
@@ -31,6 +33,8 @@ private:
 	UCharacterMovementComponent* CharacterMovementComponent = nullptr; 
 	 
 	USkeletalMeshComponent* SkeletalMeshComponent = nullptr;
+
+	UAudioComponent* AudioComponent = nullptr;
 
 	UPROPERTY(LuaReadWrite, EditAnywhere, Category = "Parameter", Tooltip = "캐릭터가 항상 카메라가 바라보는 방향을 바라봅니다")
 	bool bUseControllerRotationYaw = false;
