@@ -518,6 +518,15 @@ void FSceneRenderer::RenderShadowMaps()
 
 void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, const TArray<FMeshBatchElement>& InShadowBatches)
 {
+	// 1. 뎁스 전용 셰이더 로드
+	UShader* DepthVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Shadows/DepthOnly_VS.hlsl");
+	if (!DepthVS || !DepthVS->GetVertexShader()) return;
+	FShaderVariant* ShaderVariant = nullptr;
+
+	ShaderVariant = DepthVS->GetOrCompileShaderVariant();
+	if (!ShaderVariant) return;
+	RHIDevice->GetDeviceContext()->IASetInputLayout(ShaderVariant->InputLayout);
+	RHIDevice->GetDeviceContext()->VSSetShader(ShaderVariant->VertexShader, nullptr, 0);
 
 	// vsm용 픽셀 셰이더
 	UShader* DepthPs = UResourceManager::GetInstance().Load<UShader>("Shaders/Shadows/DepthOnly_PS.hlsl");
@@ -569,10 +578,6 @@ void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, 
 
 		if (bCurrentGpuSkinning != bGpuSkinning)
 		{
-			// 1. 뎁스 전용 셰이더 로드
-			UShader* DepthVS = UResourceManager::GetInstance().Load<UShader>("Shaders/Shadows/DepthOnly_VS.hlsl");
-			if (!DepthVS || !DepthVS->GetVertexShader()) return;
-			FShaderVariant* ShaderVariant = nullptr;
 			if (bGpuSkinning)
 			{
 				ShaderVariant = DepthVS->GetOrCompileShaderVariant(SkinningMacro);
@@ -581,7 +586,6 @@ void FSceneRenderer::RenderShadowDepthPass(FShadowRenderRequest& ShadowRequest, 
 			}
 			else
 			{
-
 				ShaderVariant = DepthVS->GetOrCompileShaderVariant();
 			}
 			if (!ShaderVariant) return;

@@ -2,6 +2,7 @@
 #include "Name.h"
 #include "AnimState.h"
 #include "AnimTransition.h"
+#include "UAnimStateMachine.generated.h"
 
 // Forward declaration (CharacterAnimInstance.h creates circular dependency)
 class UAnimInstance;
@@ -9,8 +10,10 @@ class UAnimInstance;
 UCLASS(DisplayName="애니메이션 스테이트 머신", Description="상태 기반 애니메이션 전환 시스템")
 class UAnimStateMachine : public UObject
 {
-public:
     GENERATED_REFLECTION_BODY()
+public:
+
+    UAnimStateMachine() = default;
 
     UPROPERTY(LuaReadWrite)
     FName CurrentState;
