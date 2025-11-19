@@ -73,6 +73,7 @@ float ACharacter::GetSpeed()
 {
 	if (CharacterMovementComponent)
 	{
+		//TODO : Speed 0~1 사이로 정규화하기
 		return CharacterMovementComponent->GetSpeed();
 	}
 	return 0.0f;
