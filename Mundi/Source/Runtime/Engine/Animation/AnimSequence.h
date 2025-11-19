@@ -53,6 +53,10 @@ public:
 	{
 		if (Ar.IsSaving())
 		{
+			// 0. 원본 FBX 경로 저장 (Skeleton 복원용)
+			FString SourceFBXPath = Anim.GetFilePath();
+			Serialization::WriteString(Ar, SourceFBXPath);
+
 			// 1. FrameRate 저장
 			Ar << Anim.FrameRate;
 
@@ -99,6 +103,11 @@ public:
 		}
 		else if (Ar.IsLoading())
 		{
+			// 0. 원본 FBX 경로 로드 (Skeleton 복원용)
+			FString SourceFBXPath;
+			Serialization::ReadString(Ar, SourceFBXPath);
+			Anim.SetFilePath(SourceFBXPath);
+
 			// 1. FrameRate 로드
 			Ar << Anim.FrameRate;
 

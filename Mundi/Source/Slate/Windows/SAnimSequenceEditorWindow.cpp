@@ -264,8 +264,6 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::InputTextWithHint("##MeshPath", "Browse for FBX file...", ActiveState->MeshPathBuffer, sizeof(ActiveState->MeshPathBuffer));
     ImGui::PopItemWidth();
 
-    ImGui::Spacing();
-
     // Buttons
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.40f, 0.55f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.35f, 0.50f, 0.70f, 1.0f));
@@ -306,8 +304,6 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::PushItemWidth(-1.0f);
     ImGui::InputTextWithHint("##AnimPath", "Browse for FBX file...", ActiveState->AnimationPathBuffer, sizeof(ActiveState->AnimationPathBuffer));
     ImGui::PopItemWidth();
-
-    ImGui::Spacing();
 
     // Animation Buttons
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.28f, 0.40f, 0.55f, 1.0f));
@@ -814,38 +810,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                 // Get all loaded animations
                 TArray<UAnimSequence*> AllAnimations = UResourceManager::GetInstance().GetAll<UAnimSequence>();
 
-                // Filter animations that match this skeleton (bone structure comparison)
+                // Filter animations that match this skeleton (pointer equality only)
                 TArray<UAnimSequence*> CompatibleAnimations;
                 for (UAnimSequence* Anim : AllAnimations)
                 {
                     if (Anim && Anim->Skeleton)
                     {
-                        // Check if skeletons are compatible by comparing bone structure
-                        bool bIsCompatible = false;
-
-                        // First check: pointer equality (fastest)
+                        // Only pointer equality check - must be the exact same Skeleton
                         if (Anim->Skeleton == MeshSkeleton)
-                        {
-                            bIsCompatible = true;
-                        }
-                        // Second check: bone structure comparison
-                        else if (Anim->Skeleton->Bones.Num() == MeshSkeleton->Bones.Num() &&
-                                 Anim->Skeleton->Bones.Num() > 0)
-                        {
-                            // Compare bone names and hierarchy
-                            bIsCompatible = true;
-                            for (int32 i = 0; i < Anim->Skeleton->Bones.Num(); ++i)
-                            {
-                                if (Anim->Skeleton->Bones[i].Name != MeshSkeleton->Bones[i].Name ||
-                                    Anim->Skeleton->Bones[i].ParentIndex != MeshSkeleton->Bones[i].ParentIndex)
-                                {
-                                    bIsCompatible = false;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (bIsCompatible)
                         {
                             CompatibleAnimations.Add(Anim);
                         }
@@ -868,18 +840,19 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
                     for (int32 i = 0; i < CompatibleAnimations.Num(); ++i)
                     {
                         UAnimSequence* Anim = CompatibleAnimations[i];
-                        FString AnimName = Anim->GetName();
-                        if (AnimName.empty())
+                        // Always use filename from FilePath instead of GetName()
+                        FString AnimName = Anim->GetFilePath();
+                        if (!AnimName.empty())
                         {
-                            AnimName = Anim->GetFilePath();
-                            if (!AnimName.empty())
+                            size_t lastSlash = AnimName.find_last_of("/\\");
+                            if (lastSlash != std::string::npos)
                             {
-                                size_t lastSlash = AnimName.find_last_of("/\\");
-                                if (lastSlash != std::string::npos)
-                                {
-                                    AnimName = AnimName.substr(lastSlash + 1);
-                                }
+                                AnimName = AnimName.substr(lastSlash + 1);
                             }
+                        }
+                        else
+                        {
+                            AnimName = "Unnamed Animation";
                         }
 
                         char ButtonLabel[256];
@@ -1425,9 +1398,9 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     const float AnimationLength = AnimSequence->GetPlayLength();
     int CurrentFrame = static_cast<int>((CurrentInternalTime / AnimationLength) * AnimSequence->NumberOfFrames);
 
-    // Timeline Panel (Top 50% of bottom area)
+    // Timeline Panel (Top 60% of bottom area - Notify section)
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("TimelinePanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.5f), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("TimelinePanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.6f), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
     float WindowWidth = ImGui::GetWindowWidth();
@@ -1443,7 +1416,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::BeginChild("LeftControlArea", ImVec2(LeftControlWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
 
     // Top part: Notify Tracks
-    float controlsHeight = 90.0f; // Increased height for two-row layout (buttons + Rev/Speed)
+    float controlsHeight = 75.0f; // Reduced to increase Track list height
     float tracksHeight = WindowHeight - controlsHeight - 10.0f;
 
     ImGui::BeginChild("NotifyTracks", ImVec2(LeftControlWidth, tracksHeight), true);
@@ -1465,11 +1438,14 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     const float HeaderHeight = 25.0f;
     const float TrackHeight = 28.0f;
 
+    // Header area - exact height to match timeline
+    float headerStartY = ImGui::GetCursorPosY();
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.8f, 0.85f, 0.9f, 1.0f));
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 5.0f);
+    ImGui::SetCursorPosY(headerStartY + 5.0f); // Center text vertically
     ImGui::Text("Tracks");
     ImGui::PopStyleColor();
-    ImGui::Dummy(ImVec2(0, HeaderHeight - 20.0f)); // Spacer to match timeline header
+    // Force exact header height alignment
+    ImGui::SetCursorPosY(headerStartY + HeaderHeight);
 
     // Rename Track state (shared between context menu and popup)
     static int RenameTrackID = -1;
@@ -1648,7 +1624,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.17f, 0.20f, 1.0f));
 
     float buttonSize = 20.0f; // Reduced for compact layout
-    float spacing = 1.0f; // Reduced spacing
+    float spacing = 4.0f; // Increased spacing between buttons
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(spacing, spacing));
 
     // Align to left with small margin
@@ -1828,7 +1804,7 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
     // === RIGHT SIDE: Timeline + Notify Display ===
     ImGui::SameLine(0, 0);
-    ImGui::BeginChild("TimelineArea", ImVec2(RightTimelineWidth, WindowHeight), false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("TimelineArea", ImVec2(RightTimelineWidth, WindowHeight), false);
 
     // Timeline layout
     ImVec2 TimeLineStartPos = ImGui::GetCursorScreenPos();
@@ -2307,13 +2283,18 @@ void SAnimSequenceEditorWindow::RenderAnimationSquenceViewer()
 
     ImGui::PopStyleColor();
 
+    // Reserve space for scrolling - ensure ImGui knows the full content height
+    // Use Dummy to properly extend the scrollable area
+    float ContentHeight = TimeLineHeight + 70.0f; // Timeline + frame info + padding
+    ImGui::Dummy(ImVec2(0.0f, ContentHeight));
+
     ImGui::EndChild(); // TimelineArea
 
     ImGui::EndChild(); // TimelinePanel
 
-    // === CURVE EDITOR PANEL (Bottom 50% of bottom area) ===
+    // === CURVE EDITOR PANEL (Bottom 40% of bottom area) ===
     ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-    ImGui::BeginChild("CurveEditorPanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.5f), true, ImGuiWindowFlags_NoScrollbar);
+    ImGui::BeginChild("CurveEditorPanel", ImVec2(centerWidth + rightWidth, bottomHeight * 0.4f), true, ImGuiWindowFlags_NoScrollbar);
     ImGui::PopStyleVar();
 
     float CurveWindowWidth = ImGui::GetWindowWidth();
