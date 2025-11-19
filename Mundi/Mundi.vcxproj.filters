@@ -772,7 +772,7 @@
     <ClCompile Include="Generated\UAnimNode_SequencePlayer.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
-  <ClCompile Include="Generated\UAnimGraphInstance.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
+  <ClCompile Include="Generated\UAnimGraphInstance.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UAnimNode_StateMachine.generated.cpp"><Filter>Generated</Filter></ClCompile><ClCompile Include="Generated\UTestAnimGraphInstance.generated.cpp"><Filter>Generated</Filter></ClCompile></ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="Source\Editor\Clipboard\ClipboardManager.h">
@@ -1657,7 +1657,7 @@
     <ClInclude Include="Generated\UAnimNode_SequencePlayer.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
-  <ClInclude Include="Generated\UAnimGraphInstance.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
+  <ClInclude Include="Generated\UAnimGraphInstance.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UAnimNode_StateMachine.generated.h"><Filter>Generated</Filter></ClInclude><ClInclude Include="Generated\UTestAnimGraphInstance.generated.h"><Filter>Generated</Filter></ClInclude></ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
       <UniqueIdentifier>{5795df92-1510-45f1-8bda-7ed2d162568b}</UniqueIdentifier>

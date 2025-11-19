@@ -96,6 +96,10 @@ void UAnimGraphInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 void UAnimGraphInstance::GetAnimationPose(FPoseContext& OutPose)
 {
+	// 안전한 초기화: 기존 데이터 제거
+	OutPose.BoneTransforms.Empty();
+	OutPose.AnimNotifies.Empty();
+
 	if (RootNode)
 	{
 		// 루트 노드에 포즈 추출 위임

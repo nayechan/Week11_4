@@ -283,8 +283,10 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_BlendTwoWay.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_SequencePlayer.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\AnimNode_StateMachine.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimGraphInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimInstance.cpp" />
+    <ClCompile Include="Source\Runtime\Engine\Animation\TestAnimGraphInstance.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSequence.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSequenceBase.cpp" />
     <ClCompile Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.cpp" />
@@ -568,6 +570,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClCompile Include="Generated\UAnimNode.generated.cpp" />
     <ClCompile Include="Generated\UAnimNode_BlendTwoWay.generated.cpp" />
     <ClCompile Include="Generated\UAnimNode_SequencePlayer.generated.cpp" />
+    <ClCompile Include="Generated\UAnimNode_StateMachine.generated.cpp" />
+    <ClCompile Include="Generated\UTestAnimGraphInstance.generated.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\LightingBuffers.hlsl">
@@ -753,10 +757,12 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_BlendTwoWay.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_SequencePlayer.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\AnimNode_StateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequence.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSequenceBase.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimSingleNodeInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\AnimState.h" />
+    <ClInclude Include="Source\Runtime\Engine\Animation\TestAnimGraphInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterAnimInstance.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\CharacterStateMachine.h" />
     <ClInclude Include="Source\Runtime\Engine\Animation\LuaAnimInstance.h" />
@@ -1025,6 +1031,8 @@ xcopy /y /d "$(ProjectDir)ThirdParty\Lua\lib\lua54.dll" "$(OutDir)"</Command>
     <ClInclude Include="Generated\UAnimNode.generated.h" />
     <ClInclude Include="Generated\UAnimNode_BlendTwoWay.generated.h" />
     <ClInclude Include="Generated\UAnimNode_SequencePlayer.generated.h" />
+    <ClInclude Include="Generated\UAnimNode_StateMachine.generated.h" />
+    <ClInclude Include="Generated\UTestAnimGraphInstance.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="BuildTools\CodeGenerator\generate.py" />
