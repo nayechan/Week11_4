@@ -3,14 +3,13 @@
 #include "AnimSequence.h"
 #include "AnimationTypes.h"
 #include "Source/Runtime/Engine/Components/SkeletalMeshComponent.h"
+#include "SkeletalMesh.h"
+#include "VertexData.h"
 #include "GlobalConsole.h"
 #include "ResourceManager.h"
 #include "Character.h"
 
-UCharacterAnimInstance::~UCharacterAnimInstance()
-{
-	ObjectFactory::DeleteObject(StateMachine);
-}
+// 소멸자 제거: StateMachineNode가 UPROPERTY로 GC 관리됨
 
 void UCharacterAnimInstance::NativeInitializeAnimation()
 {
@@ -43,114 +42,132 @@ void UCharacterAnimInstance::NativeInitializeAnimation()
 	}
 
 	// ========================================
-	// 테스트용 애니메이션 하드코딩
-	// TODO: Lua/Blueprint에서 설정 가능하도록 변경
+	// .anim 파일에서 애니메이션 로드
+	// .anim 파일은 Notify 등 메타데이터를 포함
 	// ========================================
 	if (!IdleAnimation)
 	{
-		IdleAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/Standing Idle.fbx");
+		IdleAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Animations/Standing Idle.anim");
 		if (IdleAnimation)
 		{
-			UE_LOG("CharacterAnimInstance: Loaded IdleAnimation via Get()");
+			UE_LOG("CharacterAnimInstance: Loaded IdleAnimation from .anim");
 		}
 		else
 		{
-			UE_LOG("CharacterAnimInstance: Failed to Get IdleAnimation - not in cache!");
+			UE_LOG("CharacterAnimInstance: Failed to load IdleAnimation from .anim!");
 		}
 	}
 
 	if (!WalkAnimation)
 	{
-		WalkAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/Walking.fbx");
+		WalkAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Animations/Walking.anim");
 		if (WalkAnimation)
 		{
-			UE_LOG("CharacterAnimInstance: Loaded WalkAnimation via Get()");
+			UE_LOG("CharacterAnimInstance: Loaded WalkAnimation from .anim");
 		}
 		else
 		{
-			UE_LOG("CharacterAnimInstance: Failed to Get WalkAnimation - not in cache!");
+			UE_LOG("CharacterAnimInstance: Failed to load WalkAnimation from .anim!");
 		}
 	}
 
 	if (!RunAnimation)
 	{
-		RunAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Fbx/Running.fbx");
+		RunAnimation = ResourceManager.Get<UAnimSequence>(GDataDir + "/Animations/Running.anim");
 		if (RunAnimation)
 		{
-			UE_LOG("CharacterAnimInstance: Loaded RunAnimation via Get()");
+			UE_LOG("CharacterAnimInstance: Loaded RunAnimation from .anim");
 		}
 		else
 		{
-			UE_LOG("CharacterAnimInstance: Failed to Get RunAnimation - not in cache!");
+			UE_LOG("CharacterAnimInstance: Failed to load RunAnimation from .anim!");
 		}
 	}
 
 	// ========================================
-	// StateMachine 생성
+	// BlendSpace1D 생성 (Locomotion)
 	// ========================================
-	StateMachine = NewObject<UAnimStateMachine>();
+	LocomotionBlendSpace = CreateNode<UAnimNode_BlendSpace1D>();
 
-	if (!StateMachine)
+	if (!LocomotionBlendSpace)
 	{
-		UE_LOG("CharacterAnimInstance::NativeInitializeAnimation - Failed to create StateMachine");
+		UE_LOG("CharacterAnimInstance::NativeInitializeAnimation - Failed to create BlendSpace1D");
 		return;
 	}
 
-	// State 추가 (애니메이션이 설정되어 있을 때만)
+	// 샘플 추가 (Speed 기반 블렌딩)
+	// Sample Value: 0.0 = Idle, 0.2 = Walk, 1.0 = Run
 	if (IdleAnimation)
 	{
-		StateMachine->AddState("Idle", IdleAnimation, true, 1.0f);
+		LocomotionBlendSpace->AddSample(0.0f, IdleAnimation);
+		UE_LOG("CharacterAnimInstance: Added Idle sample at 0.0");
 	}
 
 	if (WalkAnimation)
 	{
-		StateMachine->AddState("Walk", WalkAnimation, true, 1.0f);
+		LocomotionBlendSpace->AddSample(0.2f, WalkAnimation);
+		UE_LOG("CharacterAnimInstance: Added Walk sample at 0.5");
 	}
 
 	if (RunAnimation)
 	{
-		StateMachine->AddState("Run", RunAnimation, true, 1.5f);  // Run은 1.5배 빠르게
+		LocomotionBlendSpace->AddSample(1.0f, RunAnimation);
+		UE_LOG("CharacterAnimInstance: Added Run sample at 1.0");
 	}
 
-	// Transition 설정
-	StateMachine->AddTransition("Idle", "Walk", 0.5f);  // 0.5초 블렌딩
-	StateMachine->AddTransition("Walk", "Run", 0.3f);   // 0.3초 블렌딩
-	StateMachine->AddTransition("Run", "Idle", 0.7f);   // 0.7초 블렌딩
-	StateMachine->AddTransition("Walk", "Idle", 0.5f);  // Walk -> Idle 추가
-	StateMachine->AddTransition("Run", "Walk", 0.3f);   // Run -> Walk 추가
+	// BlendSpace 설정
+	LocomotionBlendSpace->bLooping = true;
+	LocomotionBlendSpace->PlayRate = 1.0f;
+	LocomotionBlendSpace->bUsePhaseSync = true;  // 발 위상 동기화
 
-	// 초기 상태 설정
-	StateMachine->SetInitialState("Idle");
+	// RootNode 설정 (부모 클래스가 자동으로 Update/Evaluate 호출)
+	RootNode = LocomotionBlendSpace;
 
-	UE_LOG("CharacterAnimInstance::NativeInitializeAnimation - StateMachine initialized with Idle/Walk/Run states");
+	// ========================================
+	// 노드 수동 초기화 (Super 호출 후 생성되었으므로)
+	// ========================================
+	if (OwnerComponent && OwnerComponent->GetSkeletalMesh())
+	{
+		const USkeletalMesh* SkelMesh = OwnerComponent->GetSkeletalMesh();
+		if (SkelMesh->GetSkeletalMeshData())
+		{
+			const FSkeleton* Skel = SkelMesh->GetSkeletalMeshData()->Skeleton;
+			if (Skel)
+			{
+				LocomotionBlendSpace->Initialize(Skel, this);
+				UE_LOG("CharacterAnimInstance: Manually initialized BlendSpace1D node");
+			}
+		}
+	}
+
+	UE_LOG("CharacterAnimInstance::NativeInitializeAnimation - BlendSpace1D created with %d samples, RootNode set",
+		LocomotionBlendSpace->Samples.Num());
 }
 
 void UCharacterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	// ========================================
-	// 올바른 실행 순서:
-	// 1. Super 호출 - 시간 업데이트
-	// 2. 게임 로직 (Movement, StateMachine 조건 체크)
-	// 3. StateMachine 업데이트 (Transition 처리)
-	//
-	// Notify는 UpdateAnimation()에서 자동으로 트리거됨!
+	// BlendSpace 기반 실행 순서:
+	// 1. Super 호출 - RootNode->Update() 자동 호출됨
+	// 2. 게임 로직 (Speed 업데이트)
+	// 3. 부드러운 속도 보간
+	// 4. BlendSpace CurrentParameter 업데이트
 	// ========================================
 
-	// 1. 시간 업데이트 (부모 클래스)
+	// 1. 부모 클래스 업데이트 (RootNode->Update() 자동 호출)
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	// 2. 게임 로직
+	// 2. 실제 속도 계산
 	UpdateMovementVariables();
 
-	UpdateStateMachine();
+	// 3. 부드러운 가속/감속 적용
+	UpdateSmoothedSpeed(DeltaSeconds);
 
-	// 3. StateMachine 업데이트 (Transition만 처리)
-	if (StateMachine)
+	// 4. BlendSpace 파라미터 업데이트
+	if (LocomotionBlendSpace)
 	{
-		StateMachine->Update(DeltaSeconds);
+		LocomotionBlendSpace->CurrentParameter = SmoothedSpeed;
 	}
-
-	// Notify는 UpdateAnimation()에서 자동 트리거됨 (직접 호출 불필요!)
 }
 
 void UCharacterAnimInstance::UpdateMovementVariables()
@@ -158,66 +175,52 @@ void UCharacterAnimInstance::UpdateMovementVariables()
 	if (!OwnerComponent)
 		return;
 
-	// Actor에서 Velocity 가져오기
-	//AActor* Owner = OwnerComponent->GetOwner();
 	if (Character)
 	{
-		Speed = Character->GetSpeed();
-		//static float x = 0.0f;
-		//if (Owner)
-		//{
-		//	FVector Velocity = FVector(1.0f, 1.0f, 1.0f);
-		//	Speed = 5.0f * Velocity.Size() * sinf(x);
-		//	x += 0.001f;
-		//}
-		//else
-		//{
-		//	Speed = 0.0f;
-		//}
+		// Character에서 실제 속도 가져오기
+		// TODO : Speed 0~1 사이로 정규화하기
+		float RawSpeed = Character->GetSpeed();
+
+		// Speed를 0.0 ~ 1.0 범위로 정규화
+		// 0.0 = Idle, 0.2 = Walk, 1.0 = Run
+		// 가정: RawSpeed 0~1 범위가 이미 정규화된 값
+		Speed = FMath::Clamp(RawSpeed/4.0f, 0.0f, 1.0f);
 
 		// TODO: 점프/낙하 감지
 		bIsInAir = false;
 	}
 }
 
-void UCharacterAnimInstance::UpdateStateMachine()
+void UCharacterAnimInstance::UpdateSmoothedSpeed(float DeltaSeconds)
 {
-	if (!StateMachine)
-		return;
+	// ========================================
+	// TODO(human): 부드러운 가속/감속 보간 로직 구현
+	// ========================================
+	//
+	// 목표: Speed(목표값)에서 SmoothedSpeed(현재값)으로 부드럽게 전환
+	//
+	// 고려사항:
+	// - 가속 속도와 감속 속도를 다르게 할 수 있음 (감속이 더 빠르면 반응성 향상)
+	// - 선형 보간(FInterpTo) vs 지수 감쇠(exponential smoothing)
+	// - DeltaSeconds를 사용하여 프레임 독립적으로 구현
+	//
+	// 사용 가능한 함수:
+	// - FMath::FInterpTo(Current, Target, DeltaTime, InterpSpeed)
+	// - FMath::FInterpConstantTo(Current, Target, DeltaTime, InterpSpeed)
+	// - 또는 직접 구현: Current += (Target - Current) * Rate * DeltaTime
+	//
+	// 아래에 SmoothedSpeed 업데이트 로직을 구현해주세요:
 
-	FName CurrentState = StateMachine->GetCurrentState();
-
-	if (Speed >= 1.0f)
-	{
-		StateMachine->TransitionTo("Run");
-	}
-	else if (Speed >= 0.3f)
-	{
-		StateMachine->TransitionTo("Walk");
-	}
-	else
-	{
-		StateMachine->TransitionTo("Idle");
-	}
+	SmoothedSpeed = FMath::Lerp(SmoothedSpeed, Speed, SmoothRate * DeltaSeconds);
 }
 
-void UCharacterAnimInstance::GetAnimationPose(FPoseContext& OutPose)
-{
-	if (StateMachine)
-	{
-		// Unreal 방식: DeltaTime만 전파, 각 노드가 자신의 시간 관리
-		// StateMachine이 내부적으로 StateLocalTime을 사용하여:
-		// 1. 포즈 추출
-		// 2. Notify 수집 -> OutPose.AnimNotifies에 추가
-		StateMachine->GetBlendedPose(OutPose);
-	}
-	else
-	{
-		OutPose.BoneTransforms.Empty();
-	}
-}
-
-// ⭐ GetActiveAnimations() 제거
-// Unreal 방식에서는 AnimInstance가 직접 Notify를 찾지 않음
-// 대신 GetAnimationPose() 호출 시 StateMachine이 Notify를 수집하여
-// OutPose.AnimNotifies에 추가함 (트리 누적 패턴)
+// ========================================
+// GetAnimationPose() 오버라이드 제거
+// ========================================
+// 노드 기반 시스템에서는 부모 클래스 UAnimGraphInstance가
+// RootNode->Evaluate()를 통해 자동으로 처리합니다.
+//
+// 이점:
+// 1. 코드 중복 제거
+// 2. 일관된 평가 파이프라인
+// 3. 노드 합성 가능 (BlendSpace, 상하체 분리 등)
