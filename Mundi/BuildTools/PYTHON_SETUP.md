@@ -13,11 +13,13 @@
 ### Step 2: 설치 확인
 
 명령 프롬프트에서:
+
 ```batch
 py --version
 ```
 
 출력 예시:
+
 ```
 Python 3.11.9
 ```
@@ -41,6 +43,7 @@ pip install jinja2
 **원인**: Jinja2 패키지가 설치되지 않음
 
 **해결**:
+
 ```batch
 pip install jinja2
 ```

@@ -1,5 +1,38 @@
 # Mundi 엔진
 
+## 🚀 시작하기
+
+### 필수 요구사항
+
+- **Python 3.x** - PATH에 추가되어 있어야 합니다
+  - 빌드 시 코드 생성 스크립트가 Python을 사용합니다
+  - 설치 확인: `python --version`
+
+### 외부 의존성 설치
+
+`Mundi/ThirdParty/lib` 폴더는 Git에서 제외되어 있습니다. 처음 클론 후 다음 단계를 수행하세요:
+
+1. **lib 파일 다운로드**: [다운로드 링크] (TODO: 링크 추가)
+2. **압축 해제**: `Mundi/ThirdParty/lib/` 폴더에 압축 해제
+3. **폴더 구조 확인**:
+   ```
+   Mundi/ThirdParty/lib/
+   ├── DirectXTex/
+   │   ├── Debug/
+   │   └── Release/
+   ├── DirectXTK/
+   │   ├── Debug/
+   │   └── Release/
+   ├── FBXSDK/
+   │   ├── debug/
+   │   └── release/
+   └── Lua/
+   ```
+
+> ⚠️ lib 폴더가 없으면 빌드가 실패합니다.
+
+---
+
 > 🚫 **경고: 이 내용은 Mundi 엔진 렌더링 기준의 근본입니다.**  
 > 삭제하거나 수정하면 엔진 전반의 좌표계 및 버텍스 연산이 깨집니다.  
 > **반드시 유지하십시오.**
