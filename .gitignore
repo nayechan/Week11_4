@@ -452,6 +452,10 @@ GEMINI.md
 /Mundi/DerivedDataCache/**
 !/Mundi/ThirdParty/**
 
+# External Dependencies (download from external storage)
+# lib folder is managed externally (includes .lib and .dll files)
+/Mundi/ThirdParty/lib/
+
 # Python Embedded (임베디드 Python을 포함하여 팀원들이 바로 사용 가능)
 # Python 캐시 파일만 제외
 /Mundi/Tools/Python/__pycache__/
