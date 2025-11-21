@@ -12,34 +12,22 @@ echo.
 REM Change to script directory
 cd /d "%~dp0"
 
-REM Try to find Python in the following order:
-REM 1. Embedded Python in Tools/Python/
-REM 2. System Python in PATH
-
+REM Check if system Python is available
 set PYTHON_CMD=
 
-REM Check for embedded Python first
-if exist "BuildTools\Python\python.exe" (
-    set PYTHON_CMD=BuildTools\Python\python.exe
-    echo [INFO] Using embedded Python: BuildTools\Python\python.exe
+py --version >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Python not found!
     echo.
-) else (
-    REM Check if system Python is available
-    python --version >nul 2>&1
-    if errorlevel 1 (
-        echo [ERROR] Python not found!
-        echo.
-        echo Please either:
-        echo   1. Install embedded Python to BuildTools\Python\ (see BuildTools\PYTHON_SETUP.md)
-        echo   2. Install Python 3.7+ and add it to PATH
-        echo.
-        pause
-        exit /b 1
-    )
-    set PYTHON_CMD=python
-    echo [INFO] Using system Python
+    echo Please install Python 3.7+ and add it to PATH
+    echo See BuildTools\PYTHON_SETUP.md for instructions
     echo.
+    pause
+    exit /b 1
 )
+set PYTHON_CMD=py
+echo [INFO] Using system Python
+echo.
 
 REM Verify Python version
 %PYTHON_CMD% --version
@@ -53,7 +41,6 @@ if errorlevel 1 (
     %PYTHON_CMD% -m pip install jinja2
     if errorlevel 1 (
         echo [ERROR] Failed to install jinja2!
-        echo If using embedded Python, see BuildTools\PYTHON_SETUP.md for pip setup
         pause
         exit /b 1
     )

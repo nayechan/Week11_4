@@ -463,8 +463,8 @@ GEMINI.md
 # pip 다운로드 파일 제외
 /Mundi/Tools/Python/get-pip.py
 
-# BuildTools Submodule
-# BuildTools 자체는 submodule이므로 추적하지만, 내부의 Python 캐시와 임시 파일은 제외
+# BuildTools
+# Python 캐시와 임시 파일 제외
 /Mundi/BuildTools/**/__pycache__/
 /Mundi/BuildTools/**/*.pyc
 /Mundi/BuildTools/**/*.pyo
