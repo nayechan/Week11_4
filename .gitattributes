@@ -1,4 +1,0 @@
-# Git LFS - Binary Files
-
-# Untracked FBX folder - exclude from LFS
-/Mundi/Data/Fbx/Untracked/** -filter -diff -merge -text
