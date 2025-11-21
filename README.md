@@ -12,7 +12,7 @@
 
 `Mundi/ThirdParty/lib` 폴더는 Git에서 제외되어 있습니다. 처음 클론 후 다음 단계를 수행하세요:
 
-1. **lib 파일 다운로드**: [다운로드 링크] (TODO: 링크 추가)
+1. **lib 파일 다운로드**: [lib.7z](https://drive.google.com/file/d/1PxdgM_HLDUhaQF9FWwXBWNyNEp-11PU2/view?usp=sharing)
 2. **압축 해제**: `Mundi/ThirdParty/lib/` 폴더에 압축 해제
 3. **폴더 구조 확인**:
    ```
